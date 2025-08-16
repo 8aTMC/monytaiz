@@ -45,11 +45,11 @@ export const Navigation = () => {
   if (!user) return null;
 
   const navItems = [
-    { icon: Home, label: t('platform.nav.explore'), href: '/platform' },
-    { icon: Library, label: t('platform.nav.library'), href: '/platform/library' },
-    { icon: MessageSquare, label: t('platform.nav.messages'), href: '/platform/messages' },
-    { icon: Upload, label: t('platform.nav.upload'), href: '/platform/upload' },
-    { icon: BarChart3, label: t('platform.nav.analytics'), href: '/platform/analytics' },
+    { icon: Home, label: t('platform.nav.explore'), href: '/dashboard' },
+    { icon: Library, label: t('platform.nav.library'), href: '/library' },
+    { icon: MessageSquare, label: t('platform.nav.messages'), href: '/messages' },
+    { icon: Upload, label: t('platform.nav.upload'), href: '/upload' },
+    { icon: BarChart3, label: t('platform.nav.analytics'), href: '/analytics' },
   ];
 
   return (

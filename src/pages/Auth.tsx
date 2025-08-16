@@ -17,9 +17,9 @@ const Auth = () => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Redirect authenticated users to platform
+        // Redirect authenticated users to dashboard
         if (session?.user) {
-          navigate('/platform');
+          navigate('/dashboard');
         }
       }
     );
@@ -30,7 +30,7 @@ const Auth = () => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        navigate('/platform');
+        navigate('/dashboard');
       }
     });
 
