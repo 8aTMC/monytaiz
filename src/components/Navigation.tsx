@@ -52,6 +52,7 @@ export const Navigation = () => {
     { icon: Users, label: 'All Fans', href: '/fans' },
     { icon: Upload, label: t('platform.nav.upload'), href: '/upload' },
     { icon: BarChart3, label: t('platform.nav.analytics'), href: '/analytics' },
+    { icon: UserIcon, label: 'Management', href: '/management' },
   ];
 
   return (
