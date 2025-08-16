@@ -11,6 +11,7 @@ import {
   MessageSquare, 
   Upload, 
   BarChart3, 
+  Users,
   User as UserIcon,
   LogOut 
 } from 'lucide-react';
@@ -48,6 +49,7 @@ export const Navigation = () => {
     { icon: Home, label: t('platform.nav.explore'), href: '/dashboard' },
     { icon: Library, label: t('platform.nav.library'), href: '/library' },
     { icon: MessageSquare, label: t('platform.nav.messages'), href: '/messages' },
+    { icon: Users, label: 'All Fans', href: '/fans' },
     { icon: Upload, label: t('platform.nav.upload'), href: '/upload' },
     { icon: BarChart3, label: t('platform.nav.analytics'), href: '/analytics' },
   ];
