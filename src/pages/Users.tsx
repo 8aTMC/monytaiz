@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Navigation } from '@/components/Navigation';
+import { Navigation, useSidebar } from '@/components/Navigation';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -24,6 +24,7 @@ const Users = () => {
   const { t } = useTranslation();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isCollapsed } = useSidebar();
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -116,7 +117,7 @@ const Users = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        <main className="ml-64 p-6">
+        <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
           <div className="space-y-6">
             <div className="space-y-2">
               <Skeleton className="h-8 w-48" />
@@ -153,7 +154,7 @@ const Users = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <main className="ml-64 p-6">
+      <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">User Management</h1>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Navigation } from '@/components/Navigation';
+import { Navigation, useSidebar } from '@/components/Navigation';
 import { User, Session } from '@supabase/supabase-js';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ const Platform = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const { isCollapsed } = useSidebar();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -84,7 +85,7 @@ const Platform = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      <main className="ml-64 p-8">
+      <main className={`transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">

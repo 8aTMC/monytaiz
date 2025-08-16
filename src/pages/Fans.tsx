@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Navigation } from '@/components/Navigation';
+import { Navigation, useSidebar } from '@/components/Navigation';
 import { User, Session } from '@supabase/supabase-js';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +27,7 @@ const Fans = () => {
   const [loading, setLoading] = useState(true);
   const [fans, setFans] = useState<Profile[]>([]);
   const [loadingFans, setLoadingFans] = useState(true);
+  const { isCollapsed } = useSidebar();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -95,10 +96,10 @@ const Fans = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background">
       <Navigation />
       
-      <main className="flex-1 p-8">
+      <main className={`transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
