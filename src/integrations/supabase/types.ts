@@ -392,7 +392,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      app_role: "fan" | "creator" | "chatter" | "agency" | "moderator"
+      app_role: "fan" | "creator" | "chatter" | "agency" | "moderator" | "admin"
       content_type: "image" | "video" | "audio" | "document" | "pack"
       negotiation_status:
         | "pending"
@@ -528,7 +528,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["fan", "creator", "chatter", "agency", "moderator"],
+      app_role: ["fan", "creator", "chatter", "agency", "moderator", "admin"],
       content_type: ["image", "video", "audio", "document", "pack"],
       negotiation_status: [
         "pending",
