@@ -58,11 +58,6 @@ export const Navigation = () => {
     { icon: BarChart3, label: t('platform.nav.analytics'), href: '/analytics' },
   ];
 
-  const managementSubItems = [
-    { label: 'Administrators', role: 'admin' },
-    { label: 'Managers', role: 'manager' },  
-    { label: 'Chatters', role: 'chatter' },
-  ];
 
   return (
     <nav className="bg-card border-r border-border h-full w-64 flex flex-col">
@@ -100,20 +95,13 @@ export const Navigation = () => {
               </CollapsibleTrigger>
               
               <CollapsibleContent className="mt-1 space-y-1">
-                {managementSubItems.map((subItem) => (
-                  <div key={subItem.role}>
-                    <div className="px-6 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border/50">
-                      {subItem.label}
-                    </div>
-                    <Link
-                      to={`/management/users/${subItem.role}`}
-                      className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
-                    >
-                      <Users className="h-4 w-4" />
-                      <span>Users</span>
-                    </Link>
-                  </div>
-                ))}
+                <Link
+                  to="/management/users"
+                  className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                >
+                  <Users className="h-4 w-4" />
+                  <span>Users</span>
+                </Link>
               </CollapsibleContent>
             </Collapsible>
           </li>
