@@ -60,7 +60,7 @@ export const Navigation = () => {
 
 
   return (
-    <nav className="bg-card border-r border-border h-full w-64 flex flex-col">
+    <nav className="fixed left-0 top-0 bg-card border-r border-border h-screen w-64 flex flex-col z-40">
       <div className="p-6">
         <h1 className="text-xl font-bold text-foreground">Fan Platform</h1>
       </div>
