@@ -13,14 +13,18 @@ import {
   BarChart3, 
   Users,
   User as UserIcon,
-  LogOut 
+  LogOut,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 export const Navigation = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [isManagementOpen, setIsManagementOpen] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -52,7 +56,12 @@ export const Navigation = () => {
     { icon: Users, label: 'All Fans', href: '/fans' },
     { icon: Upload, label: t('platform.nav.upload'), href: '/upload' },
     { icon: BarChart3, label: t('platform.nav.analytics'), href: '/analytics' },
-    { icon: UserIcon, label: 'Management', href: '/management' },
+  ];
+
+  const managementSubItems = [
+    { label: 'Administrators', role: 'admin' },
+    { label: 'Managers', role: 'manager' },  
+    { label: 'Chatters', role: 'chatter' },
   ];
 
   return (
@@ -74,6 +83,40 @@ export const Navigation = () => {
               </Link>
             </li>
           ))}
+          
+          {/* Management Collapsible Menu */}
+          <li>
+            <Collapsible open={isManagementOpen} onOpenChange={setIsManagementOpen}>
+              <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth">
+                <div className="flex items-center gap-3">
+                  <UserIcon className="h-5 w-5" />
+                  <span>Management</span>
+                </div>
+                {isManagementOpen ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </CollapsibleTrigger>
+              
+              <CollapsibleContent className="mt-1 space-y-1">
+                {managementSubItems.map((subItem) => (
+                  <div key={subItem.role}>
+                    <div className="px-6 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border/50">
+                      {subItem.label}
+                    </div>
+                    <Link
+                      to={`/management/users/${subItem.role}`}
+                      className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                    >
+                      <Users className="h-4 w-4" />
+                      <span>Users</span>
+                    </Link>
+                  </div>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          </li>
         </ul>
       </div>
       
