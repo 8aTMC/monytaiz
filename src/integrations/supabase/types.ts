@@ -230,6 +230,7 @@ export type Database = {
           created_at: string | null
           display_name: string | null
           id: string
+          is_undeletable: boolean | null
           is_verified: boolean | null
           updated_at: string | null
           username: string | null
@@ -241,6 +242,7 @@ export type Database = {
           created_at?: string | null
           display_name?: string | null
           id: string
+          is_undeletable?: boolean | null
           is_verified?: boolean | null
           updated_at?: string | null
           username?: string | null
@@ -252,6 +254,7 @@ export type Database = {
           created_at?: string | null
           display_name?: string | null
           id?: string
+          is_undeletable?: boolean | null
           is_verified?: boolean | null
           updated_at?: string | null
           username?: string | null
