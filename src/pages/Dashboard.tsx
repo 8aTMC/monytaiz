@@ -102,7 +102,7 @@ const Platform = () => {
               <Button 
                 variant="hero" 
                 size="lg"
-                onClick={() => navigate('/platform/upload')}
+                onClick={() => navigate('/upload')}
                 className="group"
               >
                 <Plus className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
@@ -111,9 +111,17 @@ const Platform = () => {
               <Button 
                 variant="glass" 
                 size="lg"
-                onClick={() => navigate('/platform/messages')}
+                onClick={() => navigate('/messages')}
               >
                 {t('platform.nav.messages')}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="lg"
+                onClick={() => navigate('/fans')}
+              >
+                <Users className="mr-2 h-5 w-5" />
+                All Fans
               </Button>
             </div>
           </div>
