@@ -1,0 +1,81 @@
+{
+  "landing": {
+    "hero": {
+      "title": "Premium Fan Experience",
+      "subtitle": "Connect, Create, Monetize",
+      "description": "The ultimate platform for creators to build meaningful relationships with their fans through exclusive content and experiences.",
+      "cta": "Enter Fan Platform",
+      "learnMore": "Learn More"
+    },
+    "features": {
+      "title": "Everything You Need",
+      "subtitle": "Powerful features designed for creators and fans",
+      "content": {
+        "title": "Exclusive Content",
+        "description": "Share photos, videos, and premium content with your biggest supporters."
+      },
+      "monetization": {
+        "title": "Smart Monetization",
+        "description": "Flexible pricing, tips, and negotiations put you in control of your earnings."
+      },
+      "community": {
+        "title": "Engaged Community",
+        "description": "Build lasting relationships through direct messaging and interactive features."
+      }
+    },
+    "footer": {
+      "copyright": "© 2024 Premium Fan Platform. All rights reserved."
+    }
+  },
+  "platform": {
+    "nav": {
+      "explore": "Explore",
+      "library": "My Library",
+      "messages": "Messages",
+      "profile": "Profile",
+      "upload": "Upload",
+      "analytics": "Analytics"
+    },
+    "auth": {
+      "signIn": "Sign In",
+      "signUp": "Sign Up",
+      "signOut": "Sign Out",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "username": "Username",
+      "displayName": "Display Name",
+      "createAccount": "Create Account",
+      "alreadyHaveAccount": "Already have an account?",
+      "dontHaveAccount": "Don't have an account?",
+      "forgotPassword": "Forgot password?"
+    },
+    "content": {
+      "title": "Title",
+      "description": "Description",
+      "price": "Price",
+      "upload": "Upload Content",
+      "purchase": "Purchase",
+      "negotiate": "Negotiate Price",
+      "addToCart": "Add to Cart"
+    },
+    "negotiation": {
+      "title": "Price Negotiation",
+      "originalPrice": "Original Price",
+      "yourOffer": "Your Offer",
+      "message": "Message (optional)",
+      "sendOffer": "Send Offer",
+      "acceptOffer": "Accept Offer",
+      "rejectOffer": "Reject Offer",
+      "counterOffer": "Counter Offer"
+    },
+    "purchase": {
+      "confirmTitle": "Confirm Purchase",
+      "confirmDescription": "Are you sure you want to purchase this content?",
+      "confirm": "Confirm Purchase",
+      "cancel": "Cancel",
+      "success": "Purchase completed successfully!",
+      "error": "Purchase failed. Please try again."
+    }
+  }
+}
