@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslation } from '@/hooks/useTranslation';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Check, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface AuthFormProps {
@@ -18,14 +18,37 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    confirmPassword: '',
     username: '',
     displayName: '',
   });
+
+  // Validation functions
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validateUsername = (username: string) => {
+    return !username.includes(' ');
+  };
+
+  const getPasswordRules = (password: string) => {
+    return {
+      length: password.length >= 8 && password.length <= 19,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /[0-9]/.test(password),
+      symbol: /[~!@#$%^&*()_\-+={\[}\]|\\:;"'<,>.?/]/.test(password),
+    };
+  };
+
+  const isPasswordValid = (password: string) => {
+    const rules = getPasswordRules(password);
+    return Object.values(rules).every(Boolean);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,10 +56,31 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
 
     try {
       if (mode === 'signup') {
-        if (formData.password !== formData.confirmPassword) {
+        // Validate email
+        if (!validateEmail(formData.email)) {
           toast({
             title: "Error",
-            description: "Passwords don't match",
+            description: "Please enter a valid email address",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Validate username
+        if (!validateUsername(formData.username)) {
+          toast({
+            title: "Error",
+            description: "Username cannot contain spaces",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Validate password
+        if (!isPasswordValid(formData.password)) {
+          toast({
+            title: "Error",
+            description: "Password does not meet all requirements",
             variant: "destructive",
           });
           return;
@@ -184,35 +228,41 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
             </div>
           </div>
           
-          {mode === 'signup' && (
+          {mode === 'signup' && formData.password && (
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-foreground">
-                {t('platform.auth.confirmPassword')}
-              </Label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="|Password12345@~!"
-                  value={formData.confirmPassword}
-                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                  required
-                  className="bg-input border-border text-foreground pr-10"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </Button>
+              <Label className="text-foreground text-sm">Password Requirements</Label>
+              <div className="space-y-1">
+                {Object.entries({
+                  'Between 8-19 characters': getPasswordRules(formData.password).length,
+                  'At least 1 uppercase letter': getPasswordRules(formData.password).uppercase,
+                  'At least 1 lowercase letter': getPasswordRules(formData.password).lowercase,
+                  'At least 1 number': getPasswordRules(formData.password).number,
+                  'At least 1 symbol (~!@#$%^&*()_-+={[}]|\\:;"\'<,>.?/)': getPasswordRules(formData.password).symbol,
+                }).map(([rule, isValid]) => (
+                  <div key={rule} className="flex items-center gap-2">
+                    {isValid ? (
+                      <Check className="h-3 w-3 text-green-500" />
+                    ) : (
+                      <X className="h-3 w-3 text-red-500" />
+                    )}
+                    <span className={`text-xs ${isValid ? 'text-green-600' : 'text-red-600'}`}>
+                      {rule}
+                    </span>
+                  </div>
+                ))}
               </div>
+            </div>
+          )}
+
+          {mode === 'signup' && formData.email && !validateEmail(formData.email) && (
+            <div className="text-xs text-red-600">
+              Please enter a valid email address (example@domain.com)
+            </div>
+          )}
+
+          {mode === 'signup' && formData.username && !validateUsername(formData.username) && (
+            <div className="text-xs text-red-600">
+              Username cannot contain spaces
             </div>
           )}
           
