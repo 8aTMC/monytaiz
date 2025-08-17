@@ -280,11 +280,6 @@ export const MyAccount = () => {
               {profile?.display_name?.[0] || profile?.username?.[0] || 'U'}
             </AvatarFallback>
           </Avatar>
-          <div className="flex flex-col gap-1">
-            <p className="text-sm text-muted-foreground">
-              {t('account.editToUpload', 'Click Edit to change avatar')}
-            </p>
-          </div>
         </div>
 
         {/* Profile Information */}
