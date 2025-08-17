@@ -165,7 +165,13 @@ export const usePWA = () => {
         isInstalled, 
         isDismissed, 
         platform, 
-        hasInstallCapability 
+        hasInstallCapability,
+        currentUrl: window.location.href,
+        domain: window.location.hostname,
+        protocol: window.location.protocol,
+        isSecure: window.location.protocol === 'https:',
+        manifestPresent: !!document.querySelector('link[rel="manifest"]'),
+        serviceWorkerSupported: 'serviceWorker' in navigator
       });
       
       // Set canInstall based on platform capabilities
