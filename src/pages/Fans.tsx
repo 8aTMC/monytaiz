@@ -40,6 +40,21 @@ const Fans = () => {
   const [selectedFan, setSelectedFan] = useState<Profile | null>(null);
   const [fanRoles, setFanRoles] = useState<Record<string, UserRole[]>>({});
   const { isCollapsed } = useSidebar();
+
+  // Emoji mapping for fan categories
+  const getCategoryDisplay = (category: Profile['fan_category']) => {
+    const emojiMap = {
+      husband: '💍',
+      boyfriend: '💕',
+      supporter: '⭐',
+      friend: '👫',
+      fan: '🥰'
+    };
+    
+    const emoji = emojiMap[category];
+    const capitalizedCategory = category.charAt(0).toUpperCase() + category.slice(1);
+    return `${emoji} ${capitalizedCategory}`;
+  };
   
   const categoryFilter = searchParams.get('category') as Profile['fan_category'] | null;
 
@@ -236,7 +251,7 @@ const Fans = () => {
                                 </Badge>
                               )}
                               <Badge variant="outline" className="text-xs">
-                                {fan.fan_category?.charAt(0).toUpperCase() + fan.fan_category?.slice(1)}
+                                {fan.fan_category && getCategoryDisplay(fan.fan_category)}
                               </Badge>
                             </div>
                             {fan.username && fan.display_name && (
@@ -354,7 +369,7 @@ const Fans = () => {
                             <div className="flex justify-between py-2">
                               <span className="text-muted-foreground">Category</span>
                               <Badge variant="outline" className="text-xs">
-                                {selectedFan.fan_category?.charAt(0).toUpperCase() + selectedFan.fan_category?.slice(1)}
+                                {selectedFan.fan_category && getCategoryDisplay(selectedFan.fan_category)}
                               </Badge>
                             </div>
                             {selectedFan.bio && (
