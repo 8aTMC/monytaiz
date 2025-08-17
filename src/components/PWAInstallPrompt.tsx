@@ -48,7 +48,7 @@ export const PWAInstallPrompt = () => {
     return () => clearTimeout(timer);
   }, [canInstall, isInstalled, isInstallPromptDismissed]);
 
-  // Smart manual prompt logic - only show if no native prompt and not recently dismissed
+  // Smart manual prompt logic - show for desktop when no native support
   useEffect(() => {
     const timer = setTimeout(() => {
       const manualDismissed = localStorage.getItem('pwa-manual-dismissed') === 'true';
@@ -67,27 +67,30 @@ export const PWAInstallPrompt = () => {
         canInstall, 
         manualDismissed, 
         isManualDismissalValid,
-        platform 
+        platform,
+        deferredPrompt: !!deferredPrompt
       });
       
       // Show manual prompt if:
       // 1. App is not installed
-      // 2. Native prompt is not showing
-      // 3. No native install capability (no deferredPrompt)
-      // 4. Manual prompt hasn't been recently dismissed
-      // 5. Not already dismissed via main prompt
-      if (!isInstalled && 
-          !showPrompt && 
-          !canInstall && 
-          !isManualDismissalValid && 
-          !isInstallPromptDismissed) {
+      // 2. Native prompt is not showing  
+      // 3. Manual prompt hasn't been recently dismissed
+      // 4. Not already dismissed via main prompt
+      // 5. For desktop: show even without native support
+      const shouldShowManual = !isInstalled && 
+                              !showPrompt && 
+                              !isManualDismissalValid && 
+                              !isInstallPromptDismissed &&
+                              (platform === 'desktop' || !canInstall);
+      
+      if (shouldShowManual) {
         setShowManualPrompt(true);
-        console.log('🔧 PWA Manual Prompt: Manual guidance shown');
+        console.log('🔧 PWA Manual Prompt: Manual guidance shown for', platform);
       }
     }, 4000); // Show after native prompt opportunity
 
     return () => clearTimeout(timer);
-  }, [isInstalled, showPrompt, canInstall, isInstallPromptDismissed, platform]);
+  }, [isInstalled, showPrompt, canInstall, isInstallPromptDismissed, platform, deferredPrompt]);
 
   const handleInstall = async () => {
     const success = await installApp();

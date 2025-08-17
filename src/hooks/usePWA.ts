@@ -144,16 +144,32 @@ export const usePWA = () => {
     const forceInstallabilityCheck = () => {
       const { isInstalled } = detectInstallation();
       const isDismissed = isInstallPromptDismissed();
+      const platform = detectPlatform();
       
-      // Check if browser supports add to home screen or installation
+      // Enhanced browser support detection
       const isInstallSupported = 
         'serviceWorker' in navigator && 
         window.matchMedia('(display-mode: browser)').matches &&
         !isInstalled;
       
-      console.log('🔧 PWA: Force installability check', { isInstallSupported, isInstalled, isDismissed });
+      // For desktop browsers, check for specific PWA install capabilities
+      const hasInstallCapability = platform === 'desktop' && (
+        // Chrome/Edge has install prompt support
+        'getInstalledRelatedApps' in navigator ||
+        // Check if we're in a PWA-capable browser
+        window.matchMedia('(display-mode: browser)').matches
+      );
       
-      if (isInstallSupported && !isDismissed) {
+      console.log('🔧 PWA: Force installability check', { 
+        isInstallSupported, 
+        isInstalled, 
+        isDismissed, 
+        platform, 
+        hasInstallCapability 
+      });
+      
+      // Only set canInstall to true if we actually have installation capability
+      if (isInstallSupported && !isDismissed && platform !== 'desktop') {
         setPwaState(prev => ({
           ...prev,
           isInstallable: true,
@@ -255,10 +271,37 @@ export const usePWA = () => {
     };
   }, [detectInstallation, detectPlatform, isInstallPromptDismissed]);
 
-  // Enhanced install app function with better error handling
+  // Enhanced install app function with better error handling and desktop support
   const installApp = async () => {
+    console.log('📱 PWA: Install attempt started', { 
+      hasDeferredPrompt: !!pwaState.deferredPrompt, 
+      platform: pwaState.platform 
+    });
+
     if (!pwaState.deferredPrompt) {
       console.warn('🚫 PWA: No deferred prompt available for installation');
+      
+      // For desktop browsers without deferred prompt, try to trigger browser's install UI
+      if (pwaState.platform === 'desktop') {
+        console.log('🖥️ PWA: Attempting desktop installation fallback');
+        
+        // Show instructions for manual installation on desktop
+        const instructions = `To install this app on your desktop:
+
+1. Look for the install icon (⊕) in your browser's address bar
+2. Click it and select "Install"
+
+Alternatively:
+• Chrome: Menu → More tools → Create shortcut → Check "Open as window"
+• Edge: Menu → Apps → Install this site as an app
+• Firefox: Menu → Page → Install page as app
+
+The app will open in its own window like a desktop application.`;
+
+        alert(instructions);
+        return false;
+      }
+      
       return false;
     }
 
