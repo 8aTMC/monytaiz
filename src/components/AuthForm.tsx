@@ -106,6 +106,22 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
           {mode === 'signup' && (
             <>
               <div className="space-y-2">
+                <Label htmlFor="displayName" className="text-foreground">
+                  Name
+                </Label>
+                <Input
+                  id="displayName"
+                  type="text"
+                  value={formData.displayName}
+                  onChange={(e) => handleInputChange('displayName', e.target.value.slice(0, 20))}
+                  required
+                  className="bg-input border-border text-foreground"
+                  maxLength={20}
+                  placeholder="Your name"
+                />
+                <p className="text-xs text-muted-foreground">{formData.displayName.length}/20 characters</p>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="username" className="text-foreground">
                   {t('platform.auth.username')}
                 </Label>
@@ -113,23 +129,12 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
                   id="username"
                   type="text"
                   value={formData.username}
-                  onChange={(e) => handleInputChange('username', e.target.value)}
+                  onChange={(e) => handleInputChange('username', e.target.value.slice(0, 20))}
                   required
                   className="bg-input border-border text-foreground"
+                  maxLength={20}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="displayName" className="text-foreground">
-                  {t('platform.auth.displayName')}
-                </Label>
-                <Input
-                  id="displayName"
-                  type="text"
-                  value={formData.displayName}
-                  onChange={(e) => handleInputChange('displayName', e.target.value)}
-                  required
-                  className="bg-input border-border text-foreground"
-                />
+                <p className="text-xs text-muted-foreground">{formData.username.length}/20 characters</p>
               </div>
             </>
           )}

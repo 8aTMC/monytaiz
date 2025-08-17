@@ -21,6 +21,10 @@ const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDialogPro
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    secondLastName: '',
     displayName: '',
     username: '',
     bio: '',
@@ -40,6 +44,10 @@ const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDialogPro
         user_metadata: {
           display_name: formData.displayName,
           username: formData.username,
+          first_name: formData.firstName,
+          middle_name: formData.middleName,
+          last_name: formData.lastName,
+          second_last_name: formData.secondLastName,
         }
       });
 
@@ -87,6 +95,10 @@ const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDialogPro
         setFormData({
           email: '',
           password: '',
+          firstName: '',
+          middleName: '',
+          lastName: '',
+          secondLastName: '',
           displayName: '',
           username: '',
           bio: '',
@@ -167,22 +179,77 @@ const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDialogPro
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="displayName">Display Name</Label>
+              <Label htmlFor="firstName">First Name *</Label>
               <Input
-                id="displayName"
-                value={formData.displayName}
-                onChange={(e) => setFormData(prev => ({ ...prev, displayName: e.target.value }))}
-                placeholder="John Doe"
+                id="firstName"
+                value={formData.firstName}
+                onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                placeholder="John"
+                required
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="middleName">Middle Name</Label>
+              <Input
+                id="middleName"
+                value={formData.middleName}
+                onChange={(e) => setFormData(prev => ({ ...prev, middleName: e.target.value }))}
+                placeholder="Michael"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name *</Label>
+              <Input
+                id="lastName"
+                value={formData.lastName}
+                onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                placeholder="Doe"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="secondLastName">Second Last Name</Label>
+              <Input
+                id="secondLastName"
+                value={formData.secondLastName}
+                onChange={(e) => setFormData(prev => ({ ...prev, secondLastName: e.target.value }))}
+                placeholder="Smith"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input
                 id="username"
                 value={formData.username}
-                onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value.slice(0, 20) }))}
                 placeholder="johndoe"
+                maxLength={20}
+              />
+              <p className="text-xs text-muted-foreground">{formData.username.length}/20 characters</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="displayName">Display Name</Label>
+              <Input
+                id="displayName"
+                value={formData.displayName}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  displayName: e.target.value,
+                  // Auto-generate display name from first and last name if empty
+                  ...(!formData.displayName && formData.firstName && formData.lastName ? {
+                    displayName: `${formData.firstName} ${formData.lastName}`
+                  } : {})
+                }))}
+                placeholder="John Doe"
               />
             </div>
           </div>

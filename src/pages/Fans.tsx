@@ -235,24 +235,24 @@ const Fans = () => {
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0 mt-1">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <CardTitle className="text-foreground truncate text-base leading-tight">
+                            <div className="flex items-center justify-between mb-0.5">
+                              <CardTitle className="text-foreground truncate text-base leading-tight flex-1 mr-2">
                                 {fan.display_name || fan.username || 'Anonymous'}
                               </CardTitle>
-                              {fan.is_verified && (
-                                <Badge variant="secondary" className="text-xs">
-                                  Verified
-                                </Badge>
-                              )}
+                              <Badge variant="outline" className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20">
+                                {fan.fan_category && getCategoryDisplay(fan.fan_category)}
+                              </Badge>
                             </div>
                             {fan.username && fan.display_name && (
                               <p className="text-xs text-muted-foreground truncate mb-1">
                                 @{fan.username}
                               </p>
                             )}
-                            <Badge variant="outline" className="text-xs w-fit px-2 py-0.5">
-                              {fan.fan_category && getCategoryDisplay(fan.fan_category)}
-                            </Badge>
+                            {fan.is_verified && (
+                              <Badge variant="secondary" className="text-xs w-fit">
+                                Verified
+                              </Badge>
+                            )}
                           </div>
                         </div>
                         
