@@ -195,10 +195,13 @@ export const PWAInstallPrompt = () => {
               
               <div className="flex-1 min-w-0">
                 <h3 className="text-lg font-bold text-foreground mb-2 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                  Install Monytaiz
+                  {isMobile ? 'Install Mobile App' : 'Install Desktop App'}
                 </h3>
                 <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-                  Get the complete app experience with offline access, instant notifications, and lightning-fast performance.
+                  {isMobile 
+                    ? 'Add Monytaiz to your home screen for instant access, push notifications, and a native mobile experience.'
+                    : 'Install Monytaiz on your desktop for offline access, notifications, and a seamless app experience.'
+                  }
                 </p>
                 
                 <div className="flex gap-3">
@@ -209,7 +212,7 @@ export const PWAInstallPrompt = () => {
                     className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    Install App
+                    {isMobile ? 'Add to Home Screen' : 'Install App'}
                   </Button>
                   <Button
                     size="sm"
@@ -249,10 +252,13 @@ export const PWAInstallPrompt = () => {
               
               <div className="flex-1 min-w-0">
                 <h3 className="text-lg font-bold text-foreground mb-2 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                  Install Monytaiz
+                  {isMobile ? 'Get Mobile App' : 'Install Desktop App'}
                 </h3>
                 <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-                  Add to your home screen for the best app experience with offline access and quick launch.
+                  {isMobile 
+                    ? 'Add Monytaiz to your home screen for quick access and a mobile app experience.'
+                    : 'Install Monytaiz on your desktop for better performance and app-like functionality.'
+                  }
                 </p>
                 
                 <div className="flex gap-3">
@@ -263,7 +269,7 @@ export const PWAInstallPrompt = () => {
                     className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    Install App
+                    {isMobile ? 'Add to Home' : 'Install App'}
                   </Button>
                   <Button
                     size="sm"
