@@ -7,7 +7,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { User, Crown, Shield, MessageCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { User, Crown, Shield, MessageCircle, Plus } from 'lucide-react';
 
 interface UserProfile {
   id: string;
@@ -179,11 +180,17 @@ const Users = () => {
       <Navigation />
       <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-            <p className="text-muted-foreground">
-              Manage all platform users organized by their roles
-            </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+              <p className="text-muted-foreground">
+                Manage all platform users organized by their roles
+              </p>
+            </div>
+            <Button className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Create User
+            </Button>
           </div>
 
           <div className="space-y-6">
