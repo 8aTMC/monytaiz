@@ -249,6 +249,7 @@ export const MyAccount = () => {
 
   const getRoleDisplayName = (role: string) => {
     const roleNames: Record<string, string> = {
+      'owner': 'Owner',
       'creator': 'Creator',
       'admin': 'Admin',
       'superadmin': 'Super Admin',
@@ -263,6 +264,7 @@ export const MyAccount = () => {
 
   const getRoleBadgeColor = (role: string) => {
     const colors: Record<string, string> = {
+      'owner': 'bg-purple-100 text-purple-800 border-purple-200',
       'creator': 'bg-purple-100 text-purple-800 border-purple-200',
       'admin': 'bg-red-100 text-red-800 border-red-200',
       'superadmin': 'bg-red-100 text-red-800 border-red-200',
