@@ -163,6 +163,7 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         if (error) throw error;
 
         toast({
+          variant: "success",
           title: "Success",
           description: "Signed in successfully!",
         });
