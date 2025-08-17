@@ -122,7 +122,8 @@ export const Navigation = () => {
     if (href === '/dashboard') {
       return location.pathname === '/' || location.pathname === '/dashboard';
     }
-    return location.pathname === href || location.pathname.startsWith(href + '/');
+    // Exact match for other routes
+    return location.pathname === href;
   };
 
   // Helper function to check if fans section is active
