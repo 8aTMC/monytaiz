@@ -201,8 +201,9 @@ const ContentLibrary = () => {
         <div className="flex h-screen">
           {/* Categories Sidebar */}
           <div className="w-80 bg-card border-r border-border p-6 overflow-y-auto">
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-foreground mb-4">Content Library</h2>
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-foreground">Library</h2>
+            </div>
               
               {/* Categories */}
               <div className="space-y-2">
@@ -239,7 +240,6 @@ const ContentLibrary = () => {
                   );
                 })}
               </div>
-            </div>
           </div>
 
           {/* Main Content Area */}

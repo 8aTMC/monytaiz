@@ -61,9 +61,8 @@ const Profile = () => {
       <Navigation />
       <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <div className="max-w-4xl mx-auto">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-foreground">My Account</h1>
-            <p className="text-muted-foreground">Manage your profile information and settings</p>
+          <div className="mb-4">
+            <h1 className="text-lg font-semibold text-foreground">My Account</h1>
           </div>
 
           <MyAccount />

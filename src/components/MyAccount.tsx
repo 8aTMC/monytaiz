@@ -17,11 +17,16 @@ interface UserProfile {
   avatar_url: string | null;
 }
 
+interface UserRole {
+  role: string;
+}
+
 export const MyAccount = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [userRole, setUserRole] = useState<string>('fan');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -41,6 +46,7 @@ export const MyAccount = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Fetch profile data
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -52,7 +58,15 @@ export const MyAccount = () => {
         return;
       }
 
+      // Fetch user role
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+
       setProfile(data);
+      setUserRole(roleData?.role || 'fan');
       setFormData({
         username: data.username || '',
         display_name: data.display_name || '',
@@ -195,16 +209,114 @@ export const MyAccount = () => {
   };
   if (loading) {
     return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-muted rounded w-1/4"></div>
-            <div className="h-10 bg-muted rounded"></div>
-            <div className="h-10 bg-muted rounded"></div>
-            <div className="h-20 bg-muted rounded"></div>
+      <div className="animate-pulse space-y-4">
+        <div className="h-4 bg-muted rounded w-1/4"></div>
+        <div className="h-10 bg-muted rounded"></div>
+        <div className="h-10 bg-muted rounded"></div>
+        <div className="h-20 bg-muted rounded"></div>
+      </div>
+    );
+  }
+
+  const getRoleDisplayName = (role: string) => {
+    const roleNames: Record<string, string> = {
+      'creator': 'Creator',
+      'admin': 'Admin',
+      'superadmin': 'Super Admin',
+      'moderator': 'Moderator',
+      'manager': 'Manager',
+      'chatter': 'Chatter',
+      'agency': 'Agency',
+      'fan': 'Fan'
+    };
+    return roleNames[role] || 'Fan';
+  };
+
+  const getRoleBadgeColor = (role: string) => {
+    const colors: Record<string, string> = {
+      'creator': 'bg-purple-100 text-purple-800 border-purple-200',
+      'admin': 'bg-red-100 text-red-800 border-red-200',
+      'superadmin': 'bg-red-100 text-red-800 border-red-200',
+      'moderator': 'bg-orange-100 text-orange-800 border-orange-200',
+      'manager': 'bg-blue-100 text-blue-800 border-blue-200',
+      'chatter': 'bg-green-100 text-green-800 border-green-200',
+      'agency': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      'fan': 'bg-gray-100 text-gray-800 border-gray-200'
+    };
+    return colors[role] || 'bg-gray-100 text-gray-800 border-gray-200';
+  };
+
+  if (!isEditing) {
+    return (
+      <div className="space-y-6">
+        {/* Header with Edit Buttons */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <User className="h-5 w-5" />
+              {t('account.title', 'My Account')}
+            </h2>
+            <span className={`px-2 py-1 text-xs font-medium rounded-md border ${getRoleBadgeColor(userRole)}`}>
+              {getRoleDisplayName(userRole)}
+            </span>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleEdit}>
+              <Edit className="h-4 w-4 mr-2" />
+              {t('account.edit', 'Edit')}
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleChangeEmail}>
+              <Mail className="h-4 w-4 mr-2" />
+              {t('account.changeEmail', 'Change Email')}
+            </Button>
+          </div>
+        </div>
+
+        {/* Avatar Section */}
+        <div className="flex items-center gap-4">
+          <Avatar className="h-16 w-16">
+            <AvatarImage src={profile?.avatar_url || ''} />
+            <AvatarFallback>
+              {profile?.display_name?.[0] || profile?.username?.[0] || 'U'}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col gap-1">
+            <p className="text-sm text-muted-foreground">
+              {t('account.editToUpload', 'Click Edit to change avatar')}
+            </p>
+          </div>
+        </div>
+
+        {/* Profile Information */}
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-foreground">
+              {t('account.username', 'Username')}
+            </label>
+            <p className="mt-1 text-foreground">
+              {profile?.username || 'Not set'}
+            </p>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-foreground">
+              {t('account.displayName', 'Display Name')}
+            </label>
+            <p className="mt-1 text-foreground">
+              {profile?.display_name || 'Not set'}
+            </p>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-foreground">
+              {t('account.bio', 'Bio')}
+            </label>
+            <p className="mt-1 text-foreground whitespace-pre-wrap">
+              {profile?.bio || 'Tell us about yourself...'}
+            </p>
+          </div>
+        </div>
+      </div>
     );
   }
 

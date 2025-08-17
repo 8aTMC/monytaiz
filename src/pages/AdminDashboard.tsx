@@ -144,7 +144,9 @@ const AdminDashboard = () => {
       <Navigation />
       <div className="flex-1 ml-64 p-8">
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-3xl font-bold text-foreground mb-8">Admin Dashboard</h1>
+          <div className="mb-4">
+            <h1 className="text-lg font-semibold text-foreground">Admin Dashboard</h1>
+          </div>
           
           <Card>
             <CardHeader>
