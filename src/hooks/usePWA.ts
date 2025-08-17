@@ -32,6 +32,12 @@ export const usePWA = () => {
 
   // Check if app is installed
   const checkInstallation = (): boolean => {
+    // Always return false for desktop to show install prompt
+    const platform = detectPlatform();
+    if (platform === 'desktop') {
+      return false;
+    }
+
     // Strategy 1: Display mode detection
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
     const isFullscreen = window.matchMedia('(display-mode: fullscreen)').matches;
@@ -47,7 +53,7 @@ export const usePWA = () => {
       return true;
     }
 
-    // Strategy 3: Check localStorage
+    // Strategy 3: Check localStorage (only for mobile)
     const storedInstalled = localStorage.getItem(PWA_INSTALLED_KEY) === 'true';
     return storedInstalled;
   };
