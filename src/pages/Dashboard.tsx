@@ -120,96 +120,16 @@ const Platform = () => {
       
       <main className={`transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground">
-              Welcome back!
-            </h1>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="mb-8">
-            <div className="flex flex-wrap gap-4">
-              <Button 
-                variant="hero" 
-                size="lg"
-                onClick={() => navigate('/upload')}
-                className="group"
-              >
-                <Plus className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
-                {t('platform.nav.upload', 'Upload')}
-              </Button>
-              <Button 
-                variant="glass" 
-                size="lg"
-                onClick={() => navigate('/messages')}
-              >
-                {t('platform.nav.messages', 'Messages')}
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg"
-                onClick={() => navigate('/fans')}
-              >
-                <Users className="mr-2 h-5 w-5" />
-                All Fans
-              </Button>
+          {/* Empty dashboard for fans */}
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <h1 className="text-2xl font-semibold text-muted-foreground mb-2">
+                Welcome to your dashboard
+              </h1>
+              <p className="text-muted-foreground">
+                Your content will appear here soon
+              </p>
             </div>
-          </div>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {stats.map((stat, index) => (
-              <Card key={index} className="bg-gradient-card border-border shadow-card">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {stat.title}
-                  </CardTitle>
-                  <stat.icon className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-foreground">{stat.value}</div>
-                  <p className={`text-xs ${
-                    stat.changeType === 'positive' ? 'text-green-500' : 'text-red-500'
-                  }`}>
-                    {stat.change} from last month
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Recent Content */}
-            <Card className="bg-gradient-card border-border shadow-card">
-              <CardHeader>
-                <CardTitle className="text-foreground">Recent Content</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground mb-4">No content uploaded yet</p>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => navigate('/platform/upload')}
-                  >
-                    Upload Your First Content
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Recent Activity */}
-            <Card className="bg-gradient-card border-border shadow-card">
-              <CardHeader>
-                <CardTitle className="text-foreground">Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No recent activity</p>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </main>
