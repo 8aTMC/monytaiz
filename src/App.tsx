@@ -16,6 +16,7 @@ import Upload from "./pages/Upload";
 import FansCategories from "./pages/FansCategories";
 import FansLists from "./pages/FansLists";
 import NotFound from "./pages/NotFound";
+import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <PWAInstallPrompt />
       <BrowserRouter>
         <SidebarProvider>
           <Routes>
