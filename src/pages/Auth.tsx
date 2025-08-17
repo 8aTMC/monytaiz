@@ -17,9 +17,18 @@ const Auth = () => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Redirect authenticated users to dashboard
+        // Redirect authenticated users
         if (session?.user) {
-          navigate('/dashboard');
+          // Check if it's a new Google user needing onboarding
+          if (event === 'SIGNED_IN' && session.user.app_metadata.provider === 'google') {
+            // For Google users, always redirect to onboarding first
+            // The onboarding component will check if profile is complete
+            setTimeout(() => {
+              navigate('/onboarding');
+            }, 0);
+          } else {
+            navigate('/dashboard');
+          }
         }
       }
     );
