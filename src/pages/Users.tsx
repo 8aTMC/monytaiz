@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Navigation, useSidebar } from '@/components/Navigation';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -10,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { User, Crown, Shield, MessageCircle, Plus } from 'lucide-react';
+import CreateUserDialog from '@/components/CreateUserDialog';
 
 interface UserProfile {
   id: string;
@@ -24,17 +24,20 @@ interface UserProfile {
 
 const Users = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [createUserOpen, setCreateUserOpen] = useState(false);
   const { isCollapsed } = useSidebar();
 
   const handleCreateUser = () => {
-    navigate('/admin-dashboard');
+    setCreateUserOpen(true);
   };
 
-  useEffect(() => {
-    const fetchUsers = async () => {
+  const handleUserCreated = () => {
+    fetchUsers(); // Refresh the users list
+  };
+
+  const fetchUsers = async () => {
       try {
         console.log('Starting fetchUsers...');
         
@@ -104,6 +107,7 @@ const Users = () => {
       }
     };
 
+  useEffect(() => {
     fetchUsers();
   }, []);
 
@@ -284,6 +288,12 @@ const Users = () => {
               </Card>
             )}
           </div>
+
+          <CreateUserDialog
+            open={createUserOpen}
+            onOpenChange={setCreateUserOpen}
+            onSuccess={handleUserCreated}
+          />
         </div>
       </main>
     </div>
