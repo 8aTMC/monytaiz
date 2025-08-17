@@ -73,26 +73,26 @@ export const usePWA = () => {
       return { isInstalled: true, source: 'detected' };
     }
 
-    // Strategy 4: Window dimensions detection (app-like dimensions)
-    const isAppLikeDimensions = window.outerWidth === window.innerWidth && window.outerHeight === window.innerHeight;
-    if (isAppLikeDimensions && (displayModeStandalone || isIOSStandalone)) {
-      console.log('✅ PWA Detection: Installed via window dimensions');
-      return { isInstalled: true, source: 'detected' };
-    }
-
-    // Strategy 5: Check persistent storage
+    // Strategy 4: Only trust stored status if we can actually verify installation
     const storedStatus = localStorage.getItem(PWA_INSTALL_KEY);
     const storedTimestamp = localStorage.getItem(PWA_INSTALL_TIMESTAMP);
     
-    if (storedStatus === 'installed' && storedTimestamp) {
+    // Check if we have real installation indicators before trusting stored status
+    const hasRealInstallIndicators = displayModeStandalone || displayModeFullscreen || displayModeMinimalUi || isIOSStandalone;
+    
+    if (storedStatus === 'installed' && storedTimestamp && hasRealInstallIndicators) {
       const installTime = parseInt(storedTimestamp, 10);
       const daysSinceInstall = (Date.now() - installTime) / (1000 * 60 * 60 * 24);
       
-      // Trust stored status for 30 days, then re-verify
       if (daysSinceInstall <= 30) {
-        console.log('✅ PWA Detection: Installed via stored status (', Math.round(daysSinceInstall), 'days ago)');
+        console.log('✅ PWA Detection: Installed via stored status with verification (', Math.round(daysSinceInstall), 'days ago)');
         return { isInstalled: true, source: 'manual' };
       }
+    } else if (storedStatus === 'installed' && !hasRealInstallIndicators) {
+      // Clear false installation status
+      console.log('🧹 PWA Detection: Clearing false installation status - no real indicators found');
+      localStorage.removeItem(PWA_INSTALL_KEY);
+      localStorage.removeItem(PWA_INSTALL_TIMESTAMP);
     }
 
     console.log('❌ PWA Detection: Not installed');
@@ -288,24 +288,41 @@ export const usePWA = () => {
     if (!pwaState.deferredPrompt) {
       console.warn('🚫 PWA: No deferred prompt available for installation');
       
-      // For desktop browsers without deferred prompt, try to trigger browser's install UI
+      // For desktop browsers without deferred prompt, try alternative approaches
       if (pwaState.platform === 'desktop') {
         console.log('🖥️ PWA: Attempting desktop installation fallback');
         
-        // Show instructions for manual installation on desktop
-        const instructions = `To install this app on your desktop:
+        // Try to trigger a manual installation flow
+        const userWantsInstructions = confirm('This app can be installed on your desktop for a better experience.\n\nWould you like to see installation instructions?');
+        
+        if (userWantsInstructions) {
+          const instructions = `To install this app on your desktop:
 
-1. Look for the install icon (⊕) in your browser's address bar
-2. Click it and select "Install"
+1. Look for the install icon (⊕) in your browser's address bar and click it
+2. If no install icon is visible:
+   • Chrome: Menu (⋮) → More tools → Create shortcut → Check "Open as window"
+   • Edge: Menu (⋯) → Apps → Install this site as an app
+   • Firefox: Menu (☰) → Page → Install page as app
 
-Alternatively:
-• Chrome: Menu → More tools → Create shortcut → Check "Open as window"
-• Edge: Menu → Apps → Install this site as an app
-• Firefox: Menu → Page → Install page as app
+The app will then open in its own window like a desktop application.
 
-The app will open in its own window like a desktop application.`;
+Would you like to mark the app as installed after completing these steps?`;
 
-        alert(instructions);
+          const markAsInstalled = confirm(instructions);
+          if (markAsInstalled) {
+            // Mark as manually installed
+            localStorage.setItem(PWA_INSTALL_KEY, 'installed');
+            localStorage.setItem(PWA_INSTALL_TIMESTAMP, Date.now().toString());
+            
+            setPwaState(prev => ({
+              ...prev,
+              isInstalled: true,
+              canInstall: false,
+              installationSource: 'manual',
+            }));
+            return true;
+          }
+        }
         return false;
       }
       
