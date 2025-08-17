@@ -21,49 +21,48 @@ interface PWAState {
 const PWA_DISMISSED_KEY = 'pwa-dismissed';
 const PWA_INSTALLED_KEY = 'pwa-installed';
 
-// Detect platform
-const detectPlatform = (): PWAState['platform'] => {
-  const userAgent = navigator.userAgent.toLowerCase();
-  if (/iphone|ipad|ipod/.test(userAgent)) return 'ios';
-  if (/android/.test(userAgent)) return 'android';
-  return 'desktop';
-};
-
-// Check if app is installed
-const checkInstallation = (): boolean => {
-  // Strategy 1: Display mode detection
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-  const isFullscreen = window.matchMedia('(display-mode: fullscreen)').matches;
-  const isMinimalUi = window.matchMedia('(display-mode: minimal-ui)').matches;
-  
-  if (isStandalone || isFullscreen || isMinimalUi) {
-    return true;
-  }
-
-  // Strategy 2: iOS Safari detection
-  const isIOSStandalone = (window.navigator as any).standalone === true;
-  if (isIOSStandalone) {
-    return true;
-  }
-
-  // Strategy 3: Check localStorage
-  const storedInstalled = localStorage.getItem(PWA_INSTALLED_KEY) === 'true';
-  return storedInstalled;
-};
-
-// Check if user dismissed the prompt recently
-const isDismissed = (): boolean => {
-  const dismissed = localStorage.getItem(PWA_DISMISSED_KEY);
-  if (!dismissed) return false;
-  
-  const dismissTime = parseInt(dismissed, 10);
-  const now = Date.now();
-  const thirtyMinutes = 30 * 60 * 1000;
-  
-  return (now - dismissTime) < thirtyMinutes;
-};
-
 export const usePWA = () => {
+  // Detect platform
+  const detectPlatform = (): PWAState['platform'] => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    if (/iphone|ipad|ipod/.test(userAgent)) return 'ios';
+    if (/android/.test(userAgent)) return 'android';
+    return 'desktop';
+  };
+
+  // Check if app is installed
+  const checkInstallation = (): boolean => {
+    // Strategy 1: Display mode detection
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    const isFullscreen = window.matchMedia('(display-mode: fullscreen)').matches;
+    const isMinimalUi = window.matchMedia('(display-mode: minimal-ui)').matches;
+    
+    if (isStandalone || isFullscreen || isMinimalUi) {
+      return true;
+    }
+
+    // Strategy 2: iOS Safari detection
+    const isIOSStandalone = (window.navigator as any).standalone === true;
+    if (isIOSStandalone) {
+      return true;
+    }
+
+    // Strategy 3: Check localStorage
+    const storedInstalled = localStorage.getItem(PWA_INSTALLED_KEY) === 'true';
+    return storedInstalled;
+  };
+
+  // Check if user dismissed the prompt recently
+  const isDismissed = (): boolean => {
+    const dismissed = localStorage.getItem(PWA_DISMISSED_KEY);
+    if (!dismissed) return false;
+    
+    const dismissTime = parseInt(dismissed, 10);
+    const now = Date.now();
+    const thirtyMinutes = 30 * 60 * 1000;
+    
+    return (now - dismissTime) < thirtyMinutes;
+  };
   const [pwaState, setPwaState] = useState<PWAState>(() => {
     const platform = detectPlatform();
     const isInstalled = checkInstallation();
