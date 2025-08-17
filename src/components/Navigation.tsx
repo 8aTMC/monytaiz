@@ -52,7 +52,7 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
 };
 
 export const Navigation = () => {
-  const { t } = useTranslation();
+  const { t, loading: translationLoading } = useTranslation();
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -107,12 +107,12 @@ export const Navigation = () => {
   if (!user) return null;
 
   const navItems = [
-    { icon: Home, label: t('platform.nav.explore'), href: '/dashboard' },
+    { icon: Home, label: t('platform.nav.explore', 'Explore'), href: '/dashboard' },
     { icon: Library, label: 'Content Library', href: '/library' },
-    { icon: MessageSquare, label: t('platform.nav.messages'), href: '/messages' },
+    { icon: MessageSquare, label: t('platform.nav.messages', 'Messages'), href: '/messages' },
     { icon: Users, label: 'All Fans', href: '/fans' },
-    { icon: Upload, label: t('platform.nav.upload'), href: '/upload' },
-    { icon: BarChart3, label: t('platform.nav.analytics'), href: '/analytics' },
+    { icon: Upload, label: t('platform.nav.upload', 'Upload'), href: '/upload' },
+    { icon: BarChart3, label: t('platform.nav.analytics', 'Analytics'), href: '/analytics' },
   ];
 
 
@@ -235,7 +235,7 @@ export const Navigation = () => {
               className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground hover:bg-destructive/10 hover:text-destructive"
             >
               <LogOut className="h-4 w-4" />
-              {t('platform.auth.signOut')}
+              {t('platform.auth.signOut', 'Sign Out')}
             </Button>
           </PopoverContent>
         </Popover>
