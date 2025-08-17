@@ -402,6 +402,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      user_can_manage_role: {
+        Args: {
+          _target_role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      user_has_permission: {
+        Args: { _permission: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
