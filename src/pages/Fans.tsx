@@ -73,7 +73,7 @@ const Fans = () => {
           .from('profiles')
           .select(`
             *,
-            user_roles!inner(role)
+            user_roles!user_roles_user_id_fkey!inner(role)
           `)
           .eq('user_roles.role', 'fan')
           .order('created_at', { ascending: false });
