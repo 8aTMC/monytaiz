@@ -214,7 +214,7 @@ const Fans = () => {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                 {fans.map((fan) => (
                   <Card key={fan.id} className="bg-gradient-card border-border shadow-card hover:shadow-lg transition-all cursor-pointer group">
                     <CardHeader className="pb-4">

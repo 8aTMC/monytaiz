@@ -219,61 +219,6 @@ export const Navigation = () => {
                     <span>All Fans</span>
                   </Link>
                   <Link
-                    to="/fans?category=husband"
-                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
-                      location.search.includes('category=husband')
-                        ? 'bg-primary/5 text-primary border border-primary/10'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                    }`}
-                  >
-                    <Heart className="h-4 w-4" />
-                    <span>Husbands</span>
-                  </Link>
-                  <Link
-                    to="/fans?category=boyfriend"
-                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
-                      location.search.includes('category=boyfriend')
-                        ? 'bg-primary/5 text-primary border border-primary/10'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                    }`}
-                  >
-                    <UserCheck className="h-4 w-4" />
-                    <span>Boyfriends</span>
-                  </Link>
-                  <Link
-                    to="/fans?category=supporter"
-                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
-                      location.search.includes('category=supporter')
-                        ? 'bg-primary/5 text-primary border border-primary/10'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                    }`}
-                  >
-                    <Star className="h-4 w-4" />
-                    <span>Supporters</span>
-                  </Link>
-                  <Link
-                    to="/fans?category=friend"
-                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
-                      location.search.includes('category=friend')
-                        ? 'bg-primary/5 text-primary border border-primary/10'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                    }`}
-                  >
-                    <ThumbsUp className="h-4 w-4" />
-                    <span>Friends</span>
-                  </Link>
-                  <Link
-                    to="/fans?category=fan"
-                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
-                      location.search.includes('category=fan')
-                        ? 'bg-primary/5 text-primary border border-primary/10'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                    }`}
-                  >
-                    <Users className="h-4 w-4" />
-                    <span>General Fans</span>
-                  </Link>
-                  <Link
                     to="/fans/categories"
                     className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
                       location.pathname === '/fans/categories'

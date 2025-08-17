@@ -13,6 +13,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Users from "./pages/Users";
 import Profile from "./pages/Profile";
 import Upload from "./pages/Upload";
+import FansCategories from "./pages/FansCategories";
+import FansLists from "./pages/FansLists";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +31,8 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/fans" element={<Fans />} />
+            <Route path="/fans/categories" element={<FansCategories />} />
+            <Route path="/fans/lists" element={<FansLists />} />
             <Route path="/library" element={<ContentLibrary />} />
             <Route path="/upload" element={<Upload />} />
             <Route path="/admin" element={<AdminDashboard />} />
