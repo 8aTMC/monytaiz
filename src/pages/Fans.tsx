@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Navigation, useSidebar } from '@/components/Navigation';
 import { User, Session } from '@supabase/supabase-js';
@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Users, MoreVertical, Copy, UserMinus, UserX, MessageSquare, FileText, Eye, Shield } from 'lucide-react';
+import { Users, MoreVertical, Copy, UserMinus, UserX, MessageSquare, FileText, Eye, Shield, Heart, UserCheck, ThumbsUp, Star } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -21,6 +21,7 @@ interface Profile {
   avatar_url: string | null;
   is_verified: boolean;
   created_at: string;
+  fan_category: 'husband' | 'boyfriend' | 'supporter' | 'friend' | 'fan';
 }
 
 interface UserRole {
@@ -30,6 +31,7 @@ interface UserRole {
 const Fans = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,6 +40,8 @@ const Fans = () => {
   const [selectedFan, setSelectedFan] = useState<Profile | null>(null);
   const [fanRoles, setFanRoles] = useState<Record<string, UserRole[]>>({});
   const { isCollapsed } = useSidebar();
+  
+  const categoryFilter = searchParams.get('category') as Profile['fan_category'] | null;
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -93,12 +97,18 @@ const Fans = () => {
         const fanUserIds = fanRoles.map(role => role.user_id);
         console.log('👥 Fan user IDs:', fanUserIds);
 
-        // Then get the profiles for those users
-        const { data, error } = await supabase
+        // Then get the profiles for those users with optional category filter
+        let profilesQuery = supabase
           .from('profiles')
           .select('*')
-          .in('id', fanUserIds)
-          .order('created_at', { ascending: false });
+          .in('id', fanUserIds);
+        
+        // Apply category filter if specified
+        if (categoryFilter) {
+          profilesQuery = profilesQuery.eq('fan_category', categoryFilter);
+        }
+        
+        const { data, error } = await profilesQuery.order('created_at', { ascending: false });
 
         console.log('👤 Profiles query result:', { data, error });
 
@@ -128,7 +138,7 @@ const Fans = () => {
     if (user) {
       fetchFans();
     }
-  }, [user]);
+  }, [user, categoryFilter]);
 
   const handleFanClick = (fan: Profile) => {
     setSelectedFan(fan);
@@ -163,13 +173,27 @@ const Fans = () => {
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
-              <Users className="h-8 w-8 text-primary" />
+              {categoryFilter ? (
+                categoryFilter === 'husband' ? <Heart className="h-8 w-8 text-primary" /> :
+                categoryFilter === 'boyfriend' ? <UserCheck className="h-8 w-8 text-primary" /> :
+                categoryFilter === 'supporter' ? <Star className="h-8 w-8 text-primary" /> :
+                categoryFilter === 'friend' ? <ThumbsUp className="h-8 w-8 text-primary" /> :
+                <Users className="h-8 w-8 text-primary" />
+              ) : (
+                <Users className="h-8 w-8 text-primary" />
+              )}
               <h1 className="text-3xl font-bold text-foreground">
-                All Fans
+                {categoryFilter 
+                  ? `${categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1)}${categoryFilter === 'fan' ? 's' : categoryFilter.endsWith('s') ? '' : 's'}`
+                  : 'All Fans'
+                }
               </h1>
             </div>
             <p className="text-muted-foreground">
-              Browse all registered users on the platform
+              {categoryFilter 
+                ? `Browse all ${categoryFilter}s on the platform`
+                : 'Browse all registered users on the platform'
+              }
             </p>
           </div>
 
@@ -211,6 +235,9 @@ const Fans = () => {
                                   Verified
                                 </Badge>
                               )}
+                              <Badge variant="outline" className="text-xs">
+                                {fan.fan_category}
+                              </Badge>
                               {fanRoles[fan.id]?.map((userRole) => (
                                 <Badge key={userRole.role} variant="outline" className="text-xs">
                                   {userRole.role}

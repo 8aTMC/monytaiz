@@ -26,7 +26,12 @@ import {
   ChevronUp,
   ChevronLeft,
   ChevronRight,
-  FileText
+  FileText,
+  Receipt,
+  Heart,
+  UserCheck,
+  ThumbsUp,
+  Star
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -60,6 +65,7 @@ export const Navigation = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isManagementOpen, setIsManagementOpen] = useState(false);
   const [isContentOpen, setIsContentOpen] = useState(false);
+  const [isFansOpen, setIsFansOpen] = useState(false);
   const { isCollapsed, setIsCollapsed } = useSidebar();
 
   const fetchUserProfile = async (userId: string) => {
@@ -111,7 +117,6 @@ export const Navigation = () => {
   const navItems = [
     { icon: Home, label: t('platform.nav.explore', 'Explore'), href: '/dashboard' },
     { icon: MessageSquare, label: t('platform.nav.messages', 'Messages'), href: '/messages' },
-    { icon: Users, label: 'All Fans', href: '/fans' },
     { icon: BarChart3, label: t('platform.nav.analytics', 'Analytics'), href: '/analytics' },
   ];
 
@@ -146,6 +151,73 @@ export const Navigation = () => {
               </Link>
             </li>
           ))}
+          
+          {/* Fans Collapsible Menu */}
+          {!isCollapsed && (
+            <li>
+              <Collapsible open={isFansOpen} onOpenChange={setIsFansOpen}>
+                <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <Users className="h-5 w-5" />
+                      <Receipt className="h-3 w-3 absolute -top-1 -right-1 text-primary" />
+                    </div>
+                    <span>Fans</span>
+                  </div>
+                  {isFansOpen ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent className="mt-1 space-y-1">
+                  <Link
+                    to="/fans"
+                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                  >
+                    <Users className="h-4 w-4" />
+                    <span>All Fans</span>
+                  </Link>
+                  <Link
+                    to="/fans?category=husband"
+                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                  >
+                    <Heart className="h-4 w-4" />
+                    <span>Husbands</span>
+                  </Link>
+                  <Link
+                    to="/fans?category=boyfriend"
+                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                  >
+                    <UserCheck className="h-4 w-4" />
+                    <span>Boyfriends</span>
+                  </Link>
+                  <Link
+                    to="/fans?category=supporter"
+                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                  >
+                    <Star className="h-4 w-4" />
+                    <span>Supporters</span>
+                  </Link>
+                  <Link
+                    to="/fans?category=friend"
+                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary/50 transition-smooth"
+                  >
+                    <ThumbsUp className="h-4 w-4" />
+                    <span>Friends</span>
+                  </Link>
+                  <Link
+                    to="/fans?category=fan"
+                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                  >
+                    <Users className="h-4 w-4" />
+                    <span>General Fans</span>
+                  </Link>
+                </CollapsibleContent>
+              </Collapsible>
+            </li>
+          )}
           
           {/* Content Collapsible Menu */}
           {!isCollapsed && (

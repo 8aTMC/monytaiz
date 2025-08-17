@@ -283,6 +283,7 @@ export type Database = {
           bio: string | null
           created_at: string | null
           display_name: string | null
+          fan_category: Database["public"]["Enums"]["fan_category"] | null
           id: string
           is_undeletable: boolean | null
           is_verified: boolean | null
@@ -295,6 +296,7 @@ export type Database = {
           bio?: string | null
           created_at?: string | null
           display_name?: string | null
+          fan_category?: Database["public"]["Enums"]["fan_category"] | null
           id: string
           is_undeletable?: boolean | null
           is_verified?: boolean | null
@@ -307,6 +309,7 @@ export type Database = {
           bio?: string | null
           created_at?: string | null
           display_name?: string | null
+          fan_category?: Database["public"]["Enums"]["fan_category"] | null
           id?: string
           is_undeletable?: boolean | null
           is_verified?: boolean | null
@@ -480,6 +483,7 @@ export type Database = {
         | "superadmin"
         | "manager"
       content_type: "image" | "video" | "audio" | "document" | "pack"
+      fan_category: "husband" | "boyfriend" | "supporter" | "friend" | "fan"
       negotiation_status:
         | "pending"
         | "accepted"
@@ -626,6 +630,7 @@ export const Constants = {
         "manager",
       ],
       content_type: ["image", "video", "audio", "document", "pack"],
+      fan_category: ["husband", "boyfriend", "supporter", "friend", "fan"],
       negotiation_status: [
         "pending",
         "accepted",
