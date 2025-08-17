@@ -50,7 +50,12 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
+      style={{
+        backgroundImage: `url('/lovable-uploads/98417c6c-6448-4b44-a514-b788b0ce80da.png')`
+      }}
+    >
       <div className="w-full max-w-md">
         <AuthForm mode={mode} onModeChange={setMode} />
       </div>
