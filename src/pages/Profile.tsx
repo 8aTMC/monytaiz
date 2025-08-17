@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { Navigation, useSidebar } from '@/components/Navigation';
 import { MyAccount } from '@/components/MyAccount';
+import { DeleteAccountSection } from '@/components/DeleteAccountSection';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -65,7 +66,16 @@ const Profile = () => {
             <h1 className="text-3xl font-bold text-foreground">My Account</h1>
           </div>
 
-          <MyAccount />
+          <div className="space-y-8">
+            <MyAccount />
+            
+            {user && (
+              <DeleteAccountSection 
+                userId={user.id} 
+                userName={user.user_metadata?.display_name || user.email} 
+              />
+            )}
+          </div>
         </div>
       </main>
     </div>

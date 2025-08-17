@@ -8,8 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { User, Crown, Shield, MessageCircle, Plus } from 'lucide-react';
+import { User, Crown, Shield, MessageCircle, Plus, UserX, MoreHorizontal } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import CreateUserDialog from '@/components/CreateUserDialog';
+import { UserDeletionDialog } from '@/components/UserDeletionDialog';
 
 interface UserProfile {
   id: string;
@@ -27,6 +29,8 @@ const Users = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [createUserOpen, setCreateUserOpen] = useState(false);
+  const [deletionDialogOpen, setDeletionDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const { isCollapsed } = useSidebar();
 
   const handleCreateUser = () => {
@@ -34,6 +38,17 @@ const Users = () => {
   };
 
   const handleUserCreated = () => {
+    fetchUsers(); // Refresh the users list
+  };
+
+  const handleDeleteUser = (user: UserProfile) => {
+    setSelectedUser(user);
+    setDeletionDialogOpen(true);
+  };
+
+  const handleDeletionComplete = () => {
+    setDeletionDialogOpen(false);
+    setSelectedUser(null);
     fetchUsers(); // Refresh the users list
   };
 
@@ -274,6 +289,22 @@ const Users = () => {
                                   </span>
                                 </Badge>
                               ))}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem 
+                                    onClick={() => handleDeleteUser(user)}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <UserX className="h-4 w-4 mr-2" />
+                                    Delete User
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </div>
                           {index < roleUsers.length - 1 && (
@@ -305,6 +336,16 @@ const Users = () => {
             onOpenChange={setCreateUserOpen}
             onSuccess={handleUserCreated}
           />
+          
+          {selectedUser && (
+            <UserDeletionDialog
+              isOpen={deletionDialogOpen}
+              onClose={handleDeletionComplete}
+              userId={selectedUser.id}
+              userName={selectedUser.display_name || selectedUser.username}
+              isSelfDeletion={false}
+            />
+          )}
         </div>
       </main>
     </div>

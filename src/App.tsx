@@ -16,6 +16,7 @@ import Profile from "./pages/Profile";
 import Upload from "./pages/Upload";
 import FansCategories from "./pages/FansCategories";
 import FansLists from "./pages/FansLists";
+import PendingDeletions from "./pages/PendingDeletions";
 import NotFound from "./pages/NotFound";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/upload" element={<Upload />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/management/users" element={<Users />} />
+            <Route path="/management/pending-deletions" element={<PendingDeletions />} />
             <Route path="/profile" element={<Profile />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
