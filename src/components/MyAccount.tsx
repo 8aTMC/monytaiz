@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Settings, Upload } from 'lucide-react';
+import { User, Settings, Upload, Edit, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from '@/hooks/useTranslation';
 
@@ -25,6 +25,7 @@ export const MyAccount = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     display_name: '',
@@ -167,6 +168,31 @@ export const MyAccount = () => {
     }
   };
 
+  const handleChangeEmail = async () => {
+    toast({
+      title: t('account.changeEmail', 'Change Email'),
+      description: t('account.changeEmailDesc', 'Email change functionality will be implemented soon.'),
+    });
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    // Reset form data to original profile data
+    setFormData({
+      username: profile?.username || '',
+      display_name: profile?.display_name || '',
+      bio: profile?.bio || ''
+    });
+  };
+
+  const handleSaveAndExit = async () => {
+    await handleSave();
+    setIsEditing(false);
+  };
   if (loading) {
     return (
       <Card>
@@ -185,10 +211,36 @@ export const MyAccount = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <User className="h-5 w-5" />
-          {t('account.title', 'My Account')}
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            {t('account.title', 'My Account')}
+          </CardTitle>
+          <div className="flex gap-2">
+            {!isEditing ? (
+              <>
+                <Button variant="outline" size="sm" onClick={handleEdit}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  {t('account.edit', 'Edit')}
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleChangeEmail}>
+                  <Mail className="h-4 w-4 mr-2" />
+                  {t('account.changeEmail', 'Change Email')}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" size="sm" onClick={handleCancel}>
+                  {t('account.cancel', 'Cancel')}
+                </Button>
+                <Button size="sm" onClick={handleSaveAndExit} disabled={saving || uploading}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  {saving ? t('account.saving', 'Saving...') : t('account.save', 'Save Changes')}
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Avatar Section */}
@@ -204,11 +256,16 @@ export const MyAccount = () => {
               variant="outline" 
               size="sm" 
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
+              disabled={uploading || !isEditing}
             >
               <Upload className="h-4 w-4 mr-2" />
               {uploading ? t('account.uploading', 'Uploading...') : t('account.uploadAvatar', 'Upload Avatar')}
             </Button>
+            {!isEditing && (
+              <p className="text-xs text-muted-foreground">
+                {t('account.editToUpload', 'Click Edit to change avatar')}
+              </p>
+            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -230,6 +287,8 @@ export const MyAccount = () => {
               onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
               placeholder={t('account.usernamePlaceholder', 'Enter your username')}
               className="mt-1"
+              readOnly={!isEditing}
+              disabled={!isEditing}
             />
           </div>
 
@@ -242,6 +301,8 @@ export const MyAccount = () => {
               onChange={(e) => setFormData(prev => ({ ...prev, display_name: e.target.value }))}
               placeholder={t('account.displayNamePlaceholder', 'Enter your display name')}
               className="mt-1"
+              readOnly={!isEditing}
+              disabled={!isEditing}
             />
           </div>
 
@@ -255,22 +316,15 @@ export const MyAccount = () => {
               placeholder={t('account.bioPlaceholder', 'Tell us about yourself...')}
               className="mt-1 min-h-[100px]"
               maxLength={500}
+              readOnly={!isEditing}
+              disabled={!isEditing}
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              {formData.bio.length}/500 {t('account.characters', 'characters')}
-            </p>
+            {isEditing && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {formData.bio.length}/500 {t('account.characters', 'characters')}
+              </p>
+            )}
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-2 pt-4">
-          <Button onClick={handleSave} disabled={saving || uploading}>
-            <Settings className="h-4 w-4 mr-2" />
-            {saving ? t('account.saving', 'Saving...') : t('account.save', 'Save Changes')}
-          </Button>
-          <Button variant="outline" onClick={loadProfile} disabled={saving || uploading}>
-            {t('account.cancel', 'Cancel')}
-          </Button>
         </div>
       </CardContent>
     </Card>
