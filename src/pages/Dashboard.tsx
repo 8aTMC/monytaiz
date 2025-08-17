@@ -122,12 +122,9 @@ const Platform = () => {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">
+            <h1 className="text-3xl font-bold">
               {t('platform.dashboard.title', 'Dashboard')}
             </h1>
-            <p className="text-muted-foreground">
-              {t('platform.dashboard.subtitle', 'Welcome back! Here\'s what\'s happening with your content.')}
-            </p>
           </div>
 
           {/* Quick Actions */}
@@ -176,7 +173,6 @@ const Platform = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>Your latest interactions and updates</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -215,7 +211,6 @@ const Platform = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Quick Overview</CardTitle>
-                <CardDescription>Your platform at a glance</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
