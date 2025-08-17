@@ -140,14 +140,14 @@ const Platform = () => {
                 className="group"
               >
                 <Plus className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
-                {t('platform.nav.upload')}
+                {t('platform.nav.upload', 'Upload')}
               </Button>
               <Button 
                 variant="glass" 
                 size="lg"
                 onClick={() => navigate('/messages')}
               >
-                {t('platform.nav.messages')}
+                {t('platform.nav.messages', 'Messages')}
               </Button>
               <Button 
                 variant="outline" 
