@@ -282,21 +282,68 @@ export const usePWA = () => {
   const installApp = async () => {
     console.log('📱 PWA: Install attempt started', { 
       hasDeferredPrompt: !!pwaState.deferredPrompt, 
-      platform: pwaState.platform 
+      platform: pwaState.platform,
+      isInstalled: pwaState.isInstalled
     });
 
-    if (!pwaState.deferredPrompt) {
-      console.warn('🚫 PWA: No deferred prompt available for installation');
+    if (pwaState.isInstalled) {
+      console.log('⚠️ PWA: App already installed');
+      return false;
+    }
+
+    // Try native installation first if deferred prompt is available
+    if (pwaState.deferredPrompt) {
+      try {
+        console.log('📱 PWA: Using native installation prompt...');
+        await pwaState.deferredPrompt.prompt();
+        const { outcome } = await pwaState.deferredPrompt.userChoice;
+        
+        console.log('📊 PWA: User choice outcome:', outcome);
+        
+        if (outcome === 'accepted') {
+          // Store installation status
+          localStorage.setItem(PWA_INSTALL_KEY, 'installed');
+          localStorage.setItem(PWA_INSTALL_TIMESTAMP, Date.now().toString());
+          localStorage.removeItem(PWA_DISMISS_KEY);
+          localStorage.removeItem(`${PWA_DISMISS_KEY}-timestamp`);
+          
+          setPwaState(prev => ({
+            ...prev,
+            isInstalled: true,
+            canInstall: false,
+            deferredPrompt: null,
+            installationSource: 'auto',
+          }));
+          return true;
+        } else {
+          // User dismissed the prompt
+          localStorage.setItem(PWA_DISMISS_KEY, 'true');
+          localStorage.setItem(`${PWA_DISMISS_KEY}-timestamp`, Date.now().toString());
+          
+          setPwaState(prev => ({
+            ...prev,
+            canInstall: false,
+            deferredPrompt: null,
+          }));
+          return false;
+        }
+      } catch (error) {
+        console.error('❌ PWA: Error during native installation:', error);
+        // Don't fall back to manual installation after native prompt failure
+        return false;
+      }
+    }
+
+    // Only show manual installation if no native prompt is available
+    console.warn('🚫 PWA: No native prompt available, offering manual installation');
+    
+    if (pwaState.platform === 'desktop') {
+      console.log('🖥️ PWA: Showing desktop manual installation instructions');
       
-      // For desktop browsers without deferred prompt, try alternative approaches
-      if (pwaState.platform === 'desktop') {
-        console.log('🖥️ PWA: Attempting desktop installation fallback');
-        
-        // Try to trigger a manual installation flow
-        const userWantsInstructions = confirm('This app can be installed on your desktop for a better experience.\n\nWould you like to see installation instructions?');
-        
-        if (userWantsInstructions) {
-          const instructions = `To install this app on your desktop:
+      const userWantsInstructions = confirm('This app can be installed on your desktop for a better experience.\n\nWould you like to see installation instructions?');
+      
+      if (userWantsInstructions) {
+        const instructions = `To install this app on your desktop:
 
 1. Look for the install icon (⊕) in your browser's address bar and click it
 2. If no install icon is visible:
@@ -308,65 +355,23 @@ The app will then open in its own window like a desktop application.
 
 Would you like to mark the app as installed after completing these steps?`;
 
-          const markAsInstalled = confirm(instructions);
-          if (markAsInstalled) {
-            // Mark as manually installed
-            localStorage.setItem(PWA_INSTALL_KEY, 'installed');
-            localStorage.setItem(PWA_INSTALL_TIMESTAMP, Date.now().toString());
-            
-            setPwaState(prev => ({
-              ...prev,
-              isInstalled: true,
-              canInstall: false,
-              installationSource: 'manual',
-            }));
-            return true;
-          }
+        const markAsInstalled = confirm(instructions);
+        if (markAsInstalled) {
+          localStorage.setItem(PWA_INSTALL_KEY, 'installed');
+          localStorage.setItem(PWA_INSTALL_TIMESTAMP, Date.now().toString());
+          
+          setPwaState(prev => ({
+            ...prev,
+            isInstalled: true,
+            canInstall: false,
+            installationSource: 'manual',
+          }));
+          return true;
         }
-        return false;
       }
-      
-      return false;
     }
-
-    try {
-      console.log('📱 PWA: Prompting user for installation...');
-      await pwaState.deferredPrompt.prompt();
-      const { outcome } = await pwaState.deferredPrompt.userChoice;
-      
-      console.log('📊 PWA: User choice outcome:', outcome);
-      
-      if (outcome === 'accepted') {
-        // Store installation status
-        localStorage.setItem(PWA_INSTALL_KEY, 'installed');
-        localStorage.setItem(PWA_INSTALL_TIMESTAMP, Date.now().toString());
-        localStorage.removeItem(PWA_DISMISS_KEY);
-        localStorage.removeItem(`${PWA_DISMISS_KEY}-timestamp`);
-        
-        setPwaState(prev => ({
-          ...prev,
-          canInstall: false,
-          deferredPrompt: null,
-          installationSource: 'auto',
-        }));
-        return true;
-      } else {
-        // User dismissed the prompt
-        localStorage.setItem(PWA_DISMISS_KEY, 'true');
-        localStorage.setItem(`${PWA_DISMISS_KEY}-timestamp`, Date.now().toString());
-        
-        setPwaState(prev => ({
-          ...prev,
-          canInstall: false,
-          deferredPrompt: null,
-        }));
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('❌ PWA: Error during installation:', error);
-      return false;
-    }
+    
+    return false;
   };
 
   // Enhanced manual installation tracking
