@@ -100,35 +100,63 @@ export const MyAccount = () => {
         return;
       }
 
-      const fileName = `${user.id}/${Math.random()}.${fileExt}`;
+      // Create file path in the new structure: images/user_id/filename
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `images/${user.id}/${fileName}`;
 
+      // Upload to content bucket
       const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file, { upsert: true });
+        .from('content')
+        .upload(filePath, file, { upsert: true });
 
       if (uploadError) {
         throw uploadError;
       }
 
-      const { data } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
+      // Create file metadata record
+      const { error: metadataError } = await supabase
+        .from('files')
+        .insert({
+          creator_id: user.id,
+          file_path: filePath,
+          file_type: 'image',
+          original_filename: file.name,
+          file_size: file.size,
+          mime_type: file.type,
+          title: 'Avatar',
+          description: 'User profile avatar',
+          fan_access_level: 'free'
+        });
 
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: data.publicUrl })
-        .eq('id', user.id);
-
-      if (updateError) {
-        throw updateError;
+      if (metadataError) {
+        console.error('Error creating file metadata:', metadataError);
       }
 
-      setProfile(prev => prev ? { ...prev, avatar_url: data.publicUrl } : null);
+      // Get signed URL for the uploaded file
+      const { data: signedUrlData } = await supabase.storage
+        .from('content')
+        .createSignedUrl(filePath, 60 * 60 * 24 * 365); // 1 year expiry
 
-      toast({
-        title: t('account.success', 'Success'),
-        description: t('account.avatarUpdated', 'Profile picture updated successfully.'),
-      });
+      const avatarUrl = signedUrlData?.signedUrl;
+
+      if (avatarUrl) {
+        // Update profile with new avatar URL
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ avatar_url: avatarUrl })
+          .eq('id', user.id);
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        setProfile(prev => prev ? { ...prev, avatar_url: avatarUrl } : null);
+
+        toast({
+          title: t('account.success', 'Success'),
+          description: t('account.avatarUpdated', 'Profile picture updated successfully.'),
+        });
+      }
     } catch (error) {
       console.error('Error uploading avatar:', error);
       toast({

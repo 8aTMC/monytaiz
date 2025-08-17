@@ -124,6 +124,60 @@ export type Database = {
           },
         ]
       }
+      files: {
+        Row: {
+          created_at: string | null
+          creator_id: string
+          description: string | null
+          fan_access_level: string | null
+          file_path: string
+          file_size: number | null
+          file_type: string
+          id: string
+          is_active: boolean | null
+          mime_type: string | null
+          original_filename: string
+          signed_url_expires_at: string | null
+          tags: string[] | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          creator_id: string
+          description?: string | null
+          fan_access_level?: string | null
+          file_path: string
+          file_size?: number | null
+          file_type: string
+          id?: string
+          is_active?: boolean | null
+          mime_type?: string | null
+          original_filename: string
+          signed_url_expires_at?: string | null
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          creator_id?: string
+          description?: string | null
+          fan_access_level?: string | null
+          file_path?: string
+          file_size?: number | null
+          file_type?: string
+          id?: string
+          is_active?: boolean | null
+          mime_type?: string | null
+          original_filename?: string
+          signed_url_expires_at?: string | null
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       negotiations: {
         Row: {
           buyer_id: string
