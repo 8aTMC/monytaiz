@@ -35,7 +35,7 @@ export const PWAInstallPrompt = () => {
   }, [canInstall, isInstalled, deferredPrompt, platform, installationSource, isInstallPromptDismissed, showPrompt, showManualPrompt]);
 
   useEffect(() => {
-    // Enhanced prompt timing logic
+    // Immediate prompt timing for testing
     const timer = setTimeout(() => {
       console.log('🕐 PWA Install Timer: Checking if prompt should show...');
       
@@ -43,7 +43,7 @@ export const PWAInstallPrompt = () => {
         setShowPrompt(true);
         console.log('✨ PWA Install Prompt: Native prompt shown');
       }
-    }, 2000); // Reduced delay for better UX
+    }, 100); // Almost immediate
 
     return () => clearTimeout(timer);
   }, [canInstall, isInstalled, isInstallPromptDismissed]);
@@ -74,20 +74,16 @@ export const PWAInstallPrompt = () => {
       // Show manual prompt if:
       // 1. App is not installed
       // 2. Native prompt is not showing  
-      // 3. Manual prompt hasn't been recently dismissed
-      // 4. Not already dismissed via main prompt
-      // 5. Always show for desktop browsers to ensure installation option is available
+      // 3. Always show for desktop browsers to ensure installation option is available
       const shouldShowManual = !isInstalled && 
                               !showPrompt && 
-                              !isManualDismissalValid && 
-                              !isInstallPromptDismissed &&
                               (platform === 'desktop' || /windows|macintosh|linux/.test(navigator.userAgent.toLowerCase()));
       
       if (shouldShowManual) {
         setShowManualPrompt(true);
         console.log('🔧 PWA Manual Prompt: Manual guidance shown for', platform);
       }
-    }, 2000); // Reduced delay for faster response
+    }, 200); // Very fast response
 
     return () => clearTimeout(timer);
   }, [isInstalled, showPrompt, canInstall, isInstallPromptDismissed, platform, deferredPrompt]);

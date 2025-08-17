@@ -105,7 +105,8 @@ export const usePWA = () => {
     if (!dismissedTimestamp) return false;
     
     const timeSinceDismissal = Date.now() - parseInt(dismissedTimestamp, 10);
-    return timeSinceDismissal < PWA_DISMISS_EXPIRY;
+    // Reduced dismissal time to 30 minutes instead of 7 days for testing
+    return timeSinceDismissal < (30 * 60 * 1000);
   }, []);
 
   useEffect(() => {
@@ -147,7 +148,8 @@ export const usePWA = () => {
       const platform = detectPlatform();
       
       // Check if we're on a custom domain vs lovable preview
-      const isCustomDomain = !window.location.hostname.includes('lovable');
+      const isCustomDomain = !window.location.hostname.includes('lovable') || 
+                             window.location.hostname.includes('monytaiz.com');
       
       // Enhanced browser support detection
       const isInstallSupported = 
@@ -181,9 +183,9 @@ export const usePWA = () => {
         userAgent: navigator.userAgent
       });
       
-      // Always enable installation on desktop if not dismissed and not installed
-      if (platform === 'desktop' && !isInstalled && !isDismissed) {
-        console.log('🖥️ PWA: Enabling desktop installation');
+      // ALWAYS enable installation on desktop if not already installed
+      if (platform === 'desktop' && !isInstalled) {
+        console.log('🖥️ PWA: Force enabling desktop installation');
         setPwaState(prev => ({
           ...prev,
           isInstallable: true,
@@ -322,8 +324,9 @@ export const usePWA = () => {
       return false;
     }
 
-    // Check if we're on a custom domain
-    const isCustomDomain = !window.location.hostname.includes('lovable');
+    // Check if we're on a custom domain (include monytaiz.com)
+    const isCustomDomain = !window.location.hostname.includes('lovable') || 
+                           window.location.hostname.includes('monytaiz.com');
 
     // Try native installation first if deferred prompt is available
     if (pwaState.deferredPrompt) {
