@@ -214,7 +214,7 @@ const Users = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 capitalize">
                       {getRoleIcon(role)}
-                      {role}s ({roleUsers.length})
+                      {role}s {role !== 'owner' && `(${roleUsers.length})`}
                     </CardTitle>
                     <CardDescription>
                       Users with {role} permissions
@@ -263,7 +263,7 @@ const Users = () => {
                                 >
                                   <span className="flex items-center gap-1">
                                     {getRoleIcon(userRole)}
-                                    {userRole}
+                                    {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
                                   </span>
                                 </Badge>
                               ))}
