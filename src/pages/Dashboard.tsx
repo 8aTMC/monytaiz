@@ -120,16 +120,127 @@ const Platform = () => {
       
       <main className={`transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <div className="max-w-7xl mx-auto">
-          {/* Empty dashboard for fans */}
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <h1 className="text-2xl font-semibold text-muted-foreground mb-2">
-                Welcome to your dashboard
-              </h1>
-              <p className="text-muted-foreground">
-                Your content will appear here soon
-              </p>
-            </div>
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold mb-2">
+              {t('platform.dashboard.title', 'Dashboard')}
+            </h1>
+            <p className="text-muted-foreground">
+              {t('platform.dashboard.subtitle', 'Welcome back! Here\'s what\'s happening with your content.')}
+            </p>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="mb-8 flex gap-4">
+            <Button onClick={() => navigate('/upload')} className="gap-2">
+              <Plus className="h-4 w-4" />
+              {t('platform.dashboard.uploadContent', 'Upload Content')}
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/messages')}>
+              {t('platform.dashboard.viewMessages', 'View Messages')}
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/fans')}>
+              {t('platform.dashboard.manageFans', 'Manage Fans')}
+            </Button>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {stats.map((stat) => (
+              <Card key={stat.title}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    {stat.title}
+                  </CardTitle>
+                  <stat.icon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stat.value}</div>
+                  <p className={`text-xs ${
+                    stat.changeType === 'positive' 
+                      ? 'text-green-600' 
+                      : stat.changeType === 'negative' 
+                      ? 'text-red-600' 
+                      : 'text-muted-foreground'
+                  }`}>
+                    {stat.change} from last month
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Content Overview */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Recent Activity */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+                <CardDescription>Your latest interactions and updates</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <TrendingUp className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Content performance improving</p>
+                      <p className="text-xs text-muted-foreground">Your recent uploads are getting more engagement</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                      <Users className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">New fans this week</p>
+                      <p className="text-xs text-muted-foreground">You've gained new followers recently</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                      <DollarSign className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Earnings update</p>
+                      <p className="text-xs text-muted-foreground">Check your latest earnings and payouts</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quick Stats */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Overview</CardTitle>
+                <CardDescription>Your platform at a glance</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Total Content</span>
+                    <span className="font-medium">0 items</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Active Subscriptions</span>
+                    <span className="font-medium">0</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Messages Today</span>
+                    <span className="font-medium">0</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Profile Views</span>
+                    <span className="font-medium">0</span>
+                  </div>
+                  <Button variant="outline" className="w-full" onClick={() => navigate('/analytics')}>
+                    View Detailed Analytics
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </main>

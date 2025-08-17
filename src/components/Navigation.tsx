@@ -142,7 +142,7 @@ export const Navigation = () => {
   };
 
   const navItems = [
-    { icon: Home, label: t('platform.nav.explore', 'Explore'), href: '/dashboard' },
+    { icon: Home, label: t('platform.nav.dashboard', 'Dashboard'), href: '/dashboard' },
     { icon: MessageSquare, label: t('platform.nav.messages', 'Messages'), href: '/messages' },
     { icon: BarChart3, label: t('platform.nav.analytics', 'Analytics'), href: '/analytics' },
   ];
