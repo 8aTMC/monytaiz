@@ -51,8 +51,9 @@ const ContentLibrary = () => {
         
         if (!session?.user) {
           navigate('/');
+        } else {
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
@@ -62,8 +63,9 @@ const ContentLibrary = () => {
       
       if (!session?.user) {
         navigate('/');
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -125,10 +127,45 @@ const ContentLibrary = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading...</p>
+      <div className="min-h-screen bg-background">
+        <div className="animate-pulse">
+          {/* Skeleton Navigation */}
+          <div className="fixed left-0 top-0 h-full w-64 bg-muted/20 border-r"></div>
+          
+          {/* Skeleton Layout */}
+          <div className="ml-64 flex h-screen">
+            {/* Categories Sidebar Skeleton */}
+            <div className="w-80 bg-muted/10 border-r p-6">
+              <div className="h-6 w-32 bg-muted/30 rounded mb-4"></div>
+              <div className="space-y-2">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-10 bg-muted/20 rounded"></div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Main Content Skeleton */}
+            <div className="flex-1 flex flex-col">
+              {/* Header Skeleton */}
+              <div className="bg-muted/10 border-b p-6">
+                <div className="h-8 w-48 bg-muted/30 rounded mb-4"></div>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="h-8 w-20 bg-muted/20 rounded"></div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Content Grid Skeleton */}
+              <div className="flex-1 p-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <div key={i} className="aspect-square bg-muted/20 rounded-lg"></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -265,9 +302,10 @@ const ContentLibrary = () => {
             {/* Content Grid */}
             <div className="flex-1 p-6 overflow-y-auto">
               {loadingContent ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                  <p className="mt-4 text-muted-foreground">Loading content...</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 animate-pulse">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="aspect-square bg-muted/20 rounded-lg"></div>
+                  ))}
                 </div>
               ) : content.length === 0 ? (
                 <div className="text-center py-12">
