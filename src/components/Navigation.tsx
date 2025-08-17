@@ -76,7 +76,7 @@ export const Navigation = () => {
 
   const navItems = [
     { icon: Home, label: t('platform.nav.explore'), href: '/dashboard' },
-    { icon: Library, label: t('platform.nav.library'), href: '/library' },
+    { icon: Library, label: 'Content Library', href: '/library' },
     { icon: MessageSquare, label: t('platform.nav.messages'), href: '/messages' },
     { icon: Users, label: 'All Fans', href: '/fans' },
     { icon: Upload, label: t('platform.nav.upload'), href: '/upload' },

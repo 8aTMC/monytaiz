@@ -8,6 +8,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Messages from "./pages/Messages";
 import Fans from "./pages/Fans";
+import ContentLibrary from "./pages/ContentLibrary";
 import AdminDashboard from "./pages/AdminDashboard";
 import Users from "./pages/Users";
 import NotFound from "./pages/NotFound";
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/fans" element={<Fans />} />
+            <Route path="/library" element={<ContentLibrary />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/management/users" element={<Users />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
