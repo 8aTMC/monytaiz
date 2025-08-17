@@ -35,18 +35,25 @@ export const PWAInstallPrompt = () => {
   }, [canInstall, isInstalled, deferredPrompt, platform, installationSource, isInstallPromptDismissed, showPrompt, showManualPrompt]);
 
   useEffect(() => {
-    // Immediate prompt timing for testing
+    // Show native prompt immediately when conditions are met
     const timer = setTimeout(() => {
       console.log('🕐 PWA Install Timer: Checking if prompt should show...');
       
-      if (canInstall && !isInstalled && !isInstallPromptDismissed) {
+      // Prioritize native prompt when deferredPrompt is available
+      if (canInstall && !isInstalled && !isInstallPromptDismissed && deferredPrompt) {
         setShowPrompt(true);
+        setShowManualPrompt(false); // Ensure manual prompt is hidden
         console.log('✨ PWA Install Prompt: Native prompt shown');
+      } else if (canInstall && !isInstalled && !isInstallPromptDismissed && !deferredPrompt) {
+        // Show manual prompt if no native support
+        setShowPrompt(false);
+        setShowManualPrompt(true);
+        console.log('✨ PWA Install Prompt: Manual prompt shown (no native support)');
       }
     }, 100); // Almost immediate
 
     return () => clearTimeout(timer);
-  }, [canInstall, isInstalled, isInstallPromptDismissed]);
+  }, [canInstall, isInstalled, isInstallPromptDismissed, deferredPrompt]);
 
   // Smart manual prompt logic - show for desktop when no native support
   useEffect(() => {
@@ -71,12 +78,15 @@ export const PWAInstallPrompt = () => {
         deferredPrompt: !!deferredPrompt
       });
       
-      // Show manual prompt if:
+      // Show manual prompt only if:
       // 1. App is not installed
-      // 2. Native prompt is not showing  
-      // 3. Always show for desktop browsers to ensure installation option is available
+      // 2. Native prompt is not showing
+      // 3. No deferred prompt available
+      // 4. Manual dismissal has expired or not dismissed
       const shouldShowManual = !isInstalled && 
                               !showPrompt && 
+                              !deferredPrompt &&
+                              !isManualDismissalValid &&
                               (platform === 'desktop' || /windows|macintosh|linux/.test(navigator.userAgent.toLowerCase()));
       
       if (shouldShowManual) {
@@ -89,6 +99,7 @@ export const PWAInstallPrompt = () => {
   }, [isInstalled, showPrompt, canInstall, isInstallPromptDismissed, platform, deferredPrompt]);
 
   const handleInstall = async () => {
+    console.log('📱 PWA Install: Native install button clicked');
     const success = await installApp();
     if (success) {
       setShowPrompt(false);
