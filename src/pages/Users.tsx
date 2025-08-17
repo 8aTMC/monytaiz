@@ -229,8 +229,15 @@ const Users = () => {
                               <Avatar className="h-12 w-12">
                                 <AvatarImage src={user.avatar_url} />
                                 <AvatarFallback>
-                                  {user.display_name?.charAt(0)?.toUpperCase() || 
-                                   user.username?.charAt(0)?.toUpperCase() || 'U'}
+                                  {(() => {
+                                    const name = user.display_name || user.username || 'User';
+                                    const words = name.trim().split(/\s+/);
+                                    if (words.length >= 2) {
+                                      return (words[0][0] + words[1][0]).toUpperCase();
+                                    } else {
+                                      return name.slice(0, 2).toUpperCase();
+                                    }
+                                  })()}
                                 </AvatarFallback>
                               </Avatar>
                               <div className="space-y-1">
