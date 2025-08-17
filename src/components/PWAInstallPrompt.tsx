@@ -97,8 +97,18 @@ export const PWAInstallPrompt = () => {
     }
   };
 
-  const handleManualInstall = () => {
-    // Enhanced platform-specific installation instructions
+  const handleManualInstall = async () => {
+    // If we have a deferred prompt, use the native install
+    if (deferredPrompt || canInstall) {
+      const success = await installApp();
+      if (success) {
+        setShowPrompt(false);
+        setShowManualPrompt(false);
+      }
+      return;
+    }
+
+    // Enhanced platform-specific installation instructions for cases without native prompt
     let instructions = '';
     let followUpAction = '';
     
@@ -128,7 +138,7 @@ export const PWAInstallPrompt = () => {
         followUpAction = 'Once installed, you can access the app directly from your device.';
     }
     
-    // Show enhanced installation dialog
+    // Show enhanced installation dialog only if native prompt unavailable
     const fullMessage = `${instructions}\n\n${followUpAction}\n\nWould you like to mark this app as installed once you complete these steps?`;
     
     const userConfirmed = confirm(fullMessage);
