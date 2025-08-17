@@ -12,6 +12,7 @@ import ContentLibrary from "./pages/ContentLibrary";
 import AdminDashboard from "./pages/AdminDashboard";
 import Users from "./pages/Users";
 import Profile from "./pages/Profile";
+import Upload from "./pages/Upload";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/messages" element={<Messages />} />
             <Route path="/fans" element={<Fans />} />
             <Route path="/library" element={<ContentLibrary />} />
+            <Route path="/upload" element={<Upload />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/management/users" element={<Users />} />
             <Route path="/profile" element={<Profile />} />

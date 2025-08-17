@@ -25,7 +25,8 @@ import {
   ChevronDown,
   ChevronUp,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  FileText
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -58,6 +59,7 @@ export const Navigation = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isManagementOpen, setIsManagementOpen] = useState(false);
+  const [isContentOpen, setIsContentOpen] = useState(false);
   const { isCollapsed, setIsCollapsed } = useSidebar();
 
   const fetchUserProfile = async (userId: string) => {
@@ -108,10 +110,8 @@ export const Navigation = () => {
 
   const navItems = [
     { icon: Home, label: t('platform.nav.explore', 'Explore'), href: '/dashboard' },
-    { icon: Library, label: 'Content Library', href: '/library' },
     { icon: MessageSquare, label: t('platform.nav.messages', 'Messages'), href: '/messages' },
     { icon: Users, label: 'All Fans', href: '/fans' },
-    { icon: Upload, label: t('platform.nav.upload', 'Upload'), href: '/upload' },
     { icon: BarChart3, label: t('platform.nav.analytics', 'Analytics'), href: '/analytics' },
   ];
 
@@ -146,6 +146,42 @@ export const Navigation = () => {
               </Link>
             </li>
           ))}
+          
+          {/* Content Collapsible Menu */}
+          {!isCollapsed && (
+            <li>
+              <Collapsible open={isContentOpen} onOpenChange={setIsContentOpen}>
+                <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-5 w-5" />
+                    <span>Content</span>
+                  </div>
+                  {isContentOpen ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent className="mt-1 space-y-1">
+                  <Link
+                    to="/library"
+                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                  >
+                    <Library className="h-4 w-4" />
+                    <span>Library</span>
+                  </Link>
+                  <Link
+                    to="/upload"
+                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                  >
+                    <Upload className="h-4 w-4" />
+                    <span>Upload</span>
+                  </Link>
+                </CollapsibleContent>
+              </Collapsible>
+            </li>
+          )}
           
           {/* Management Collapsible Menu */}
           {!isCollapsed && (
