@@ -255,6 +255,62 @@ export type Database = {
           },
         ]
       }
+      pending_deletions: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          id: string
+          is_self_requested: boolean
+          reason: string | null
+          requested_at: string
+          requested_by: string
+          restored_at: string | null
+          restored_by: string | null
+          restored_reason: string | null
+          scheduled_for: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          is_self_requested?: boolean
+          reason?: string | null
+          requested_at?: string
+          requested_by: string
+          restored_at?: string | null
+          restored_by?: string | null
+          restored_reason?: string | null
+          scheduled_for?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          is_self_requested?: boolean
+          reason?: string | null
+          requested_at?: string
+          requested_by?: string
+          restored_at?: string | null
+          restored_by?: string | null
+          restored_reason?: string | null
+          scheduled_for?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_deletions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       permissions: {
         Row: {
           created_at: string | null
@@ -282,6 +338,11 @@ export type Database = {
           banner_url: string | null
           bio: string | null
           created_at: string | null
+          deleted_at: string | null
+          deletion_requested_at: string | null
+          deletion_requested_by: string | null
+          deletion_scheduled_for: string | null
+          deletion_status: string | null
           display_name: string | null
           fan_category: Database["public"]["Enums"]["fan_category"] | null
           id: string
@@ -295,6 +356,11 @@ export type Database = {
           banner_url?: string | null
           bio?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          deletion_requested_at?: string | null
+          deletion_requested_by?: string | null
+          deletion_scheduled_for?: string | null
+          deletion_status?: string | null
           display_name?: string | null
           fan_category?: Database["public"]["Enums"]["fan_category"] | null
           id: string
@@ -308,6 +374,11 @@ export type Database = {
           banner_url?: string | null
           bio?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          deletion_requested_at?: string | null
+          deletion_requested_by?: string | null
+          deletion_scheduled_for?: string | null
+          deletion_status?: string | null
           display_name?: string | null
           fan_category?: Database["public"]["Enums"]["fan_category"] | null
           id?: string
@@ -458,6 +529,22 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      initiate_user_deletion: {
+        Args: {
+          deletion_reason?: string
+          is_self_delete?: boolean
+          target_user_id: string
+        }
+        Returns: Json
+      }
+      permanently_delete_expired_users: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      restore_user_from_deletion: {
+        Args: { restoration_reason?: string; target_user_id: string }
+        Returns: Json
       }
       user_can_manage_role: {
         Args: {
