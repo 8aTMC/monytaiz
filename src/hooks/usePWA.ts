@@ -119,7 +119,7 @@ export const usePWA = () => {
         isInstalled, 
         installationSource: source,
         platform,
-        canInstall: prev.deferredPrompt !== null && !isInstalled && !isInstallPromptDismissed()
+        canInstall: (prev.deferredPrompt !== null || platform === 'desktop') && !isInstalled && !isInstallPromptDismissed()
       }));
     };
 
@@ -168,8 +168,15 @@ export const usePWA = () => {
         hasInstallCapability 
       });
       
-      // Only set canInstall to true if we actually have installation capability
-      if (isInstallSupported && !isDismissed && platform !== 'desktop') {
+      // Set canInstall based on platform capabilities
+      if (isInstallSupported && !isDismissed) {
+        setPwaState(prev => ({
+          ...prev,
+          isInstallable: true,
+          canInstall: true,
+        }));
+      } else if (platform === 'desktop' && !isInstalled && !isDismissed) {
+        // Desktop browsers can still install even without beforeinstallprompt
         setPwaState(prev => ({
           ...prev,
           isInstallable: true,

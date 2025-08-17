@@ -81,7 +81,7 @@ export const PWAInstallPrompt = () => {
                               !showPrompt && 
                               !isManualDismissalValid && 
                               !isInstallPromptDismissed &&
-                              (platform === 'desktop' || !canInstall);
+                               (/windows|macintosh|linux/.test(navigator.userAgent.toLowerCase()) || !canInstall);
       
       if (shouldShowManual) {
         setShowManualPrompt(true);
@@ -102,7 +102,21 @@ export const PWAInstallPrompt = () => {
 
   const handleManualInstall = async () => {
     // If we have a deferred prompt, use the native install
-    if (deferredPrompt || canInstall) {
+    if (deferredPrompt) {
+      const success = await installApp();
+      if (success) {
+        setShowPrompt(false);
+        setShowManualPrompt(false);
+      }
+      return;
+    }
+
+    // Detect platform for desktop handling
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isDesktop = /windows|macintosh|linux/.test(userAgent);
+    
+    // For desktop without deferred prompt, try installApp() which has desktop fallback
+    if (isDesktop) {
       const success = await installApp();
       if (success) {
         setShowPrompt(false);
@@ -115,30 +129,23 @@ export const PWAInstallPrompt = () => {
     let instructions = '';
     let followUpAction = '';
     
-    switch (platform) {
-      case 'ios':
-        instructions = 'To install this app on iOS:\n\n1. Tap the Share button (⬆) at the bottom\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to confirm';
-        followUpAction = 'After installation, the app will appear on your home screen like a native app.';
-        break;
-        
-      case 'android':
-        const isChrome = /Chrome/.test(navigator.userAgent);
-        if (isChrome) {
-          instructions = 'To install this app on Android:\n\n1. Tap the menu (⋮) in the top-right corner\n2. Tap "Add to Home screen"\n3. Tap "Add" to confirm';
-        } else {
-          instructions = 'To install this app on Android:\n\n1. Look for "Add to Home Screen" or "Install App" in your browser menu\n2. Follow the prompts to install';
-        }
-        followUpAction = 'The app will be installed like a regular Android app.';
-        break;
-        
-      case 'desktop':
-        instructions = 'To install this app on desktop:\n\n1. Look for the install icon (⊕) in your browser\'s address bar\n2. Click it and select "Install"\n\nAlternatively:\n• Chrome: Menu → More tools → Create shortcut → Check "Open as window"\n• Edge: Menu → Apps → Install this site as an app';
-        followUpAction = 'The app will open in its own window like a desktop application.';
-        break;
-        
-      default:
-        instructions = 'To install this app:\n\n• Mobile: Look for "Add to Home Screen" in your browser menu\n• Desktop: Look for an install icon in the address bar';
-        followUpAction = 'Once installed, you can access the app directly from your device.';
+    if (platform === 'ios') {
+      instructions = 'To install this app on iOS:\n\n1. Tap the Share button (⬆) at the bottom\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to confirm';
+      followUpAction = 'After installation, the app will appear on your home screen like a native app.';
+    } else if (platform === 'android') {
+      const isChrome = /Chrome/.test(navigator.userAgent);
+      if (isChrome) {
+        instructions = 'To install this app on Android:\n\n1. Tap the menu (⋮) in the top-right corner\n2. Tap "Add to Home screen"\n3. Tap "Add" to confirm';
+      } else {
+        instructions = 'To install this app on Android:\n\n1. Look for "Add to Home Screen" or "Install App" in your browser menu\n2. Follow the prompts to install';
+      }
+      followUpAction = 'The app will be installed like a regular Android app.';
+    } else if (isDesktop) {
+      instructions = 'To install this app on desktop:\n\n1. Look for the install icon (⊕) in your browser\'s address bar\n2. Click it and select "Install"\n\nAlternatively:\n• Chrome: Menu → More tools → Create shortcut → Check "Open as window"\n• Edge: Menu → Apps → Install this site as an app';
+      followUpAction = 'The app will open in its own window like a desktop application.';
+    } else {
+      instructions = 'To install this app:\n\n• Mobile: Look for "Add to Home Screen" in your browser menu\n• Desktop: Look for an install icon in the address bar';
+      followUpAction = 'Once installed, you can access the app directly from your device.';
     }
     
     // Show enhanced installation dialog only if native prompt unavailable
