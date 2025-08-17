@@ -66,9 +66,11 @@ const Messages = () => {
       <Navigation />
       <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <div className="max-w-6xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Messages</h1>
-            <p className="text-muted-foreground">Connect with your fans and creators</p>
+          <div className="mb-4">
+            <div className="flex items-center gap-4">
+              <h1 className="text-xl font-semibold text-foreground">Messages</h1>
+              <span className="text-sm text-muted-foreground">Connect with your fans and creators</span>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
