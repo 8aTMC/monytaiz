@@ -76,6 +76,16 @@
       "cancel": "Cancel",
       "success": "Purchase completed successfully!",
       "error": "Purchase failed. Please try again."
+    },
+    "validation": {
+      "fieldRequired": "This field is required",
+      "nameRequired": "Please enter your name",
+      "usernameRequired": "Please enter a username",
+      "emailRequired": "Please enter your email address",
+      "passwordRequired": "Please enter a password",
+      "invalidEmail": "Please enter a valid email address (example@domain.com)",
+      "usernameNoSpaces": "Username cannot contain spaces",
+      "passwordNotValid": "Password does not meet all requirements"
     }
   }
 }

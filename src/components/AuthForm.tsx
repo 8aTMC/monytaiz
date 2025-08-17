@@ -50,41 +50,90 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
     return Object.values(rules).every(Boolean);
   };
 
+  const validateForm = () => {
+    // Check required fields
+    if (mode === 'signup' && !formData.displayName.trim()) {
+      toast({
+        title: "Error",
+        description: t('platform.validation.nameRequired'),
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (mode === 'signup' && !formData.username.trim()) {
+      toast({
+        title: "Error", 
+        description: t('platform.validation.usernameRequired'),
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!formData.email.trim()) {
+      toast({
+        title: "Error",
+        description: t('platform.validation.emailRequired'),
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!formData.password.trim()) {
+      toast({
+        title: "Error",
+        description: t('platform.validation.passwordRequired'),
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (mode === 'signup') {
+      // Validate email
+      if (!validateEmail(formData.email)) {
+        toast({
+          title: "Error",
+          description: t('platform.validation.invalidEmail'),
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Validate username
+      if (!validateUsername(formData.username)) {
+        toast({
+          title: "Error",
+          description: t('platform.validation.usernameNoSpaces'),
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Validate password
+      if (!isPasswordValid(formData.password)) {
+        toast({
+          title: "Error",
+          description: t('platform.validation.passwordNotValid'),
+          variant: "destructive",
+        });
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
     setLoading(true);
 
     try {
       if (mode === 'signup') {
-        // Validate email
-        if (!validateEmail(formData.email)) {
-          toast({
-            title: "Error",
-            description: "Please enter a valid email address",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        // Validate username
-        if (!validateUsername(formData.username)) {
-          toast({
-            title: "Error",
-            description: "Username cannot contain spaces",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        // Validate password
-        if (!isPasswordValid(formData.password)) {
-          toast({
-            title: "Error",
-            description: "Password does not meet all requirements",
-            variant: "destructive",
-          });
-          return;
-        }
 
         const { error } = await supabase.auth.signUp({
           email: formData.email,
@@ -158,10 +207,10 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
                   type="text"
                   value={formData.displayName}
                   onChange={(e) => handleInputChange('displayName', e.target.value.slice(0, 20))}
-                  required
                   className="bg-input border-border text-foreground"
                   maxLength={20}
                   placeholder="Your name"
+                  title=""
                 />
                 <p className="text-xs text-muted-foreground">{formData.displayName.length}/20 characters</p>
               </div>
@@ -174,9 +223,9 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
                   type="text"
                   value={formData.username}
                   onChange={(e) => handleInputChange('username', e.target.value.slice(0, 20))}
-                  required
                   className="bg-input border-border text-foreground"
                   maxLength={20}
+                  title=""
                 />
                 <p className="text-xs text-muted-foreground">{formData.username.length}/20 characters</p>
               </div>
@@ -193,8 +242,8 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
               placeholder="your@email.com"
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
-              required
               className="bg-input border-border text-foreground"
+              title=""
             />
           </div>
           
@@ -209,8 +258,8 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
                 placeholder="|Password12345@~!"
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
-                required
                 className="bg-input border-border text-foreground pr-10"
+                title=""
               />
               <Button
                 type="button"
@@ -256,13 +305,13 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
 
           {mode === 'signup' && formData.email && !validateEmail(formData.email) && (
             <div className="text-xs text-red-600">
-              Please enter a valid email address (example@domain.com)
+              {t('platform.validation.invalidEmail')}
             </div>
           )}
 
           {mode === 'signup' && formData.username && !validateUsername(formData.username) && (
             <div className="text-xs text-red-600">
-              Username cannot contain spaces
+              {t('platform.validation.usernameNoSpaces')}
             </div>
           )}
           
