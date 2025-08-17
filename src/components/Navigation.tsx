@@ -4,6 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/hooks/useTranslation';
 import { User, Session } from '@supabase/supabase-js';
+
+interface UserProfile {
+  id: string;
+  display_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  is_verified: boolean;
+}
 import { 
   Home, 
   Search, 
@@ -48,20 +56,44 @@ export const Navigation = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isManagementOpen, setIsManagementOpen] = useState(false);
   const { isCollapsed, setIsCollapsed } = useSidebar();
+
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, display_name, username, avatar_url, is_verified')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+      setUserProfile(data);
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        if (session?.user) {
+          fetchUserProfile(session.user.id);
+        } else {
+          setUserProfile(null);
+        }
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -151,28 +183,56 @@ export const Navigation = () => {
           <PopoverTrigger asChild>
             <Button 
               variant="ghost" 
-              className={`w-full justify-start gap-3 text-muted-foreground hover:text-foreground ${
-                isCollapsed ? 'px-2' : 'px-3'
+              className={`w-full justify-start gap-3 hover:bg-secondary/50 transition-smooth p-3 ${
+                isCollapsed ? 'justify-center' : ''
               }`}
             >
-              <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center flex-shrink-0">
-                <UserIcon className="h-4 w-4 text-primary-foreground" />
+              <div className="relative">
+                {userProfile?.avatar_url ? (
+                  <img
+                    src={userProfile.avatar_url}
+                    alt="Profile"
+                    className="h-10 w-10 rounded-full object-cover ring-2 ring-primary/20"
+                  />
+                ) : (
+                  <div className="h-10 w-10 rounded-full bg-gradient-primary flex items-center justify-center ring-2 ring-primary/20">
+                    <UserIcon className="h-5 w-5 text-primary-foreground" />
+                  </div>
+                )}
+                {userProfile?.is_verified && (
+                  <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-card flex items-center justify-center">
+                    <svg className="h-2 w-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
               </div>
               {!isCollapsed && (
                 <div className="flex-1 min-w-0 text-left">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {user.email}
+                  <p className="text-sm font-semibold text-foreground truncate">
+                    {userProfile?.display_name || userProfile?.username || 'Anonymous'}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {user?.email}
                   </p>
                 </div>
               )}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-56 p-2" side="right" align="end">
+            <div className="px-3 py-2 border-b border-border mb-2">
+              <p className="text-sm font-medium text-foreground">
+                {userProfile?.display_name || userProfile?.username || 'Anonymous'}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {user?.email}
+              </p>
+            </div>
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={handleSignOut}
-              className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+              className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground hover:bg-destructive/10 hover:text-destructive"
             >
               <LogOut className="h-4 w-4" />
               {t('platform.auth.signOut')}
