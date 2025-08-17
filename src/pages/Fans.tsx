@@ -238,11 +238,6 @@ const Fans = () => {
                               <Badge variant="outline" className="text-xs">
                                 {fan.fan_category}
                               </Badge>
-                              {fanRoles[fan.id]?.map((userRole) => (
-                                <Badge key={userRole.role} variant="outline" className="text-xs">
-                                  {userRole.role}
-                                </Badge>
-                              ))}
                             </div>
                             {fan.username && fan.display_name && (
                               <p className="text-sm text-muted-foreground truncate">
@@ -356,21 +351,12 @@ const Fans = () => {
                               <span className="text-muted-foreground">Member since</span>
                               <span>{new Date(selectedFan.created_at).toLocaleDateString()}</span>
                             </div>
-                            {fanRoles[selectedFan.id]?.length > 0 && (
-                              <>
-                                <Separator />
-                                <div className="flex justify-between py-2">
-                                  <span className="text-muted-foreground">Roles</span>
-                                  <div className="flex gap-1">
-                                    {fanRoles[selectedFan.id].map((userRole) => (
-                                      <Badge key={userRole.role} variant="outline" className="text-xs">
-                                        {userRole.role}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-                              </>
-                            )}
+                            <div className="flex justify-between py-2">
+                              <span className="text-muted-foreground">Category</span>
+                              <Badge variant="outline" className="text-xs">
+                                {selectedFan.fan_category}
+                              </Badge>
+                            </div>
                             {selectedFan.bio && (
                               <>
                                 <Separator />
