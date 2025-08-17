@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Navigation, useSidebar } from '@/components/Navigation';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -23,9 +24,14 @@ interface UserProfile {
 
 const Users = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const { isCollapsed } = useSidebar();
+
+  const handleCreateUser = () => {
+    navigate('/admin-dashboard');
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -184,7 +190,7 @@ const Users = () => {
             <div className="mb-4">
               <h1 className="text-lg font-semibold text-foreground">Users</h1>
             </div>
-            <Button className="flex items-center gap-2">
+            <Button className="flex items-center gap-2" onClick={handleCreateUser}>
               <Plus className="h-4 w-4" />
               Create User
             </Button>
