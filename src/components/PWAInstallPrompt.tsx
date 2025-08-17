@@ -174,7 +174,7 @@ export const PWAInstallPrompt = () => {
 
   const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-  // Show native install prompt if available
+  // Show install prompt - prioritize native if available, fallback to manual
   if (showPrompt && canInstall) {
     return (
       <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:max-w-sm">
@@ -228,51 +228,60 @@ export const PWAInstallPrompt = () => {
     );
   }
 
-  // Show manual install prompt if native prompt not available
-  if (showManualPrompt) {
+  // Show install prompt even without native support but with enhanced install button
+  if (showManualPrompt && !isInstalled) {
     return (
       <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:max-w-sm">
-        <Card className="bg-gradient-card border-border shadow-card animate-in slide-in-from-bottom-2">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0">
-                <Plus className="h-6 w-6 text-primary" />
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-background to-secondary/10 backdrop-blur-xl border border-primary/20 shadow-2xl animate-in slide-in-from-bottom-4 duration-500">
+          {/* Animated background elements */}
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-50" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+          
+          <CardContent className="relative p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 p-3 rounded-full bg-primary/20 backdrop-blur-sm">
+                {isMobile ? (
+                  <Smartphone className="h-6 w-6 text-primary" />
+                ) : (
+                  <Monitor className="h-6 w-6 text-primary" />
+                )}
               </div>
               
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold text-foreground mb-1">
-                  Install App
+                <h3 className="text-lg font-bold text-foreground mb-2 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                  Install Monytaiz
                 </h3>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Add Monytaiz to your home screen for easy access.
+                <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                  Add to your home screen for the best app experience with offline access and quick launch.
                 </p>
                 
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <Button
                     size="sm"
                     variant="default"
                     onClick={handleManualInstall}
-                    className="flex-1"
+                    className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                   >
-                    <Download className="h-3 w-3 mr-1" />
-                    How to Install
+                    <Download className="h-4 w-4 mr-2" />
+                    Install App
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={handleManualDismiss}
-                    className="px-2"
+                    className="px-3 hover:bg-destructive/10 hover:text-destructive transition-colors duration-200"
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
             </div>
           </CardContent>
-        </Card>
+        </div>
       </div>
     );
   }
+
 
   return null;
 };

@@ -140,6 +140,28 @@ export const usePWA = () => {
       }));
     };
 
+    // Force installability check for browsers that support PWA but may not trigger beforeinstallprompt
+    const forceInstallabilityCheck = () => {
+      const { isInstalled } = detectInstallation();
+      const isDismissed = isInstallPromptDismissed();
+      
+      // Check if browser supports add to home screen or installation
+      const isInstallSupported = 
+        'serviceWorker' in navigator && 
+        window.matchMedia('(display-mode: browser)').matches &&
+        !isInstalled;
+      
+      console.log('🔧 PWA: Force installability check', { isInstallSupported, isInstalled, isDismissed });
+      
+      if (isInstallSupported && !isDismissed) {
+        setPwaState(prev => ({
+          ...prev,
+          isInstallable: true,
+          canInstall: true,
+        }));
+      }
+    };
+
     // Enhanced app installation event handling
     const handleAppInstalled = () => {
       console.log('🎉 PWA: App installation detected');
@@ -186,6 +208,14 @@ export const usePWA = () => {
 
     // Initial check
     checkInstallation();
+    
+    // Force installability check after a delay if beforeinstallprompt hasn't fired
+    const installabilityTimer = setTimeout(() => {
+      if (!pwaState.canInstall && !pwaState.isInstalled) {
+        console.log('🚀 PWA: Forcing installability check');
+        forceInstallabilityCheck();
+      }
+    }, 3000);
 
     // Add event listeners
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -220,6 +250,7 @@ export const usePWA = () => {
       }
       
       clearInterval(installCheckInterval);
+      clearTimeout(installabilityTimer);
       clearTimeout((window as any).resizeTimeout);
     };
   }, [detectInstallation, detectPlatform, isInstallPromptDismissed]);
