@@ -163,8 +163,16 @@ const Fans = () => {
                         <div className="flex items-center space-x-4 flex-1 min-w-0" onClick={() => handleFanClick(fan)}>
                           <Avatar className="h-12 w-12">
                             <AvatarImage src={fan.avatar_url || undefined} />
-                            <AvatarFallback>
-                              {fan.display_name?.[0] || fan.username?.[0] || 'U'}
+                            <AvatarFallback className="text-lg font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+                              {(() => {
+                                const name = fan.display_name || fan.username || 'User';
+                                const words = name.trim().split(/\s+/);
+                                if (words.length >= 2) {
+                                  return (words[0][0] + words[1][0]).toUpperCase();
+                                } else {
+                                  return name.slice(0, 2).toUpperCase();
+                                }
+                              })()}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
@@ -245,8 +253,16 @@ const Fans = () => {
                         <div className="flex items-center space-x-4">
                           <Avatar className="h-16 w-16">
                             <AvatarImage src={selectedFan.avatar_url || undefined} />
-                            <AvatarFallback className="text-lg">
-                              {selectedFan.display_name?.[0] || selectedFan.username?.[0] || 'U'}
+                            <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+                              {(() => {
+                                const name = selectedFan.display_name || selectedFan.username || 'User';
+                                const words = name.trim().split(/\s+/);
+                                if (words.length >= 2) {
+                                  return (words[0][0] + words[1][0]).toUpperCase();
+                                } else {
+                                  return name.slice(0, 2).toUpperCase();
+                                }
+                              })()}
                             </AvatarFallback>
                           </Avatar>
                           <div>

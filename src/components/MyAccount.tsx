@@ -80,6 +80,34 @@ export const MyAccount = () => {
     }
   };
 
+  const compressImage = (file: File, quality: number = 0.7, maxWidth: number = 800): Promise<Blob> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        // Calculate new dimensions while maintaining aspect ratio
+        let { width, height } = img;
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx?.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          resolve(blob as Blob);
+        }, 'image/jpeg', quality);
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setUploading(true);
@@ -89,7 +117,6 @@ export const MyAccount = () => {
       }
 
       const file = event.target.files[0];
-      const fileExt = file.name.split('.').pop();
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -101,14 +128,23 @@ export const MyAccount = () => {
         return;
       }
 
+      // Compress the image before upload
+      const compressedBlob = await compressImage(file, 0.8, 800);
+      const compressedFile = new File([compressedBlob], file.name, {
+        type: 'image/jpeg',
+        lastModified: Date.now(),
+      });
+
+      console.log(`Original size: ${(file.size / 1024 / 1024).toFixed(2)}MB, Compressed size: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+
       // Create file path in the new structure: images/user_id/filename
-      const fileName = `${Math.random()}.${fileExt}`;
+      const fileName = `${Math.random()}.jpg`;
       const filePath = `images/${user.id}/${fileName}`;
 
       // Upload to content bucket
       const { error: uploadError } = await supabase.storage
         .from('content')
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, compressedFile, { upsert: true });
 
       if (uploadError) {
         throw uploadError;
@@ -122,8 +158,8 @@ export const MyAccount = () => {
           file_path: filePath,
           file_type: 'image',
           original_filename: file.name,
-          file_size: file.size,
-          mime_type: file.type,
+          file_size: compressedFile.size,
+          mime_type: 'image/jpeg',
           title: 'Avatar',
           description: 'User profile avatar',
           fan_access_level: 'free'
