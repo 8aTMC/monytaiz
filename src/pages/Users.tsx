@@ -33,13 +33,7 @@ const Users = () => {
         const { data: usersWithRoles, error } = await supabase
           .from('profiles')
           .select(`
-            id,
-            username,
-            display_name,
-            avatar_url,
-            bio,
-            is_verified,
-            created_at,
+            *,
             user_roles!user_roles_user_id_fkey!inner(role)
           `)
           .neq('user_roles.role', 'fan');
