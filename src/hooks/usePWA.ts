@@ -130,8 +130,12 @@ export const usePWA = () => {
       e.preventDefault();
       console.log('🎯 PWA: beforeinstallprompt event received', event.platforms);
       
+      // Store the event in a ref to preserve the prompt method
       const { isInstalled } = detectInstallation();
       const isDismissed = isInstallPromptDismissed();
+      
+      // Directly store the event without state update to preserve methods
+      (window as any).deferredPrompt = event;
       
       setPwaState(prev => ({
         ...prev,
@@ -329,11 +333,12 @@ export const usePWA = () => {
                            window.location.hostname.includes('monytaiz.com');
 
     // Try native installation first if deferred prompt is available
-    if (pwaState.deferredPrompt) {
+    const deferredPrompt = (window as any).deferredPrompt || pwaState.deferredPrompt;
+    if (deferredPrompt && typeof deferredPrompt.prompt === 'function') {
       try {
         console.log('📱 PWA: Using native installation prompt...');
-        await pwaState.deferredPrompt.prompt();
-        const { outcome } = await pwaState.deferredPrompt.userChoice;
+        await deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
         
         console.log('📊 PWA: User choice outcome:', outcome);
         
@@ -343,6 +348,9 @@ export const usePWA = () => {
           localStorage.setItem(PWA_INSTALL_TIMESTAMP, Date.now().toString());
           localStorage.removeItem(PWA_DISMISS_KEY);
           localStorage.removeItem(`${PWA_DISMISS_KEY}-timestamp`);
+          
+          // Clear the stored prompt
+          (window as any).deferredPrompt = null;
           
           setPwaState(prev => ({
             ...prev,
@@ -356,6 +364,9 @@ export const usePWA = () => {
           // User dismissed the prompt
           localStorage.setItem(PWA_DISMISS_KEY, 'true');
           localStorage.setItem(`${PWA_DISMISS_KEY}-timestamp`, Date.now().toString());
+          
+          // Clear the stored prompt
+          (window as any).deferredPrompt = null;
           
           setPwaState(prev => ({
             ...prev,
