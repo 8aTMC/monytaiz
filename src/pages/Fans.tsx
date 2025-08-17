@@ -68,22 +68,38 @@ const Fans = () => {
   useEffect(() => {
     const fetchFans = async () => {
       try {
-        // Fetch only users who have the 'fan' role
+        // First get all fan user IDs
+        const { data: fanRoles, error: roleError } = await supabase
+          .from('user_roles')
+          .select('user_id')
+          .eq('role', 'fan');
+
+        if (roleError) {
+          console.error('Error fetching fan roles:', roleError);
+          return;
+        }
+
+        if (!fanRoles || fanRoles.length === 0) {
+          setFans([]);
+          setLoadingFans(false);
+          return;
+        }
+
+        const fanUserIds = fanRoles.map(role => role.user_id);
+
+        // Then get the profiles for those users
         const { data, error } = await supabase
           .from('profiles')
-          .select(`
-            *,
-            user_roles!user_roles_user_id_fkey!inner(role)
-          `)
-          .eq('user_roles.role', 'fan')
+          .select('*')
+          .in('id', fanUserIds)
           .order('created_at', { ascending: false });
 
         if (error) {
-          console.error('Error fetching fans:', error);
+          console.error('Error fetching fan profiles:', error);
         } else {
           setFans(data || []);
           
-          // Since we already know these users have fan role, just set it
+          // Set up roles map for fans
           if (data) {
             const rolesMap: Record<string, UserRole[]> = {};
             data.forEach((fan) => {
