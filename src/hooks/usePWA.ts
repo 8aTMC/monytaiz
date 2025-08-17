@@ -152,12 +152,17 @@ export const usePWA = () => {
         window.matchMedia('(display-mode: browser)').matches &&
         !isInstalled;
       
+      // Check if we're on a custom domain vs lovable preview
+      const isCustomDomain = !window.location.hostname.includes('lovable');
+      
       // For desktop browsers, check for specific PWA install capabilities
       const hasInstallCapability = platform === 'desktop' && (
         // Chrome/Edge has install prompt support
         'getInstalledRelatedApps' in navigator ||
         // Check if we're in a PWA-capable browser
-        window.matchMedia('(display-mode: browser)').matches
+        window.matchMedia('(display-mode: browser)').matches ||
+        // Always enable for custom domains as browsers may not fire beforeinstallprompt reliably
+        isCustomDomain
       );
       
       console.log('🔧 PWA: Force installability check', { 
@@ -166,6 +171,7 @@ export const usePWA = () => {
         isDismissed, 
         platform, 
         hasInstallCapability,
+        isCustomDomain,
         currentUrl: window.location.href,
         domain: window.location.hostname,
         protocol: window.location.protocol,
@@ -173,6 +179,17 @@ export const usePWA = () => {
         manifestPresent: !!document.querySelector('link[rel="manifest"]'),
         serviceWorkerSupported: 'serviceWorker' in navigator
       });
+      
+      // Always enable installation on custom domains for desktop
+      if (isCustomDomain && platform === 'desktop' && !isInstalled && !isDismissed) {
+        console.log('🌐 PWA: Enabling installation for custom domain');
+        setPwaState(prev => ({
+          ...prev,
+          isInstallable: true,
+          canInstall: true,
+        }));
+        return;
+      }
       
       // Set canInstall based on platform capabilities
       if (isInstallSupported && !isDismissed) {
@@ -239,12 +256,16 @@ export const usePWA = () => {
     checkInstallation();
     
     // Force installability check after a delay if beforeinstallprompt hasn't fired
+    // Reduced delay for custom domains since beforeinstallprompt may be unreliable
+    const isCustomDomain = !window.location.hostname.includes('lovable');
+    const delay = isCustomDomain ? 1000 : 3000; // Faster for custom domains
+    
     const installabilityTimer = setTimeout(() => {
       if (!pwaState.canInstall && !pwaState.isInstalled) {
         console.log('🚀 PWA: Forcing installability check');
         forceInstallabilityCheck();
       }
-    }, 3000);
+    }, delay);
 
     // Add event listeners
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -289,13 +310,17 @@ export const usePWA = () => {
     console.log('📱 PWA: Install attempt started', { 
       hasDeferredPrompt: !!pwaState.deferredPrompt, 
       platform: pwaState.platform,
-      isInstalled: pwaState.isInstalled
+      isInstalled: pwaState.isInstalled,
+      domain: window.location.hostname
     });
 
     if (pwaState.isInstalled) {
       console.log('⚠️ PWA: App already installed');
       return false;
     }
+
+    // Check if we're on a custom domain
+    const isCustomDomain = !window.location.hostname.includes('lovable');
 
     // Try native installation first if deferred prompt is available
     if (pwaState.deferredPrompt) {
@@ -335,45 +360,44 @@ export const usePWA = () => {
         }
       } catch (error) {
         console.error('❌ PWA: Error during native installation:', error);
-        // Don't fall back to manual installation after native prompt failure
-        return false;
+        // For custom domains, fall back to manual installation if native fails
+        if (isCustomDomain && pwaState.platform === 'desktop') {
+          console.log('🔄 PWA: Falling back to manual installation for custom domain');
+        } else {
+          return false;
+        }
       }
     }
 
-    // Only show manual installation if no native prompt is available
-    console.warn('🚫 PWA: No native prompt available, offering manual installation');
-    
+    // Manual installation for desktop (especially important for custom domains)
     if (pwaState.platform === 'desktop') {
       console.log('🖥️ PWA: Showing desktop manual installation instructions');
       
-      const userWantsInstructions = confirm('This app can be installed on your desktop for a better experience.\n\nWould you like to see installation instructions?');
-      
-      if (userWantsInstructions) {
-        const instructions = `To install this app on your desktop:
+      const domainName = isCustomDomain ? window.location.hostname : 'this app';
+      const instructions = `Install ${domainName} as a desktop app for the best experience:
 
 1. Look for the install icon (⊕) in your browser's address bar and click it
-2. If no install icon is visible:
+2. If no install icon appears, try:
    • Chrome: Menu (⋮) → More tools → Create shortcut → Check "Open as window"
    • Edge: Menu (⋯) → Apps → Install this site as an app
    • Firefox: Menu (☰) → Page → Install page as app
 
-The app will then open in its own window like a desktop application.
+The app will open in its own window like a native desktop application.
 
-Would you like to mark the app as installed after completing these steps?`;
+Click OK to mark as installed after following these steps.`;
 
-        const markAsInstalled = confirm(instructions);
-        if (markAsInstalled) {
-          localStorage.setItem(PWA_INSTALL_KEY, 'installed');
-          localStorage.setItem(PWA_INSTALL_TIMESTAMP, Date.now().toString());
-          
-          setPwaState(prev => ({
-            ...prev,
-            isInstalled: true,
-            canInstall: false,
-            installationSource: 'manual',
-          }));
-          return true;
-        }
+      const userConfirmed = confirm(instructions);
+      if (userConfirmed) {
+        localStorage.setItem(PWA_INSTALL_KEY, 'installed');
+        localStorage.setItem(PWA_INSTALL_TIMESTAMP, Date.now().toString());
+        
+        setPwaState(prev => ({
+          ...prev,
+          isInstalled: true,
+          canInstall: false,
+          installationSource: 'manual',
+        }));
+        return true;
       }
     }
     
