@@ -228,7 +228,7 @@ const Users = () => {
                             <div className="flex items-center gap-4">
                               <Avatar className="h-12 w-12">
                                 <AvatarImage src={user.avatar_url} />
-                                <AvatarFallback>
+                                <AvatarFallback className="text-lg font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
                                   {(() => {
                                     const name = user.display_name || user.username || 'User';
                                     const words = name.trim().split(/\s+/);
