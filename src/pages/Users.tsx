@@ -29,25 +29,39 @@ const Users = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        console.log('Fetching users...');
+        console.log('Starting fetchUsers...');
+        
+        // First check current user authentication
+        const { data: { session }, error: authError } = await supabase.auth.getSession();
+        console.log('Current session:', session?.user?.id, authError);
+        
+        // Try a simple query first to test RLS
+        const { data: allProfiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*');
+        console.log('All profiles query:', { allProfiles, profilesError });
         
         // Get all users with their roles, excluding fans
         const { data: usersWithRoles, error } = await supabase
           .from('profiles')
           .select(`
             *,
-            user_roles!user_roles_user_id_fkey!inner(role)
+            user_roles!user_roles_user_id_fkey(role)
           `)
-          .neq('user_roles.role', 'fan');
+          .not('user_roles.role', 'eq', 'fan');
 
-        console.log('Query result:', { usersWithRoles, error });
+        console.log('Users with roles query:', { usersWithRoles, error });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Query error:', error);
+          throw error;
+        }
 
         // Group roles by user
         const userMap = new Map<string, UserProfile>();
         
         usersWithRoles?.forEach((user: any) => {
+          console.log('Processing user:', user);
           const userId = user.id;
           if (!userMap.has(userId)) {
             userMap.set(userId, {
@@ -61,7 +75,16 @@ const Users = () => {
               roles: []
             });
           }
-          userMap.get(userId)?.roles.push(user.user_roles.role);
+          // Handle both array and single role cases
+          if (user.user_roles) {
+            if (Array.isArray(user.user_roles)) {
+              user.user_roles.forEach((roleObj: any) => {
+                userMap.get(userId)?.roles.push(roleObj.role);
+              });
+            } else {
+              userMap.get(userId)?.roles.push(user.user_roles.role);
+            }
+          }
         });
 
         const finalUsers = Array.from(userMap.values());
