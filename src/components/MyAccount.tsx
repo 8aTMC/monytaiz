@@ -275,70 +275,68 @@ export const MyAccount = () => {
     return colors[role] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
+  const getProfileInitials = () => {
+    const name = profile?.display_name || profile?.username || 'User';
+    const words = name.trim().split(/\s+/);
+    
+    if (words.length >= 2) {
+      // First letter of first two words
+      return (words[0][0] + words[1][0]).toUpperCase();
+    } else {
+      // First two letters of single word
+      return name.slice(0, 2).toUpperCase();
+    }
+  };
+
   if (!isEditing) {
     return (
       <div className="space-y-8 animate-fade-in">
-        {/* Header Section */}
-        <div className="flex items-center justify-between p-6 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border border-primary/10">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <User className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-foreground">
-                  {t('account.title', 'My Account')}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Manage your profile information
-                </p>
-              </div>
-            </div>
-            <Badge 
-              variant="secondary" 
-              className={`ml-4 ${getRoleBadgeColor(userRole)} border-0 shadow-sm`}
-            >
-              {getRoleDisplayName(userRole)}
-            </Badge>
-          </div>
-          <div className="flex gap-3">
-            <Button variant="outline" size="sm" onClick={handleEdit} className="hover-scale">
-              <Edit className="h-4 w-4 mr-2" />
-              {t('account.edit', 'Edit')}
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleChangeEmail} className="hover-scale">
-              <Mail className="h-4 w-4 mr-2" />
-              {t('account.changeEmail', 'Change Email')}
-            </Button>
-          </div>
-        </div>
-
-        {/* Avatar Section */}
+        {/* Profile Header */}
         <Card className="overflow-hidden">
           <CardContent className="p-6">
-            <div className="flex items-center gap-6">
-              <div className="relative group">
-                <Avatar className="h-24 w-24 border-4 border-primary/10 shadow-lg">
-                  <AvatarImage src={profile?.avatar_url || ''} className="object-cover" />
-                  <AvatarFallback className="text-xl font-semibold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
-                    {profile?.display_name?.[0] || profile?.username?.[0] || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                  <Camera className="h-6 w-6 text-white" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <div className="relative group">
+                  <Avatar className="h-24 w-24 border-4 border-primary/10 shadow-lg">
+                    <AvatarImage src={profile?.avatar_url || ''} className="object-cover" />
+                    <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+                      {getProfileInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                    <Camera className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-2xl font-bold text-foreground">
+                      {profile?.display_name || profile?.username || 'Anonymous User'}
+                    </h3>
+                    <Badge 
+                      variant="secondary" 
+                      className={`${getRoleBadgeColor(userRole)} border-0 shadow-sm`}
+                    >
+                      {getRoleDisplayName(userRole)}
+                    </Badge>
+                  </div>
+                  <p className="text-muted-foreground">
+                    @{profile?.username || 'username'}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm text-muted-foreground">Active</span>
+                  </div>
                 </div>
               </div>
-              <div className="flex-1 space-y-1">
-                <h3 className="text-2xl font-bold text-foreground">
-                  {profile?.display_name || profile?.username || 'Anonymous User'}
-                </h3>
-                <p className="text-muted-foreground">
-                  @{profile?.username || 'username'}
-                </p>
-                <div className="flex items-center gap-2 mt-2">
-                  <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm text-muted-foreground">Active</span>
-                </div>
+              <div className="flex flex-col gap-3">
+                <Button variant="outline" size="sm" onClick={handleEdit} className="hover-scale">
+                  <Edit className="h-4 w-4 mr-2" />
+                  {t('account.edit', 'Edit')}
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleChangeEmail} className="hover-scale">
+                  <Mail className="h-4 w-4 mr-2" />
+                  {t('account.changeEmail', 'Change Email')}
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -440,8 +438,8 @@ export const MyAccount = () => {
             <div className="relative group">
               <Avatar className="h-32 w-32 border-4 border-primary/20 shadow-xl">
                 <AvatarImage src={profile?.avatar_url || ''} className="object-cover" />
-                <AvatarFallback className="text-2xl font-semibold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
-                  {profile?.display_name?.[0] || profile?.username?.[0] || 'U'}
+                <AvatarFallback className="text-4xl font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+                  {getProfileInitials()}
                 </AvatarFallback>
               </Avatar>
               <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center">
