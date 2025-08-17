@@ -29,6 +29,8 @@ const Users = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
+        console.log('Fetching users...');
+        
         // Get all users with their roles, excluding fans
         const { data: usersWithRoles, error } = await supabase
           .from('profiles')
@@ -37,6 +39,8 @@ const Users = () => {
             user_roles!user_roles_user_id_fkey!inner(role)
           `)
           .neq('user_roles.role', 'fan');
+
+        console.log('Query result:', { usersWithRoles, error });
 
         if (error) throw error;
 
@@ -60,7 +64,9 @@ const Users = () => {
           userMap.get(userId)?.roles.push(user.user_roles.role);
         });
 
-        setUsers(Array.from(userMap.values()));
+        const finalUsers = Array.from(userMap.values());
+        console.log('Final users:', finalUsers);
+        setUsers(finalUsers);
       } catch (error) {
         console.error('Error fetching users:', error);
       } finally {
