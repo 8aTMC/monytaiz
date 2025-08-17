@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,9 +20,11 @@ interface UserProfile {
 export const MyAccount = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     display_name: '',
@@ -59,6 +61,68 @@ export const MyAccount = () => {
       console.error('Error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true);
+      
+      if (!event.target.files || event.target.files.length === 0) {
+        return;
+      }
+
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: t('account.error', 'Error'),
+          description: t('account.notAuthenticated', 'You must be logged in to upload an avatar.'),
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const fileName = `${user.id}/${Math.random()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: data.publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      setProfile(prev => prev ? { ...prev, avatar_url: data.publicUrl } : null);
+
+      toast({
+        title: t('account.success', 'Success'),
+        description: t('account.avatarUpdated', 'Profile picture updated successfully.'),
+      });
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast({
+        title: t('account.error', 'Error'),
+        description: t('account.avatarError', 'Failed to upload profile picture. Please try again.'),
+        variant: 'destructive',
+      });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -135,10 +199,24 @@ export const MyAccount = () => {
               {profile?.display_name?.[0] || profile?.username?.[0] || 'U'}
             </AvatarFallback>
           </Avatar>
-          <Button variant="outline" size="sm" disabled>
-            <Upload className="h-4 w-4 mr-2" />
-            {t('account.uploadAvatar', 'Upload Avatar')}
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {uploading ? t('account.uploading', 'Uploading...') : t('account.uploadAvatar', 'Upload Avatar')}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={uploadAvatar}
+              className="hidden"
+            />
+          </div>
         </div>
 
         {/* Profile Form */}
@@ -186,11 +264,11 @@ export const MyAccount = () => {
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-4">
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving || uploading}>
             <Settings className="h-4 w-4 mr-2" />
             {saving ? t('account.saving', 'Saving...') : t('account.save', 'Save Changes')}
           </Button>
-          <Button variant="outline" onClick={loadProfile} disabled={saving}>
+          <Button variant="outline" onClick={loadProfile} disabled={saving || uploading}>
             {t('account.cancel', 'Cancel')}
           </Button>
         </div>
