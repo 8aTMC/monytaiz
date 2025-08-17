@@ -217,9 +217,9 @@ const Fans = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {fans.map((fan) => (
                   <Card key={fan.id} className="bg-gradient-card border-border shadow-card hover:shadow-lg transition-all cursor-pointer group">
-                    <CardHeader className="pb-2 pt-3">
+                    <CardHeader className="pb-2 pt-3 pl-4">
                       <div className="flex items-start justify-between">
-                        <div className="flex items-start space-x-3 flex-1 min-w-0" onClick={() => handleFanClick(fan)}>
+                        <div className="flex items-start space-x-3 flex-1 min-w-0 -ml-1" onClick={() => handleFanClick(fan)}>
                           <Avatar className="h-12 w-12 mt-1">
                             <AvatarImage src={fan.avatar_url || undefined} />
                             <AvatarFallback className="text-lg font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
