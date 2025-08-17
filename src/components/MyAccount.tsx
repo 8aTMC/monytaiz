@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Settings, Upload, Edit, Mail } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { User, Settings, Upload, Edit, Mail, Camera } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from '@/hooks/useTranslation';
 
@@ -276,24 +277,36 @@ export const MyAccount = () => {
 
   if (!isEditing) {
     return (
-      <div className="space-y-6">
-        {/* Header with Edit Buttons */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <User className="h-5 w-5" />
-              {t('account.title', 'My Account')}
-            </h2>
-            <span className={`px-2 py-1 text-xs font-medium rounded-md border ${getRoleBadgeColor(userRole)}`}>
+      <div className="space-y-8 animate-fade-in">
+        {/* Header Section */}
+        <div className="flex items-center justify-between p-6 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border border-primary/10">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <User className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-foreground">
+                  {t('account.title', 'My Account')}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Manage your profile information
+                </p>
+              </div>
+            </div>
+            <Badge 
+              variant="secondary" 
+              className={`ml-4 ${getRoleBadgeColor(userRole)} border-0 shadow-sm`}
+            >
               {getRoleDisplayName(userRole)}
-            </span>
+            </Badge>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleEdit}>
+          <div className="flex gap-3">
+            <Button variant="outline" size="sm" onClick={handleEdit} className="hover-scale">
               <Edit className="h-4 w-4 mr-2" />
               {t('account.edit', 'Edit')}
             </Button>
-            <Button variant="outline" size="sm" onClick={handleChangeEmail}>
+            <Button variant="outline" size="sm" onClick={handleChangeEmail} className="hover-scale">
               <Mail className="h-4 w-4 mr-2" />
               {t('account.changeEmail', 'Change Email')}
             </Button>
@@ -301,106 +314,150 @@ export const MyAccount = () => {
         </div>
 
         {/* Avatar Section */}
-        <div className="flex items-center gap-4">
-          <Avatar className="h-16 w-16">
-            <AvatarImage src={profile?.avatar_url || ''} />
-            <AvatarFallback>
-              {profile?.display_name?.[0] || profile?.username?.[0] || 'U'}
-            </AvatarFallback>
-          </Avatar>
+        <Card className="overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-6">
+              <div className="relative group">
+                <Avatar className="h-24 w-24 border-4 border-primary/10 shadow-lg">
+                  <AvatarImage src={profile?.avatar_url || ''} className="object-cover" />
+                  <AvatarFallback className="text-xl font-semibold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+                    {profile?.display_name?.[0] || profile?.username?.[0] || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                  <Camera className="h-6 w-6 text-white" />
+                </div>
+              </div>
+              <div className="flex-1 space-y-1">
+                <h3 className="text-2xl font-bold text-foreground">
+                  {profile?.display_name || profile?.username || 'Anonymous User'}
+                </h3>
+                <p className="text-muted-foreground">
+                  @{profile?.username || 'username'}
+                </p>
+                <div className="flex items-center gap-2 mt-2">
+                  <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm text-muted-foreground">Active</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Profile Information Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="hover:shadow-md transition-shadow duration-200">
+            <CardContent className="p-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
+                  <label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                    {t('account.username', 'Username')}
+                  </label>
+                </div>
+                <p className="text-lg font-medium text-foreground">
+                  {profile?.username || 'Not set'}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow duration-200">
+            <CardContent className="p-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 bg-purple-500 rounded-full"></div>
+                  <label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                    {t('account.displayName', 'Display Name')}
+                  </label>
+                </div>
+                <p className="text-lg font-medium text-foreground">
+                  {profile?.display_name || 'Not set'}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Profile Information */}
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-foreground">
-              {t('account.username', 'Username')}
-            </label>
-            <p className="mt-1 text-foreground">
-              {profile?.username || 'Not set'}
-            </p>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-foreground">
-              {t('account.displayName', 'Display Name')}
-            </label>
-            <p className="mt-1 text-foreground">
-              {profile?.display_name || 'Not set'}
-            </p>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-foreground">
-              {t('account.bio', 'Bio')}
-            </label>
-            <p className="mt-1 text-foreground whitespace-pre-wrap">
-              {profile?.bio || 'Tell us about yourself...'}
-            </p>
-          </div>
-        </div>
+        {/* Bio Section */}
+        <Card className="hover:shadow-md transition-shadow duration-200">
+          <CardContent className="p-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 bg-amber-500 rounded-full"></div>
+                <label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                  {t('account.bio', 'Bio')}
+                </label>
+              </div>
+              <div className="bg-muted/30 rounded-lg p-4 min-h-[100px] border border-muted/50">
+                <p className="text-foreground whitespace-pre-wrap leading-relaxed">
+                  {profile?.bio || (
+                    <span className="text-muted-foreground italic">
+                      Tell us about yourself...
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            {t('account.title', 'My Account')}
-          </CardTitle>
-          <div className="flex gap-2">
-            {!isEditing ? (
-              <>
-                <Button variant="outline" size="sm" onClick={handleEdit}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  {t('account.edit', 'Edit')}
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleChangeEmail}>
-                  <Mail className="h-4 w-4 mr-2" />
-                  {t('account.changeEmail', 'Change Email')}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="outline" size="sm" onClick={handleCancel}>
-                  {t('account.cancel', 'Cancel')}
-                </Button>
-                <Button size="sm" onClick={handleSaveAndExit} disabled={saving || uploading}>
-                  <Settings className="h-4 w-4 mr-2" />
-                  {saving ? t('account.saving', 'Saving...') : t('account.save', 'Save Changes')}
-                </Button>
-              </>
-            )}
+    <div className="space-y-6 animate-fade-in">
+      {/* Edit Mode Header */}
+      <div className="flex items-center justify-between p-6 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border border-primary/10">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Settings className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-foreground">
+              {t('account.editing', 'Editing Profile')}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Make changes to your profile information
+            </p>
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Avatar Section */}
-        <div className="flex items-center gap-4">
-          <Avatar className="h-16 w-16">
-            <AvatarImage src={profile?.avatar_url || ''} />
-            <AvatarFallback>
-              {profile?.display_name?.[0] || profile?.username?.[0] || 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col gap-2">
+        <div className="flex gap-3">
+          <Button variant="outline" size="sm" onClick={handleCancel} disabled={saving || uploading}>
+            {t('account.cancel', 'Cancel')}
+          </Button>
+          <Button size="sm" onClick={handleSaveAndExit} disabled={saving || uploading} className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70">
+            <Settings className="h-4 w-4 mr-2" />
+            {saving ? t('account.saving', 'Saving...') : t('account.save', 'Save Changes')}
+          </Button>
+        </div>
+      </div>
+
+      <Card className="overflow-hidden">
+        <CardContent className="p-8 space-y-8">
+          {/* Avatar Upload Section */}
+          <div className="flex flex-col items-center gap-6">
+            <div className="relative group">
+              <Avatar className="h-32 w-32 border-4 border-primary/20 shadow-xl">
+                <AvatarImage src={profile?.avatar_url || ''} className="object-cover" />
+                <AvatarFallback className="text-2xl font-semibold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+                  {profile?.display_name?.[0] || profile?.username?.[0] || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center">
+                <Camera className="h-8 w-8 text-white" />
+              </div>
+            </div>
             <Button 
               variant="outline" 
-              size="sm" 
+              size="lg"
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploading || !isEditing}
+              disabled={uploading}
+              className="hover-scale bg-gradient-to-r from-background to-muted border-2 border-primary/20 hover:border-primary/40"
             >
               <Upload className="h-4 w-4 mr-2" />
-              {uploading ? t('account.uploading', 'Uploading...') : t('account.uploadAvatar', 'Upload Avatar')}
+              {uploading ? t('account.uploading', 'Uploading...') : t('account.uploadAvatar', 'Change Avatar')}
             </Button>
-            {!isEditing && (
-              <p className="text-xs text-muted-foreground">
-                {t('account.editToUpload', 'Click Edit to change avatar')}
-              </p>
-            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -409,59 +466,64 @@ export const MyAccount = () => {
               className="hidden"
             />
           </div>
-        </div>
 
-        {/* Profile Form */}
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-foreground">
-              {t('account.username', 'Username')}
-            </label>
-            <Input
-              value={formData.username}
-              onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-              placeholder={t('account.usernamePlaceholder', 'Enter your username')}
-              className="mt-1"
-              readOnly={!isEditing}
-              disabled={!isEditing}
-            />
+          {/* Form Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
+                {t('account.username', 'Username')}
+              </label>
+              <Input
+                value={formData.username}
+                onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                placeholder={t('account.usernamePlaceholder', 'Enter your username')}
+                className="h-12 border-2 border-muted focus:border-primary transition-colors"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                <div className="h-2 w-2 bg-purple-500 rounded-full"></div>
+                {t('account.displayName', 'Display Name')}
+              </label>
+              <Input
+                value={formData.display_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, display_name: e.target.value }))}
+                placeholder={t('account.displayNamePlaceholder', 'Enter your display name')}
+                className="h-12 border-2 border-muted focus:border-primary transition-colors"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="text-sm font-medium text-foreground">
-              {t('account.displayName', 'Display Name')}
-            </label>
-            <Input
-              value={formData.display_name}
-              onChange={(e) => setFormData(prev => ({ ...prev, display_name: e.target.value }))}
-              placeholder={t('account.displayNamePlaceholder', 'Enter your display name')}
-              className="mt-1"
-              readOnly={!isEditing}
-              disabled={!isEditing}
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-foreground">
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-foreground flex items-center gap-2">
+              <div className="h-2 w-2 bg-amber-500 rounded-full"></div>
               {t('account.bio', 'Bio')}
             </label>
             <Textarea
               value={formData.bio}
               onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
               placeholder={t('account.bioPlaceholder', 'Tell us about yourself...')}
-              className="mt-1 min-h-[100px]"
+              className="min-h-[120px] border-2 border-muted focus:border-primary transition-colors resize-none"
               maxLength={500}
-              readOnly={!isEditing}
-              disabled={!isEditing}
             />
-            {isEditing && (
-              <p className="text-xs text-muted-foreground mt-1">
-                {formData.bio.length}/500 {t('account.characters', 'characters')}
-              </p>
-            )}
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-full bg-muted rounded-full max-w-[200px]">
+                  <div 
+                    className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min((formData.bio.length / 500) * 100, 100)}%` }}
+                  ></div>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {formData.bio.length}/500
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
