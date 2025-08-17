@@ -31,7 +31,9 @@ import {
   Heart,
   UserCheck,
   ThumbsUp,
-  Star
+  Star,
+  Grid,
+  List
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -210,6 +212,20 @@ export const Navigation = () => {
                   >
                     <Users className="h-4 w-4" />
                     <span>General Fans</span>
+                  </Link>
+                  <Link
+                    to="/fans/categories"
+                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                  >
+                    <Grid className="h-4 w-4" />
+                    <span>Categories</span>
+                  </Link>
+                  <Link
+                    to="/fans/lists"
+                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                  >
+                    <List className="h-4 w-4" />
+                    <span>Lists</span>
                   </Link>
                 </CollapsibleContent>
               </Collapsible>
