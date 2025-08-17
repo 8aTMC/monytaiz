@@ -105,7 +105,7 @@ export const usePWA = () => {
     if (!dismissedTimestamp) return false;
     
     const timeSinceDismissal = Date.now() - parseInt(dismissedTimestamp, 10);
-    // Reduced dismissal time to 30 minutes instead of 7 days for testing
+    // Check if dismissal period has expired (30 minutes for testing)
     return timeSinceDismissal < (30 * 60 * 1000);
   }, []);
 
