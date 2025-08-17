@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MessageCircle, Send, Search } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { MyAccount } from '@/components/MyAccount';
 
 const Messages = () => {
   const navigate = useNavigate();
@@ -74,7 +75,7 @@ const Messages = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Conversations List */}
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -98,6 +99,9 @@ const Messages = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* My Account Section */}
+              <MyAccount />
             </div>
 
             {/* Chat Area */}
