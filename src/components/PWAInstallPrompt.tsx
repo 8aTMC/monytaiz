@@ -5,42 +5,89 @@ import { Download, X, Smartphone, Monitor, Plus } from 'lucide-react';
 import { usePWA } from '@/hooks/usePWA';
 
 export const PWAInstallPrompt = () => {
-  const { canInstall, isInstalled, installApp, deferredPrompt } = usePWA();
+  const { 
+    canInstall, 
+    isInstalled, 
+    installApp, 
+    deferredPrompt, 
+    platform, 
+    installationSource,
+    markAsManuallyInstalled,
+    isInstallPromptDismissed 
+  } = usePWA();
+  
   const [dismissed, setDismissed] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
   const [showManualPrompt, setShowManualPrompt] = useState(false);
 
-  // Debug logging
+  // Enhanced debug logging
   useEffect(() => {
-    console.log('PWA State:', { canInstall, isInstalled, deferredPrompt: !!deferredPrompt });
-  }, [canInstall, isInstalled, deferredPrompt]);
+    console.log('🎛️ PWA Install Prompt State:', { 
+      canInstall, 
+      isInstalled, 
+      platform, 
+      installationSource,
+      deferredPrompt: !!deferredPrompt,
+      isInstallPromptDismissed,
+      showPrompt,
+      showManualPrompt 
+    });
+  }, [canInstall, isInstalled, deferredPrompt, platform, installationSource, isInstallPromptDismissed, showPrompt, showManualPrompt]);
 
   useEffect(() => {
-    // Show prompt after 3 seconds if installable and not dismissed
+    // Enhanced prompt timing logic
     const timer = setTimeout(() => {
-      const wasDismissed = localStorage.getItem('pwa-install-dismissed') === 'true';
-      console.log('PWA Install Check:', { canInstall, isInstalled, wasDismissed });
-      if (canInstall && !isInstalled && !wasDismissed) {
+      console.log('🕐 PWA Install Timer: Checking if prompt should show...');
+      
+      if (canInstall && !isInstalled && !isInstallPromptDismissed) {
         setShowPrompt(true);
-        console.log('PWA Install Prompt shown');
+        console.log('✨ PWA Install Prompt: Native prompt shown');
       }
-    }, 3000);
+    }, 2000); // Reduced delay for better UX
 
     return () => clearTimeout(timer);
-  }, [canInstall, isInstalled]);
+  }, [canInstall, isInstalled, isInstallPromptDismissed]);
 
-  // Always show manual prompt after 5 seconds for testing
+  // Smart manual prompt logic - only show if no native prompt and not recently dismissed
   useEffect(() => {
     const timer = setTimeout(() => {
-      const wasDismissed = localStorage.getItem('pwa-manual-dismissed') === 'true';
-      if (!isInstalled && !wasDismissed && !showPrompt) {
-        setShowManualPrompt(true);
-        console.log('Manual PWA Install Prompt shown');
+      const manualDismissed = localStorage.getItem('pwa-manual-dismissed') === 'true';
+      const manualDismissedTime = localStorage.getItem('pwa-manual-dismissed-timestamp');
+      
+      // Check if manual dismissal has expired (24 hours)
+      let isManualDismissalValid = false;
+      if (manualDismissed && manualDismissedTime) {
+        const timeSinceDismissal = Date.now() - parseInt(manualDismissedTime, 10);
+        isManualDismissalValid = timeSinceDismissal < 24 * 60 * 60 * 1000; // 24 hours
       }
-    }, 5000);
+      
+      console.log('🔧 PWA Manual Prompt Check:', { 
+        isInstalled, 
+        showPrompt, 
+        canInstall, 
+        manualDismissed, 
+        isManualDismissalValid,
+        platform 
+      });
+      
+      // Show manual prompt if:
+      // 1. App is not installed
+      // 2. Native prompt is not showing
+      // 3. No native install capability (no deferredPrompt)
+      // 4. Manual prompt hasn't been recently dismissed
+      // 5. Not already dismissed via main prompt
+      if (!isInstalled && 
+          !showPrompt && 
+          !canInstall && 
+          !isManualDismissalValid && 
+          !isInstallPromptDismissed) {
+        setShowManualPrompt(true);
+        console.log('🔧 PWA Manual Prompt: Manual guidance shown');
+      }
+    }, 4000); // Show after native prompt opportunity
 
     return () => clearTimeout(timer);
-  }, [isInstalled, showPrompt]);
+  }, [isInstalled, showPrompt, canInstall, isInstallPromptDismissed, platform]);
 
   const handleInstall = async () => {
     const success = await installApp();
@@ -51,40 +98,67 @@ export const PWAInstallPrompt = () => {
   };
 
   const handleManualInstall = () => {
-    // Show instructions for manual installation
-    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const isChrome = /Chrome/.test(navigator.userAgent);
-    const isFirefox = /Firefox/.test(navigator.userAgent);
-    const isSafari = /Safari/.test(navigator.userAgent) && !isChrome;
-
+    // Enhanced platform-specific installation instructions
     let instructions = '';
-    if (isMobile) {
-      if (isChrome) {
-        instructions = 'Tap the menu (⋮) and select "Add to Home screen"';
-      } else if (isSafari) {
-        instructions = 'Tap the share button (⬆) and select "Add to Home Screen"';
-      } else {
-        instructions = 'Look for "Add to Home Screen" in your browser menu';
-      }
-    } else {
-      instructions = 'Look for the install icon (⊕) in your browser\'s address bar';
+    let followUpAction = '';
+    
+    switch (platform) {
+      case 'ios':
+        instructions = 'To install this app on iOS:\n\n1. Tap the Share button (⬆) at the bottom\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to confirm';
+        followUpAction = 'After installation, the app will appear on your home screen like a native app.';
+        break;
+        
+      case 'android':
+        const isChrome = /Chrome/.test(navigator.userAgent);
+        if (isChrome) {
+          instructions = 'To install this app on Android:\n\n1. Tap the menu (⋮) in the top-right corner\n2. Tap "Add to Home screen"\n3. Tap "Add" to confirm';
+        } else {
+          instructions = 'To install this app on Android:\n\n1. Look for "Add to Home Screen" or "Install App" in your browser menu\n2. Follow the prompts to install';
+        }
+        followUpAction = 'The app will be installed like a regular Android app.';
+        break;
+        
+      case 'desktop':
+        instructions = 'To install this app on desktop:\n\n1. Look for the install icon (⊕) in your browser\'s address bar\n2. Click it and select "Install"\n\nAlternatively:\n• Chrome: Menu → More tools → Create shortcut → Check "Open as window"\n• Edge: Menu → Apps → Install this site as an app';
+        followUpAction = 'The app will open in its own window like a desktop application.';
+        break;
+        
+      default:
+        instructions = 'To install this app:\n\n• Mobile: Look for "Add to Home Screen" in your browser menu\n• Desktop: Look for an install icon in the address bar';
+        followUpAction = 'Once installed, you can access the app directly from your device.';
     }
-
-    alert(`To install this app:\n\n${instructions}`);
+    
+    // Show enhanced installation dialog
+    const fullMessage = `${instructions}\n\n${followUpAction}\n\nWould you like to mark this app as installed once you complete these steps?`;
+    
+    const userConfirmed = confirm(fullMessage);
+    if (userConfirmed) {
+      // User confirmed they will/have installed manually
+      markAsManuallyInstalled();
+      setShowManualPrompt(false);
+    }
   };
 
   const handleDismiss = () => {
     setDismissed(true);
     setShowPrompt(false);
+    // Enhanced dismissal with timestamp
     localStorage.setItem('pwa-install-dismissed', 'true');
+    localStorage.setItem('pwa-install-dismissed-timestamp', Date.now().toString());
+    console.log('🚫 PWA Install Prompt: Dismissed by user');
   };
 
   const handleManualDismiss = () => {
     setShowManualPrompt(false);
+    // Enhanced manual dismissal with timestamp
     localStorage.setItem('pwa-manual-dismissed', 'true');
+    localStorage.setItem('pwa-manual-dismissed-timestamp', Date.now().toString());
+    console.log('🚫 PWA Manual Prompt: Dismissed by user');
   };
 
+  // Enhanced condition check - don't show if installed or dismissed
   if (dismissed || isInstalled) {
+    console.log('🔒 PWA Install Prompt: Hidden due to', { dismissed, isInstalled, installationSource });
     return null;
   }
 
