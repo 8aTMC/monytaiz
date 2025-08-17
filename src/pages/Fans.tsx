@@ -214,15 +214,15 @@ const Fans = () => {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 auto-rows-fr">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {fans.map((fan) => (
-                  <Card key={fan.id} className="bg-gradient-card border-border shadow-card hover:shadow-lg transition-all cursor-pointer group flex flex-col h-full min-h-[280px]">
-                    <CardHeader className="pb-3 flex-shrink-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-start space-x-3 flex-1 min-w-0" onClick={() => handleFanClick(fan)}>
-                          <Avatar className="h-12 w-12 flex-shrink-0">
+                  <Card key={fan.id} className="bg-gradient-card border-border shadow-card hover:shadow-lg transition-all cursor-pointer group">
+                    <CardHeader className="pb-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4 flex-1 min-w-0" onClick={() => handleFanClick(fan)}>
+                          <Avatar className="h-14 w-14">
                             <AvatarImage src={fan.avatar_url || undefined} />
-                            <AvatarFallback className="text-sm font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+                            <AvatarFallback className="text-lg font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
                               {(() => {
                                 const name = fan.display_name || fan.username || 'User';
                                 const words = name.trim().split(/\s+/);
@@ -235,28 +235,31 @@ const Fans = () => {
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <div className="flex flex-col gap-1">
-                              <CardTitle className="text-foreground truncate text-sm leading-tight">
+                            <div className="flex items-center gap-2 mb-1">
+                              <CardTitle className="text-foreground truncate text-lg">
                                 {fan.display_name || fan.username || 'Anonymous'}
                               </CardTitle>
                               {fan.is_verified && (
-                                <Badge variant="secondary" className="text-xs w-fit">
+                                <Badge variant="secondary" className="text-xs">
                                   Verified
                                 </Badge>
                               )}
-                              {fan.username && fan.display_name && (
-                                <p className="text-xs text-muted-foreground truncate">
-                                  @{fan.username}
-                                </p>
-                              )}
                             </div>
+                            {fan.username && fan.display_name && (
+                              <p className="text-sm text-muted-foreground truncate mb-2">
+                                @{fan.username}
+                              </p>
+                            )}
+                            <Badge variant="outline" className="text-xs w-fit">
+                              {fan.fan_category && getCategoryDisplay(fan.fan_category)}
+                            </Badge>
                           </div>
                         </div>
                         
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                              <MoreVertical className="h-3 w-3" />
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
@@ -283,32 +286,25 @@ const Fans = () => {
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
-                      
-                      {/* Category Badge */}
-                      <div className="flex justify-center mt-2">
-                        <Badge variant="outline" className="text-xs px-2 py-1">
-                          {fan.fan_category && getCategoryDisplay(fan.fan_category)}
-                        </Badge>
-                      </div>
                     </CardHeader>
-                    
-                    <CardContent onClick={() => handleFanClick(fan)} className="flex-1 flex flex-col justify-between pt-0">
-                      <div className="flex-1">
-                        {fan.bio && (
-                          <p className="text-xs text-muted-foreground line-clamp-3 mb-3">
-                            {fan.bio}
+                    <CardContent onClick={() => handleFanClick(fan)} className="pt-0">
+                      <div className="flex justify-between items-end">
+                        <div className="flex-1 min-w-0 pr-4">
+                          {fan.bio && (
+                            <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                              {fan.bio}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">
+                            Joined {new Date(fan.created_at).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
                           </p>
-                        )}
-                      </div>
-                      
-                      <div className="flex-shrink-0 pt-2 border-t border-border/50">
-                        <p className="text-xs text-muted-foreground text-center">
-                          Joined {new Date(fan.created_at).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric',
-                            year: '2-digit'
-                          })}
-                        </p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
