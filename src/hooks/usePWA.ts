@@ -37,24 +37,41 @@ export const usePWA = () => {
     const isFullscreen = window.matchMedia('(display-mode: fullscreen)').matches;
     const isMinimalUi = window.matchMedia('(display-mode: minimal-ui)').matches;
     
+    console.log('🔍 PWA Detection:', {
+      isStandalone,
+      isFullscreen,
+      isMinimalUi,
+      displayMode: window.matchMedia('(display-mode: standalone)').media,
+      userAgent: navigator.userAgent,
+      referrer: document.referrer
+    });
+    
     if (isStandalone || isFullscreen || isMinimalUi) {
+      console.log('✅ PWA: App is running in standalone mode');
       return true;
     }
 
     // Strategy 2: iOS Safari detection
     const isIOSStandalone = (window.navigator as any).standalone === true;
     if (isIOSStandalone) {
+      console.log('✅ PWA: iOS standalone detected');
       return true;
     }
 
     // Strategy 3: Check if we're in a PWA window (additional checks)
     // Check if the referrer indicates PWA launch
     if (document.referrer.includes('android-app://')) {
+      console.log('✅ PWA: Android app referrer detected');
       return true;
     }
 
     // Strategy 4: Check localStorage as fallback
     const storedInstalled = localStorage.getItem(PWA_INSTALLED_KEY) === 'true';
+    if (storedInstalled) {
+      console.log('✅ PWA: LocalStorage indicates installed');
+    }
+    
+    console.log('❌ PWA: Not detected as installed');
     return storedInstalled;
   };
 
