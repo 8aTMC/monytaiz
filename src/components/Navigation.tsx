@@ -231,6 +231,15 @@ export const Navigation = () => {
             <Button 
               variant="ghost" 
               size="sm" 
+              onClick={() => navigate('/profile')}
+              className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground hover:bg-accent mb-1"
+            >
+              <UserIcon className="h-4 w-4" />
+              {t('platform.account.myAccount', 'My Account')}
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
               onClick={handleSignOut}
               className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground hover:bg-destructive/10 hover:text-destructive"
             >
