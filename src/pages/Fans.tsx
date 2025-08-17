@@ -217,10 +217,10 @@ const Fans = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {fans.map((fan) => (
                   <Card key={fan.id} className="bg-gradient-card border-border shadow-card hover:shadow-lg transition-all cursor-pointer group">
-                    <CardHeader className="pb-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4 flex-1 min-w-0" onClick={() => handleFanClick(fan)}>
-                          <Avatar className="h-14 w-14">
+                    <CardHeader className="pb-2 pt-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-3 flex-1 min-w-0" onClick={() => handleFanClick(fan)}>
+                          <Avatar className="h-12 w-12 mt-1">
                             <AvatarImage src={fan.avatar_url || undefined} />
                             <AvatarFallback className="text-lg font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
                               {(() => {
@@ -234,9 +234,9 @@ const Fans = () => {
                               })()}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <CardTitle className="text-foreground truncate text-lg">
+                          <div className="flex-1 min-w-0 mt-1">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <CardTitle className="text-foreground truncate text-base leading-tight">
                                 {fan.display_name || fan.username || 'Anonymous'}
                               </CardTitle>
                               {fan.is_verified && (
@@ -246,11 +246,11 @@ const Fans = () => {
                               )}
                             </div>
                             {fan.username && fan.display_name && (
-                              <p className="text-sm text-muted-foreground truncate mb-2">
+                              <p className="text-xs text-muted-foreground truncate mb-1">
                                 @{fan.username}
                               </p>
                             )}
-                            <Badge variant="outline" className="text-xs w-fit">
+                            <Badge variant="outline" className="text-xs w-fit px-2 py-0.5">
                               {fan.fan_category && getCategoryDisplay(fan.fan_category)}
                             </Badge>
                           </div>
@@ -287,7 +287,7 @@ const Fans = () => {
                         </DropdownMenu>
                       </div>
                     </CardHeader>
-                    <CardContent onClick={() => handleFanClick(fan)} className="pt-0">
+                    <CardContent onClick={() => handleFanClick(fan)} className="pt-2 pb-4">
                       <div className="flex justify-between items-end">
                         <div className="flex-1 min-w-0 pr-4">
                           {fan.bio && (
