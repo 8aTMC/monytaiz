@@ -247,9 +247,12 @@ const ContentLibrary = () => {
             {/* Header with Search and Filters */}
             <div className="bg-card border-b border-border p-6">
               <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold text-foreground">
-                  {categories.find(c => c.id === selectedCategory)?.label || 'All Media'}
-                </h1>
+                <div>
+                  <h1 className="text-3xl font-bold text-foreground mb-2">
+                    {categories.find(c => c.id === selectedCategory)?.label || 'All Media'}
+                  </h1>
+                  <p className="text-sm text-muted-foreground">Content Library</p>
+                </div>
                 
                 <div className="flex items-center gap-4">
                   {/* Search */}

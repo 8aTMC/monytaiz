@@ -204,11 +204,8 @@ const Fans = () => {
                 }
               </h1>
             </div>
-            <p className="text-muted-foreground">
-              {categoryFilter 
-                ? `Browse all ${categoryFilter}s on the platform`
-                : 'Browse all registered users on the platform'
-              }
+            <p className="text-sm text-muted-foreground">
+              Fans
             </p>
           </div>
 

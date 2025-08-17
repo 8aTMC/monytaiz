@@ -125,8 +125,8 @@ const Platform = () => {
             <h1 className="text-3xl font-bold text-foreground mb-2">
               Welcome back!
             </h1>
-            <p className="text-muted-foreground">
-              Here's what's happening with your fan platform today.
+            <p className="text-sm text-muted-foreground">
+              Dashboard
             </p>
           </div>
 
@@ -188,9 +188,6 @@ const Platform = () => {
             <Card className="bg-gradient-card border-border shadow-card">
               <CardHeader>
                 <CardTitle className="text-foreground">Recent Content</CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  Your latest uploads and their performance
-                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-center py-8">
@@ -209,9 +206,6 @@ const Platform = () => {
             <Card className="bg-gradient-card border-border shadow-card">
               <CardHeader>
                 <CardTitle className="text-foreground">Recent Activity</CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  Latest fan interactions and purchases
-                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-center py-8">

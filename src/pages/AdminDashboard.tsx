@@ -144,16 +144,14 @@ const AdminDashboard = () => {
       <Navigation />
       <div className="flex-1 ml-64 p-8">
         <div className="max-w-2xl mx-auto">
-          <div className="mb-4">
-            <h1 className="text-lg font-semibold text-foreground">Admin Dashboard</h1>
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-foreground mb-2">Admin Dashboard</h1>
+            <p className="text-sm text-muted-foreground">Admin</p>
           </div>
           
           <Card>
             <CardHeader>
               <CardTitle>Create Admin Account</CardTitle>
-              <CardDescription>
-                Create new admin, creator, or moderator accounts. Regular users can only sign up as fans.
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreateAccount} className="space-y-4">

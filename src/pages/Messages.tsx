@@ -66,8 +66,9 @@ const Messages = () => {
       <Navigation />
       <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <div className="max-w-6xl mx-auto">
-          <div className="mb-4">
-            <h1 className="text-lg font-semibold text-foreground">Messages</h1>
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-foreground mb-2">Messages</h1>
+            <p className="text-sm text-muted-foreground">Messages</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
