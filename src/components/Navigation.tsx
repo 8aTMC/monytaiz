@@ -158,10 +158,7 @@ export const Navigation = () => {
               <Collapsible open={isFansOpen} onOpenChange={setIsFansOpen}>
                 <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth">
                   <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <Users className="h-5 w-5" />
-                      <Receipt className="h-3 w-3 absolute -top-1 -right-1 text-primary" />
-                    </div>
+                    <Users className="h-5 w-5" />
                     <span>Fans</span>
                   </div>
                   {isFansOpen ? (
