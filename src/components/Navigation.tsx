@@ -231,8 +231,16 @@ export const Navigation = () => {
                     className="h-10 w-10 rounded-full object-cover ring-2 ring-primary/20"
                   />
                 ) : (
-                  <div className="h-10 w-10 rounded-full bg-gradient-primary flex items-center justify-center ring-2 ring-primary/20">
-                    <UserIcon className="h-5 w-5 text-primary-foreground" />
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary flex items-center justify-center ring-2 ring-primary/20 font-bold">
+                    {(() => {
+                      const name = userProfile?.display_name || userProfile?.username || 'User';
+                      const words = name.trim().split(/\s+/);
+                      if (words.length >= 2) {
+                        return (words[0][0] + words[1][0]).toUpperCase();
+                      } else {
+                        return name.slice(0, 2).toUpperCase();
+                      }
+                    })()}
                   </div>
                 )}
                 {userProfile?.is_verified && (
