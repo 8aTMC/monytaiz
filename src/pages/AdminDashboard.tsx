@@ -145,8 +145,7 @@ const AdminDashboard = () => {
       <div className="flex-1 ml-64 p-8">
         <div className="max-w-2xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Admin Dashboard</h1>
-            <p className="text-sm text-muted-foreground">Admin</p>
+            <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
           </div>
           
           <Card>

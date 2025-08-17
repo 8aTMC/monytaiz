@@ -204,9 +204,6 @@ const Fans = () => {
                 }
               </h1>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Fans
-            </p>
           </div>
 
           {/* Fans Grid */}

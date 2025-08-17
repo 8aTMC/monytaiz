@@ -195,9 +195,8 @@ const Users = () => {
       <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <div className="mb-2">
-              <h1 className="text-3xl font-bold text-foreground mb-2">Users</h1>
-              <p className="text-sm text-muted-foreground">Management</p>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Users</h1>
             </div>
             <Button className="flex items-center gap-2" onClick={handleCreateUser}>
               <Plus className="h-4 w-4" />

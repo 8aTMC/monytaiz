@@ -122,12 +122,9 @@ const Platform = () => {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">
+            <h1 className="text-3xl font-bold text-foreground">
               Welcome back!
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Dashboard
-            </p>
           </div>
 
           {/* Quick Actions */}
