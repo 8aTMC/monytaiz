@@ -68,24 +68,30 @@ const Fans = () => {
   useEffect(() => {
     const fetchFans = async () => {
       try {
+        console.log('🔍 Starting to fetch fans...');
+        
         // First get all fan user IDs
         const { data: fanRoles, error: roleError } = await supabase
           .from('user_roles')
           .select('user_id')
           .eq('role', 'fan');
 
+        console.log('🎭 Fan roles query result:', { fanRoles, roleError });
+
         if (roleError) {
-          console.error('Error fetching fan roles:', roleError);
+          console.error('❌ Error fetching fan roles:', roleError);
           return;
         }
 
         if (!fanRoles || fanRoles.length === 0) {
+          console.log('⚠️ No fan roles found');
           setFans([]);
           setLoadingFans(false);
           return;
         }
 
         const fanUserIds = fanRoles.map(role => role.user_id);
+        console.log('👥 Fan user IDs:', fanUserIds);
 
         // Then get the profiles for those users
         const { data, error } = await supabase
@@ -94,9 +100,12 @@ const Fans = () => {
           .in('id', fanUserIds)
           .order('created_at', { ascending: false });
 
+        console.log('👤 Profiles query result:', { data, error });
+
         if (error) {
-          console.error('Error fetching fan profiles:', error);
+          console.error('❌ Error fetching fan profiles:', error);
         } else {
+          console.log('✅ Setting fans data:', data);
           setFans(data || []);
           
           // Set up roles map for fans
@@ -106,10 +115,11 @@ const Fans = () => {
               rolesMap[fan.id] = [{ role: 'fan' }];
             });
             setFanRoles(rolesMap);
+            console.log('🗺️ Fan roles map:', rolesMap);
           }
         }
       } catch (error) {
-        console.error('Error fetching fans:', error);
+        console.error('💥 Exception in fetchFans:', error);
       } finally {
         setLoadingFans(false);
       }
