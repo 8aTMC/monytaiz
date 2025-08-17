@@ -69,7 +69,6 @@ const Messages = () => {
           <div className="mb-4">
             <div className="flex items-center gap-4">
               <h1 className="text-xl font-semibold text-foreground">Messages</h1>
-              <span className="text-sm text-muted-foreground">Connect with your fans and creators</span>
             </div>
           </div>
 
