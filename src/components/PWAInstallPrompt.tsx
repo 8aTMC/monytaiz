@@ -269,7 +269,9 @@ export const PWAInstallPrompt = () => {
                     size="sm"
                     variant="default"
                     onClick={handleManualInstall}
-                    className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                    className={`flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 ${
+                      !isMobile ? 'opacity-100' : ''
+                    }`}
                   >
                     <Download className="h-4 w-4 mr-2" />
                     {isMobile ? 'Add to Home' : 'Install App'}
