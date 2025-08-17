@@ -113,6 +113,8 @@ const Users = () => {
 
   const getRoleIcon = (role: string) => {
     switch (role) {
+      case 'owner':
+        return <Crown className="h-4 w-4" />;
       case 'admin':
         return <Crown className="h-4 w-4" />;
       case 'moderator':
@@ -126,6 +128,8 @@ const Users = () => {
 
   const getRoleColor = (role: string) => {
     switch (role) {
+      case 'owner':
+        return 'bg-purple-500/10 text-purple-700 border-purple-200 dark:text-purple-400 dark:border-purple-800';
       case 'admin':
         return 'bg-red-500/10 text-red-700 border-red-200 dark:text-red-400 dark:border-red-800';
       case 'moderator':
@@ -145,7 +149,7 @@ const Users = () => {
     return acc;
   }, {} as Record<string, UserProfile[]>);
 
-  const roleOrder = ['admin', 'moderator', 'chatter', 'creator'];
+  const roleOrder = ['owner', 'admin', 'moderator', 'chatter', 'creator'];
 
   if (loading) {
     return (
