@@ -4,9 +4,9 @@
   "description": "The ultimate platform for creators to build meaningful relationships with their fans through exclusive content and experiences.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0f",
+  "background_color": "#0a0a0a",
   "theme_color": "#8b5cf6",
-  "orientation": "any",
+  "orientation": "portrait-primary",
   "scope": "/",
   "lang": "en",
   "categories": ["social", "entertainment", "lifestyle"],
@@ -15,7 +15,7 @@
       "src": "/icons/icon-72x72.png",
       "sizes": "72x72",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any maskable"
     },
     {
       "src": "/icons/icon-96x96.png",
@@ -62,32 +62,30 @@
   ],
   "shortcuts": [
     {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Go to your dashboard",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/icons/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
       "name": "Messages",
       "short_name": "Messages",
-      "description": "View your messages",
+      "description": "Check your messages",
       "url": "/messages",
-      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
-    },
-    {
-      "name": "Upload",
-      "short_name": "Upload",
-      "description": "Upload new content",
-      "url": "/upload",
-      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/screenshots/desktop.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide"
-    },
-    {
-      "src": "/screenshots/mobile.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow"
+      "icons": [
+        {
+          "src": "/icons/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }

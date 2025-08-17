@@ -15,15 +15,11 @@ interface PWAState {
   isOnline: boolean;
   canInstall: boolean;
   deferredPrompt: BeforeInstallPromptEvent | null;
-  installationSource: 'unknown' | 'auto' | 'manual' | 'detected';
   platform: 'ios' | 'android' | 'desktop' | 'unknown';
 }
 
-// Enhanced detection constants
-const PWA_INSTALL_KEY = 'pwa-installation-status';
-const PWA_INSTALL_TIMESTAMP = 'pwa-installation-timestamp';
-const PWA_DISMISS_KEY = 'pwa-install-dismissed';
-const PWA_DISMISS_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 days
+const PWA_DISMISSED_KEY = 'pwa-dismissed';
+const PWA_INSTALLED_KEY = 'pwa-installed';
 
 export const usePWA = () => {
   const [pwaState, setPwaState] = useState<PWAState>({
@@ -32,342 +28,169 @@ export const usePWA = () => {
     isOnline: navigator.onLine,
     canInstall: false,
     deferredPrompt: null,
-    installationSource: 'unknown',
     platform: 'unknown',
   });
 
-  // Enhanced platform detection
+  // Detect platform
   const detectPlatform = useCallback((): PWAState['platform'] => {
     const userAgent = navigator.userAgent.toLowerCase();
     if (/iphone|ipad|ipod/.test(userAgent)) return 'ios';
     if (/android/.test(userAgent)) return 'android';
-    if (/windows|macintosh|linux/.test(userAgent)) return 'desktop';
-    return 'unknown';
+    return 'desktop';
   }, []);
 
-  // Enhanced installation detection with multiple strategies
-  const detectInstallation = useCallback((): { isInstalled: boolean; source: PWAState['installationSource'] } => {
-    console.log('🔍 PWA Detection: Running enhanced installation check...');
+  // Check if app is installed
+  const checkInstallation = useCallback((): boolean => {
+    // Strategy 1: Display mode detection
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    const isFullscreen = window.matchMedia('(display-mode: fullscreen)').matches;
+    const isMinimalUi = window.matchMedia('(display-mode: minimal-ui)').matches;
     
-    // Strategy 1: Display mode detection (most reliable)
-    const displayModeStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    const displayModeFullscreen = window.matchMedia('(display-mode: fullscreen)').matches;
-    const displayModeMinimalUi = window.matchMedia('(display-mode: minimal-ui)').matches;
-    
-    if (displayModeStandalone || displayModeFullscreen || displayModeMinimalUi) {
-      console.log('✅ PWA Detection: Installed via display mode:', { displayModeStandalone, displayModeFullscreen, displayModeMinimalUi });
-      return { isInstalled: true, source: 'detected' };
+    if (isStandalone || isFullscreen || isMinimalUi) {
+      console.log('✅ PWA: Installed via display mode');
+      return true;
     }
 
-    // Strategy 2: iOS Safari specific detection
+    // Strategy 2: iOS Safari detection
     const isIOSStandalone = (window.navigator as any).standalone === true;
     if (isIOSStandalone) {
-      console.log('✅ PWA Detection: Installed on iOS Safari');
-      return { isInstalled: true, source: 'detected' };
+      console.log('✅ PWA: Installed on iOS');
+      return true;
     }
 
-    // Strategy 3: URL parameter detection (launched from installed app)
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('source') === 'pwa' || urlParams.get('utm_source') === 'homescreen') {
-      console.log('✅ PWA Detection: Installed via URL parameters');
-      return { isInstalled: true, source: 'detected' };
+    // Strategy 3: Check localStorage
+    const storedInstalled = localStorage.getItem(PWA_INSTALLED_KEY) === 'true';
+    if (storedInstalled) {
+      console.log('✅ PWA: Marked as installed in storage');
+      return true;
     }
 
-    // Strategy 4: Only trust stored status if we can actually verify installation
-    const storedStatus = localStorage.getItem(PWA_INSTALL_KEY);
-    const storedTimestamp = localStorage.getItem(PWA_INSTALL_TIMESTAMP);
-    
-    // Check if we have real installation indicators before trusting stored status
-    const hasRealInstallIndicators = displayModeStandalone || displayModeFullscreen || displayModeMinimalUi || isIOSStandalone;
-    
-    if (storedStatus === 'installed' && storedTimestamp && hasRealInstallIndicators) {
-      const installTime = parseInt(storedTimestamp, 10);
-      const daysSinceInstall = (Date.now() - installTime) / (1000 * 60 * 60 * 24);
-      
-      if (daysSinceInstall <= 30) {
-        console.log('✅ PWA Detection: Installed via stored status with verification (', Math.round(daysSinceInstall), 'days ago)');
-        return { isInstalled: true, source: 'manual' };
-      }
-    } else if (storedStatus === 'installed' && !hasRealInstallIndicators) {
-      // Clear false installation status
-      console.log('🧹 PWA Detection: Clearing false installation status - no real indicators found');
-      localStorage.removeItem(PWA_INSTALL_KEY);
-      localStorage.removeItem(PWA_INSTALL_TIMESTAMP);
-    }
-
-    console.log('❌ PWA Detection: Not installed');
-    return { isInstalled: false, source: 'unknown' };
+    console.log('❌ PWA: Not installed');
+    return false;
   }, []);
 
-  // Check if user dismissed install prompt recently
-  const isInstallPromptDismissed = useCallback((): boolean => {
-    const dismissedTimestamp = localStorage.getItem(`${PWA_DISMISS_KEY}-timestamp`);
-    if (!dismissedTimestamp) return false;
+  // Check if user dismissed the prompt recently
+  const isDismissed = useCallback((): boolean => {
+    const dismissed = localStorage.getItem(PWA_DISMISSED_KEY);
+    if (!dismissed) return false;
     
-    const timeSinceDismissal = Date.now() - parseInt(dismissedTimestamp, 10);
-    // Check if dismissal period has expired (30 minutes for testing)
-    return timeSinceDismissal < (30 * 60 * 1000);
+    const dismissTime = parseInt(dismissed, 10);
+    const now = Date.now();
+    const thirtyMinutes = 30 * 60 * 1000;
+    
+    return (now - dismissTime) < thirtyMinutes;
   }, []);
 
   useEffect(() => {
-    // Enhanced installation check with multiple strategies
-    const checkInstallation = () => {
-      const { isInstalled, source } = detectInstallation();
-      const platform = detectPlatform();
-      
-      setPwaState(prev => ({ 
-        ...prev, 
-        isInstalled, 
-        installationSource: source,
-        platform,
-        canInstall: (prev.deferredPrompt !== null || platform === 'desktop') && !isInstalled && !isInstallPromptDismissed()
-      }));
-    };
+    const platform = detectPlatform();
+    const isInstalled = checkInstallation();
+    const dismissed = isDismissed();
 
-    // Enhanced beforeinstallprompt event handling
+    console.log('🔍 PWA Initial Check:', { platform, isInstalled, dismissed });
+
+    setPwaState(prev => ({
+      ...prev,
+      platform,
+      isInstalled,
+      canInstall: !isInstalled && !dismissed,
+      isOnline: navigator.onLine,
+    }));
+
+    // Handle beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
       const event = e as BeforeInstallPromptEvent;
       e.preventDefault();
-      console.log('🎯 PWA: beforeinstallprompt event received', event.platforms);
       
-      // Store the event in a ref to preserve the prompt method
-      const { isInstalled } = detectInstallation();
-      const isDismissed = isInstallPromptDismissed();
-      
-      // Directly store the event without state update to preserve methods
-      (window as any).deferredPrompt = event;
+      console.log('🎯 PWA: beforeinstallprompt event received');
       
       setPwaState(prev => ({
         ...prev,
         isInstallable: true,
-        canInstall: !isInstalled && !isDismissed,
         deferredPrompt: event,
+        canInstall: !prev.isInstalled && !isDismissed(),
       }));
     };
 
-    // Force installability check for browsers that support PWA but may not trigger beforeinstallprompt
-    const forceInstallabilityCheck = () => {
-      const { isInstalled } = detectInstallation();
-      const isDismissed = isInstallPromptDismissed();
-      const platform = detectPlatform();
-      
-      // Check if we're on a custom domain vs lovable preview
-      const isCustomDomain = !window.location.hostname.includes('lovable') || 
-                             window.location.hostname.includes('monytaiz.com');
-      
-      // Enhanced browser support detection
-      const isInstallSupported = 
-        'serviceWorker' in navigator && 
-        window.matchMedia('(display-mode: browser)').matches &&
-        !isInstalled;
-      
-      // For desktop browsers, be more aggressive in enabling installation
-      const hasInstallCapability = platform === 'desktop' && (
-        // Chrome/Edge has install prompt support
-        'getInstalledRelatedApps' in navigator ||
-        // Check if we're in a PWA-capable browser
-        window.matchMedia('(display-mode: browser)').matches ||
-        // Always enable for desktop browsers that support service workers
-        'serviceWorker' in navigator
-      );
-      
-      console.log('🔧 PWA: Force installability check', { 
-        isInstallSupported, 
-        isInstalled, 
-        isDismissed, 
-        platform, 
-        hasInstallCapability,
-        isCustomDomain,
-        currentUrl: window.location.href,
-        domain: window.location.hostname,
-        protocol: window.location.protocol,
-        isSecure: window.location.protocol === 'https:',
-        manifestPresent: !!document.querySelector('link[rel="manifest"]'),
-        serviceWorkerSupported: 'serviceWorker' in navigator,
-        userAgent: navigator.userAgent
-      });
-      
-      // ALWAYS enable installation on desktop if not already installed
-      if (platform === 'desktop' && !isInstalled) {
-        console.log('🖥️ PWA: Force enabling desktop installation');
-        setPwaState(prev => ({
-          ...prev,
-          isInstallable: true,
-          canInstall: true,
-        }));
-        return;
-      }
-      
-      // Set canInstall based on platform capabilities for other cases
-      if (isInstallSupported && !isDismissed) {
-        setPwaState(prev => ({
-          ...prev,
-          isInstallable: true,
-          canInstall: true,
-        }));
-      }
-    };
-
-    // Enhanced app installation event handling
+    // Handle app installed event
     const handleAppInstalled = () => {
-      console.log('🎉 PWA: App installation detected');
-      
-      // Store installation status persistently
-      localStorage.setItem(PWA_INSTALL_KEY, 'installed');
-      localStorage.setItem(PWA_INSTALL_TIMESTAMP, Date.now().toString());
-      localStorage.removeItem(PWA_DISMISS_KEY);
-      localStorage.removeItem(`${PWA_DISMISS_KEY}-timestamp`);
+      console.log('🎉 PWA: App installed');
+      localStorage.setItem(PWA_INSTALLED_KEY, 'true');
+      localStorage.removeItem(PWA_DISMISSED_KEY);
       
       setPwaState(prev => ({
         ...prev,
         isInstalled: true,
-        isInstallable: false,
         canInstall: false,
         deferredPrompt: null,
-        installationSource: 'auto',
       }));
     };
 
-    // Listen for online/offline status
-    const handleOnline = () => {
-      setPwaState(prev => ({ ...prev, isOnline: true }));
-    };
-
-    const handleOffline = () => {
-      setPwaState(prev => ({ ...prev, isOnline: false }));
-    };
-
-    // Enhanced display mode change detection
-    const handleDisplayModeChange = () => {
-      console.log('🔄 PWA: Display mode changed, re-checking installation');
-      checkInstallation();
-    };
-
-    // Enhanced resize detection for installation state changes
-    const handleResize = () => {
-      // Debounce resize events
-      clearTimeout((window as any).resizeTimeout);
-      (window as any).resizeTimeout = setTimeout(() => {
-        checkInstallation();
-      }, 100);
-    };
-
-    // Initial check
-    checkInstallation();
-    
-    // Force installability check after a delay if beforeinstallprompt hasn't fired
-    // Reduced delay for custom domains since beforeinstallprompt may be unreliable
-    const isCustomDomain = !window.location.hostname.includes('lovable');
-    const delay = isCustomDomain ? 500 : 2000; // Much faster for custom domains
-    
-    const installabilityTimer = setTimeout(() => {
-      if (!pwaState.canInstall && !pwaState.isInstalled) {
-        console.log('🚀 PWA: Forcing installability check');
-        forceInstallabilityCheck();
-      }
-    }, delay);
-
-    // Also force check immediately for desktop browsers on custom domains
-    if (isCustomDomain && detectPlatform() === 'desktop') {
-      setTimeout(() => {
-        console.log('🚀 PWA: Immediate desktop check for custom domain');
-        forceInstallabilityCheck();
-      }, 100);
-    }
+    // Handle online/offline
+    const handleOnline = () => setPwaState(prev => ({ ...prev, isOnline: true }));
+    const handleOffline = () => setPwaState(prev => ({ ...prev, isOnline: false }));
 
     // Add event listeners
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    window.addEventListener('resize', handleResize);
-    
-    // Listen for display mode changes
-    const mediaQueryStandalone = window.matchMedia('(display-mode: standalone)');
-    const mediaQueryFullscreen = window.matchMedia('(display-mode: fullscreen)');
-    
-    if (mediaQueryStandalone.addEventListener) {
-      mediaQueryStandalone.addEventListener('change', handleDisplayModeChange);
-      mediaQueryFullscreen.addEventListener('change', handleDisplayModeChange);
-    }
 
-    // Re-check installation status periodically (every 5 minutes)
-    const installCheckInterval = setInterval(checkInstallation, 5 * 60 * 1000);
+    // Force installability for desktop browsers after delay
+    const timer = setTimeout(() => {
+      if (platform === 'desktop' && !isInstalled && !dismissed) {
+        console.log('🖥️ PWA: Force enabling desktop installation');
+        setPwaState(prev => ({
+          ...prev,
+          isInstallable: true,
+          canInstall: true,
+        }));
+      }
+    }, 1000);
 
-    // Cleanup
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('resize', handleResize);
-      
-      if (mediaQueryStandalone.removeEventListener) {
-        mediaQueryStandalone.removeEventListener('change', handleDisplayModeChange);
-        mediaQueryFullscreen.removeEventListener('change', handleDisplayModeChange);
-      }
-      
-      clearInterval(installCheckInterval);
-      clearTimeout(installabilityTimer);
-      clearTimeout((window as any).resizeTimeout);
+      clearTimeout(timer);
     };
-  }, [detectInstallation, detectPlatform, isInstallPromptDismissed]);
+  }, [detectPlatform, checkInstallation, isDismissed]);
 
-  // Enhanced install app function with better error handling and desktop support
-  const installApp = async () => {
+  // Install app function
+  const installApp = async (): Promise<boolean> => {
     console.log('📱 PWA: Install attempt started', { 
-      hasDeferredPrompt: !!pwaState.deferredPrompt, 
       platform: pwaState.platform,
-      isInstalled: pwaState.isInstalled,
-      domain: window.location.hostname,
-      userAgent: navigator.userAgent
+      hasDeferredPrompt: !!pwaState.deferredPrompt,
+      isInstalled: pwaState.isInstalled 
     });
 
     if (pwaState.isInstalled) {
-      console.log('⚠️ PWA: App already installed');
+      console.log('⚠️ PWA: Already installed');
       return false;
     }
 
-    // Check if we're on a custom domain (include monytaiz.com)
-    const isCustomDomain = !window.location.hostname.includes('lovable') || 
-                           window.location.hostname.includes('monytaiz.com');
-
-    // Try native installation first if deferred prompt is available
-    const deferredPrompt = (window as any).deferredPrompt || pwaState.deferredPrompt;
-    if (deferredPrompt && typeof deferredPrompt.prompt === 'function') {
+    // Try native installation first
+    if (pwaState.deferredPrompt) {
       try {
-        console.log('📱 PWA: Using native installation prompt...');
-        await deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
+        console.log('📱 PWA: Using native prompt');
+        await pwaState.deferredPrompt.prompt();
+        const { outcome } = await pwaState.deferredPrompt.userChoice;
         
-        console.log('📊 PWA: User choice outcome:', outcome);
+        console.log('📊 PWA: User choice:', outcome);
         
         if (outcome === 'accepted') {
-          // Store installation status
-          localStorage.setItem(PWA_INSTALL_KEY, 'installed');
-          localStorage.setItem(PWA_INSTALL_TIMESTAMP, Date.now().toString());
-          localStorage.removeItem(PWA_DISMISS_KEY);
-          localStorage.removeItem(`${PWA_DISMISS_KEY}-timestamp`);
-          
-          // Clear the stored prompt
-          (window as any).deferredPrompt = null;
+          localStorage.setItem(PWA_INSTALLED_KEY, 'true');
+          localStorage.removeItem(PWA_DISMISSED_KEY);
           
           setPwaState(prev => ({
             ...prev,
             isInstalled: true,
             canInstall: false,
             deferredPrompt: null,
-            installationSource: 'auto',
           }));
           return true;
         } else {
-          // User dismissed the prompt
-          localStorage.setItem(PWA_DISMISS_KEY, 'true');
-          localStorage.setItem(`${PWA_DISMISS_KEY}-timestamp`, Date.now().toString());
-          
-          // Clear the stored prompt
-          (window as any).deferredPrompt = null;
-          
+          localStorage.setItem(PWA_DISMISSED_KEY, Date.now().toString());
           setPwaState(prev => ({
             ...prev,
             canInstall: false,
@@ -376,129 +199,64 @@ export const usePWA = () => {
           return false;
         }
       } catch (error) {
-        console.error('❌ PWA: Error during native installation:', error);
-        // For desktop, fall back to manual installation if native fails
-        if (pwaState.platform === 'desktop') {
-          console.log('🔄 PWA: Falling back to manual installation for desktop');
-        } else {
-          return false;
-        }
+        console.error('❌ PWA: Native installation failed:', error);
       }
     }
 
-    // For desktop - try to trigger browser install UI or provide enhanced guidance
+    // Manual installation for desktop
     if (pwaState.platform === 'desktop') {
-      console.log('🖥️ PWA: Handling desktop installation');
+      console.log('🖥️ PWA: Manual desktop installation');
       
-      // Check if this is a modern Chrome/Edge browser that might support programmatic installation
-      const isChromeBased = /Chrome|Edge/.test(navigator.userAgent) && !/Opera|OPR/.test(navigator.userAgent);
+      const isChrome = /Chrome/.test(navigator.userAgent) && !/Edge|OPR/.test(navigator.userAgent);
+      const isEdge = /Edge/.test(navigator.userAgent);
       
-      if (isChromeBased) {
-        // For Chrome/Edge, try to show the install button in address bar
-        console.log('🔧 PWA: Chrome/Edge detected - triggering browser install UI');
-        
-        // Create a more actionable dialog for Chrome/Edge users
-        const result = confirm(`Install Monytaiz as a desktop app?
+      let instructions = '';
+      if (isChrome) {
+        instructions = `Chrome: Look for the install icon (⊕) in your address bar, or use Menu → More tools → Create shortcut`;
+      } else if (isEdge) {
+        instructions = `Edge: Look for the install icon (+) in your address bar, or use Menu → Apps → Install this site as an app`;
+      } else {
+        instructions = `Your browser: Look for an install option in your browser menu or address bar`;
+      }
+      
+      const result = confirm(`Install Monytaiz as a desktop app?
 
 ✅ Faster loading
 ✅ Works offline  
 ✅ App-like experience
 ✅ Desktop shortcuts
 
-Click OK, then:
-1. Look for the install icon (⊕) in your address bar
-2. OR use Chrome menu → More tools → Create shortcut
+${instructions}
 
-Would you like to proceed with installation?`);
+Click OK after you've completed the installation.`);
+      
+      if (result) {
+        localStorage.setItem(PWA_INSTALLED_KEY, 'true');
+        localStorage.removeItem(PWA_DISMISSED_KEY);
         
-        if (result) {
-          // Give the browser a moment to show the install prompt
-          setTimeout(() => {
-            // If no native prompt appeared, mark as manually installed
-            if (!pwaState.deferredPrompt) {
-              localStorage.setItem(PWA_INSTALL_KEY, 'installed');
-              localStorage.setItem(PWA_INSTALL_TIMESTAMP, Date.now().toString());
-              
-              setPwaState(prev => ({
-                ...prev,
-                isInstalled: true,
-                canInstall: false,
-                installationSource: 'manual',
-              }));
-            }
-          }, 1000);
-          return true;
-        }
-        return false;
-      } else {
-        // For other browsers, provide specific instructions
-        const domainName = isCustomDomain ? window.location.hostname : 'Monytaiz';
-        const browserInstructions = getBrowserSpecificInstructions();
-        
-        const result = confirm(`Install ${domainName} as a desktop app:
-
-${browserInstructions}
-
-Click OK after you've completed the installation steps.`);
-        
-        if (result) {
-          localStorage.setItem(PWA_INSTALL_KEY, 'installed');
-          localStorage.setItem(PWA_INSTALL_TIMESTAMP, Date.now().toString());
-          
-          setPwaState(prev => ({
-            ...prev,
-            isInstalled: true,
-            canInstall: false,
-            installationSource: 'manual',
-          }));
-          return true;
-        }
+        setPwaState(prev => ({
+          ...prev,
+          isInstalled: true,
+          canInstall: false,
+        }));
+        return true;
       }
     }
     
     return false;
   };
 
-  // Helper function to get browser-specific installation instructions
-  const getBrowserSpecificInstructions = () => {
-    const userAgent = navigator.userAgent;
-    
-    if (/Firefox/.test(userAgent)) {
-      return `Firefox:
-• Menu (☰) → Page → Install page as app
-• Or right-click → Install page as app`;
-    } else if (/Safari/.test(userAgent) && !/Chrome/.test(userAgent)) {
-      return `Safari:
-• Menu → File → Add to Dock
-• Or look for + icon in address bar`;
-    } else if (/Edge/.test(userAgent)) {
-      return `Edge:
-• Menu (⋯) → Apps → Install this site as an app
-• Or look for + icon in address bar`;
-    } else {
-      return `Your browser:
-• Look for install icon (+) in address bar
-• Or check browser menu for "Install app" option
-• Or create desktop shortcut from browser menu`;
-    }
-  };
-
-  // Enhanced manual installation tracking
-  const markAsManuallyInstalled = useCallback(() => {
-    localStorage.setItem(PWA_INSTALL_KEY, 'installed');
-    localStorage.setItem(PWA_INSTALL_TIMESTAMP, Date.now().toString());
-    localStorage.removeItem(PWA_DISMISS_KEY);
-    localStorage.removeItem(`${PWA_DISMISS_KEY}-timestamp`);
-    
+  // Dismiss prompt
+  const dismissPrompt = useCallback(() => {
+    localStorage.setItem(PWA_DISMISSED_KEY, Date.now().toString());
     setPwaState(prev => ({
       ...prev,
-      isInstalled: true,
       canInstall: false,
-      installationSource: 'manual',
     }));
   }, []);
 
-  const shareApp = async () => {
+  // Share app
+  const shareApp = async (): Promise<boolean> => {
     if (navigator.share) {
       try {
         await navigator.share({
@@ -519,7 +277,7 @@ Click OK after you've completed the installation steps.`);
     ...pwaState,
     installApp,
     shareApp,
-    markAsManuallyInstalled,
-    isInstallPromptDismissed: isInstallPromptDismissed(),
+    dismissPrompt,
+    isDismissed: isDismissed(),
   };
 };

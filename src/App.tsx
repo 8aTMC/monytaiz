@@ -21,7 +21,7 @@ import FansLists from "./pages/FansLists";
 import PendingDeletions from "./pages/PendingDeletions";
 import NotFound from "./pages/NotFound";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
-import { PWADebugger } from "./components/PWADebugger";
+
 
 const queryClient = new QueryClient();
 
@@ -32,7 +32,6 @@ const App = () => (
         <Toaster />
         <Sonner />
         <PWAInstallPrompt />
-        <PWADebugger />
         <BrowserRouter>
           <SidebarProvider>
             <Routes>
