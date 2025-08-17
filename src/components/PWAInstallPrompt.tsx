@@ -53,7 +53,7 @@ export const PWAInstallPrompt = () => {
   };
 
   // Don't show if not ready or already installed
-  if (!showPrompt || isInstalled || isDismissed) {
+  if (!showPrompt || isInstalled || isDismissed || !canInstall) {
     return null;
   }
 
