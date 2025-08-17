@@ -41,6 +41,7 @@ export const usePWA = () => {
     const handleBeforeInstallPrompt = (e: Event) => {
       const event = e as BeforeInstallPromptEvent;
       e.preventDefault();
+      console.log('PWA beforeinstallprompt event received');
       
       setPwaState(prev => ({
         ...prev,
