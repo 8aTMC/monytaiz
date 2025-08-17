@@ -68,9 +68,14 @@ const Fans = () => {
   useEffect(() => {
     const fetchFans = async () => {
       try {
+        // Fetch only users who have the 'fan' role
         const { data, error } = await supabase
           .from('profiles')
-          .select('*')
+          .select(`
+            *,
+            user_roles!inner(role)
+          `)
+          .eq('user_roles.role', 'fan')
           .order('created_at', { ascending: false });
 
         if (error) {
@@ -78,20 +83,11 @@ const Fans = () => {
         } else {
           setFans(data || []);
           
-          // Fetch roles for each user
+          // Since we already know these users have fan role, just set it
           if (data) {
-            const rolesPromises = data.map(async (fan) => {
-              const { data: roles } = await supabase
-                .from('user_roles')
-                .select('role')
-                .eq('user_id', fan.id);
-              return { userId: fan.id, roles: roles || [] };
-            });
-            
-            const rolesResults = await Promise.all(rolesPromises);
             const rolesMap: Record<string, UserRole[]> = {};
-            rolesResults.forEach(({ userId, roles }) => {
-              rolesMap[userId] = roles;
+            data.forEach((fan) => {
+              rolesMap[fan.id] = [{ role: 'fan' }];
             });
             setFanRoles(rolesMap);
           }
