@@ -236,7 +236,7 @@ const Fans = () => {
                                 </Badge>
                               )}
                               <Badge variant="outline" className="text-xs">
-                                {fan.fan_category}
+                                {fan.fan_category?.charAt(0).toUpperCase() + fan.fan_category?.slice(1)}
                               </Badge>
                             </div>
                             {fan.username && fan.display_name && (
@@ -354,7 +354,7 @@ const Fans = () => {
                             <div className="flex justify-between py-2">
                               <span className="text-muted-foreground">Category</span>
                               <Badge variant="outline" className="text-xs">
-                                {selectedFan.fan_category}
+                                {selectedFan.fan_category?.charAt(0).toUpperCase() + selectedFan.fan_category?.slice(1)}
                               </Badge>
                             </div>
                             {selectedFan.bio && (
