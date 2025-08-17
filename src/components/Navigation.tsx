@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -60,6 +60,7 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
 };
 
 export const Navigation = () => {
+  const location = useLocation();
   const { t, loading: translationLoading } = useTranslation();
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
@@ -116,6 +117,29 @@ export const Navigation = () => {
 
   if (!user) return null;
 
+  // Helper function to check if a route is active
+  const isActive = (href: string) => {
+    if (href === '/dashboard') {
+      return location.pathname === '/' || location.pathname === '/dashboard';
+    }
+    return location.pathname === href || location.pathname.startsWith(href + '/');
+  };
+
+  // Helper function to check if fans section is active
+  const isFansActive = () => {
+    return location.pathname.startsWith('/fans');
+  };
+
+  // Helper function to check if content section is active
+  const isContentActive = () => {
+    return location.pathname === '/library' || location.pathname === '/upload';
+  };
+
+  // Helper function to check if management section is active
+  const isManagementActive = () => {
+    return location.pathname.startsWith('/management');
+  };
+
   const navItems = [
     { icon: Home, label: t('platform.nav.explore', 'Explore'), href: '/dashboard' },
     { icon: MessageSquare, label: t('platform.nav.messages', 'Messages'), href: '/messages' },
@@ -141,24 +165,35 @@ export const Navigation = () => {
       
       <div className="flex-1 px-4">
         <ul className="space-y-2">
-          {navItems.map((item) => (
-            <li key={item.href}>
-              <Link
-                to={item.href}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
-                title={isCollapsed ? item.label : undefined}
-              >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
-                {!isCollapsed && <span>{item.label}</span>}
-              </Link>
-            </li>
-          ))}
+          {navItems.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <li key={item.href}>
+                <Link
+                  to={item.href}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
+                    active 
+                      ? 'bg-primary/10 text-primary border border-primary/20' 
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                  }`}
+                  title={isCollapsed ? item.label : undefined}
+                >
+                  <item.icon className="h-5 w-5 flex-shrink-0" />
+                  {!isCollapsed && <span>{item.label}</span>}
+                </Link>
+              </li>
+            );
+          })}
           
           {/* Fans Collapsible Menu */}
           {!isCollapsed && (
             <li>
               <Collapsible open={isFansOpen} onOpenChange={setIsFansOpen}>
-                <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth">
+                <CollapsibleTrigger className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-smooth ${
+                  isFansActive() 
+                    ? 'bg-primary/10 text-primary border border-primary/20' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                }`}>
                   <div className="flex items-center gap-3">
                     <Users className="h-5 w-5" />
                     <span>Fans</span>
@@ -173,56 +208,88 @@ export const Navigation = () => {
                 <CollapsibleContent className="mt-1 space-y-1">
                   <Link
                     to="/fans"
-                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
+                      location.pathname === '/fans' && !location.search
+                        ? 'bg-primary/5 text-primary border border-primary/10'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                    }`}
                   >
                     <Users className="h-4 w-4" />
                     <span>All Fans</span>
                   </Link>
                   <Link
                     to="/fans?category=husband"
-                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
+                      location.search.includes('category=husband')
+                        ? 'bg-primary/5 text-primary border border-primary/10'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                    }`}
                   >
                     <Heart className="h-4 w-4" />
                     <span>Husbands</span>
                   </Link>
                   <Link
                     to="/fans?category=boyfriend"
-                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
+                      location.search.includes('category=boyfriend')
+                        ? 'bg-primary/5 text-primary border border-primary/10'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                    }`}
                   >
                     <UserCheck className="h-4 w-4" />
                     <span>Boyfriends</span>
                   </Link>
                   <Link
                     to="/fans?category=supporter"
-                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
+                      location.search.includes('category=supporter')
+                        ? 'bg-primary/5 text-primary border border-primary/10'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                    }`}
                   >
                     <Star className="h-4 w-4" />
                     <span>Supporters</span>
                   </Link>
                   <Link
                     to="/fans?category=friend"
-                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary/50 transition-smooth"
+                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
+                      location.search.includes('category=friend')
+                        ? 'bg-primary/5 text-primary border border-primary/10'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                    }`}
                   >
                     <ThumbsUp className="h-4 w-4" />
                     <span>Friends</span>
                   </Link>
                   <Link
                     to="/fans?category=fan"
-                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
+                      location.search.includes('category=fan')
+                        ? 'bg-primary/5 text-primary border border-primary/10'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                    }`}
                   >
                     <Users className="h-4 w-4" />
                     <span>General Fans</span>
                   </Link>
                   <Link
                     to="/fans/categories"
-                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
+                      location.pathname === '/fans/categories'
+                        ? 'bg-primary/5 text-primary border border-primary/10'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                    }`}
                   >
                     <Grid className="h-4 w-4" />
                     <span>Categories</span>
                   </Link>
                   <Link
                     to="/fans/lists"
-                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
+                      location.pathname === '/fans/lists'
+                        ? 'bg-primary/5 text-primary border border-primary/10'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                    }`}
                   >
                     <List className="h-4 w-4" />
                     <span>Lists</span>
@@ -236,7 +303,11 @@ export const Navigation = () => {
           {!isCollapsed && (
             <li>
               <Collapsible open={isContentOpen} onOpenChange={setIsContentOpen}>
-                <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth">
+                <CollapsibleTrigger className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-smooth ${
+                  isContentActive() 
+                    ? 'bg-primary/10 text-primary border border-primary/20' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                }`}>
                   <div className="flex items-center gap-3">
                     <FileText className="h-5 w-5" />
                     <span>Content</span>
@@ -251,14 +322,22 @@ export const Navigation = () => {
                 <CollapsibleContent className="mt-1 space-y-1">
                   <Link
                     to="/library"
-                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
+                      location.pathname === '/library'
+                        ? 'bg-primary/5 text-primary border border-primary/10'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                    }`}
                   >
                     <Library className="h-4 w-4" />
                     <span>Library</span>
                   </Link>
                   <Link
                     to="/upload"
-                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
+                      location.pathname === '/upload'
+                        ? 'bg-primary/5 text-primary border border-primary/10'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                    }`}
                   >
                     <Upload className="h-4 w-4" />
                     <span>Upload</span>
@@ -272,7 +351,11 @@ export const Navigation = () => {
           {!isCollapsed && (
             <li>
               <Collapsible open={isManagementOpen} onOpenChange={setIsManagementOpen}>
-                <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth">
+                <CollapsibleTrigger className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-smooth ${
+                  isManagementActive() 
+                    ? 'bg-primary/10 text-primary border border-primary/20' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                }`}>
                   <div className="flex items-center gap-3">
                     <UserIcon className="h-5 w-5" />
                     <span>Management</span>
@@ -287,7 +370,11 @@ export const Navigation = () => {
                 <CollapsibleContent className="mt-1 space-y-1">
                   <Link
                     to="/management/users"
-                    className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-smooth"
+                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
+                      location.pathname === '/management/users'
+                        ? 'bg-primary/5 text-primary border border-primary/10'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                    }`}
                   >
                     <Users className="h-4 w-4" />
                     <span>Users</span>
