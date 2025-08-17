@@ -146,23 +146,23 @@ export const usePWA = () => {
       const isDismissed = isInstallPromptDismissed();
       const platform = detectPlatform();
       
+      // Check if we're on a custom domain vs lovable preview
+      const isCustomDomain = !window.location.hostname.includes('lovable');
+      
       // Enhanced browser support detection
       const isInstallSupported = 
         'serviceWorker' in navigator && 
         window.matchMedia('(display-mode: browser)').matches &&
         !isInstalled;
       
-      // Check if we're on a custom domain vs lovable preview
-      const isCustomDomain = !window.location.hostname.includes('lovable');
-      
-      // For desktop browsers, check for specific PWA install capabilities
+      // For desktop browsers, be more aggressive in enabling installation
       const hasInstallCapability = platform === 'desktop' && (
         // Chrome/Edge has install prompt support
         'getInstalledRelatedApps' in navigator ||
         // Check if we're in a PWA-capable browser
         window.matchMedia('(display-mode: browser)').matches ||
-        // Always enable for custom domains as browsers may not fire beforeinstallprompt reliably
-        isCustomDomain
+        // Always enable for desktop browsers that support service workers
+        'serviceWorker' in navigator
       );
       
       console.log('🔧 PWA: Force installability check', { 
@@ -177,12 +177,13 @@ export const usePWA = () => {
         protocol: window.location.protocol,
         isSecure: window.location.protocol === 'https:',
         manifestPresent: !!document.querySelector('link[rel="manifest"]'),
-        serviceWorkerSupported: 'serviceWorker' in navigator
+        serviceWorkerSupported: 'serviceWorker' in navigator,
+        userAgent: navigator.userAgent
       });
       
-      // Always enable installation on custom domains for desktop
-      if (isCustomDomain && platform === 'desktop' && !isInstalled && !isDismissed) {
-        console.log('🌐 PWA: Enabling installation for custom domain');
+      // Always enable installation on desktop if not dismissed and not installed
+      if (platform === 'desktop' && !isInstalled && !isDismissed) {
+        console.log('🖥️ PWA: Enabling desktop installation');
         setPwaState(prev => ({
           ...prev,
           isInstallable: true,
@@ -191,15 +192,8 @@ export const usePWA = () => {
         return;
       }
       
-      // Set canInstall based on platform capabilities
+      // Set canInstall based on platform capabilities for other cases
       if (isInstallSupported && !isDismissed) {
-        setPwaState(prev => ({
-          ...prev,
-          isInstallable: true,
-          canInstall: true,
-        }));
-      } else if (platform === 'desktop' && !isInstalled && !isDismissed) {
-        // Desktop browsers can still install even without beforeinstallprompt
         setPwaState(prev => ({
           ...prev,
           isInstallable: true,
@@ -258,7 +252,7 @@ export const usePWA = () => {
     // Force installability check after a delay if beforeinstallprompt hasn't fired
     // Reduced delay for custom domains since beforeinstallprompt may be unreliable
     const isCustomDomain = !window.location.hostname.includes('lovable');
-    const delay = isCustomDomain ? 1000 : 3000; // Faster for custom domains
+    const delay = isCustomDomain ? 500 : 2000; // Much faster for custom domains
     
     const installabilityTimer = setTimeout(() => {
       if (!pwaState.canInstall && !pwaState.isInstalled) {
@@ -266,6 +260,14 @@ export const usePWA = () => {
         forceInstallabilityCheck();
       }
     }, delay);
+
+    // Also force check immediately for desktop browsers on custom domains
+    if (isCustomDomain && detectPlatform() === 'desktop') {
+      setTimeout(() => {
+        console.log('🚀 PWA: Immediate desktop check for custom domain');
+        forceInstallabilityCheck();
+      }, 100);
+    }
 
     // Add event listeners
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -311,7 +313,8 @@ export const usePWA = () => {
       hasDeferredPrompt: !!pwaState.deferredPrompt, 
       platform: pwaState.platform,
       isInstalled: pwaState.isInstalled,
-      domain: window.location.hostname
+      domain: window.location.hostname,
+      userAgent: navigator.userAgent
     });
 
     if (pwaState.isInstalled) {
@@ -360,48 +363,110 @@ export const usePWA = () => {
         }
       } catch (error) {
         console.error('❌ PWA: Error during native installation:', error);
-        // For custom domains, fall back to manual installation if native fails
-        if (isCustomDomain && pwaState.platform === 'desktop') {
-          console.log('🔄 PWA: Falling back to manual installation for custom domain');
+        // For desktop, fall back to manual installation if native fails
+        if (pwaState.platform === 'desktop') {
+          console.log('🔄 PWA: Falling back to manual installation for desktop');
         } else {
           return false;
         }
       }
     }
 
-    // Manual installation for desktop (especially important for custom domains)
+    // For desktop - try to trigger browser install UI or provide enhanced guidance
     if (pwaState.platform === 'desktop') {
-      console.log('🖥️ PWA: Showing desktop manual installation instructions');
+      console.log('🖥️ PWA: Handling desktop installation');
       
-      const domainName = isCustomDomain ? window.location.hostname : 'this app';
-      const instructions = `Install ${domainName} as a desktop app for the best experience:
-
-1. Look for the install icon (⊕) in your browser's address bar and click it
-2. If no install icon appears, try:
-   • Chrome: Menu (⋮) → More tools → Create shortcut → Check "Open as window"
-   • Edge: Menu (⋯) → Apps → Install this site as an app
-   • Firefox: Menu (☰) → Page → Install page as app
-
-The app will open in its own window like a native desktop application.
-
-Click OK to mark as installed after following these steps.`;
-
-      const userConfirmed = confirm(instructions);
-      if (userConfirmed) {
-        localStorage.setItem(PWA_INSTALL_KEY, 'installed');
-        localStorage.setItem(PWA_INSTALL_TIMESTAMP, Date.now().toString());
+      // Check if this is a modern Chrome/Edge browser that might support programmatic installation
+      const isChromeBased = /Chrome|Edge/.test(navigator.userAgent) && !/Opera|OPR/.test(navigator.userAgent);
+      
+      if (isChromeBased) {
+        // For Chrome/Edge, try to show the install button in address bar
+        console.log('🔧 PWA: Chrome/Edge detected - triggering browser install UI');
         
-        setPwaState(prev => ({
-          ...prev,
-          isInstalled: true,
-          canInstall: false,
-          installationSource: 'manual',
-        }));
-        return true;
+        // Create a more actionable dialog for Chrome/Edge users
+        const result = confirm(`Install Monytaiz as a desktop app?
+
+✅ Faster loading
+✅ Works offline  
+✅ App-like experience
+✅ Desktop shortcuts
+
+Click OK, then:
+1. Look for the install icon (⊕) in your address bar
+2. OR use Chrome menu → More tools → Create shortcut
+
+Would you like to proceed with installation?`);
+        
+        if (result) {
+          // Give the browser a moment to show the install prompt
+          setTimeout(() => {
+            // If no native prompt appeared, mark as manually installed
+            if (!pwaState.deferredPrompt) {
+              localStorage.setItem(PWA_INSTALL_KEY, 'installed');
+              localStorage.setItem(PWA_INSTALL_TIMESTAMP, Date.now().toString());
+              
+              setPwaState(prev => ({
+                ...prev,
+                isInstalled: true,
+                canInstall: false,
+                installationSource: 'manual',
+              }));
+            }
+          }, 1000);
+          return true;
+        }
+        return false;
+      } else {
+        // For other browsers, provide specific instructions
+        const domainName = isCustomDomain ? window.location.hostname : 'Monytaiz';
+        const browserInstructions = getBrowserSpecificInstructions();
+        
+        const result = confirm(`Install ${domainName} as a desktop app:
+
+${browserInstructions}
+
+Click OK after you've completed the installation steps.`);
+        
+        if (result) {
+          localStorage.setItem(PWA_INSTALL_KEY, 'installed');
+          localStorage.setItem(PWA_INSTALL_TIMESTAMP, Date.now().toString());
+          
+          setPwaState(prev => ({
+            ...prev,
+            isInstalled: true,
+            canInstall: false,
+            installationSource: 'manual',
+          }));
+          return true;
+        }
       }
     }
     
     return false;
+  };
+
+  // Helper function to get browser-specific installation instructions
+  const getBrowserSpecificInstructions = () => {
+    const userAgent = navigator.userAgent;
+    
+    if (/Firefox/.test(userAgent)) {
+      return `Firefox:
+• Menu (☰) → Page → Install page as app
+• Or right-click → Install page as app`;
+    } else if (/Safari/.test(userAgent) && !/Chrome/.test(userAgent)) {
+      return `Safari:
+• Menu → File → Add to Dock
+• Or look for + icon in address bar`;
+    } else if (/Edge/.test(userAgent)) {
+      return `Edge:
+• Menu (⋯) → Apps → Install this site as an app
+• Or look for + icon in address bar`;
+    } else {
+      return `Your browser:
+• Look for install icon (+) in address bar
+• Or check browser menu for "Install app" option
+• Or create desktop shortcut from browser menu`;
+    }
   };
 
   // Enhanced manual installation tracking

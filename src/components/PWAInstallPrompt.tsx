@@ -76,18 +76,18 @@ export const PWAInstallPrompt = () => {
       // 2. Native prompt is not showing  
       // 3. Manual prompt hasn't been recently dismissed
       // 4. Not already dismissed via main prompt
-      // 5. For desktop: show even without native support
+      // 5. Always show for desktop browsers to ensure installation option is available
       const shouldShowManual = !isInstalled && 
                               !showPrompt && 
                               !isManualDismissalValid && 
                               !isInstallPromptDismissed &&
-                               (/windows|macintosh|linux/.test(navigator.userAgent.toLowerCase()) || !canInstall);
+                              (platform === 'desktop' || /windows|macintosh|linux/.test(navigator.userAgent.toLowerCase()));
       
       if (shouldShowManual) {
         setShowManualPrompt(true);
         console.log('🔧 PWA Manual Prompt: Manual guidance shown for', platform);
       }
-    }, 4000); // Show after native prompt opportunity
+    }, 2000); // Reduced delay for faster response
 
     return () => clearTimeout(timer);
   }, [isInstalled, showPrompt, canInstall, isInstallPromptDismissed, platform, deferredPrompt]);
@@ -101,60 +101,10 @@ export const PWAInstallPrompt = () => {
   };
 
   const handleManualInstall = async () => {
-    // If we have a deferred prompt, use the native install
-    if (deferredPrompt) {
-      const success = await installApp();
-      if (success) {
-        setShowPrompt(false);
-        setShowManualPrompt(false);
-      }
-      return;
-    }
-
-    // Detect platform for desktop handling
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isDesktop = /windows|macintosh|linux/.test(userAgent);
-    
-    // For desktop without deferred prompt, try installApp() which has desktop fallback
-    if (isDesktop) {
-      const success = await installApp();
-      if (success) {
-        setShowPrompt(false);
-        setShowManualPrompt(false);
-      }
-      return;
-    }
-
-    // Enhanced platform-specific installation instructions for cases without native prompt
-    let instructions = '';
-    let followUpAction = '';
-    
-    if (platform === 'ios') {
-      instructions = 'To install this app on iOS:\n\n1. Tap the Share button (⬆) at the bottom\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to confirm';
-      followUpAction = 'After installation, the app will appear on your home screen like a native app.';
-    } else if (platform === 'android') {
-      const isChrome = /Chrome/.test(navigator.userAgent);
-      if (isChrome) {
-        instructions = 'To install this app on Android:\n\n1. Tap the menu (⋮) in the top-right corner\n2. Tap "Add to Home screen"\n3. Tap "Add" to confirm';
-      } else {
-        instructions = 'To install this app on Android:\n\n1. Look for "Add to Home Screen" or "Install App" in your browser menu\n2. Follow the prompts to install';
-      }
-      followUpAction = 'The app will be installed like a regular Android app.';
-    } else if (isDesktop) {
-      instructions = 'To install this app on desktop:\n\n1. Look for the install icon (⊕) in your browser\'s address bar\n2. Click it and select "Install"\n\nAlternatively:\n• Chrome: Menu → More tools → Create shortcut → Check "Open as window"\n• Edge: Menu → Apps → Install this site as an app';
-      followUpAction = 'The app will open in its own window like a desktop application.';
-    } else {
-      instructions = 'To install this app:\n\n• Mobile: Look for "Add to Home Screen" in your browser menu\n• Desktop: Look for an install icon in the address bar';
-      followUpAction = 'Once installed, you can access the app directly from your device.';
-    }
-    
-    // Show enhanced installation dialog only if native prompt unavailable
-    const fullMessage = `${instructions}\n\n${followUpAction}\n\nWould you like to mark this app as installed once you complete these steps?`;
-    
-    const userConfirmed = confirm(fullMessage);
-    if (userConfirmed) {
-      // User confirmed they will/have installed manually
-      markAsManuallyInstalled();
+    // Always use the main installApp function which has enhanced desktop handling
+    const success = await installApp();
+    if (success) {
+      setShowPrompt(false);
       setShowManualPrompt(false);
     }
   };
