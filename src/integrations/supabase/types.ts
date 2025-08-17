@@ -119,6 +119,13 @@ export type Database = {
             foreignKeyName: "content_files_pack_id_fkey"
             columns: ["pack_id"]
             isOneToOne: false
+            referencedRelation: "content_discovery"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_files_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
             referencedRelation: "content_files"
             referencedColumns: ["id"]
           },
@@ -230,6 +237,13 @@ export type Database = {
             columns: ["buyer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "negotiations_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content_discovery"
             referencedColumns: ["id"]
           },
           {
@@ -435,6 +449,13 @@ export type Database = {
             foreignKeyName: "purchases_content_id_fkey"
             columns: ["content_id"]
             isOneToOne: false
+            referencedRelation: "content_discovery"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchases_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
             referencedRelation: "content_files"
             referencedColumns: ["id"]
           },
@@ -520,7 +541,36 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      content_discovery: {
+        Row: {
+          base_price: number | null
+          content_type: Database["public"]["Enums"]["content_type"] | null
+          created_at: string | null
+          id: string | null
+          is_pack: boolean | null
+          thumbnail_url: string | null
+          title: string | null
+        }
+        Insert: {
+          base_price?: number | null
+          content_type?: Database["public"]["Enums"]["content_type"] | null
+          created_at?: string | null
+          id?: string | null
+          is_pack?: boolean | null
+          thumbnail_url?: string | null
+          title?: string | null
+        }
+        Update: {
+          base_price?: number | null
+          content_type?: Database["public"]["Enums"]["content_type"] | null
+          created_at?: string | null
+          id?: string | null
+          is_pack?: boolean | null
+          thumbnail_url?: string | null
+          title?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
@@ -551,6 +601,10 @@ export type Database = {
           _target_role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      user_can_view_content: {
+        Args: { _content_id: string; _user_id: string }
         Returns: boolean
       }
       user_has_permission: {
