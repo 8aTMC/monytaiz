@@ -207,12 +207,12 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto bg-gradient-card border-border shadow-card">
+    <Card className="w-full max-w-md mx-auto bg-black/40 backdrop-blur-sm border-gray-600/30 shadow-2xl">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold text-foreground">
+        <CardTitle className="text-2xl font-bold text-white">
           {mode === 'signin' ? t('platform.auth.signIn') : t('platform.auth.signUp')}
         </CardTitle>
-        <CardDescription className="text-muted-foreground">
+        <CardDescription className="text-gray-300">
           {mode === 'signin' 
             ? 'Welcome back to the platform' 
             : 'Join the premium fan experience'
@@ -224,7 +224,7 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
           {mode === 'signup' && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="displayName" className="text-foreground">
+                <Label htmlFor="displayName" className="text-white">
                   Name
                 </Label>
                 <Input
@@ -232,15 +232,15 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
                   type="text"
                   value={formData.displayName}
                   onChange={(e) => handleInputChange('displayName', e.target.value.slice(0, 20))}
-                  className="bg-input border-border text-foreground"
+                  className="bg-black/50 border-gray-600 text-white placeholder:text-gray-400"
                   maxLength={20}
                   placeholder="Your name"
                   title=""
                 />
-                <p className="text-xs text-muted-foreground">{formData.displayName.length}/20 characters</p>
+                <p className="text-xs text-gray-400">{formData.displayName.length}/20 characters</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-foreground">
+                <Label htmlFor="username" className="text-white">
                   {t('platform.auth.username')}
                 </Label>
                 <Input
@@ -248,17 +248,17 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
                   type="text"
                   value={formData.username}
                   onChange={(e) => handleInputChange('username', e.target.value.slice(0, 20))}
-                  className="bg-input border-border text-foreground"
+                  className="bg-black/50 border-gray-600 text-white placeholder:text-gray-400"
                   maxLength={20}
                   title=""
                 />
-                <p className="text-xs text-muted-foreground">{formData.username.length}/20 characters</p>
+                <p className="text-xs text-gray-400">{formData.username.length}/20 characters</p>
               </div>
             </>
           )}
           
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-foreground">
+            <Label htmlFor="email" className="text-white">
               {t('platform.auth.email')}
             </Label>
             <Input
@@ -267,13 +267,13 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
               placeholder="your@email.com"
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
-              className="bg-input border-border text-foreground"
+              className="bg-black/50 border-gray-600 text-white placeholder:text-gray-400"
               title=""
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-foreground">
+            <Label htmlFor="password" className="text-white">
               {t('platform.auth.password')}
             </Label>
             <div className="relative">
@@ -283,7 +283,7 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
                 placeholder="|Password12345@~!"
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
-                className="bg-input border-border text-foreground pr-10"
+                className="bg-black/50 border-gray-600 text-white placeholder:text-gray-400 pr-10"
                 title=""
               />
               <Button
@@ -294,9 +294,9 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? (
-                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  <EyeOff className="h-4 w-4 text-gray-400" />
                 ) : (
-                  <Eye className="h-4 w-4 text-muted-foreground" />
+                  <Eye className="h-4 w-4 text-gray-400" />
                 )}
               </Button>
             </div>
@@ -304,7 +304,7 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
           
           {mode === 'signup' && formData.password && (
             <div className="space-y-2">
-              <Label className="text-foreground text-sm">Password Requirements</Label>
+              <Label className="text-white text-sm">Password Requirements</Label>
               <div className="space-y-1">
                 {Object.entries({
                   'Between 8-19 characters': getPasswordRules(formData.password).length,
@@ -342,9 +342,7 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
           
           <Button 
             type="submit" 
-            className="w-full" 
-            variant="hero"
-            size="lg"
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3" 
             disabled={loading}
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -355,10 +353,10 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         <div className="mt-6">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border" />
+              <span className="w-full border-t border-gray-600" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+              <span className="bg-black/40 px-2 text-gray-400">OR CONTINUE WITH</span>
             </div>
           </div>
           
@@ -367,7 +365,7 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
             variant="outline"
             onClick={handleGoogleAuth}
             disabled={googleLoading}
-            className="w-full mt-4 bg-background/50 border-border hover:bg-background/80 text-foreground"
+            className="w-full mt-4 bg-gray-700/50 border-gray-600 hover:bg-gray-700/80 text-white"
           >
             {googleLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -399,7 +397,7 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
           <Button
             variant="link"
             onClick={() => onModeChange(mode === 'signin' ? 'signup' : 'signin')}
-            className="text-primary hover:text-primary-glow"
+            className="text-purple-400 hover:text-purple-300"
           >
             {mode === 'signin' 
               ? t('platform.auth.dontHaveAccount') 
