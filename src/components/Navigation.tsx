@@ -177,7 +177,7 @@ export const Navigation = () => {
         </>
       )}
       
-      <div className="flex-1 px-4 pt-6">
+      <div className="flex-1 px-4 pt-4">
         <ul className="space-y-2">
           {navItems.map((item) => {
             const active = isActive(item.href);
