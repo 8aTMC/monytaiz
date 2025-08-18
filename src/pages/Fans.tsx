@@ -8,10 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Users, MoreVertical, Copy, UserMinus, UserX, MessageSquare, FileText, Eye, Shield, Heart, UserCheck, ThumbsUp, Star } from 'lucide-react';
+import { UsernameHistoryDialog } from '@/components/UsernameHistoryDialog';
+import { Users, MoreVertical, Copy, UserMinus, UserX, MessageSquare, FileText, Eye, Shield, Heart, UserCheck, ThumbsUp, Star, Clock } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -39,6 +40,8 @@ const Fans = () => {
   const [loadingFans, setLoadingFans] = useState(true);
   const [selectedFan, setSelectedFan] = useState<Profile | null>(null);
   const [fanRoles, setFanRoles] = useState<Record<string, UserRole[]>>({});
+  const [usernameHistoryDialogOpen, setUsernameHistoryDialogOpen] = useState(false);
+  const [selectedFanForHistory, setSelectedFanForHistory] = useState<Profile | null>(null);
   const { isCollapsed } = useSidebar();
 
   // Emoji mapping for fan categories
@@ -262,28 +265,37 @@ const Fans = () => {
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem onClick={() => handleMenuAction('copy-link', fan)}>
-                              <Copy className="h-4 w-4 mr-2" />
-                              Copy link to profile
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleMenuAction('view-comments', fan)}>
-                              <MessageSquare className="h-4 w-4 mr-2" />
-                              View user's comments
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleMenuAction('add-notes', fan)}>
-                              <FileText className="h-4 w-4 mr-2" />
-                              Add notes
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleMenuAction('restrict', fan)}>
-                              <Shield className="h-4 w-4 mr-2" />
-                              Restrict
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleMenuAction('block', fan)} className="text-destructive">
-                              <UserX className="h-4 w-4 mr-2" />
-                              Block
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
+                           <DropdownMenuContent align="end" className="w-48">
+                             <DropdownMenuItem onClick={() => handleMenuAction('copy-link', fan)}>
+                               <Copy className="h-4 w-4 mr-2" />
+                               Copy link to profile
+                             </DropdownMenuItem>
+                             <DropdownMenuItem onClick={() => handleMenuAction('view-comments', fan)}>
+                               <MessageSquare className="h-4 w-4 mr-2" />
+                               View user's comments
+                             </DropdownMenuItem>
+                             <DropdownMenuItem onClick={() => handleMenuAction('add-notes', fan)}>
+                               <FileText className="h-4 w-4 mr-2" />
+                               Add notes
+                             </DropdownMenuItem>
+                             <DropdownMenuSeparator />
+                             <DropdownMenuItem onClick={() => {
+                               setSelectedFanForHistory(fan);
+                               setUsernameHistoryDialogOpen(true);
+                             }}>
+                               <Clock className="h-4 w-4 mr-2" />
+                               Past Usernames
+                             </DropdownMenuItem>
+                             <DropdownMenuSeparator />
+                             <DropdownMenuItem onClick={() => handleMenuAction('restrict', fan)}>
+                               <Shield className="h-4 w-4 mr-2" />
+                               Restrict
+                             </DropdownMenuItem>
+                             <DropdownMenuItem onClick={() => handleMenuAction('block', fan)} className="text-destructive">
+                               <UserX className="h-4 w-4 mr-2" />
+                               Block
+                             </DropdownMenuItem>
+                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
                     </CardHeader>
@@ -443,6 +455,14 @@ const Fans = () => {
           )}
         </div>
       </main>
+
+      {/* Username History Dialog */}
+      <UsernameHistoryDialog
+        open={usernameHistoryDialogOpen}
+        onOpenChange={setUsernameHistoryDialogOpen}
+        userId={selectedFanForHistory?.id || ''}
+        currentUsername={selectedFanForHistory?.username || ''}
+      />
     </div>
   );
 };

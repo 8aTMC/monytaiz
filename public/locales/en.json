@@ -86,6 +86,14 @@
       "invalidEmail": "Please enter a valid email address (example@domain.com)",
       "usernameNoSpaces": "Username cannot contain spaces",
       "passwordNotValid": "Password does not meet all requirements"
+    },
+    "usernames": {
+      "pastUsernames": "Past Usernames",
+      "current": "Current",
+      "noUsernameHistory": "No username history found",
+      "previousUsernames": "Previous Usernames",
+      "changedFrom": "Changed from",
+      "loading": "Loading"
     }
   }
 }
