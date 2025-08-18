@@ -76,16 +76,17 @@ export const FilePreviewDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] p-0">
         <DialogHeader className="p-6 pb-0">
-          <DialogTitle className="flex items-center justify-between">
-            <span className="truncate">{file.name}</span>
-            <div className="flex items-center gap-2 ml-4">
+          <DialogTitle className="flex items-start justify-between gap-4">
+            <span className="truncate flex-1 min-w-0">{file.name}</span>
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Badge variant="outline">{formatFileSize(file.size)}</Badge>
               {fileType === 'video' && (
-                <div className="flex gap-1">
+                <div className="flex gap-1 flex-wrap">
                   <Button
                     variant={videoQuality === 'SD' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setVideoQuality('SD')}
+                    className="text-xs h-7 px-2"
                   >
                     SD
                   </Button>
@@ -93,6 +94,7 @@ export const FilePreviewDialog = ({
                     variant={videoQuality === 'HD' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setVideoQuality('HD')}
+                    className="text-xs h-7 px-2"
                   >
                     HD
                   </Button>
@@ -100,6 +102,7 @@ export const FilePreviewDialog = ({
                     variant={videoQuality === '4K' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setVideoQuality('4K')}
+                    className="text-xs h-7 px-2"
                   >
                     4K
                   </Button>
@@ -124,7 +127,11 @@ export const FilePreviewDialog = ({
                 <video
                   ref={videoRef}
                   src={fileUrl}
-                  className="w-full h-auto max-h-[60vh] object-contain"
+                  className={`w-full h-auto max-h-[60vh] object-contain transition-all duration-300 ${
+                    videoQuality === 'SD' ? 'filter brightness-90 contrast-90' : 
+                    videoQuality === 'HD' ? '' : 
+                    'filter brightness-110 contrast-110 saturate-110'
+                  }`}
                   controls={false}
                   muted={isMuted}
                   onPlay={() => setIsPlaying(true)}
@@ -141,33 +148,8 @@ export const FilePreviewDialog = ({
                   }}
                 />
                 
-                {/* Video Progress Bar */}
-                <div className="absolute bottom-16 left-4 right-4 bg-black/50 rounded-lg p-3">
-                  <div className="flex items-center gap-3 text-white text-sm">
-                    <span className="text-xs font-mono">{formatTime(currentTime)}</span>
-                    
-                    {/* Seek Bar */}
-                    <div 
-                      className="flex-1 h-2 bg-white/30 rounded-full cursor-pointer relative"
-                      onClick={handleSeek}
-                    >
-                      <div 
-                        className="h-full bg-blue-500 rounded-full transition-all"
-                        style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
-                      />
-                      {/* Seek handle */}
-                      <div 
-                        className="absolute top-1/2 transform -translate-y-1/2 w-4 h-4 bg-blue-500 rounded-full shadow-lg transition-all"
-                        style={{ left: `${duration ? (currentTime / duration) * 100 : 0}%`, marginLeft: '-8px' }}
-                      />
-                    </div>
-                    
-                    <span className="text-xs font-mono">{formatTime(duration)}</span>
-                  </div>
-                </div>
-                
                 {/* Custom Video Controls Overlay */}
-                <div className="absolute bottom-4 left-4 flex items-center gap-2">
+                <div className="absolute bottom-16 left-4 flex items-center gap-2">
                   <Button
                     variant="secondary"
                     size="sm"
@@ -203,7 +185,7 @@ export const FilePreviewDialog = ({
                 </div>
                 
                 {/* Fullscreen Button */}
-                <div className="absolute bottom-4 right-4">
+                <div className="absolute bottom-16 right-4">
                   <Button
                     variant="secondary"
                     size="sm"
@@ -215,6 +197,31 @@ export const FilePreviewDialog = ({
                   >
                     <Maximize className="w-4 h-4" />
                   </Button>
+                </div>
+
+                {/* Video Progress Bar */}
+                <div className="absolute bottom-4 left-4 right-4 bg-black/50 rounded-lg p-3">
+                  <div className="flex items-center gap-3 text-white text-sm">
+                    <span className="text-xs font-mono">{formatTime(currentTime)}</span>
+                    
+                    {/* Seek Bar */}
+                    <div 
+                      className="flex-1 h-2 bg-white/30 rounded-full cursor-pointer relative"
+                      onClick={handleSeek}
+                    >
+                      <div 
+                        className="h-full bg-blue-500 rounded-full transition-all"
+                        style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+                      />
+                      {/* Seek handle */}
+                      <div 
+                        className="absolute top-1/2 transform -translate-y-1/2 w-4 h-4 bg-blue-500 rounded-full shadow-lg transition-all"
+                        style={{ left: `${duration ? (currentTime / duration) * 100 : 0}%`, marginLeft: '-8px' }}
+                      />
+                    </div>
+                    
+                    <span className="text-xs font-mono">{formatTime(duration)}</span>
+                  </div>
                 </div>
               </div>
             )}
