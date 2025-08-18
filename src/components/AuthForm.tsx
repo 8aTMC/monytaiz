@@ -207,7 +207,7 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto bg-black/75 backdrop-blur-sm border-gray-600/30 shadow-2xl">
+    <Card className="w-full max-w-md mx-auto bg-black/45 backdrop-blur-sm border-gray-600/30 shadow-2xl">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-bold text-white">
           {mode === 'signin' ? t('platform.auth.signIn') : t('platform.auth.signUp')}
@@ -218,6 +218,13 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
             : 'Join the premium fan experience'
           }
         </CardDescription>
+        
+        {/* Logo */}
+        <div className="flex justify-center mt-4">
+          <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center">
+            <span className="text-white font-bold text-xl">P</span>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
