@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,9 @@ export const FilePreviewDialog = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [videoQuality, setVideoQuality] = useState<'SD' | 'HD' | '4K'>('HD');
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (file) {
@@ -50,6 +53,23 @@ export const FilePreviewDialog = ({
     if (width >= 3840 || height >= 2160) return '4K';
     if (width >= 1280 || height >= 720) return 'HD';
     return 'SD';
+  };
+
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!videoRef.current) return;
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const newTime = (clickX / rect.width) * duration;
+    
+    videoRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
   };
 
   return (
@@ -102,13 +122,49 @@ export const FilePreviewDialog = ({
             {fileType === 'video' && fileUrl && (
               <div className="relative">
                 <video
+                  ref={videoRef}
                   src={fileUrl}
                   className="w-full h-auto max-h-[60vh] object-contain"
                   controls={false}
                   muted={isMuted}
                   onPlay={() => setIsPlaying(true)}
                   onPause={() => setIsPlaying(false)}
+                  onTimeUpdate={() => {
+                    if (videoRef.current) {
+                      setCurrentTime(videoRef.current.currentTime);
+                    }
+                  }}
+                  onLoadedMetadata={() => {
+                    if (videoRef.current) {
+                      setDuration(videoRef.current.duration);
+                    }
+                  }}
                 />
+                
+                {/* Video Progress Bar */}
+                <div className="absolute bottom-16 left-4 right-4 bg-black/50 rounded-lg p-3">
+                  <div className="flex items-center gap-3 text-white text-sm">
+                    <span className="text-xs font-mono">{formatTime(currentTime)}</span>
+                    
+                    {/* Seek Bar */}
+                    <div 
+                      className="flex-1 h-2 bg-white/30 rounded-full cursor-pointer relative"
+                      onClick={handleSeek}
+                    >
+                      <div 
+                        className="h-full bg-blue-500 rounded-full transition-all"
+                        style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+                      />
+                      {/* Seek handle */}
+                      <div 
+                        className="absolute top-1/2 transform -translate-y-1/2 w-4 h-4 bg-blue-500 rounded-full shadow-lg transition-all"
+                        style={{ left: `${duration ? (currentTime / duration) * 100 : 0}%`, marginLeft: '-8px' }}
+                      />
+                    </div>
+                    
+                    <span className="text-xs font-mono">{formatTime(duration)}</span>
+                  </div>
+                </div>
                 
                 {/* Custom Video Controls Overlay */}
                 <div className="absolute bottom-4 left-4 flex items-center gap-2">
@@ -116,12 +172,11 @@ export const FilePreviewDialog = ({
                     variant="secondary"
                     size="sm"
                     onClick={() => {
-                      const video = document.querySelector('video');
-                      if (video) {
+                      if (videoRef.current) {
                         if (isPlaying) {
-                          video.pause();
+                          videoRef.current.pause();
                         } else {
-                          video.play();
+                          videoRef.current.play();
                         }
                       }
                     }}
@@ -133,9 +188,8 @@ export const FilePreviewDialog = ({
                     variant="secondary"
                     size="sm"
                     onClick={() => {
-                      const video = document.querySelector('video');
-                      if (video) {
-                        video.muted = !isMuted;
+                      if (videoRef.current) {
+                        videoRef.current.muted = !isMuted;
                         setIsMuted(!isMuted);
                       }
                     }}
@@ -154,9 +208,8 @@ export const FilePreviewDialog = ({
                     variant="secondary"
                     size="sm"
                     onClick={() => {
-                      const video = document.querySelector('video');
-                      if (video && video.requestFullscreen) {
-                        video.requestFullscreen();
+                      if (videoRef.current && videoRef.current.requestFullscreen) {
+                        videoRef.current.requestFullscreen();
                       }
                     }}
                   >
