@@ -138,8 +138,8 @@ export const Navigation = () => {
       {/* Logo Section */}
       <div className="p-4 flex items-center justify-center border-b border-border">
         <img 
-          src="/lovable-uploads/5850ec31-209c-4504-92da-ab84abbb3501.png" 
-          alt="Platform Logo" 
+          src="/lovable-uploads/1bcee6fa-937a-4164-aecf-ef7d77f74bb8.png" 
+          alt="Monytaiz Logo" 
           className={`object-contain transition-all duration-300 ${
             isCollapsed ? 'w-8 h-8' : 'w-12 h-12'
           }`}
