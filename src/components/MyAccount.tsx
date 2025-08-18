@@ -66,11 +66,13 @@ export const MyAccount = () => {
         .eq('user_id', user.id)
         .order('role_level', { ascending: true })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (roleError) {
         console.error('Error loading role:', roleError);
       }
+
+      console.log('Role data loaded:', roleData); // Debug log
 
       setProfile(data);
       setUserRole(roleData?.role || 'fan');
