@@ -39,6 +39,16 @@ const getFileType = (file: File): keyof typeof FILE_LIMITS => {
   throw new Error(`Unsupported file type: ${extension}`);
 };
 
+const getStorageFolder = (fileType: keyof typeof FILE_LIMITS): string => {
+  const folderMap = {
+    video: 'videos',
+    image: 'photos', 
+    audio: 'audios',
+    document: 'documents'
+  };
+  return folderMap[fileType];
+};
+
 export const useFileUpload = () => {
   const [uploadQueue, setUploadQueue] = useState<FileUploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -157,7 +167,8 @@ export const useFileUpload = () => {
     const fileType = getFileType(file);
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `${fileType}/${fileName}`;
+    const storageFolder = getStorageFolder(fileType);
+    const filePath = `${storageFolder}/${fileName}`;
 
     let progressInterval: NodeJS.Timeout | null = null;
     let simulatedUploadedBytes = 0;
