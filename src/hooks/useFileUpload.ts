@@ -6,9 +6,12 @@ export interface FileUploadItem {
   file: File;
   id: string;
   progress: number;
-  status: 'pending' | 'uploading' | 'completed' | 'error';
+  status: 'pending' | 'uploading' | 'completed' | 'error' | 'paused' | 'cancelled';
   error?: string;
   thumbnailUrl?: string;
+  uploadedBytes?: number;
+  totalBytes?: number;
+  isPaused?: boolean;
 }
 
 const FILE_LIMITS = {
@@ -40,6 +43,7 @@ export const useFileUpload = () => {
   const [uploadQueue, setUploadQueue] = useState<FileUploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [currentUploadIndex, setCurrentUploadIndex] = useState(0);
+  const [pausedUploads, setPausedUploads] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   const validateFile = useCallback((file: File) => {
@@ -79,6 +83,8 @@ export const useFileUpload = () => {
           id: `${Date.now()}-${index}`,
           progress: 0,
           status: 'pending',
+          uploadedBytes: 0,
+          totalBytes: file.size,
         });
       } else {
         errors.push(`${file.name}: ${validation.error}`);
@@ -105,6 +111,45 @@ export const useFileUpload = () => {
 
   const removeFile = useCallback((id: string) => {
     setUploadQueue(prev => prev.filter(item => item.id !== id));
+    setPausedUploads(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(id);
+      return newSet;
+    });
+  }, []);
+
+  const pauseUpload = useCallback((id: string) => {
+    setPausedUploads(prev => new Set(prev).add(id));
+    setUploadQueue(prev => prev.map(item => 
+      item.id === id ? { ...item, status: 'paused' as const, isPaused: true } : item
+    ));
+  }, []);
+
+  const resumeUpload = useCallback((id: string) => {
+    setPausedUploads(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(id);
+      return newSet;
+    });
+    setUploadQueue(prev => prev.map(item => 
+      item.id === id ? { ...item, status: 'pending' as const, isPaused: false } : item
+    ));
+  }, []);
+
+  const cancelUpload = useCallback((id: string) => {
+    setUploadQueue(prev => prev.map(item => 
+      item.id === id ? { ...item, status: 'cancelled' as const } : item
+    ));
+    setPausedUploads(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(id);
+      return newSet;
+    });
+    
+    // Remove cancelled file after short delay
+    setTimeout(() => {
+      setUploadQueue(prev => prev.filter(item => item.id !== id));
+    }, 1000);
   }, []);
 
   const uploadFile = useCallback(async (item: FileUploadItem) => {
@@ -115,24 +160,48 @@ export const useFileUpload = () => {
     const filePath = `${fileType}/${fileName}`;
 
     let progressInterval: NodeJS.Timeout | null = null;
+    let simulatedUploadedBytes = 0;
+    const chunkSize = Math.max(1024 * 1024, file.size / 100); // 1MB or 1% of file size
 
     try {
+      // Check if paused
+      if (pausedUploads.has(item.id)) {
+        return;
+      }
+
       // Update status to uploading
       setUploadQueue(prev => prev.map(f => 
         f.id === item.id ? { ...f, status: 'uploading' as const } : f
       ));
 
-      // Simulate progress for now (Supabase doesn't support onUploadProgress yet)
-      let progress = 0;
+      // More realistic progress tracking
       progressInterval = setInterval(() => {
-        progress += 15;
+        if (pausedUploads.has(item.id)) {
+          if (progressInterval) clearInterval(progressInterval);
+          return;
+        }
+
+        simulatedUploadedBytes = Math.min(simulatedUploadedBytes + chunkSize, file.size * 0.9);
+        const progress = Math.round((simulatedUploadedBytes / file.size) * 100);
+        
         setUploadQueue(prev => prev.map(f => 
-          f.id === item.id ? { ...f, progress: Math.min(progress, 85) } : f
+          f.id === item.id ? { 
+            ...f, 
+            progress,
+            uploadedBytes: simulatedUploadedBytes 
+          } : f
         ));
-        if (progress >= 85) {
+
+        if (simulatedUploadedBytes >= file.size * 0.9) {
           if (progressInterval) clearInterval(progressInterval);
         }
-      }, 300);
+      }, 150);
+
+      // Get current user first to ensure we have the ID
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) {
+        throw new Error('User not authenticated');
+      }
 
       const { data, error } = await supabase.storage
         .from('content')
@@ -142,7 +211,7 @@ export const useFileUpload = () => {
       
       if (error) throw error;
 
-      // Save to database
+      // Save to database with proper user ID
       const { error: dbError } = await supabase
         .from('content_files')
         .insert({
@@ -152,14 +221,19 @@ export const useFileUpload = () => {
           content_type: fileType as any,
           mime_type: file.type,
           file_size: file.size,
-          creator_id: (await supabase.auth.getUser()).data.user?.id!,
+          creator_id: userData.user.id,
         });
 
       if (dbError) throw dbError;
 
       // Mark as completed
       setUploadQueue(prev => prev.map(f => 
-        f.id === item.id ? { ...f, status: 'completed' as const, progress: 100 } : f
+        f.id === item.id ? { 
+          ...f, 
+          status: 'completed' as const, 
+          progress: 100,
+          uploadedBytes: file.size 
+        } : f
       ));
 
       // Remove from queue after a short delay
@@ -177,7 +251,7 @@ export const useFileUpload = () => {
         } : f
       ));
     }
-  }, []);
+  }, [pausedUploads]);
 
   const startUpload = useCallback(async () => {
     if (uploadQueue.length === 0 || isUploading) return;
@@ -188,7 +262,7 @@ export const useFileUpload = () => {
     // Process files one by one
     for (let i = 0; i < uploadQueue.length; i++) {
       const item = uploadQueue[i];
-      if (item.status === 'pending') {
+      if (item.status === 'pending' && !pausedUploads.has(item.id)) {
         setCurrentUploadIndex(i);
         await uploadFile(item);
       }
@@ -213,6 +287,9 @@ export const useFileUpload = () => {
     currentUploadIndex,
     addFiles,
     removeFile,
+    pauseUpload,
+    resumeUpload,
+    cancelUpload,
     startUpload,
     clearQueue,
     processedCount: uploadQueue.filter(f => f.status === 'completed').length,

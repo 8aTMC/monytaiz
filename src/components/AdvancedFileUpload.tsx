@@ -18,6 +18,9 @@ export const AdvancedFileUpload = () => {
     currentUploadIndex,
     addFiles,
     removeFile,
+    pauseUpload,
+    resumeUpload,
+    cancelUpload,
     startUpload,
     clearQueue,
     processedCount,
@@ -178,16 +181,19 @@ export const AdvancedFileUpload = () => {
             <ScrollArea className="h-80 border rounded-lg p-4">
               <div className="space-y-3">
                 {uploadQueue.map((item, index) => (
-                  <FileUploadRow
-                    key={item.id}
-                    item={item}
-                    index={index}
-                    currentUploadIndex={currentUploadIndex}
-                    isUploading={isUploading}
-                    onRemove={removeFile}
-                    getStatusIcon={getStatusIcon}
-                    formatFileSize={formatFileSize}
-                  />
+                <FileUploadRow
+                  key={item.id}
+                  item={item}
+                  index={index}
+                  currentUploadIndex={currentUploadIndex}
+                  isUploading={isUploading}
+                  onRemove={removeFile}
+                  onPause={pauseUpload}
+                  onResume={resumeUpload}
+                  onCancel={cancelUpload}
+                  getStatusIcon={getStatusIcon}
+                  formatFileSize={formatFileSize}
+                />
                 ))}
               </div>
             </ScrollArea>

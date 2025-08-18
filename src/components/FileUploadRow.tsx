@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from './AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, Folder, Hash, StickyNote, DollarSign, User, Clock } from 'lucide-react';
+import { Users, Folder, Hash, StickyNote, DollarSign, User, Clock, Pause, Play, Trash2 } from 'lucide-react';
 import { FileUploadThumbnail } from './FileUploadThumbnail';
 import { CreatorTagDialog } from './CreatorTagDialog';
 import { FolderSelectDialog } from './FolderSelectDialog';
@@ -19,6 +19,9 @@ interface FileUploadRowProps {
   currentUploadIndex: number;
   isUploading: boolean;
   onRemove: (id: string) => void;
+  onPause?: (id: string) => void;
+  onResume?: (id: string) => void;
+  onCancel?: (id: string) => void;
   getStatusIcon: (status: string) => React.ReactNode;
   formatFileSize: (bytes: number) => string;
 }
@@ -29,6 +32,9 @@ export const FileUploadRow = ({
   currentUploadIndex,
   isUploading,
   onRemove,
+  onPause,
+  onResume,
+  onCancel,
   getStatusIcon,
   formatFileSize,
 }: FileUploadRowProps) => {
@@ -49,6 +55,12 @@ export const FileUploadRow = ({
 
   const handleDoubleClick = () => {
     setShowPreviewDialog(true);
+  };
+
+  const formatUploadProgress = (uploadedBytes: number, totalBytes: number) => {
+    const uploaded = formatFileSize(uploadedBytes);
+    const total = formatFileSize(totalBytes);
+    return `${uploaded} / ${total}`;
   };
 
   const uploaderInfo = {
@@ -84,6 +96,52 @@ export const FileUploadRow = ({
             </div>
             <div className="flex items-center gap-2">
               {getStatusIcon(item.status)}
+              
+              {/* Upload control buttons */}
+              {item.status === 'uploading' && (
+                <>
+                  {item.isPaused ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onResume?.(item.id);
+                      }}
+                      className="h-6 w-6 p-0"
+                      title="Resume upload"
+                    >
+                      <Play className="h-3 w-3" />
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPause?.(item.id);
+                      }}
+                      className="h-6 w-6 p-0"
+                      title="Pause upload"
+                    >
+                      <Pause className="h-3 w-3" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCancel?.(item.id);
+                    }}
+                    className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                    title="Cancel upload"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </>
+              )}
+              
               {item.status === 'pending' && !isUploading && (
                 <Button
                   variant="ghost"
@@ -93,6 +151,7 @@ export const FileUploadRow = ({
                     onRemove(item.id);
                   }}
                   className="h-6 w-6 p-0"
+                  title="Remove from queue"
                 >
                   ×
                 </Button>
@@ -202,13 +261,30 @@ export const FileUploadRow = ({
           </div>
 
           {/* Progress Bar */}
-          {(item.status === 'uploading' || item.status === 'completed') && (
+          {(item.status === 'uploading' || item.status === 'completed' || item.status === 'paused') && (
             <div className="mt-2">
               <div className="w-full bg-muted rounded-full h-2">
                 <div 
-                  className="bg-primary h-2 rounded-full transition-all duration-300"
+                  className={cn(
+                    "h-2 rounded-full transition-all duration-300",
+                    item.status === 'paused' ? 'bg-orange-500' : 'bg-primary'
+                  )}
                   style={{ width: `${item.progress}%` }}
                 />
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>
+                  {item.progress}% complete
+                  {item.uploadedBytes && item.totalBytes && (
+                    <span className="ml-2">({formatUploadProgress(item.uploadedBytes, item.totalBytes)})</span>
+                  )}
+                </span>
+                {item.status === 'uploading' && index === currentUploadIndex && (
+                  <span className="text-blue-600">Uploading...</span>
+                )}
+                {item.status === 'paused' && (
+                  <span className="text-orange-600">Paused</span>
+                )}
               </div>
             </div>
           )}
