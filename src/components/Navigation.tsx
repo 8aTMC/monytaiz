@@ -149,9 +149,9 @@ export const Navigation = () => {
             variant="ghost"
             size="icon"
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="absolute top-6 -right-3 text-muted-foreground hover:text-foreground bg-card border border-border rounded-full w-6 h-6 z-50"
+            className="absolute top-6 -right-2.5 text-muted-foreground hover:text-foreground bg-card border border-border rounded-full w-5 h-5 z-50"
           >
-            <ChevronRight className="h-3 w-3" />
+            <ChevronRight className="h-2.5 w-2.5" />
           </Button>
         </>
       ) : (
