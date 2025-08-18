@@ -174,7 +174,7 @@ export const Navigation = () => {
             {isCollapsed ? (
               <Link
                 to="/fans"
-                className={`flex items-center justify-center px-3 py-2 rounded-lg transition-smooth ${
+                className={`flex items-center justify-center px-3 py-2 rounded-lg transition-smooth w-full ${
                   isFansActive() 
                     ? 'bg-primary/10 text-primary border border-primary/20' 
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
@@ -245,7 +245,7 @@ export const Navigation = () => {
             {isCollapsed ? (
               <Link
                 to="/library"
-                className={`flex items-center justify-center px-3 py-2 rounded-lg transition-smooth ${
+                className={`flex items-center justify-center px-3 py-2 rounded-lg transition-smooth w-full ${
                   isContentActive() 
                     ? 'bg-primary/10 text-primary border border-primary/20' 
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
@@ -305,7 +305,7 @@ export const Navigation = () => {
             {isCollapsed ? (
               <Link
                 to="/management/users"
-                className={`flex items-center justify-center px-3 py-2 rounded-lg transition-smooth ${
+                className={`flex items-center justify-center px-3 py-2 rounded-lg transition-smooth w-full ${
                   isManagementActive() 
                     ? 'bg-primary/10 text-primary border border-primary/20' 
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
