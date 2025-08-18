@@ -30,24 +30,31 @@ export const ThemeToggle = () => {
       <button
         onClick={toggleTheme}
         className={`
-          relative w-14 h-7 rounded-full p-0.5 transition-all duration-500 ease-in-out
-          shadow-lg hover:shadow-xl hover:scale-105
+          relative w-16 h-8 rounded-full p-0.5 transition-all duration-700 ease-in-out
+          shadow-xl hover:shadow-2xl hover:scale-105
           ${isLight 
-            ? 'bg-gradient-to-r from-orange-300 to-yellow-400' 
-            : 'bg-gradient-to-r from-indigo-800 to-purple-900'
+            ? 'bg-gradient-to-r from-sky-300 via-sky-400 to-blue-500' 
+            : 'bg-gradient-to-r from-slate-800 via-slate-900 to-gray-900'
           }
+          border-2 ${isLight ? 'border-sky-200' : 'border-slate-600'}
         `}
         title={`Switch to ${isLight ? 'dark' : 'light'} mode`}
         aria-label={`Switch to ${isLight ? 'dark' : 'light'} mode`}
       >
+        {/* Sky Background with Clouds */}
+        <SkyBackground isVisible={isLight} />
+        
+        {/* Starry Night Background */}
+        <NightBackground isVisible={!isLight} />
+
         {/* Toggle Circle */}
         <div 
           className={`
-            relative w-6 h-6 rounded-full transition-all duration-500 ease-in-out
-            shadow-md flex items-center justify-center transform
+            relative w-7 h-7 rounded-full transition-all duration-700 ease-in-out
+            shadow-lg flex items-center justify-center transform z-10
             ${isLight 
-              ? 'translate-x-0 bg-gradient-to-br from-yellow-200 to-orange-300' 
-              : 'translate-x-7 bg-gradient-to-br from-slate-700 to-slate-800'
+              ? 'translate-x-0 bg-gradient-to-br from-orange-300 via-yellow-400 to-orange-500' 
+              : 'translate-x-8 bg-gradient-to-br from-slate-300 via-slate-400 to-slate-500'
             }
           `}
         >
@@ -57,62 +64,75 @@ export const ThemeToggle = () => {
           {/* Moon Icon */}
           <MoonIcon isVisible={!isLight} />
         </div>
-
-        {/* Background Stars */}
-        <BackgroundStars isVisible={!isLight} />
       </button>
     </div>
   );
 };
 
+const SkyBackground = ({ isVisible }: { isVisible: boolean }) => (
+  <div className={`absolute inset-1 rounded-full overflow-hidden transition-opacity duration-700 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+    {/* Clouds */}
+    <div className="absolute top-1 left-2 w-3 h-1.5 bg-white rounded-full opacity-90" />
+    <div className="absolute top-2.5 right-3 w-2.5 h-1 bg-white rounded-full opacity-80" />
+    <div className="absolute top-1.5 left-6 w-2 h-1 bg-white rounded-full opacity-75" />
+    <div className="absolute top-3 right-6 w-1.5 h-0.5 bg-white rounded-full opacity-70" />
+    <div className="absolute top-0.5 right-8 w-1 h-0.5 bg-white rounded-full opacity-60" />
+  </div>
+);
+
+const NightBackground = ({ isVisible }: { isVisible: boolean }) => (
+  <div className={`absolute inset-1 rounded-full overflow-hidden transition-opacity duration-700 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+    {/* Stars */}
+    <div className="absolute top-1 left-2 w-0.5 h-0.5 bg-white rounded-full animate-pulse" />
+    <div className="absolute top-2.5 left-4 w-0.5 h-0.5 bg-yellow-200 rounded-full animate-pulse" style={{animationDelay: '0.3s'}} />
+    <div className="absolute top-1.5 right-3 w-0.5 h-0.5 bg-blue-200 rounded-full animate-pulse" style={{animationDelay: '0.6s'}} />
+    <div className="absolute top-3.5 right-5 w-0.5 h-0.5 bg-white rounded-full animate-pulse" style={{animationDelay: '0.9s'}} />
+    <div className="absolute top-0.5 left-6 w-0.5 h-0.5 bg-purple-200 rounded-full animate-pulse" style={{animationDelay: '1.2s'}} />
+    <div className="absolute top-4 left-8 w-0.5 h-0.5 bg-cyan-200 rounded-full animate-pulse" style={{animationDelay: '1.5s'}} />
+    <div className="absolute top-2 right-7 w-0.5 h-0.5 bg-pink-200 rounded-full animate-pulse" style={{animationDelay: '1.8s'}} />
+    
+    {/* Twinkling effect */}
+    <div className="absolute top-1.5 left-3 w-0.5 h-0.5 bg-white rounded-full opacity-40 animate-ping" style={{animationDelay: '0.5s'}} />
+    <div className="absolute top-3 right-2 w-0.5 h-0.5 bg-yellow-100 rounded-full opacity-40 animate-ping" style={{animationDelay: '2s'}} />
+  </div>
+);
+
 const SunIcon = ({ isVisible }: { isVisible: boolean }) => (
-  <div className={`transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+  <div className={`transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
     {/* Sun Rays */}
-    {Array.from({ length: 8 }).map((_, i) => (
+    {Array.from({ length: 12 }).map((_, i) => (
       <div
         key={i}
-        className="absolute w-0.5 h-1 bg-orange-400 rounded-full"
+        className="absolute w-0.5 h-1.5 bg-orange-300 rounded-full opacity-80"
         style={{
           top: '50%',
           left: '50%',
-          transform: `translate(-50%, -50%) rotate(${i * 45}deg) translateY(-8px)`,
+          transform: `translate(-50%, -50%) rotate(${i * 30}deg) translateY(-10px)`,
         }}
       />
     ))}
     
-    {/* Sun Center */}
-    <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-yellow-300 to-orange-400" />
-  </div>
-);
-
-const MoonIcon = ({ isVisible }: { isVisible: boolean }) => (
-  <div className={`transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-    <div className="relative w-4 h-4">
-      <div className="absolute inset-0 rounded-full bg-slate-300" />
-      <div className="absolute top-0.5 right-0.5 w-3 h-3 rounded-full bg-slate-800" />
+    {/* Sun Core */}
+    <div className="w-4 h-4 rounded-full bg-gradient-to-br from-yellow-300 via-orange-400 to-yellow-500 relative">
+      {/* Sun surface details */}
+      <div className="absolute top-0.5 right-0.5 w-1 h-1 rounded-full bg-orange-400 opacity-60" />
+      <div className="absolute bottom-1 left-1 w-0.5 h-0.5 rounded-full bg-yellow-400 opacity-80" />
     </div>
   </div>
 );
 
-const BackgroundStars = ({ isVisible }: { isVisible: boolean }) => (
-  <div className={`absolute inset-1 rounded-full transition-opacity duration-500 overflow-hidden ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-    <Star className="top-1 left-1" delay="0s" />
-    <Star className="top-3 right-2" delay="0.5s" />
-    <Star className="bottom-1 left-2" delay="1s" color="bg-blue-200" />
+const MoonIcon = ({ isVisible }: { isVisible: boolean }) => (
+  <div className={`transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+    <div className="relative w-5 h-5">
+      {/* Full moon base */}
+      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-slate-200 to-slate-300" />
+      
+      {/* Crescent shadow */}
+      <div className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-gradient-to-br from-slate-700 to-slate-800" />
+      
+      {/* Moon craters */}
+      <div className="absolute top-1 left-1 w-1 h-1 rounded-full bg-slate-400 opacity-60" />
+      <div className="absolute bottom-1.5 left-2 w-0.5 h-0.5 rounded-full bg-slate-400 opacity-50" />
+    </div>
   </div>
-);
-
-const Star = ({ 
-  className, 
-  delay = "0s", 
-  color = "bg-yellow-200" 
-}: { 
-  className: string; 
-  delay?: string; 
-  color?: string; 
-}) => (
-  <div 
-    className={`absolute w-0.5 h-0.5 ${color} rounded-full animate-pulse ${className}`}
-    style={{ animationDelay: delay }}
-  />
 );
