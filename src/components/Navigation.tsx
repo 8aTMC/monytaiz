@@ -135,6 +135,17 @@ export const Navigation = () => {
     <nav className={`fixed left-0 top-0 bg-card border-r border-border h-screen flex flex-col z-40 transition-all duration-300 ${
       isCollapsed ? 'w-16' : 'w-64'
     }`}>
+      {/* Logo Section */}
+      <div className="p-4 flex items-center justify-center border-b border-border">
+        <img 
+          src="/lovable-uploads/5850ec31-209c-4504-92da-ab84abbb3501.png" 
+          alt="Platform Logo" 
+          className={`object-contain transition-all duration-300 ${
+            isCollapsed ? 'w-8 h-8' : 'w-12 h-12'
+          }`}
+        />
+      </div>
+      
       <div className="p-6 flex items-center justify-between">
         {!isCollapsed && <h1 className="text-xl font-bold text-foreground">Fan Platform</h1>}
         <Button
