@@ -224,7 +224,7 @@ export const Navigation = () => {
                     <Users className="h-5 w-5" />
                     <span>Fans</span>
                   </div>
-                  <div className="ml-auto">
+                  <div className="ml-auto pr-1">
                     {isFansOpen ? (
                       <ChevronUp className="h-4 w-4" />
                     ) : (
@@ -297,7 +297,7 @@ export const Navigation = () => {
                     <FileText className="h-5 w-5" />
                     <span>Content</span>
                   </div>
-                  <div className="ml-auto">
+                  <div className="ml-auto pr-1">
                     {isContentOpen ? (
                       <ChevronUp className="h-4 w-4" />
                     ) : (
@@ -359,7 +359,7 @@ export const Navigation = () => {
                     <UserIcon className="h-5 w-5" />
                     <span>Management</span>
                   </div>
-                  <div className="ml-auto">
+                  <div className="ml-auto pr-1">
                     {isManagementOpen ? (
                       <ChevronUp className="h-4 w-4" />
                     ) : (
