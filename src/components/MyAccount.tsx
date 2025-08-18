@@ -59,12 +59,18 @@ export const MyAccount = () => {
         return;
       }
 
-      // Fetch user role
-      const { data: roleData } = await supabase
+      // Fetch user role - using latest data without cache
+      const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
-        .select('role')
+        .select('role, role_level')
         .eq('user_id', user.id)
+        .order('role_level', { ascending: true })
+        .limit(1)
         .single();
+
+      if (roleError) {
+        console.error('Error loading role:', roleError);
+      }
 
       setProfile(data);
       setUserRole(roleData?.role || 'fan');
@@ -300,7 +306,7 @@ export const MyAccount = () => {
 
   const getRoleBadgeColor = (role: string) => {
     const colors: Record<string, string> = {
-      'owner': 'bg-purple-100 text-purple-800 border-purple-200',
+      'owner': 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white border-purple-300 shadow-lg',
       'creator': 'bg-purple-100 text-purple-800 border-purple-200',
       'admin': 'bg-red-100 text-red-800 border-red-200',
       'superadmin': 'bg-red-100 text-red-800 border-red-200',
