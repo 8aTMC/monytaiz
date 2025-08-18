@@ -45,9 +45,9 @@ const ContentLibrary = () => {
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [defaultCategories, setDefaultCategories] = useState([
     { id: 'all-files', label: 'All Files', icon: Grid, description: 'All uploaded content', isDefault: true },
-    { id: 'stories', label: 'Stories', icon: BookOpen, description: 'Content uploaded to creator stories' },
+    { id: 'stories', label: 'Stories', icon: BookOpen, description: 'Content uploaded to stories' },
     { id: 'livestreams', label: 'LiveStreams', icon: Zap, description: 'Past live stream videos' },
-    { id: 'messages', label: 'Messages', icon: MessageSquare, description: 'Content uploaded via messages' },
+    { id: 'messages', label: 'Messages', icon: MessageSquare, description: 'Content sent in messages' },
   ]);
   const { isCollapsed } = useSidebar();
 
