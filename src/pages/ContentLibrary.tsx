@@ -227,7 +227,7 @@ const ContentLibrary = () => {
           <div className="w-80 bg-card border-r border-border p-6 overflow-y-auto">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-foreground">Library</h2>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <NewFolderDialog onFolderCreated={() => {
                   // Optionally refresh folders list here
                 }} />
@@ -235,7 +235,7 @@ const ContentLibrary = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => setIsReorderMode(!isReorderMode)}
-                  className="text-xs"
+                  className="text-xs h-7 px-2"
                 >
                   <ArrowUpDown className="h-3 w-3 mr-1" />
                   Reorder
