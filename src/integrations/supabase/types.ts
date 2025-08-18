@@ -599,6 +599,33 @@ export type Database = {
           },
         ]
       }
+      username_history: {
+        Row: {
+          changed_at: string
+          created_at: string
+          id: string
+          new_username: string
+          old_username: string
+          user_id: string
+        }
+        Insert: {
+          changed_at?: string
+          created_at?: string
+          id?: string
+          new_username: string
+          old_username: string
+          user_id: string
+        }
+        Update: {
+          changed_at?: string
+          created_at?: string
+          id?: string
+          new_username?: string
+          old_username?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
