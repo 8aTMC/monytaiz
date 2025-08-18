@@ -111,19 +111,13 @@ const SunIcon = ({ isVisible }: { isVisible: boolean }) => (
         }}
       />
     ))}
-    
-    {/* Sun Core */}
-    <div className="w-4 h-4 rounded-full bg-gradient-to-br from-yellow-300 via-orange-400 to-yellow-500" />
   </div>
 );
 
 const MoonIcon = ({ isVisible }: { isVisible: boolean }) => (
   <div className={`transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
     <div className="relative w-5 h-5">
-      {/* Full moon base */}
-      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-slate-200 to-slate-300" />
-      
-      {/* Crescent shadow */}
+      {/* Crescent shape only */}
       <div className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-gradient-to-br from-slate-700 to-slate-800" />
     </div>
   </div>
