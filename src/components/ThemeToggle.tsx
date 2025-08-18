@@ -15,6 +15,7 @@ export const ThemeToggle = () => {
       // Default to dark theme
       setTheme('dark');
       document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
     }
   }, []);
 
