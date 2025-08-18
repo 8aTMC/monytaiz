@@ -133,7 +133,7 @@ export const Navigation = () => {
 
   return (
     <nav className={`fixed left-0 top-0 bg-card border-r border-border h-screen flex flex-col z-40 transition-all duration-300 ${
-      isCollapsed ? 'w-16' : 'w-64'
+      isCollapsed ? 'w-16' : 'w-52'
     }`}>
       {isCollapsed ? (
         /* Collapsed state - logo centered with arrow on right edge */
