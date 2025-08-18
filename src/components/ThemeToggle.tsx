@@ -113,11 +113,7 @@ const SunIcon = ({ isVisible }: { isVisible: boolean }) => (
     ))}
     
     {/* Sun Core */}
-    <div className="w-4 h-4 rounded-full bg-gradient-to-br from-yellow-300 via-orange-400 to-yellow-500 relative">
-      {/* Sun surface details */}
-      <div className="absolute top-0.5 right-0.5 w-1 h-1 rounded-full bg-orange-400 opacity-60" />
-      <div className="absolute bottom-1 left-1 w-0.5 h-0.5 rounded-full bg-yellow-400 opacity-80" />
-    </div>
+    <div className="w-4 h-4 rounded-full bg-gradient-to-br from-yellow-300 via-orange-400 to-yellow-500" />
   </div>
 );
 
@@ -129,10 +125,6 @@ const MoonIcon = ({ isVisible }: { isVisible: boolean }) => (
       
       {/* Crescent shadow */}
       <div className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-gradient-to-br from-slate-700 to-slate-800" />
-      
-      {/* Moon craters */}
-      <div className="absolute top-1 left-1 w-1 h-1 rounded-full bg-slate-400 opacity-60" />
-      <div className="absolute bottom-1.5 left-2 w-0.5 h-0.5 rounded-full bg-slate-400 opacity-50" />
     </div>
   </div>
 );
