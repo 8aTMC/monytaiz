@@ -59,10 +59,11 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-r from-purple-400 via-purple-600 to-black relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-r from-purple-300/20 via-purple-500/30 to-transparent"></div>
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500/10 to-black/50"></div>
-      <div className="w-full max-w-md relative z-10">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: 'url(/lovable-uploads/7b2c5fa3-3869-4efc-97dd-928cb31ff437.png)' }}
+    >
+      <div className="w-full max-w-md">
         <AuthForm mode={mode} onModeChange={setMode} />
       </div>
     </div>

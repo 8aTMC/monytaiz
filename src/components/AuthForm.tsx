@@ -207,7 +207,7 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto bg-black/40 backdrop-blur-sm border-gray-600/30 shadow-2xl">
+    <Card className="w-full max-w-md mx-auto bg-black/75 backdrop-blur-sm border-gray-600/30 shadow-2xl">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-bold text-white">
           {mode === 'signin' ? t('platform.auth.signIn') : t('platform.auth.signUp')}
