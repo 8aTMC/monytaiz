@@ -86,18 +86,19 @@ export const PendingDeletionsManager = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 pr-20">
         <div>
           <h2 className="text-2xl font-bold">Pending Deletions</h2>
           <p className="text-muted-foreground">
             Manage user accounts scheduled for deletion
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             onClick={loadPendingDeletions}
             disabled={refreshing}
+            className="flex-shrink-0"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
@@ -106,6 +107,7 @@ export const PendingDeletionsManager = () => {
             variant="destructive"
             onClick={handleCleanupExpired}
             disabled={loading}
+            className="flex-shrink-0"
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Cleanup Expired
