@@ -212,20 +212,22 @@ export const Navigation = () => {
               </Link>
             ) : (
               <Collapsible open={isFansOpen} onOpenChange={setIsFansOpen}>
-                <CollapsibleTrigger className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-smooth ${
+                <CollapsibleTrigger className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
                   isFansActive() 
                     ? 'bg-primary/10 text-primary border border-primary/20' 
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                 }`}>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-1">
                     <Users className="h-5 w-5" />
                     <span>Fans</span>
                   </div>
-                  {isFansOpen ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
+                  <div className="ml-auto">
+                    {isFansOpen ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </div>
                 </CollapsibleTrigger>
                 
                 <CollapsibleContent className="mt-1 space-y-1">
@@ -283,20 +285,22 @@ export const Navigation = () => {
               </Link>
             ) : (
               <Collapsible open={isContentOpen} onOpenChange={setIsContentOpen}>
-                <CollapsibleTrigger className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-smooth ${
+                <CollapsibleTrigger className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
                   isContentActive() 
                     ? 'bg-primary/10 text-primary border border-primary/20' 
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                 }`}>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-1">
                     <FileText className="h-5 w-5" />
                     <span>Content</span>
                   </div>
-                  {isContentOpen ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
+                  <div className="ml-auto">
+                    {isContentOpen ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </div>
                 </CollapsibleTrigger>
                 
                 <CollapsibleContent className="mt-1 space-y-1">
@@ -343,20 +347,22 @@ export const Navigation = () => {
               </Link>
             ) : (
               <Collapsible open={isManagementOpen} onOpenChange={setIsManagementOpen}>
-                <CollapsibleTrigger className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-smooth ${
+                <CollapsibleTrigger className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
                   isManagementActive() 
                     ? 'bg-primary/10 text-primary border border-primary/20' 
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                 }`}>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-1">
                     <UserIcon className="h-5 w-5" />
                     <span>Management</span>
                   </div>
-                  {isManagementOpen ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
+                  <div className="ml-auto">
+                    {isManagementOpen ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </div>
                 </CollapsibleTrigger>
                 
                 <CollapsibleContent className="mt-1 space-y-1">
