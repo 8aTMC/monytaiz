@@ -220,7 +220,7 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         </CardDescription>
         
         {/* Logo */}
-        <div className="flex justify-center mb-2">
+        <div className="flex justify-center">
           <img 
             src="/lovable-uploads/1af55786-9032-497d-9c44-b99402ae6ff1.png" 
             alt="Monytaiz Logo" 
@@ -228,7 +228,7 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
           />
         </div>
       </CardHeader>
-      <CardContent className="pt-2">
+      <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'signup' && (
             <>
