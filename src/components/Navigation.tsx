@@ -187,7 +187,9 @@ export const Navigation = () => {
                   to={item.href}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
                     active 
-                      ? 'bg-primary/10 text-primary border border-primary/20' 
+                      ? isCollapsed 
+                        ? 'bg-primary/20 text-primary' 
+                        : 'bg-primary/10 text-primary border border-primary/20'
                       : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                   }`}
                   title={isCollapsed ? item.label : undefined}
@@ -206,7 +208,9 @@ export const Navigation = () => {
                 to="/fans"
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
                   isFansActive() 
-                    ? 'bg-primary/10 text-primary border border-primary/20' 
+                    ? isCollapsed 
+                      ? 'bg-primary/20 text-primary' 
+                      : 'bg-primary/10 text-primary border border-primary/20'
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                 }`}
                 title="Fans"
@@ -279,7 +283,9 @@ export const Navigation = () => {
                 to="/library"
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
                   isContentActive() 
-                    ? 'bg-primary/10 text-primary border border-primary/20' 
+                    ? isCollapsed 
+                      ? 'bg-primary/20 text-primary' 
+                      : 'bg-primary/10 text-primary border border-primary/20'
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                 }`}
                 title="Content"
@@ -341,7 +347,9 @@ export const Navigation = () => {
                 to="/management/users"
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
                   isManagementActive() 
-                    ? 'bg-primary/10 text-primary border border-primary/20' 
+                    ? isCollapsed 
+                      ? 'bg-primary/20 text-primary' 
+                      : 'bg-primary/10 text-primary border border-primary/20'
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                 }`}
                 title="Management"
