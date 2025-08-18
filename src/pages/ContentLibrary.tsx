@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Filter, Grid, Image, Video, FileAudio, FileText, Calendar } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface ContentFile {
   id: string;
@@ -196,6 +197,7 @@ const ContentLibrary = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
+      <ThemeToggle />
       
       <div className={`transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <div className="flex h-screen">
@@ -244,28 +246,50 @@ const ContentLibrary = () => {
 
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col">
-            {/* Header with Search and Filters */}
+            {/* Header */}
             <div className="bg-card border-b border-border p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h1 className="text-3xl font-bold text-foreground">
+              <div className="flex items-center justify-between mb-6">
+                <h1 className="text-lg font-semibold text-foreground">
                   {categories.find(c => c.id === selectedCategory)?.label || 'All Media'}
                 </h1>
-                
-                <div className="flex items-center gap-4">
+              </div>
+
+              {/* Filter Tabs */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {[
+                    { id: 'all', label: 'All' },
+                    { id: 'image', label: 'Photo' },
+                    { id: 'video', label: 'Video' },
+                    { id: 'audio', label: 'Audio' },
+                    { id: 'document', label: 'Documents' }
+                  ].map((filter) => (
+                    <Button
+                      key={filter.id}
+                      variant={selectedFilter === filter.id ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedFilter(filter.id)}
+                    >
+                      {filter.label}
+                    </Button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-4 w-full sm:w-auto">
                   {/* Search */}
-                  <div className="relative">
+                  <div className="relative flex-1 sm:flex-none">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input
                       placeholder="Search content..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 w-64"
+                      className="pl-10 w-full sm:w-64"
                     />
                   </div>
 
                   {/* Sort By */}
                   <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-48">
+                    <SelectTrigger className="w-full sm:w-48">
                       <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
                     <SelectContent>
@@ -276,26 +300,6 @@ const ContentLibrary = () => {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              {/* Filter Tabs */}
-              <div className="flex items-center gap-2">
-                {[
-                  { id: 'all', label: 'All' },
-                  { id: 'image', label: 'Photo' },
-                  { id: 'video', label: 'Video' },
-                  { id: 'audio', label: 'Audio' },
-                  { id: 'document', label: 'Documents' }
-                ].map((filter) => (
-                  <Button
-                    key={filter.id}
-                    variant={selectedFilter === filter.id ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedFilter(filter.id)}
-                  >
-                    {filter.label}
-                  </Button>
-                ))}
               </div>
             </div>
 
