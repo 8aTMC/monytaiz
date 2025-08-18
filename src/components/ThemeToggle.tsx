@@ -29,12 +29,12 @@ export const ThemeToggle = () => {
       <button
         onClick={toggleTheme}
         className={`
-          relative w-20 h-10 rounded-full p-1 transition-all duration-700 ease-in-out
+          relative w-16 h-8 rounded-full p-1 transition-all duration-700 ease-in-out
           ${theme === 'light' 
             ? 'bg-gradient-to-r from-sky-300 via-blue-400 to-blue-500' 
             : 'bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900'
           }
-          shadow-xl hover:shadow-2xl hover:scale-105 border-2
+          shadow-lg hover:shadow-xl hover:scale-105 border-2
           ${theme === 'light' ? 'border-blue-200' : 'border-slate-600'}
         `}
         title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
@@ -46,10 +46,13 @@ export const ThemeToggle = () => {
             absolute inset-0 transition-opacity duration-700
             ${theme === 'light' ? 'opacity-100' : 'opacity-0'}
           `}>
-            {/* Clouds */}
-            <div className="absolute top-1 left-3 w-3 h-1.5 bg-white rounded-full opacity-70"></div>
-            <div className="absolute top-2.5 right-4 w-2 h-1 bg-white rounded-full opacity-50"></div>
-            <div className="absolute top-1.5 left-8 w-1.5 h-0.5 bg-white rounded-full opacity-60"></div>
+            {/* Enhanced Clouds */}
+            <div className="absolute top-0.5 left-2 w-2.5 h-1 bg-white rounded-full opacity-80"></div>
+            <div className="absolute top-1.5 right-3 w-2 h-0.5 bg-white rounded-full opacity-60"></div>
+            <div className="absolute top-2 left-6 w-1.5 h-0.5 bg-white rounded-full opacity-70"></div>
+            <div className="absolute top-3 right-5 w-1 h-0.5 bg-white rounded-full opacity-50"></div>
+            <div className="absolute top-0.5 right-7 w-1 h-0.5 bg-white rounded-full opacity-60"></div>
+            <div className="absolute top-3.5 left-4 w-1.5 h-0.5 bg-white rounded-full opacity-40"></div>
           </div>
           
           {/* Dark mode background */}
@@ -75,33 +78,45 @@ export const ThemeToggle = () => {
         
         {/* Toggle Circle */}
         <div className={`
-          relative w-8 h-8 rounded-full transition-all duration-700 ease-in-out transform
+          relative w-6 h-6 rounded-full transition-all duration-700 ease-in-out transform
           ${theme === 'light' 
-            ? 'translate-x-0 bg-gradient-to-br from-yellow-200 via-yellow-300 to-orange-400 shadow-xl' 
-            : 'translate-x-10 bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300 shadow-xl'
+            ? 'translate-x-0 bg-gradient-to-br from-yellow-200 via-yellow-300 to-orange-400 shadow-lg' 
+            : 'translate-x-8 bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300 shadow-lg'
           }
-          flex items-center justify-center border-2
+          flex items-center justify-center border border-opacity-30
           ${theme === 'light' ? 'border-yellow-100' : 'border-slate-100'}
+          overflow-hidden
         `}>
           {/* Enhanced Sun for light mode */}
           <div className={`
             absolute inset-0 transition-opacity duration-500
             ${theme === 'light' ? 'opacity-100' : 'opacity-0'}
           `}>
-            {/* Sun rays */}
-            {[...Array(12)].map((_, i) => (
+            {/* Sun rays - contained within circle */}
+            {[...Array(8)].map((_, i) => (
               <div
                 key={i}
-                className="absolute w-0.5 h-1.5 bg-yellow-100 rounded-full"
+                className="absolute w-0.5 h-1 bg-yellow-100 rounded-full"
                 style={{
                   top: '50%',
                   left: '50%',
-                  transform: `translate(-50%, -50%) rotate(${i * 30}deg) translateY(-18px)`,
+                  transform: `translate(-50%, -50%) rotate(${i * 45}deg) translateY(-8px)`,
                 }}
               />
             ))}
-            {/* Inner sun glow */}
-            <div className="absolute inset-1 rounded-full bg-gradient-to-br from-yellow-200 to-orange-300"></div>
+            
+            {/* Sun surface details */}
+            <div className="absolute inset-1 rounded-full bg-gradient-to-br from-yellow-200 via-orange-300 to-yellow-400">
+              {/* Solar spots and surface texture */}
+              <div className="absolute top-1 right-1 w-1 h-1 rounded-full bg-orange-400 opacity-60"></div>
+              <div className="absolute bottom-1 left-1 w-0.5 h-0.5 rounded-full bg-yellow-400 opacity-70"></div>
+              <div className="absolute top-2 left-1.5 w-0.5 h-0.5 rounded-full bg-orange-500 opacity-50"></div>
+              <div className="absolute bottom-1.5 right-1.5 w-0.5 h-0.5 rounded-full bg-yellow-500 opacity-80"></div>
+              
+              {/* Solar flares */}
+              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-yellow-200 to-transparent opacity-30"></div>
+              <div className="absolute inset-0 rounded-full bg-gradient-to-bl from-transparent via-orange-200 to-transparent opacity-20"></div>
+            </div>
           </div>
           
           {/* Enhanced Moon for dark mode */}
