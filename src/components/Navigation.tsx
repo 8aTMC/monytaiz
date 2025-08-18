@@ -395,10 +395,10 @@ export const Navigation = () => {
                         ? 'bg-primary/5 text-primary border border-primary/10'
                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                     }`}
-                  >
-                    <UserIcon className="h-4 w-4" />
-                    <span>Pending Deletions</span>
-                  </Link>
+                   >
+                     <UserIcon className="h-4 w-4" />
+                     <span>Deletions</span>
+                   </Link>
                 </CollapsibleContent>
               </Collapsible>
             )}
