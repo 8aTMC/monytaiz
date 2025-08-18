@@ -174,14 +174,14 @@ export const Navigation = () => {
             {isCollapsed ? (
               <Link
                 to="/fans"
-                className={`flex items-center justify-center px-3 py-2 rounded-lg transition-smooth w-full ${
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
                   isFansActive() 
                     ? 'bg-primary/10 text-primary border border-primary/20' 
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                 }`}
                 title="Fans"
               >
-                <Users className="h-5 w-5" />
+                <Users className="h-5 w-5 flex-shrink-0" />
               </Link>
             ) : (
               <Collapsible open={isFansOpen} onOpenChange={setIsFansOpen}>
@@ -245,14 +245,14 @@ export const Navigation = () => {
             {isCollapsed ? (
               <Link
                 to="/library"
-                className={`flex items-center justify-center px-3 py-2 rounded-lg transition-smooth w-full ${
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
                   isContentActive() 
                     ? 'bg-primary/10 text-primary border border-primary/20' 
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                 }`}
                 title="Content"
               >
-                <FileText className="h-5 w-5" />
+                <FileText className="h-5 w-5 flex-shrink-0" />
               </Link>
             ) : (
               <Collapsible open={isContentOpen} onOpenChange={setIsContentOpen}>
@@ -305,14 +305,14 @@ export const Navigation = () => {
             {isCollapsed ? (
               <Link
                 to="/management/users"
-                className={`flex items-center justify-center px-3 py-2 rounded-lg transition-smooth w-full ${
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
                   isManagementActive() 
                     ? 'bg-primary/10 text-primary border border-primary/20' 
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                 }`}
                 title="Management"
               >
-                <UserIcon className="h-5 w-5" />
+                <UserIcon className="h-5 w-5 flex-shrink-0" />
               </Link>
             ) : (
               <Collapsible open={isManagementOpen} onOpenChange={setIsManagementOpen}>
