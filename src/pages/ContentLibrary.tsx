@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Filter, Grid, Image, Video, FileAudio, FileText, Calendar, ArrowUpDown, BookOpen, Zap, MessageSquare, GripVertical } from 'lucide-react';
+import { NewFolderDialog } from '@/components/NewFolderDialog';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface ContentFile {
@@ -226,15 +227,20 @@ const ContentLibrary = () => {
           <div className="w-80 bg-card border-r border-border p-6 overflow-y-auto">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-foreground">Library</h2>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsReorderMode(!isReorderMode)}
-                className="text-xs"
-              >
-                <ArrowUpDown className="h-3 w-3 mr-1" />
-                Reorder
-              </Button>
+              <div className="flex items-center gap-2">
+                <NewFolderDialog onFolderCreated={() => {
+                  // Optionally refresh folders list here
+                }} />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsReorderMode(!isReorderMode)}
+                  className="text-xs"
+                >
+                  <ArrowUpDown className="h-3 w-3 mr-1" />
+                  Reorder
+                </Button>
+              </div>
             </div>
               
             {/* Default Categories */}
