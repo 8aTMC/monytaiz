@@ -70,10 +70,14 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_pack: boolean | null
+          mime_type: string | null
+          original_filename: string | null
           pack_id: string | null
+          tags: string[] | null
           thumbnail_url: string | null
           title: string
           updated_at: string | null
+          watermark_data: Json | null
         }
         Insert: {
           base_price?: number
@@ -86,10 +90,14 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_pack?: boolean | null
+          mime_type?: string | null
+          original_filename?: string | null
           pack_id?: string | null
+          tags?: string[] | null
           thumbnail_url?: string | null
           title: string
           updated_at?: string | null
+          watermark_data?: Json | null
         }
         Update: {
           base_price?: number
@@ -102,10 +110,14 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_pack?: boolean | null
+          mime_type?: string | null
+          original_filename?: string | null
           pack_id?: string | null
+          tags?: string[] | null
           thumbnail_url?: string | null
           title?: string
           updated_at?: string | null
+          watermark_data?: Json | null
         }
         Relationships: [
           {
@@ -124,6 +136,33 @@ export type Database = {
           },
         ]
       }
+      file_folders: {
+        Row: {
+          color: string | null
+          created_at: string
+          creator_id: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          creator_id: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          creator_id?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       files: {
         Row: {
           created_at: string | null
@@ -137,10 +176,13 @@ export type Database = {
           is_active: boolean | null
           mime_type: string | null
           original_filename: string
+          processing_status: string | null
           signed_url_expires_at: string | null
           tags: string[] | null
+          thumbnail_generated: boolean | null
           title: string | null
           updated_at: string | null
+          watermark_applied: boolean | null
         }
         Insert: {
           created_at?: string | null
@@ -154,10 +196,13 @@ export type Database = {
           is_active?: boolean | null
           mime_type?: string | null
           original_filename: string
+          processing_status?: string | null
           signed_url_expires_at?: string | null
           tags?: string[] | null
+          thumbnail_generated?: boolean | null
           title?: string | null
           updated_at?: string | null
+          watermark_applied?: boolean | null
         }
         Update: {
           created_at?: string | null
@@ -171,10 +216,13 @@ export type Database = {
           is_active?: boolean | null
           mime_type?: string | null
           original_filename?: string
+          processing_status?: string | null
           signed_url_expires_at?: string | null
           tags?: string[] | null
+          thumbnail_generated?: boolean | null
           title?: string | null
           updated_at?: string | null
+          watermark_applied?: boolean | null
         }
         Relationships: []
       }
@@ -475,6 +523,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      upload_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          processed_files: number
+          status: string
+          total_files: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          processed_files?: number
+          status?: string
+          total_files?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          processed_files?: number
+          status?: string
+          total_files?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
