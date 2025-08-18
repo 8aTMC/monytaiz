@@ -220,11 +220,11 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         </CardDescription>
         
         {/* Logo */}
-        <div className="flex justify-center mt-4">
+        <div className="flex justify-center mt-8">
           <img 
             src="/lovable-uploads/1af55786-9032-497d-9c44-b99402ae6ff1.png" 
             alt="Monytaiz Logo" 
-            className="w-16 h-16 object-contain"
+            className="w-24 h-16 object-contain"
           />
         </div>
       </CardHeader>
