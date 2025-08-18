@@ -41,9 +41,10 @@ const ContentLibrary = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
-  const [selectedCategory, setSelectedCategory] = useState('all-media');
+  const [selectedCategory, setSelectedCategory] = useState('all-files');
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [defaultCategories, setDefaultCategories] = useState([
+    { id: 'all-files', label: 'All Files', icon: Grid, description: 'All uploaded content', isDefault: true },
     { id: 'stories', label: 'Stories', icon: BookOpen, description: 'Content uploaded to creator stories' },
     { id: 'livestreams', label: 'LiveStreams', icon: Zap, description: 'Past live stream videos' },
     { id: 'messages', label: 'Messages', icon: MessageSquare, description: 'Content uploaded via messages' },
@@ -255,7 +256,11 @@ const ContentLibrary = () => {
                       onClick={() => {
                         if (!isReorderMode) {
                           setSelectedCategory(category.id);
-                          setSelectedFilter('all'); // Show all content for these categories
+                          if (category.id === 'all-files') {
+                            setSelectedFilter('all'); // Show all content
+                          } else {
+                            setSelectedFilter('all'); // Show all content for other categories too for now
+                          }
                         }
                       }}
                       disabled={isReorderMode}
@@ -269,7 +274,7 @@ const ContentLibrary = () => {
                         </div>
                       </div>
                       <Badge variant="secondary" className="text-xs">
-                        0
+                        {category.id === 'all-files' ? content.length : 0}
                       </Badge>
                     </Button>
                   </div>
