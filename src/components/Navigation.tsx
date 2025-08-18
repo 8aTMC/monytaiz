@@ -136,13 +136,21 @@ export const Navigation = () => {
       isCollapsed ? 'w-16' : 'w-64'
     }`}>
       {isCollapsed ? (
-        /* Collapsed state - logo centered */
-        <div className="p-4 flex items-center justify-center border-b border-border">
+        /* Collapsed state - logo left, arrow right */
+        <div className="p-4 flex items-center justify-between border-b border-border">
           <img 
             src="/lovable-uploads/1bcee6fa-937a-4164-aecf-ef7d77f74bb8.png" 
             alt="Monytaiz Logo" 
             className="w-8 h-8 object-contain"
           />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
       ) : (
         /* Extended state - logo left, name center, arrow right */
@@ -160,20 +168,6 @@ export const Navigation = () => {
             className="text-muted-foreground hover:text-foreground flex-shrink-0"
           >
             <ChevronLeft className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
-      
-      {/* Collapse button for collapsed state */}
-      {isCollapsed && (
-        <div className="px-4 pb-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="text-muted-foreground hover:text-foreground w-full"
-          >
-            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       )}
