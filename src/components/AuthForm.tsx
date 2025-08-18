@@ -208,11 +208,11 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
 
   return (
     <Card className="w-full max-w-md mx-auto bg-black/45 backdrop-blur-sm border-gray-600/30 shadow-2xl">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold text-white">
+      <CardHeader className="text-center pb-4">
+        <CardTitle className="text-2xl font-bold text-white mb-2">
           {mode === 'signin' ? t('platform.auth.signIn') : t('platform.auth.signUp')}
         </CardTitle>
-        <CardDescription className="text-gray-300">
+        <CardDescription className="text-gray-300 mb-4">
           {mode === 'signin' 
             ? 'Welcome back to the platform' 
             : 'Join the premium fan experience'
@@ -220,11 +220,11 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         </CardDescription>
         
         {/* Logo */}
-        <div className="flex justify-center mt-[3.25rem]">
+        <div className="flex justify-center">
           <img 
             src="/lovable-uploads/1af55786-9032-497d-9c44-b99402ae6ff1.png" 
             alt="Monytaiz Logo" 
-            className="w-80 h-20 object-contain mt-[30px]"
+            className="w-80 h-20 object-contain"
           />
         </div>
       </CardHeader>
