@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Filter, Grid, Image, Video, FileAudio, FileText, Calendar } from 'lucide-react';
+import { Search, Filter, Grid, Image, Video, FileAudio, FileText, Calendar, ArrowUpDown, BookOpen, Zap, MessageSquare, GripVertical } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface ContentFile {
@@ -42,6 +42,12 @@ const ContentLibrary = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [selectedCategory, setSelectedCategory] = useState('all-media');
+  const [isReorderMode, setIsReorderMode] = useState(false);
+  const [defaultCategories, setDefaultCategories] = useState([
+    { id: 'stories', label: 'Stories', icon: BookOpen, description: 'Content uploaded to creator stories' },
+    { id: 'livestreams', label: 'LiveStreams', icon: Zap, description: 'Past live stream videos' },
+    { id: 'messages', label: 'Messages', icon: MessageSquare, description: 'Content uploaded via messages' },
+  ]);
   const { isCollapsed } = useSidebar();
 
   useEffect(() => {
@@ -176,13 +182,27 @@ const ContentLibrary = () => {
     return null;
   }
 
-  const categories = [
-    { id: 'all-media', label: 'All Media', icon: Grid, count: content.length },
-    { id: 'images', label: 'Photos', icon: Image, count: content.filter(c => c.content_type === 'image').length },
-    { id: 'videos', label: 'Videos', icon: Video, count: content.filter(c => c.content_type === 'video').length },
-    { id: 'audio', label: 'Audio', icon: FileAudio, count: content.filter(c => c.content_type === 'audio').length },
-    { id: 'documents', label: 'Documents', icon: FileText, count: content.filter(c => c.content_type === 'document').length },
-  ];
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    e.dataTransfer.setData('text/plain', index.toString());
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
+    
+    if (dragIndex === dropIndex) return;
+    
+    const newCategories = [...defaultCategories];
+    const draggedItem = newCategories[dragIndex];
+    newCategories.splice(dragIndex, 1);
+    newCategories.splice(dropIndex, 0, draggedItem);
+    
+    setDefaultCategories(newCategories);
+  };
 
   const getContentTypeIcon = (type: string) => {
     switch (type) {
@@ -203,45 +223,59 @@ const ContentLibrary = () => {
         <div className="flex h-screen">
           {/* Categories Sidebar */}
           <div className="w-80 bg-card border-r border-border p-6 overflow-y-auto">
-            <div className="mb-4">
+            <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-foreground">Library</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsReorderMode(!isReorderMode)}
+                className="text-xs"
+              >
+                <ArrowUpDown className="h-3 w-3 mr-1" />
+                Reorder
+              </Button>
             </div>
               
-              {/* Categories */}
-              <div className="space-y-2">
-                {categories.map((category) => {
-                  const IconComponent = category.icon;
-                  return (
+            {/* Default Categories */}
+            <div className="space-y-2">
+              {defaultCategories.map((category, index) => {
+                const IconComponent = category.icon;
+                return (
+                  <div
+                    key={category.id}
+                    className={`${isReorderMode ? 'cursor-move' : ''}`}
+                    draggable={isReorderMode}
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, index)}
+                  >
                     <Button
-                      key={category.id}
                       variant={selectedCategory === category.id ? "default" : "ghost"}
                       className="w-full justify-between text-left"
                       onClick={() => {
-                        setSelectedCategory(category.id);
-                        if (category.id === 'all-media') {
-                          setSelectedFilter('all');
-                        } else if (category.id === 'images') {
-                          setSelectedFilter('image');
-                        } else if (category.id === 'videos') {
-                          setSelectedFilter('video');
-                        } else if (category.id === 'audio') {
-                          setSelectedFilter('audio');
-                        } else if (category.id === 'documents') {
-                          setSelectedFilter('document');
+                        if (!isReorderMode) {
+                          setSelectedCategory(category.id);
+                          setSelectedFilter('all'); // Show all content for these categories
                         }
                       }}
+                      disabled={isReorderMode}
                     >
                       <div className="flex items-center gap-3">
+                        {isReorderMode && <GripVertical className="h-4 w-4 text-muted-foreground" />}
                         <IconComponent className="h-4 w-4" />
-                        <span>{category.label}</span>
+                        <div className="flex flex-col items-start">
+                          <span>{category.label}</span>
+                          <span className="text-xs text-muted-foreground">{category.description}</span>
+                        </div>
                       </div>
                       <Badge variant="secondary" className="text-xs">
-                        {category.count}
+                        0
                       </Badge>
                     </Button>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Main Content Area */}
@@ -250,7 +284,7 @@ const ContentLibrary = () => {
             <div className="bg-card border-b border-border p-6">
               <div className="flex items-center justify-between mb-6">
                 <h1 className="text-lg font-semibold text-foreground">
-                  {categories.find(c => c.id === selectedCategory)?.label || 'All Media'}
+                  {defaultCategories.find(c => c.id === selectedCategory)?.label || 'Library'}
                 </h1>
               </div>
 
