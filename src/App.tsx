@@ -21,6 +21,7 @@ import FansLists from "./pages/FansLists";
 import PendingDeletions from "./pages/PendingDeletions";
 import NotFound from "./pages/NotFound";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
+import { ThemeToggle } from "./components/ThemeToggle";
 
 
 const queryClient = new QueryClient();
@@ -103,6 +104,8 @@ const App = () => (
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            
+            <ThemeToggle />
           </SidebarProvider>
         </BrowserRouter>
       </AuthProvider>

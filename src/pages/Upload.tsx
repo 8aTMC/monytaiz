@@ -5,7 +5,6 @@ import { User, Session } from '@supabase/supabase-js';
 import { Navigation, useSidebar } from '@/components/Navigation';
 import { AdvancedFileUpload } from '@/components/AdvancedFileUpload';
 import { useTranslation } from '@/hooks/useTranslation';
-import { ThemeToggle } from '@/components/ThemeToggle';
 
 const Upload = () => {
   const navigate = useNavigate();
@@ -64,14 +63,13 @@ const Upload = () => {
       <Navigation />
       <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <div className="max-w-6xl mx-auto">
-          <div className="mb-8 flex items-center justify-between">
+          <div className="mb-8">
             <div>
               <h1 className="text-3xl font-bold text-foreground">Upload Content</h1>
               <p className="text-muted-foreground mt-2">
                 Upload photos, videos, audio files, and documents to your content library
               </p>
             </div>
-            <ThemeToggle />
           </div>
 
           <AdvancedFileUpload />
