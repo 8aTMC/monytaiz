@@ -221,9 +221,11 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         
         {/* Logo */}
         <div className="flex justify-center mt-4">
-          <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center">
-            <span className="text-white font-bold text-xl">P</span>
-          </div>
+          <img 
+            src="/lovable-uploads/1af55786-9032-497d-9c44-b99402ae6ff1.png" 
+            alt="Monytaiz Logo" 
+            className="w-16 h-16 object-contain"
+          />
         </div>
       </CardHeader>
       <CardContent>
