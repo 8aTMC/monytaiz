@@ -135,28 +135,48 @@ export const Navigation = () => {
     <nav className={`fixed left-0 top-0 bg-card border-r border-border h-screen flex flex-col z-40 transition-all duration-300 ${
       isCollapsed ? 'w-16' : 'w-64'
     }`}>
-      {/* Logo Section */}
-      <div className="p-4 flex items-center justify-center border-b border-border">
-        <img 
-          src="/lovable-uploads/1bcee6fa-937a-4164-aecf-ef7d77f74bb8.png" 
-          alt="Monytaiz Logo" 
-          className={`object-contain transition-all duration-300 ${
-            isCollapsed ? 'w-8 h-8' : 'w-12 h-12'
-          }`}
-        />
-      </div>
+      {isCollapsed ? (
+        /* Collapsed state - logo centered */
+        <div className="p-4 flex items-center justify-center border-b border-border">
+          <img 
+            src="/lovable-uploads/1bcee6fa-937a-4164-aecf-ef7d77f74bb8.png" 
+            alt="Monytaiz Logo" 
+            className="w-8 h-8 object-contain"
+          />
+        </div>
+      ) : (
+        /* Extended state - logo left, name center, arrow right */
+        <div className="p-4 flex items-center justify-between border-b border-border">
+          <img 
+            src="/lovable-uploads/1bcee6fa-937a-4164-aecf-ef7d77f74bb8.png" 
+            alt="Monytaiz Logo" 
+            className="w-8 h-8 object-contain flex-shrink-0"
+          />
+          <h1 className="text-lg font-bold text-foreground">Monytaiz</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="text-muted-foreground hover:text-foreground flex-shrink-0"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
       
-      <div className="p-6 flex items-center justify-between">
-        {!isCollapsed && <h1 className="text-xl font-bold text-foreground">Fan Platform</h1>}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </Button>
-      </div>
+      {/* Collapse button for collapsed state */}
+      {isCollapsed && (
+        <div className="px-4 pb-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="text-muted-foreground hover:text-foreground w-full"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
       
       <div className="flex-1 px-4">
         <ul className="space-y-2">
