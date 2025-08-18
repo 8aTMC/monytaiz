@@ -212,7 +212,7 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         <CardTitle className="text-2xl font-bold text-white mb-2">
           {mode === 'signin' ? t('platform.auth.signIn') : t('platform.auth.signUp')}
         </CardTitle>
-        <CardDescription className="text-gray-300 mb-6">
+        <CardDescription className="text-gray-300 mb-4">
           {mode === 'signin' 
             ? 'Welcome back to the platform' 
             : 'Join the premium fan experience'
@@ -220,7 +220,7 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         </CardDescription>
         
         {/* Logo */}
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center mb-4">
           <img 
             src="/lovable-uploads/1af55786-9032-497d-9c44-b99402ae6ff1.png" 
             alt="Monytaiz Logo" 
