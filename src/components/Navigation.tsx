@@ -155,23 +155,26 @@ export const Navigation = () => {
           </Button>
         </>
       ) : (
-        /* Extended state - logo left, name center, arrow right */
-        <div className="p-4 flex items-center justify-between border-b border-border">
-          <img 
-            src="/lovable-uploads/1bcee6fa-937a-4164-aecf-ef7d77f74bb8.png" 
-            alt="Monytaiz Logo" 
-            className="w-8 h-8 object-contain flex-shrink-0"
-          />
-          <h1 className="text-lg font-bold text-foreground">Monytaiz</h1>
+        /* Extended state - logo left, name center, close arrow on edge */
+        <>
+          <div className="p-4 flex items-center justify-between border-b border-border">
+            <img 
+              src="/lovable-uploads/1bcee6fa-937a-4164-aecf-ef7d77f74bb8.png" 
+              alt="Monytaiz Logo" 
+              className="w-8 h-8 object-contain flex-shrink-0"
+            />
+            <h1 className="text-lg font-bold text-foreground">Monytaiz</h1>
+            <div className="w-8"></div> {/* Spacer for balance */}
+          </div>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="text-muted-foreground hover:text-foreground flex-shrink-0"
+            className="absolute top-6 -right-2.5 text-muted-foreground hover:text-foreground bg-card border border-border rounded-full w-5 h-5 z-50"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-2.5 w-2.5" />
           </Button>
-        </div>
+        </>
       )}
       
       <div className="flex-1 px-4">
