@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from './AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Users, Folder, Hash, StickyNote, DollarSign, User, Clock } from 'lucide-react';
@@ -44,12 +45,14 @@ export const FileUploadRow = ({
   const [notes, setNotes] = useState('');
   const [suggestedPrice, setSuggestedPrice] = useState<number | null>(null);
 
+  const { user } = useAuth();
+
   const handleDoubleClick = () => {
     setShowPreviewDialog(true);
   };
 
   const uploaderInfo = {
-    name: 'Current User', // This would come from auth context
+    name: user?.user_metadata?.display_name || user?.email || 'Anonymous User',
     timestamp: new Date().toLocaleString()
   };
 

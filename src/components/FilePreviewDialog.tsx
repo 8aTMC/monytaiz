@@ -104,7 +104,7 @@ export const FilePreviewDialog = ({
                 <video
                   src={fileUrl}
                   className="w-full h-auto max-h-[60vh] object-contain"
-                  controls
+                  controls={false}
                   muted={isMuted}
                   onPlay={() => setIsPlaying(true)}
                   onPause={() => setIsPlaying(false)}
