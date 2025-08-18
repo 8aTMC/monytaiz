@@ -78,7 +78,7 @@ export const FilePreviewDialog = ({
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="flex items-start justify-between gap-4">
             <span className="truncate flex-1 min-w-0">{file.name}</span>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0 mr-8">
               <Badge variant="outline">{formatFileSize(file.size)}</Badge>
               {fileType === 'video' && (
                 <div className="flex gap-1 flex-wrap">
