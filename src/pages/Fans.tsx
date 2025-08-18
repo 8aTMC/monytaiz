@@ -12,7 +12,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { UsernameHistoryDialog } from '@/components/UsernameHistoryDialog';
-import { Users, MoreVertical, Copy, UserMinus, UserX, MessageSquare, FileText, Eye, Shield, Heart, UserCheck, ThumbsUp, Star, Clock } from 'lucide-react';
+import { DeleteFanAccountDialog } from '@/components/DeleteFanAccountDialog';
+import { Users, MoreVertical, Copy, UserMinus, UserX, MessageSquare, FileText, Eye, Shield, Heart, UserCheck, ThumbsUp, Star, Clock, Trash2 } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -42,6 +43,8 @@ const Fans = () => {
   const [fanRoles, setFanRoles] = useState<Record<string, UserRole[]>>({});
   const [usernameHistoryDialogOpen, setUsernameHistoryDialogOpen] = useState(false);
   const [selectedFanForHistory, setSelectedFanForHistory] = useState<Profile | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedFanForDeletion, setSelectedFanForDeletion] = useState<Profile | null>(null);
   const { isCollapsed } = useSidebar();
 
   // Emoji mapping for fan categories
@@ -165,6 +168,45 @@ const Fans = () => {
   const handleMenuAction = (action: string, fan: Profile) => {
     console.log(`${action} action for user:`, fan.id);
     // Here you would implement the actual actions
+  };
+
+  const handleDeleteSuccess = () => {
+    // Refresh the fans list after successful deletion
+    if (user) {
+      const fetchFans = async () => {
+        try {
+          const { data: fanRoles, error: roleError } = await supabase
+            .from('user_roles')
+            .select('user_id')
+            .eq('role', 'fan');
+
+          if (roleError || !fanRoles || fanRoles.length === 0) {
+            setFans([]);
+            return;
+          }
+
+          const fanUserIds = fanRoles.map(role => role.user_id);
+          let profilesQuery = supabase
+            .from('profiles')
+            .select('*')
+            .in('id', fanUserIds);
+          
+          if (categoryFilter) {
+            profilesQuery = profilesQuery.eq('fan_category', categoryFilter);
+          }
+          
+          const { data, error } = await profilesQuery.order('created_at', { ascending: false });
+
+          if (!error) {
+            setFans(data || []);
+          }
+        } catch (error) {
+          console.error('Error refreshing fans:', error);
+        }
+      };
+      
+      fetchFans();
+    }
   };
 
   if (loading) {
@@ -291,12 +333,23 @@ const Fans = () => {
                                <Shield className="h-4 w-4 mr-2" />
                                Restrict
                              </DropdownMenuItem>
-                             <DropdownMenuItem onClick={() => handleMenuAction('block', fan)} className="text-destructive">
-                               <UserX className="h-4 w-4 mr-2" />
-                               Block
-                             </DropdownMenuItem>
-                           </DropdownMenuContent>
-                         </DropdownMenu>
+                              <DropdownMenuItem onClick={() => handleMenuAction('block', fan)} className="text-destructive">
+                                <UserX className="h-4 w-4 mr-2" />
+                                Block
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => {
+                                  setSelectedFanForDeletion(fan);
+                                  setDeleteDialogOpen(true);
+                                }}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete Account
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                        </div>
                      </CardHeader>
                      <CardContent onClick={() => handleFanClick(fan)}>
@@ -460,6 +513,14 @@ const Fans = () => {
         onOpenChange={setUsernameHistoryDialogOpen}
         userId={selectedFanForHistory?.id || ''}
         currentUsername={selectedFanForHistory?.username || ''}
+      />
+
+      {/* Delete Fan Account Dialog */}
+      <DeleteFanAccountDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        fan={selectedFanForDeletion}
+        onSuccess={handleDeleteSuccess}
       />
     </div>
   );
