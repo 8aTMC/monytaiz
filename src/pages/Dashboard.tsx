@@ -7,6 +7,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, TrendingUp, Users, DollarSign } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const Platform = () => {
   const { t } = useTranslation();
@@ -121,10 +122,11 @@ const Platform = () => {
       <main className={`transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-8">
+          <div className="mb-8 flex items-center justify-between">
             <h1 className="text-3xl font-bold">
               {t('platform.dashboard.title', 'Dashboard')}
             </h1>
+            <ThemeToggle />
           </div>
 
           {/* Quick Actions */}
