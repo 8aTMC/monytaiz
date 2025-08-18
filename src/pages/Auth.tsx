@@ -59,8 +59,10 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-purple-600 via-purple-800 to-gray-900">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-r from-purple-400 via-purple-600 to-black relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-r from-purple-300/20 via-purple-500/30 to-transparent"></div>
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500/10 to-black/50"></div>
+      <div className="w-full max-w-md relative z-10">
         <AuthForm mode={mode} onModeChange={setMode} />
       </div>
     </div>
