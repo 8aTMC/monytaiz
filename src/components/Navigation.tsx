@@ -169,9 +169,21 @@ export const Navigation = () => {
             );
           })}
           
-          {/* Fans Collapsible Menu */}
-          {!isCollapsed && (
-            <li>
+          {/* Fans Menu */}
+          <li>
+            {isCollapsed ? (
+              <Link
+                to="/fans"
+                className={`flex items-center justify-center px-3 py-2 rounded-lg transition-smooth ${
+                  isFansActive() 
+                    ? 'bg-primary/10 text-primary border border-primary/20' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                }`}
+                title="Fans"
+              >
+                <Users className="h-5 w-5" />
+              </Link>
+            ) : (
               <Collapsible open={isFansOpen} onOpenChange={setIsFansOpen}>
                 <CollapsibleTrigger className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-smooth ${
                   isFansActive() 
@@ -225,12 +237,24 @@ export const Navigation = () => {
                   </Link>
                 </CollapsibleContent>
               </Collapsible>
-            </li>
-          )}
+            )}
+          </li>
           
-          {/* Content Collapsible Menu */}
-          {!isCollapsed && (
-            <li>
+          {/* Content Menu */}
+          <li>
+            {isCollapsed ? (
+              <Link
+                to="/library"
+                className={`flex items-center justify-center px-3 py-2 rounded-lg transition-smooth ${
+                  isContentActive() 
+                    ? 'bg-primary/10 text-primary border border-primary/20' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                }`}
+                title="Content"
+              >
+                <FileText className="h-5 w-5" />
+              </Link>
+            ) : (
               <Collapsible open={isContentOpen} onOpenChange={setIsContentOpen}>
                 <CollapsibleTrigger className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-smooth ${
                   isContentActive() 
@@ -273,12 +297,24 @@ export const Navigation = () => {
                   </Link>
                 </CollapsibleContent>
               </Collapsible>
-            </li>
-          )}
+            )}
+          </li>
           
-          {/* Management Collapsible Menu */}
-          {!isCollapsed && (
-            <li>
+          {/* Management Menu */}
+          <li>
+            {isCollapsed ? (
+              <Link
+                to="/management/users"
+                className={`flex items-center justify-center px-3 py-2 rounded-lg transition-smooth ${
+                  isManagementActive() 
+                    ? 'bg-primary/10 text-primary border border-primary/20' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                }`}
+                title="Management"
+              >
+                <UserIcon className="h-5 w-5" />
+              </Link>
+            ) : (
               <Collapsible open={isManagementOpen} onOpenChange={setIsManagementOpen}>
                 <CollapsibleTrigger className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-smooth ${
                   isManagementActive() 
@@ -321,8 +357,8 @@ export const Navigation = () => {
                   </Link>
                 </CollapsibleContent>
               </Collapsible>
-            </li>
-          )}
+            )}
+          </li>
         </ul>
       </div>
       
