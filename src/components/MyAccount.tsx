@@ -72,8 +72,6 @@ export const MyAccount = () => {
         console.error('Error loading role:', roleError);
       }
 
-      console.log('Role data loaded:', roleData); // Debug log
-
       setProfile(data);
       setUserRole(roleData?.role || 'fan');
       setFormData({
