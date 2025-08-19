@@ -255,22 +255,39 @@ const Fans = () => {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              {categoryFilter ? (
-                categoryFilter === 'husband' ? <Heart className="h-8 w-8 text-primary" /> :
-                categoryFilter === 'boyfriend' ? <UserCheck className="h-8 w-8 text-primary" /> :
-                categoryFilter === 'supporter' ? <Star className="h-8 w-8 text-primary" /> :
-                categoryFilter === 'friend' ? <ThumbsUp className="h-8 w-8 text-primary" /> :
-                <Users className="h-8 w-8 text-primary" />
-              ) : (
-                <Users className="h-8 w-8 text-primary" />
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div className="flex items-center gap-3">
+                {categoryFilter ? (
+                  categoryFilter === 'husband' ? <Heart className="h-8 w-8 text-primary" /> :
+                  categoryFilter === 'boyfriend' ? <UserCheck className="h-8 w-8 text-primary" /> :
+                  categoryFilter === 'supporter' ? <Star className="h-8 w-8 text-primary" /> :
+                  categoryFilter === 'friend' ? <ThumbsUp className="h-8 w-8 text-primary" /> :
+                  <Users className="h-8 w-8 text-primary" />
+                ) : (
+                  <Users className="h-8 w-8 text-primary" />
+                )}
+                <h1 className="text-3xl font-bold text-foreground">
+                  {categoryFilter 
+                    ? `${categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1)}${categoryFilter === 'fan' ? 's' : categoryFilter.endsWith('s') ? '' : 's'}`
+                    : 'All Fans'
+                  }
+                </h1>
+              </div>
+              
+              {pendingDeletionFans.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                  onClick={() => navigate('/management/pending-deletions')}
+                >
+                  <Clock className="h-4 w-4 text-destructive" />
+                  <span>Deletions</span>
+                  <Badge variant="destructive" className="ml-1">
+                    {pendingDeletionFans.length}
+                  </Badge>
+                </Button>
               )}
-              <h1 className="text-3xl font-bold text-foreground">
-                {categoryFilter 
-                  ? `${categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1)}${categoryFilter === 'fan' ? 's' : categoryFilter.endsWith('s') ? '' : 's'}`
-                  : 'All Fans'
-                }
-              </h1>
             </div>
           </div>
 
@@ -408,112 +425,6 @@ const Fans = () => {
                      }
                    </p>
                  </div>
-               )}
-
-               {/* Deletions Section */}
-               {pendingDeletionFans.length > 0 && (
-                 <>
-                   <div className="mt-12 mb-6">
-                     <div className="flex items-center gap-3">
-                       <Clock className="h-6 w-6 text-destructive" />
-                       <h2 className="text-2xl font-bold text-foreground">Deletions</h2>
-                       <Badge variant="outline" className="text-destructive border-destructive">
-                         {pendingDeletionFans.length} pending
-                       </Badge>
-                     </div>
-                     <p className="text-sm text-muted-foreground mt-2">
-                       Fans scheduled for deletion. These accounts will be permanently deleted after their 30-day grace period.
-                     </p>
-                   </div>
-
-                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                     {pendingDeletionFans.map((fan) => (
-                       <Card key={fan.id} className="bg-card border-destructive/20 shadow-sm hover:shadow-md transition-all cursor-pointer group opacity-75">
-                         <CardHeader className="pb-3">
-                           <div className="flex items-start justify-between">
-                             <div className="flex items-start space-x-3 flex-1 min-w-0" onClick={() => handleFanClick(fan)}>
-                               <Avatar className="h-12 w-12">
-                                 <AvatarImage src={fan.avatar_url || undefined} />
-                                 <AvatarFallback className="text-sm font-medium bg-muted text-muted-foreground">
-                                   {(() => {
-                                     const name = fan.display_name || fan.username || 'User';
-                                     const words = name.trim().split(/\s+/);
-                                     if (words.length >= 2) {
-                                       return (words[0][0] + words[1][0]).toUpperCase();
-                                     } else {
-                                       return name.slice(0, 2).toUpperCase();
-                                     }
-                                   })()}
-                                 </AvatarFallback>
-                               </Avatar>
-                               <div className="flex-1 min-w-0">
-                                 <div className="flex items-center justify-between mb-1">
-                                   <CardTitle className="text-foreground truncate text-lg font-semibold">
-                                     {fan.display_name || fan.username || 'Anonymous'}
-                                   </CardTitle>
-                                   <Badge variant="destructive" className="ml-2 text-xs">
-                                     Pending Deletion
-                                   </Badge>
-                                 </div>
-                                 {fan.username && fan.display_name && (
-                                   <p className="text-sm text-muted-foreground truncate mb-2">
-                                     @{fan.username}
-                                   </p>
-                                 )}
-                                 <Badge variant="outline" className="w-fit">
-                                   {fan.fan_category && getCategoryDisplay(fan.fan_category)}
-                                 </Badge>
-                               </div>
-                             </div>
-                             
-                             <DropdownMenu>
-                               <DropdownMenuTrigger asChild>
-                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                   <MoreVertical className="h-4 w-4" />
-                                 </Button>
-                               </DropdownMenuTrigger>
-                               <DropdownMenuContent align="end" className="w-48">
-                                 <DropdownMenuItem onClick={() => {
-                                   setSelectedFanForHistory(fan);
-                                   setUsernameHistoryDialogOpen(true);
-                                 }}>
-                                   <Clock className="h-4 w-4 mr-2" />
-                                   Past Usernames
-                                 </DropdownMenuItem>
-                                 <DropdownMenuSeparator />
-                                 <DropdownMenuItem onClick={() => handleMenuAction('restore', fan)} className="text-green-600">
-                                   <UserCheck className="h-4 w-4 mr-2" />
-                                   Restore Account
-                                 </DropdownMenuItem>
-                               </DropdownMenuContent>
-                             </DropdownMenu>
-                           </div>
-                         </CardHeader>
-                         <CardContent onClick={() => handleFanClick(fan)}>
-                           <div className="space-y-3">
-                             {fan.bio && (
-                               <p className="text-sm text-muted-foreground line-clamp-2">
-                                 {fan.bio}
-                               </p>
-                             )}
-                             <div className="flex items-center justify-between text-xs text-muted-foreground">
-                               <span>
-                                 Joined {new Date(fan.created_at).toLocaleDateString('en-US', { 
-                                   month: 'short', 
-                                   day: 'numeric',
-                                   year: 'numeric'
-                                 })}
-                               </span>
-                               <span className="text-destructive font-medium">
-                                 Deletion pending
-                               </span>
-                             </div>
-                           </div>
-                         </CardContent>
-                       </Card>
-                     ))}
-                   </div>
-                 </>
                )}
               {/* User Details Modal */}
               <Dialog open={!!selectedFan} onOpenChange={() => setSelectedFan(null)}>
