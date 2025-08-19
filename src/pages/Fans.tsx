@@ -277,7 +277,7 @@ const Fans = () => {
                   variant="outline"
                   size="sm"
                   className="flex items-center gap-2 ml-4"
-                  onClick={() => navigate('/management/pending-deletions')}
+                  onClick={() => navigate('/fan-deletions')}
                 >
                   <Clock className="h-4 w-4 text-destructive" />
                   <span>Deletions</span>

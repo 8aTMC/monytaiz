@@ -19,6 +19,7 @@ import Upload from "./pages/Upload";
 import FansCategories from "./pages/FansCategories";
 import FansLists from "./pages/FansLists";
 import PendingDeletions from "./pages/PendingDeletions";
+import FanDeletions from "./pages/FanDeletions";
 import NotFound from "./pages/NotFound";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import { ThemeToggle } from "./components/ThemeToggle";
@@ -90,11 +91,16 @@ const App = () => (
                   <Users />
                 </ProtectedRoute>
               } />
-              <Route path="/management/pending-deletions" element={
-                <ProtectedRoute>
-                  <PendingDeletions />
-                </ProtectedRoute>
-              } />
+            <Route path="/management/pending-deletions" element={
+              <ProtectedRoute>
+                <PendingDeletions />
+              </ProtectedRoute>
+            } />
+            <Route path="/fan-deletions" element={
+              <ProtectedRoute>
+                <FanDeletions />
+              </ProtectedRoute>
+            } />
               <Route path="/profile" element={
                 <ProtectedRoute>
                   <Profile />
