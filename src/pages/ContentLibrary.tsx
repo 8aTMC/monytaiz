@@ -310,6 +310,10 @@ const ContentLibrary = () => {
     }
   };
 
+  const truncateText = (text: string, maxLength: number) => {
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -318,7 +322,7 @@ const ContentLibrary = () => {
       <div className={`transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
         <div className="flex h-screen">
           {/* Categories Sidebar */}
-          <div className="w-96 bg-card border-r border-border p-4 overflow-y-auto">
+          <div className="w-80 bg-card border-r border-border p-4 overflow-y-auto">
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-foreground mb-3">Library</h2>
               <div className="flex items-center gap-1">
@@ -346,10 +350,10 @@ const ContentLibrary = () => {
                     >
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <IconComponent className="h-4 w-4 flex-shrink-0" />
-                        <div className="flex flex-col items-start min-w-0 flex-1">
-                          <span className="font-medium text-left w-full">{category.label}</span>
-                          <span className="text-xs text-muted-foreground text-left w-full">{category.description}</span>
-                        </div>
+                         <div className="flex flex-col items-start min-w-0 flex-1">
+                           <span className="font-medium text-left w-full">{truncateText(category.label, 26)}</span>
+                           <span className="text-xs text-muted-foreground text-left w-full">{truncateText(category.description, 22)}</span>
+                         </div>
                       </div>
                     </Button>
                     <Badge variant="secondary" className="absolute top-1 right-2 text-xs pointer-events-none">
@@ -400,10 +404,10 @@ const ContentLibrary = () => {
                         <div className="flex items-center gap-2 min-w-0 flex-1">
                           {isReorderMode && <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
                           <IconComponent className="h-4 w-4 flex-shrink-0" />
-                          <div className="flex flex-col items-start min-w-0 flex-1">
-                            <span className="font-medium text-left w-full">{folder.label}</span>
-                            <span className="text-xs text-muted-foreground text-left w-full">{folder.description}</span>
-                          </div>
+                           <div className="flex flex-col items-start min-w-0 flex-1">
+                             <span className="font-medium text-left w-full">{truncateText(folder.label, 26)}</span>
+                             <span className="text-xs text-muted-foreground text-left w-full">{truncateText(folder.description, 22)}</span>
+                           </div>
                         </div>
                       </Button>
                       <Badge variant="secondary" className="absolute top-1 right-2 text-xs pointer-events-none">
