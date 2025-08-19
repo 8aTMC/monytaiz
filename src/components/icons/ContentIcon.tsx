@@ -17,23 +17,23 @@ export const ContentIcon: React.FC<ContentIconProps> = ({ className = "h-5 w-5" 
         strokeLinejoin="round"
         className="w-full h-full"
       >
-        {/* Film strip background */}
-        <rect x="3" y="2" width="18" height="20" rx="2" className="opacity-30" />
-        <rect x="3" y="4" width="2" height="2" className="fill-current opacity-25" />
-        <rect x="3" y="7" width="2" height="2" className="fill-current opacity-25" />
-        <rect x="3" y="10" width="2" height="2" className="fill-current opacity-25" />
-        <rect x="3" y="13" width="2" height="2" className="fill-current opacity-25" />
-        <rect x="3" y="16" width="2" height="2" className="fill-current opacity-25" />
-        <rect x="19" y="4" width="2" height="2" className="fill-current opacity-25" />
-        <rect x="19" y="7" width="2" height="2" className="fill-current opacity-25" />
-        <rect x="19" y="10" width="2" height="2" className="fill-current opacity-25" />
-        <rect x="19" y="13" width="2" height="2" className="fill-current opacity-25" />
-        <rect x="19" y="16" width="2" height="2" className="fill-current opacity-25" />
+        {/* Film strip background - more pronounced */}
+        <rect x="1" y="3" width="22" height="18" rx="2" fill="currentColor" className="opacity-15" />
+        <rect x="1" y="5" width="3" height="2" fill="currentColor" className="opacity-10" />
+        <rect x="1" y="8" width="3" height="2" fill="currentColor" className="opacity-10" />
+        <rect x="1" y="11" width="3" height="2" fill="currentColor" className="opacity-10" />
+        <rect x="1" y="14" width="3" height="2" fill="currentColor" className="opacity-10" />
+        <rect x="1" y="17" width="3" height="2" fill="currentColor" className="opacity-10" />
+        <rect x="20" y="5" width="3" height="2" fill="currentColor" className="opacity-10" />
+        <rect x="20" y="8" width="3" height="2" fill="currentColor" className="opacity-10" />
+        <rect x="20" y="11" width="3" height="2" fill="currentColor" className="opacity-10" />
+        <rect x="20" y="14" width="3" height="2" fill="currentColor" className="opacity-10" />
+        <rect x="20" y="17" width="3" height="2" fill="currentColor" className="opacity-10" />
         
-        {/* Photo icon in front */}
-        <rect x="7" y="8" width="10" height="8" rx="1.5" strokeWidth="2" />
-        <circle cx="9.5" cy="11" r="1" strokeWidth="1.5" />
-        <path d="m15 14-2.5-2.5a1.5 1.5 0 0 0-2 0L8 14" strokeWidth="1.5" />
+        {/* Photo icon - clean and prominent */}
+        <rect x="6" y="8" width="12" height="8" rx="2" fill="none" stroke="currentColor" strokeWidth="2" />
+        <circle cx="9" cy="11" r="1.5" fill="none" stroke="currentColor" strokeWidth="2" />
+        <path d="m17 14-3-3a2 2 0 0 0-2.8 0L8 14" fill="none" stroke="currentColor" strokeWidth="2" />
       </svg>
     </div>
   );
