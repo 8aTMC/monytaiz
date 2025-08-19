@@ -327,10 +327,10 @@ const ContentLibrary = () => {
               {defaultCategories.map((category) => {
                 const IconComponent = category.icon;
                 return (
-                  <div key={category.id}>
+                  <div key={category.id} className="relative">
                     <Button
                       variant={selectedCategory === category.id ? "default" : "ghost"}
-                      className="w-full justify-start text-left p-2 h-auto"
+                      className="w-full justify-start text-left p-2 h-auto pr-10"
                       onClick={() => {
                         setSelectedCategory(category.id);
                         if (category.id === 'all-files') {
@@ -347,10 +347,10 @@ const ContentLibrary = () => {
                           <span className="text-xs text-muted-foreground text-left w-full">{category.description}</span>
                         </div>
                       </div>
-                      <Badge variant="secondary" className="text-xs ml-2">
-                        {category.id === 'all-files' ? content.length : 0}
-                      </Badge>
                     </Button>
+                    <Badge variant="secondary" className="absolute top-1 right-2 text-xs">
+                      {category.id === 'all-files' ? content.length : 0}
+                    </Badge>
                   </div>
                 );
               })}
@@ -376,7 +376,7 @@ const ContentLibrary = () => {
                   return (
                     <div
                       key={folder.id}
-                      className={`${isReorderMode ? 'cursor-move' : ''}`}
+                      className={`relative ${isReorderMode ? 'cursor-move' : ''}`}
                       draggable={isReorderMode}
                       onDragStart={(e) => handleCustomFolderDragStart(e, index)}
                       onDragOver={handleCustomFolderDragOver}
@@ -384,7 +384,7 @@ const ContentLibrary = () => {
                     >
                       <Button
                         variant={selectedCategory === folder.id ? "default" : "ghost"}
-                        className="w-full justify-start text-left p-2 h-auto"
+                        className="w-full justify-start text-left p-2 h-auto pr-10"
                         onClick={() => {
                           if (!isReorderMode) {
                             setSelectedCategory(folder.id);
@@ -401,10 +401,10 @@ const ContentLibrary = () => {
                             <span className="text-xs text-muted-foreground text-left w-full">{folder.description}</span>
                           </div>
                         </div>
-                        <Badge variant="secondary" className="text-xs ml-2">
-                          {folder.count || 0}
-                        </Badge>
                       </Button>
+                      <Badge variant="secondary" className="absolute top-1 right-2 text-xs">
+                        {folder.count || 0}
+                      </Badge>
                     </div>
                   );
                 })}
