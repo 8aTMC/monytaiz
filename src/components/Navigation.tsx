@@ -622,7 +622,7 @@ export const Navigation = () => {
                </div>
                {!isCollapsed && (
                  <div className="flex-1 min-w-0 text-left">
-                   <p className="text-xs font-semibold text-foreground truncate leading-tight">
+                   <p className="text-sm font-semibold text-foreground truncate leading-tight">
                      {userProfile?.display_name || userProfile?.username || 'Anonymous'}
                    </p>
                    <p className="text-xs text-muted-foreground truncate leading-tight">
