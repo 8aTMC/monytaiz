@@ -123,7 +123,35 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html,
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    overflow-x: hidden; /* Prevent horizontal scrolling */
+  }
+}
+
+/* Custom scrollbars for webkit browsers */
+body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+body::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+body::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+body::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Responsive sidebar auto-collapse - force collapse on narrow screens */
+@media (max-width: 1023px) {
+  [data-auto-collapse] {
+    width: 4rem !important;
   }
 }

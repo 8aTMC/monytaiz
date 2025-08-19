@@ -314,7 +314,7 @@ const ContentLibrary = () => {
           <div className="fixed left-0 top-0 h-full w-64 bg-muted/20 border-r"></div>
           
           {/* Skeleton Layout */}
-          <div className="ml-52 flex h-screen">
+          <div className={`transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-52'} flex h-screen`}>
             {/* Categories Sidebar Skeleton */}
             <div className="w-96 bg-muted/10 border-r p-6">
               <div className="h-6 w-32 bg-muted/30 rounded mb-4"></div>

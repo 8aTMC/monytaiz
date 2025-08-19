@@ -265,7 +265,7 @@ const Users = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+        <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
           <div className="space-y-6">
             <div className="space-y-2">
               <Skeleton className="h-8 w-48" />

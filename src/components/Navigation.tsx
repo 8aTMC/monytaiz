@@ -53,9 +53,34 @@ export const useSidebar = () => useContext(SidebarContext);
 
 export const SidebarProvider = ({ children }: { children: React.ReactNode }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [userCollapsed, setUserCollapsed] = useState(false);
+
+  // Auto-collapse on narrow screens
+  useEffect(() => {
+    const handleResize = () => {
+      const isNarrow = window.innerWidth < 1024; // lg breakpoint
+      if (isNarrow && !userCollapsed) {
+        setIsCollapsed(true);
+      } else if (!isNarrow && !userCollapsed) {
+        setIsCollapsed(false);
+      }
+    };
+
+    // Check on mount
+    handleResize();
+    
+    // Listen for resize
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [userCollapsed]);
+
+  const handleSetCollapsed = (collapsed: boolean) => {
+    setIsCollapsed(collapsed);
+    setUserCollapsed(collapsed);
+  };
 
   return (
-    <SidebarContext.Provider value={{ isCollapsed, setIsCollapsed }}>
+    <SidebarContext.Provider value={{ isCollapsed, setIsCollapsed: handleSetCollapsed }}>
       {children}
     </SidebarContext.Provider>
   );

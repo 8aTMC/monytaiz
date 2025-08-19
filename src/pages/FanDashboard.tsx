@@ -54,7 +54,7 @@ const FanDashboard = () => {
           <div className="fixed left-0 top-0 h-full w-64 bg-muted/20 border-r"></div>
           
           {/* Skeleton Main Content */}
-          <div className="ml-52 p-8">
+          <div className={`transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
             <div className="max-w-7xl mx-auto">
               {/* Header Skeleton */}
               <div className="mb-8">

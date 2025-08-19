@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from '@/hooks/useTranslation';
-import { Navigation } from '@/components/Navigation';
+import { Navigation, useSidebar } from '@/components/Navigation';
 import { User } from '@supabase/supabase-js';
 
 const AdminDashboard = () => {
@@ -16,6 +16,7 @@ const AdminDashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [createLoading, setCreateLoading] = useState(false);
+  const { isCollapsed } = useSidebar();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -142,7 +143,7 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-background flex">
       <Navigation />
-      <div className="flex-1 ml-52 p-8">
+      <div className={`flex-1 transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
         <div className="max-w-2xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
