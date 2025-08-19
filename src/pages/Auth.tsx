@@ -51,8 +51,8 @@ const Auth = () => {
                   toast({
                     title: "✅ Account Activated!",
                     description: "Your email has been verified successfully. Welcome to Monytaiz! 🎉",
-                    duration: 6000,
-                    className: "bg-gradient-to-r from-green-500 to-emerald-600 text-white border-none shadow-xl font-semibold",
+                    duration: 3000,
+                    className: "bg-green-600 text-white border-none shadow-xl font-semibold opacity-100",
                   });
                 }
                 
@@ -110,8 +110,8 @@ const Auth = () => {
               toast({
                 title: "✅ Account Activated!",
                 description: "Your email has been verified successfully. Welcome to Monytaiz! 🎉",
-                duration: 6000,
-                className: "bg-gradient-to-r from-green-500 to-emerald-600 text-white border-none shadow-xl font-semibold",
+                duration: 3000,
+                className: "bg-green-600 text-white border-none shadow-xl font-semibold opacity-100",
               });
             }, 1000); // Delay to ensure dashboard loads first
           }
