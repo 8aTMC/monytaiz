@@ -173,13 +173,34 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
           description: "Signed in successfully!",
         });
       }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
+      } catch (error: any) {
+        let errorMessage = error.message;
+        let shouldRedirectToLogin = false;
+        
+        // Handle specific error cases
+        if (error.message?.includes('User already registered') || 
+            error.message?.includes('already registered') ||
+            error.message?.includes('already exists')) {
+          errorMessage = "An account with this email already exists. Redirecting to login...";
+          shouldRedirectToLogin = true;
+        } else if (error.message?.includes('Email not confirmed') ||
+                   error.message?.includes('not confirmed')) {
+          errorMessage = "Account is already pending activation. Please check your email to verify your account.";
+        }
+        
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        
+        // Redirect to login if user already exists
+        if (shouldRedirectToLogin) {
+          setTimeout(() => {
+            onModeChange('signin');
+          }, 3000);
+        }
+      } finally {
       setLoading(false);
     }
   };
