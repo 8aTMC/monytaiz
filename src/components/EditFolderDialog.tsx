@@ -134,10 +134,10 @@ export const EditFolderDialog = ({ folder, onFolderUpdated }: EditFolderDialogPr
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter folder name"
-              maxLength={24}
+              maxLength={30}
             />
             <p className="text-xs text-muted-foreground">
-              {name.length}/24 characters
+              {name.length}/30 characters
             </p>
           </div>
           <div className="grid gap-2">
@@ -147,10 +147,10 @@ export const EditFolderDialog = ({ folder, onFolderUpdated }: EditFolderDialogPr
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Enter folder description"
-              maxLength={30}
+              maxLength={40}
             />
             <p className="text-xs text-muted-foreground">
-              {description.length}/30 characters
+              {description.length}/40 characters
             </p>
           </div>
         </div>
