@@ -314,7 +314,7 @@ const ContentLibrary = () => {
       <div className={`transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
         <div className="flex h-screen">
           {/* Categories Sidebar */}
-          <div className="w-96 bg-card border-r border-border p-6 overflow-y-auto">
+          <div className="w-96 bg-card border-r border-border p-4 overflow-y-auto">
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-foreground mb-3">Library</h2>
               <div className="flex items-center gap-1">
@@ -323,14 +323,14 @@ const ContentLibrary = () => {
             </div>
               
             {/* Default Categories */}
-            <div className="space-y-2 mb-4">
+            <div className="space-y-1 mb-4">
               {defaultCategories.map((category) => {
                 const IconComponent = category.icon;
                 return (
                   <div key={category.id}>
                     <Button
                       variant={selectedCategory === category.id ? "default" : "ghost"}
-                      className="w-full justify-between text-left"
+                      className="w-full justify-start text-left p-2 h-auto"
                       onClick={() => {
                         setSelectedCategory(category.id);
                         if (category.id === 'all-files') {
@@ -340,14 +340,14 @@ const ContentLibrary = () => {
                         }
                       }}
                     >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
                         <IconComponent className="h-4 w-4 flex-shrink-0" />
                         <div className="flex flex-col items-start min-w-0 flex-1">
-                          <span className="font-medium truncate w-full">{category.label}</span>
-                          <span className="text-xs text-muted-foreground line-clamp-2 w-full">{category.description}</span>
+                          <span className="font-medium text-left w-full">{category.label}</span>
+                          <span className="text-xs text-muted-foreground text-left w-full">{category.description}</span>
                         </div>
                       </div>
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className="text-xs ml-2">
                         {category.id === 'all-files' ? content.length : 0}
                       </Badge>
                     </Button>
@@ -358,7 +358,7 @@ const ContentLibrary = () => {
 
             {/* Custom Folders */}
             {sortedCustomFolders.length > 0 && (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-sm font-medium text-muted-foreground">Custom Folders</div>
                   <Button
@@ -384,7 +384,7 @@ const ContentLibrary = () => {
                     >
                       <Button
                         variant={selectedCategory === folder.id ? "default" : "ghost"}
-                        className="w-full justify-between text-left"
+                        className="w-full justify-start text-left p-2 h-auto"
                         onClick={() => {
                           if (!isReorderMode) {
                             setSelectedCategory(folder.id);
@@ -393,15 +393,15 @@ const ContentLibrary = () => {
                         }}
                         disabled={isReorderMode}
                       >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
                           {isReorderMode && <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
                           <IconComponent className="h-4 w-4 flex-shrink-0" />
                           <div className="flex flex-col items-start min-w-0 flex-1">
-                            <span className="font-medium truncate w-full">{folder.label}</span>
-                            <span className="text-xs text-muted-foreground line-clamp-2 w-full">{folder.description}</span>
+                            <span className="font-medium text-left w-full">{folder.label}</span>
+                            <span className="text-xs text-muted-foreground text-left w-full">{folder.description}</span>
                           </div>
                         </div>
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-xs ml-2">
                           {folder.count || 0}
                         </Badge>
                       </Button>
