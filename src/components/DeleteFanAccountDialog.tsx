@@ -177,7 +177,7 @@ export function DeleteFanAccountDialog({
                 className="flex-1"
                 disabled={loading || usernameInput !== usernameToConfirm}
               >
-                {loading ? "Deleting..." : "Delete My Account"}
+                {loading ? "Deleting..." : "Delete Account"}
               </Button>
             </div>
           </div>
