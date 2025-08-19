@@ -251,13 +251,9 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         });
       }
     } catch (error: any) {
-      console.error('Auth error details:', error);
-      let errorMessage = error.message;
-      
-      // Handle specific error cases
+      // Handle email confirmation errors gracefully without console logging
       if (error.message?.includes('Email not confirmed') ||
           error.message?.includes('not confirmed')) {
-        // Show elegant confirmation prompt instead of harsh error
         toast({
           title: "Account Verification Required",
           description: "Please check your email and click the verification link to access your account. Check your spam folder if you don't see it.",
@@ -266,7 +262,14 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         });
         setLoading(false);
         return;
-      } else if (error.message?.includes('duplicate key value violates unique constraint') &&
+      }
+      
+      // Log other errors to console for debugging
+      console.error('Auth error details:', error);
+      let errorMessage = error.message;
+      
+      // Handle other specific error cases
+      if (error.message?.includes('duplicate key value violates unique constraint') &&
                  error.message?.includes('profiles_username_key')) {
         errorMessage = "This username is already taken. Please choose a different username.";
       } else if (error.message?.includes('duplicate key value violates unique constraint') &&
