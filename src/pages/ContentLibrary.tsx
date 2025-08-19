@@ -456,7 +456,7 @@ const ContentLibrary = () => {
             {sortedCustomFolders.length > 0 && (
               <div className="space-y-1">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="text-sm font-medium text-muted-foreground">Custom Folders</div>
+                  <div className="text-sm font-medium text-muted-foreground">My Folders</div>
                   <div className="flex items-center gap-2">
                     <NewFolderDialog onFolderCreated={refreshCustomFolders} />
                     {!isReorderMode ? (
