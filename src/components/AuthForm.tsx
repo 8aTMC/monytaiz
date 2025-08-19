@@ -404,7 +404,7 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
             className="text-purple-400 hover:text-purple-300"
           >
             {mode === 'signin' 
-              ? t('platform.auth.dontHaveAccount') 
+              ? `${t('platform.auth.dontHaveAccount')} Sign Up Now!`
               : t('platform.auth.alreadyHaveAccount')
             }
           </Button>
