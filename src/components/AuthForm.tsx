@@ -154,6 +154,11 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
           title: "Success",
           description: "Account created successfully! Please check your email to verify your account.",
         });
+
+        // Redirect to sign-in mode after successful account creation
+        setTimeout(() => {
+          onModeChange('signin');
+        }, 1500);
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: formData.email,
