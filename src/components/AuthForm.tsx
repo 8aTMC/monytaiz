@@ -137,6 +137,30 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
 
     try {
       if (mode === 'signup') {
+        // First check if email already exists and get its verification status
+        const checkEmailStatus = async (email: string) => {
+          try {
+            // Check if email exists in profiles table
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('email, email_confirmed')
+              .eq('email', email)
+              .maybeSingle();
+
+            if (profileError) {
+              console.error('Error checking email status:', profileError);
+              return { exists: false, verified: false };
+            }
+
+            return {
+              exists: !!profile,
+              verified: profile?.email_confirmed || false
+            };
+          } catch (error) {
+            console.error('Exception checking email status:', error);
+            return { exists: false, verified: false };
+          }
+        };
 
         const { error } = await supabase.auth.signUp({
           email: formData.email,
@@ -150,7 +174,28 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
           },
         });
 
-        if (error) throw error;
+        if (error) {
+          // Check if this is an email already exists error
+          if (error.message?.includes('already registered') || 
+              error.message?.includes('already exists') ||
+              error.message?.includes('User already registered') ||
+              error.message?.includes('invalid') ||
+              error.message?.includes('duplicate')) {
+            
+            // Check the email status in our database
+            const emailStatus = await checkEmailStatus(formData.email);
+            
+            if (emailStatus.exists) {
+              if (!emailStatus.verified) {
+                throw new Error('UNVERIFIED_EMAIL');
+              } else {
+                throw new Error('VERIFIED_EMAIL_EXISTS');
+              }
+            }
+          }
+          
+          throw error;
+        }
 
         toast({
           title: "Success",
@@ -180,9 +225,15 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         let shouldRedirectToLogin = false;
         
         // Handle specific error cases
-        if (error.message?.includes('User already registered') || 
-            error.message?.includes('already registered') ||
-            error.message?.includes('already exists')) {
+        if (error.message === 'UNVERIFIED_EMAIL') {
+          errorMessage = "That email is already in use and it is unverified. Please verify it now.";
+          shouldRedirectToLogin = true;
+        } else if (error.message === 'VERIFIED_EMAIL_EXISTS') {
+          errorMessage = "That email is already in use.";
+          shouldRedirectToLogin = true;
+        } else if (error.message?.includes('User already registered') || 
+                   error.message?.includes('already registered') ||
+                   error.message?.includes('already exists')) {
           errorMessage = "An account with this email already exists. Redirecting to login...";
           shouldRedirectToLogin = true;
         } else if (error.message?.includes('Email not confirmed') ||
@@ -193,6 +244,38 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
           errorMessage = t('platform.validation.usernameExists');
         } else if (error.message?.includes('Database error saving new user')) {
           errorMessage = t('platform.validation.accountCreationError');
+        } else if (error.message?.includes('invalid') && error.message?.includes('email')) {
+          // This is likely the generic "invalid email" error we want to improve
+          // Check if email exists and provide better message
+          const checkEmailStatus = async (email: string) => {
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('email, email_confirmed')
+                .eq('email', email)
+                .maybeSingle();
+
+              return {
+                exists: !!profile,
+                verified: profile?.email_confirmed || false
+              };
+            } catch {
+              return { exists: false, verified: false };
+            }
+          };
+
+          const emailStatus = await checkEmailStatus(formData.email);
+          
+          if (emailStatus.exists) {
+            if (!emailStatus.verified) {
+              errorMessage = "That email is already in use and it is unverified. Please verify it now.";
+            } else {
+              errorMessage = "That email is already in use.";
+            }
+            shouldRedirectToLogin = true;
+          } else {
+            errorMessage = "Please enter a valid email address.";
+          }
         }
         
         toast({
