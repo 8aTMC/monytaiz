@@ -40,6 +40,9 @@ const Users = () => {
   const { isCollapsed } = useSidebar();
 
   const syncEmails = async () => {
+    const confirmSync = window.confirm("Are you sure you want to sync management emails? This will update user email information from the authentication system.");
+    if (!confirmSync) return;
+
     try {
       setLoading(true);
       
@@ -70,6 +73,46 @@ const Users = () => {
       toast({
         title: "Error",
         description: "An unexpected error occurred while syncing emails.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cleanupDeletedUsers = async () => {
+    const confirmCleanup = window.confirm("Are you sure you want to cleanup deleted users? This will permanently remove orphaned user records from the database. This action cannot be undone.");
+    if (!confirmCleanup) return;
+
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.functions.invoke('cleanup-deleted-users');
+      
+      if (error) {
+        console.error('Error cleaning up deleted users:', error);
+        toast({
+          title: "Error",
+          description: "Failed to cleanup deleted users. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      console.log('Cleanup result:', data);
+      
+      toast({
+        title: "Success",
+        description: data.message || "Deleted users cleaned up successfully!",
+      });
+      
+      // Refresh the users list
+      await fetchUsers();
+      
+    } catch (error) {
+      console.error('Exception during cleanup:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred during cleanup.",
         variant: "destructive",
       });
     } finally {
@@ -276,62 +319,34 @@ const Users = () => {
                 <User className="h-3.5 w-3.5" />
                 <span>Sync Emails</span>
               </Button>
-              
-              <Button
-                variant="destructive"
-                size="sm"
-                className="flex items-center gap-1.5"
-                onClick={async () => {
-                  try {
-                    setLoading(true);
-                    const { data, error } = await supabase.functions.invoke('cleanup-deleted-users');
-                    
-                    if (error) {
-                      console.error('Error cleaning up deleted users:', error);
-                      toast({
-                        title: "Error",
-                        description: "Failed to cleanup deleted users. Please try again.",
-                        variant: "destructive",
-                      });
-                      return;
-                    }
-                    
-                    console.log('Cleanup result:', data);
-                    
-                    toast({
-                      title: "Success",
-                      description: data.message || "Deleted users cleaned up successfully!",
-                    });
-                    
-                    // Refresh the users list
-                    await fetchUsers();
-                    
-                  } catch (error) {
-                    console.error('Exception during cleanup:', error);
-                    toast({
-                      title: "Error",
-                      description: "An unexpected error occurred during cleanup.",
-                      variant: "destructive",
-                    });
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                disabled={loading}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                <span>Cleanup Deleted Users</span>
-              </Button>
 
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="flex items-center gap-1.5"
-                onClick={() => navigate('/management/pending-deletions')}
-              >
-                <UserX className="h-3.5 w-3.5 text-destructive" />
-                <span>Pending Deletions</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="flex items-center gap-1.5"
+                    disabled={loading}
+                  >
+                    <UserX className="h-3.5 w-3.5 text-destructive" />
+                    <span>Pending Deletions</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigate('/management/pending-deletions')}>
+                    <UserX className="h-3.5 w-3.5 mr-1.5" />
+                    View Pending Deletions
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={cleanupDeletedUsers}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                    Cleanup Deleted Users
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <Button size="sm" className="flex items-center gap-1.5" onClick={handleCreateUser}>
                 <Plus className="h-3.5 w-3.5" />
                 Create User
