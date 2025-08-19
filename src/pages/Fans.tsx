@@ -13,7 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { UsernameHistoryDialog } from '@/components/UsernameHistoryDialog';
 import { DeleteFanAccountDialog } from '@/components/DeleteFanAccountDialog';
-import { Users, MoreVertical, Copy, UserMinus, UserX, MessageSquare, FileText, Eye, Shield, Heart, UserCheck, ThumbsUp, Star, Clock, Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Users, MoreVertical, Copy, UserMinus, UserX, MessageSquare, FileText, Eye, Shield, Heart, UserCheck, ThumbsUp, Star, Clock, Trash2, User as UserIcon } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -35,6 +36,7 @@ interface UserRole {
 
 const Fans = () => {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
@@ -67,6 +69,119 @@ const Fans = () => {
   };
   
   const categoryFilter = searchParams.get('category') as Profile['fan_category'] | null;
+
+  const syncEmails = async () => {
+    try {
+      setLoadingFans(true);
+      
+      const { data, error } = await supabase.functions.invoke('sync-user-emails');
+      
+      if (error) {
+        console.error('Error syncing emails:', error);
+        toast({
+          title: "Error",
+          description: "Failed to sync user emails. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      console.log('Email sync result:', data);
+      
+      toast({
+        title: "Success",
+        description: data.message || "User emails synced successfully!",
+      });
+      
+      // Refresh the fans list to show updated emails
+      if (user) {
+        const fetchFans = async () => {
+          try {
+            console.log('🔍 Starting to fetch fans...');
+            
+            // First get all fan user IDs
+            const { data: fanRoles, error: roleError } = await supabase
+              .from('user_roles')
+              .select('user_id')
+              .eq('role', 'fan');
+
+            console.log('🎭 Fan roles query result:', { fanRoles, roleError });
+
+            if (roleError) {
+              console.error('❌ Error fetching fan roles:', roleError);
+              return;
+            }
+
+            if (!fanRoles || fanRoles.length === 0) {
+              console.log('⚠️ No fan roles found');
+              setFans([]);
+              setPendingDeletionFans([]);
+              return;
+            }
+
+            const fanUserIds = fanRoles.map(role => role.user_id);
+            console.log('👥 Fan user IDs:', fanUserIds);
+
+            // Then get the profiles for those users with optional category filter
+            let profilesQuery = supabase
+              .from('profiles')
+              .select('*, email, email_confirmed')
+              .in('id', fanUserIds);
+            
+            // Apply category filter if specified
+            if (categoryFilter) {
+              profilesQuery = profilesQuery.eq('fan_category', categoryFilter);
+            }
+            
+            const { data, error } = await profilesQuery.order('created_at', { ascending: false });
+
+            console.log('👤 Profiles query result:', { data, error });
+
+            if (error) {
+              console.error('❌ Error fetching fan profiles:', error);
+            } else {
+              console.log('✅ Setting fans data:', data);
+              
+              // Separate active fans from pending deletion fans
+              const activeFans = (data || []).filter(fan => 
+                fan.deletion_status !== 'pending_deletion'
+              );
+              const pendingDeletions = (data || []).filter(fan => 
+                fan.deletion_status === 'pending_deletion'
+              );
+              
+              setFans(activeFans);
+              setPendingDeletionFans(pendingDeletions);
+              
+              // Set up roles map for all fans
+              if (data) {
+                const rolesMap: Record<string, UserRole[]> = {};
+                data.forEach((fan) => {
+                  rolesMap[fan.id] = [{ role: 'fan' }];
+                });
+                setFanRoles(rolesMap);
+                console.log('🗺️ Fan roles map:', rolesMap);
+              }
+            }
+          } catch (error) {
+            console.error('💥 Exception in fetchFans:', error);
+          }
+        };
+        
+        await fetchFans();
+      }
+      
+    } catch (error) {
+      console.error('Exception during email sync:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while syncing emails.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingFans(false);
+    }
+  };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -257,37 +372,52 @@ const Fans = () => {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              {categoryFilter ? (
-                categoryFilter === 'husband' ? <Heart className="h-8 w-8 text-primary" /> :
-                categoryFilter === 'boyfriend' ? <UserCheck className="h-8 w-8 text-primary" /> :
-                categoryFilter === 'supporter' ? <Star className="h-8 w-8 text-primary" /> :
-                categoryFilter === 'friend' ? <ThumbsUp className="h-8 w-8 text-primary" /> :
-                <Users className="h-8 w-8 text-primary" />
-              ) : (
-                <Users className="h-8 w-8 text-primary" />
-              )}
-              <h1 className="text-3xl font-bold text-foreground">
-                {categoryFilter 
-                  ? `${categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1)}${categoryFilter === 'fan' ? 's' : categoryFilter.endsWith('s') ? '' : 's'}`
-                  : 'All Fans'
-                }
-              </h1>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                {categoryFilter ? (
+                  categoryFilter === 'husband' ? <Heart className="h-8 w-8 text-primary" /> :
+                  categoryFilter === 'boyfriend' ? <UserCheck className="h-8 w-8 text-primary" /> :
+                  categoryFilter === 'supporter' ? <Star className="h-8 w-8 text-primary" /> :
+                  categoryFilter === 'friend' ? <ThumbsUp className="h-8 w-8 text-primary" /> :
+                  <Users className="h-8 w-8 text-primary" />
+                ) : (
+                  <Users className="h-8 w-8 text-primary" />
+                )}
+                <h1 className="text-3xl font-bold text-foreground">
+                  {categoryFilter 
+                    ? `${categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1)}${categoryFilter === 'fan' ? 's' : categoryFilter.endsWith('s') ? '' : 's'}`
+                    : 'All Fans'
+                  }
+                </h1>
+              </div>
               
-              {pendingDeletionFans.length > 0 && (
-                <Button
-                  variant="outline"
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
                   size="sm"
-                  className="flex items-center gap-1.5 ml-4"
-                  onClick={() => navigate('/fan-deletions')}
+                  className="flex items-center gap-1.5"
+                  onClick={syncEmails}
+                  disabled={loadingFans}
                 >
-                  <Clock className="h-3.5 w-3.5 text-destructive" />
-                  <span>Deletions</span>
-                  <Badge variant="destructive" className="ml-1 text-xs">
-                    {pendingDeletionFans.length}
-                  </Badge>
+                  <UserIcon className="h-3.5 w-3.5" />
+                  <span>Sync Emails</span>
                 </Button>
-              )}
+                
+                {pendingDeletionFans.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1.5"
+                    onClick={() => navigate('/fan-deletions')}
+                  >
+                    <Clock className="h-3.5 w-3.5 text-destructive" />
+                    <span>Deletions</span>
+                    <Badge variant="destructive" className="ml-1 text-xs">
+                      {pendingDeletionFans.length}
+                    </Badge>
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
