@@ -5,6 +5,7 @@ interface SpendingChartProps {
 }
 
 const SpendingChart: React.FC<SpendingChartProps> = ({ userId }) => {
+  // Spending chart component for user analytics
   // Mock data for the last 30 days - in a real app, this would come from the database
   const generateMockData = () => {
     const data = [];
