@@ -43,23 +43,23 @@ const Users = () => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase.functions.invoke('sync-user-emails');
+      const { data, error } = await supabase.functions.invoke('sync-management-emails');
       
       if (error) {
-        console.error('Error syncing emails:', error);
+        console.error('Error syncing management emails:', error);
         toast({
           title: "Error",
-          description: "Failed to sync user emails. Please try again.",
+          description: "Failed to sync management emails. Please try again.",
           variant: "destructive",
         });
         return;
       }
       
-      console.log('Email sync result:', data);
+      console.log('Management email sync result:', data);
       
       toast({
         title: "Success",
-        description: data.message || "User emails synced successfully!",
+        description: data.message || "Management emails synced successfully!",
       });
       
       // Refresh the users list to show updated emails

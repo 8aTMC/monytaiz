@@ -74,23 +74,23 @@ const Fans = () => {
     try {
       setLoadingFans(true);
       
-      const { data, error } = await supabase.functions.invoke('sync-user-emails');
+      const { data, error } = await supabase.functions.invoke('sync-fan-emails');
       
       if (error) {
-        console.error('Error syncing emails:', error);
+        console.error('Error syncing fan emails:', error);
         toast({
           title: "Error",
-          description: "Failed to sync user emails. Please try again.",
+          description: "Failed to sync fan emails. Please try again.",
           variant: "destructive",
         });
         return;
       }
       
-      console.log('Email sync result:', data);
+      console.log('Fan email sync result:', data);
       
       toast({
         title: "Success",
-        description: data.message || "User emails synced successfully!",
+        description: data.message || "Fan emails synced successfully!",
       });
       
       // Refresh the fans list to show updated emails
