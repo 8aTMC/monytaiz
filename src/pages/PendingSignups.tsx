@@ -10,6 +10,16 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Clock, ArrowLeft, RefreshCw, Users, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Profile {
   id: string;
@@ -37,6 +47,7 @@ const PendingSignups = () => {
   const [loading, setLoading] = useState(true);
   const [pendingSignups, setPendingSignups] = useState<Profile[]>([]);
   const [loadingPendingSignups, setLoadingPendingSignups] = useState(true);
+  const [userToDelete, setUserToDelete] = useState<{ id: string; name: string | null } | null>(null);
   const { isCollapsed, isNarrowScreen } = useSidebar();
 
   useEffect(() => {
@@ -154,10 +165,6 @@ const PendingSignups = () => {
   };
 
   const deletePendingUser = async (userId: string, displayName: string | null) => {
-    if (!confirm(`Are you sure you want to permanently delete ${displayName || 'this user'}? This action cannot be undone.`)) {
-      return;
-    }
-
     try {
       const { data, error } = await supabase.functions.invoke('delete-pending-user', {
         body: { userId }
@@ -185,6 +192,17 @@ const PendingSignups = () => {
         description: error.message || "Failed to delete user. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleDeleteClick = (userId: string, displayName: string | null) => {
+    setUserToDelete({ id: userId, name: displayName });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (userToDelete) {
+      await deletePendingUser(userToDelete.id, userToDelete.name);
+      setUserToDelete(null);
     }
   };
 
@@ -313,7 +331,7 @@ const PendingSignups = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => deletePendingUser(user.id, user.display_name)}
+                        onClick={() => handleDeleteClick(user.id, user.display_name)}
                         className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
@@ -327,6 +345,29 @@ const PendingSignups = () => {
           )}
         </div>
       </main>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={userToDelete !== null} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Are you sure you want to permanently delete {userToDelete?.name || 'this user'}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-background border-border hover:bg-muted">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
