@@ -588,11 +588,11 @@ export const Navigation = () => {
           <PopoverTrigger asChild>
              <Button 
                variant="ghost" 
-               className={`w-full justify-start gap-2 hover:bg-secondary/50 transition-smooth p-2 ${
+               className={`w-full justify-start gap-4 hover:bg-secondary/50 transition-smooth p-2 ${
                  isCollapsed ? 'justify-center' : ''
                }`}
              >
-               <div className="relative flex-shrink-0">
+               <div className="relative flex-shrink-0 -ml-1">
                  {userProfile?.avatar_url ? (
                    <img
                      src={userProfile.avatar_url}
