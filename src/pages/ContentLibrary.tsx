@@ -348,7 +348,7 @@ const ContentLibrary = () => {
                         </div>
                       </div>
                     </Button>
-                    <Badge variant="secondary" className="absolute top-1 right-2 text-xs">
+                    <Badge variant="secondary" className="absolute top-1 right-2 text-xs pointer-events-none">
                       {category.id === 'all-files' ? content.length : 0}
                     </Badge>
                   </div>
@@ -402,7 +402,7 @@ const ContentLibrary = () => {
                           </div>
                         </div>
                       </Button>
-                      <Badge variant="secondary" className="absolute top-1 right-2 text-xs">
+                      <Badge variant="secondary" className="absolute top-1 right-2 text-xs pointer-events-none">
                         {folder.count || 0}
                       </Badge>
                     </div>
