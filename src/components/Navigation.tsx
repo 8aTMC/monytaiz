@@ -152,9 +152,12 @@ export const Navigation = () => {
 
 
   return (
-    <nav className={`fixed left-0 top-0 bg-card border-r border-border h-screen flex flex-col z-40 transition-all duration-300 ${
-      isCollapsed ? 'w-16' : 'w-52'
-    }`}>
+    <nav 
+      className={`fixed left-0 top-0 bg-card border-r border-border h-screen flex flex-col z-40 transition-all duration-300 ${
+        isCollapsed ? 'w-16' : 'w-52'
+      }`}
+      data-auto-collapse
+    >
       {isCollapsed ? (
         /* Collapsed state - logo centered with arrow on right edge */
         <>
@@ -170,6 +173,7 @@ export const Navigation = () => {
             size="icon"
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="absolute top-6 -right-2.5 text-muted-foreground hover:text-foreground bg-card border border-border rounded-full w-5 h-5 z-50"
+            data-collapse-trigger
           >
             <ChevronRight className="h-2.5 w-2.5" />
           </Button>
@@ -191,6 +195,7 @@ export const Navigation = () => {
             size="icon"
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="absolute top-6 -right-2.5 text-muted-foreground hover:text-foreground bg-card border border-border rounded-full w-5 h-5 z-50"
+            data-collapse-trigger
           >
             <ChevronLeft className="h-2.5 w-2.5" />
           </Button>

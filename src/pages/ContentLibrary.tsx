@@ -94,6 +94,32 @@ const ContentLibrary = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  // Auto-collapse sidebar on narrow screens
+  useEffect(() => {
+    const handleResize = () => {
+      const screenWidth = window.innerWidth;
+      // Auto-collapse when screen width is less than 1200px to preserve responsiveness
+      if (screenWidth < 1200 && !isCollapsed) {
+        // Only auto-collapse, don't auto-expand to avoid interference with user preference
+        const navigation = document.querySelector('[data-auto-collapse]');
+        if (navigation) {
+          // Trigger collapse through Navigation component
+          const collapseButton = navigation.querySelector('[data-collapse-trigger]');
+          if (collapseButton) {
+            (collapseButton as HTMLElement).click();
+          }
+        }
+      }
+    };
+
+    // Set up resize listener
+    window.addEventListener('resize', handleResize);
+    // Check on initial load
+    handleResize();
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isCollapsed]);
+
   useEffect(() => {
     const fetchContent = async () => {
       try {
