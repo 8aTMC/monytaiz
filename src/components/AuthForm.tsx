@@ -257,7 +257,15 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
       // Handle specific error cases
       if (error.message?.includes('Email not confirmed') ||
           error.message?.includes('not confirmed')) {
-        errorMessage = "Account is pending activation. Please check your email to verify your account.";
+        // Show elegant confirmation prompt instead of harsh error
+        toast({
+          title: "Account Verification Required",
+          description: "Please check your email and click the verification link to access your account. Check your spam folder if you don't see it.",
+          variant: "default",
+          duration: 8000,
+        });
+        setLoading(false);
+        return;
       } else if (error.message?.includes('duplicate key value violates unique constraint') &&
                  error.message?.includes('profiles_username_key')) {
         errorMessage = "This username is already taken. Please choose a different username.";
