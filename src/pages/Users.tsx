@@ -114,6 +114,7 @@ const Users = () => {
           .from('profiles')
           .select(`
             *,
+            email,
             user_roles!user_roles_user_id_fkey(role)
           `)
           .not('user_roles.role', 'eq', 'fan');
