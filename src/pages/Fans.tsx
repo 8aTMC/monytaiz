@@ -15,7 +15,7 @@ import { UsernameHistoryDialog } from '@/components/UsernameHistoryDialog';
 import SpendingChart from '@/components/SpendingChart';
 import { UserNotesDialog } from '@/components/UserNotesDialog';
 import { useToast } from '@/hooks/use-toast';
-import { Users, MoreVertical, Copy, UserMinus, UserX, MessageSquare, FileText, Eye, Shield, Heart, UserCheck, ThumbsUp, Star, Clock, Trash2, User as UserIcon, X } from 'lucide-react';
+import { Users, MoreVertical, Copy, UserMinus, UserX, MessageSquare, FileText, Eye, Shield, Heart, UserCheck, ThumbsUp, Star, Clock, Trash2, User as UserIcon, X, ArrowLeft } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -550,6 +550,16 @@ const Fans = () => {
           <div className="mb-8">
             <div className="flex items-center gap-4 mb-2">
               <div className="flex items-center gap-3">
+                {categoryFilter && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate('/fans')}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                )}
                 {categoryFilter ? (
                   categoryFilter === 'husband' ? <Heart className="h-8 w-8 text-primary" /> :
                   categoryFilter === 'boyfriend' ? <UserCheck className="h-8 w-8 text-primary" /> :
