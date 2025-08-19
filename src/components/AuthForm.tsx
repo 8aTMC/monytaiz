@@ -40,7 +40,7 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
 
   const getPasswordRules = (password: string) => {
     return {
-      length: password.length >= 8 && password.length <= 19,
+      length: password.length >= 8 && password.length <= 24,
       uppercase: /[A-Z]/.test(password),
       lowercase: /[a-z]/.test(password),
       number: /[0-9]/.test(password),
@@ -397,7 +397,7 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
               <Label className="text-white text-sm">Password Requirements</Label>
               <div className="space-y-1">
                 {Object.entries({
-                  'Between 8-19 characters': getPasswordRules(formData.password).length,
+                  'Between 8-24 characters': getPasswordRules(formData.password).length,
                   'At least 1 uppercase letter': getPasswordRules(formData.password).uppercase,
                   'At least 1 lowercase letter': getPasswordRules(formData.password).lowercase,
                   'At least 1 number': getPasswordRules(formData.password).number,
