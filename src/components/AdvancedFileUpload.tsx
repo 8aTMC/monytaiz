@@ -155,8 +155,10 @@ export const AdvancedFileUpload = () => {
             </p>
             <Button 
               variant="outline" 
+              size="sm"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
+              className="px-4 py-2 h-10 w-auto min-w-0"
             >
               Select Files
             </Button>
