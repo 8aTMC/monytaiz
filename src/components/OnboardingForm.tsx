@@ -59,12 +59,26 @@ export const OnboardingForm = ({ userEmail, userId }: OnboardingFormProps) => {
 
       if (error) throw error;
 
+      // Sync profile data to auth.users metadata
+      try {
+        await supabase.functions.invoke('sync-profile-to-auth', {
+          body: {
+            userId: userId,
+            displayName: formData.displayName.trim(),
+            username: formData.username.trim(),
+          }
+        });
+      } catch (syncError) {
+        console.warn('Profile sync to auth failed:', syncError);
+        // Don't block the flow if sync fails
+      }
+
       toast({
         title: "Welcome!",
         description: "Your profile has been set up successfully",
       });
 
-      navigate('/dashboard');
+      navigate('/fans');
     } catch (error: any) {
       let errorMessage = error.message;
       

@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Clock, ArrowLeft, RefreshCw, Users, Trash2 } from 'lucide-react';
+import { Clock, ArrowLeft, RefreshCw, Users, Trash2, UserCheck } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -206,6 +206,49 @@ const PendingSignups = () => {
     }
   };
 
+  const markUserAsCompleted = async (userId: string, displayName: string | null) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          signup_completed: true,
+          temp_username: false,
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      // Sync to auth metadata
+      try {
+        await supabase.functions.invoke('sync-profile-to-auth', {
+          body: {
+            userId: userId,
+            displayName: displayName,
+            username: displayName, // Use display name as fallback
+          }
+        });
+      } catch (syncError) {
+        console.warn('Profile sync to auth failed:', syncError);
+      }
+
+      toast({
+        title: "User Completed",
+        description: `${displayName || 'User'} has been marked as completed and moved to the fans section.`,
+        variant: "default",
+      });
+
+      // Refresh the pending signups list
+      refreshData();
+    } catch (error: any) {
+      console.error('Error marking user as completed:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to mark user as completed. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -327,7 +370,16 @@ const PendingSignups = () => {
                       <p><strong>Created:</strong> {new Date(user.created_at).toLocaleDateString()}</p>
                       <p><strong>Status:</strong> Waiting for profile completion</p>
                     </div>
-                    <div className="flex justify-end">
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => markUserAsCompleted(user.id, user.display_name)}
+                        className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                      >
+                        <UserCheck className="h-4 w-4 mr-2" />
+                        Mark Complete
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
