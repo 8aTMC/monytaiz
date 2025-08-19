@@ -185,7 +185,9 @@ export const Navigation = () => {
               <li key={item.href}>
                 <Link
                   to={item.href}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
+                  className={`flex items-center rounded-lg transition-smooth ${
+                    isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
+                  } ${
                     active 
                       ? isCollapsed 
                         ? 'bg-primary/20 text-primary' 
@@ -206,7 +208,9 @@ export const Navigation = () => {
             {isCollapsed ? (
               <Link
                 to="/fans"
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
+                className={`flex items-center rounded-lg transition-smooth ${
+                  isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
+                } ${
                   isFansActive() 
                     ? isCollapsed 
                       ? 'bg-primary/20 text-primary' 
@@ -281,7 +285,9 @@ export const Navigation = () => {
             {isCollapsed ? (
               <Link
                 to="/library"
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
+                className={`flex items-center rounded-lg transition-smooth ${
+                  isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
+                } ${
                   isContentActive() 
                     ? isCollapsed 
                       ? 'bg-primary/20 text-primary' 
@@ -345,7 +351,9 @@ export const Navigation = () => {
             {isCollapsed ? (
               <Link
                 to="/management/users"
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
+                className={`flex items-center rounded-lg transition-smooth ${
+                  isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
+                } ${
                   isManagementActive() 
                     ? isCollapsed 
                       ? 'bg-primary/20 text-primary' 
