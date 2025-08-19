@@ -71,38 +71,38 @@ const Platform = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background w-full">
         <div className="animate-pulse">
           {/* Skeleton Navigation */}
-          <div className="fixed left-0 top-0 h-full w-64 bg-muted/20 border-r"></div>
+          <div className="fixed left-0 top-0 h-full w-52 bg-card border-r border-border"></div>
           
           {/* Skeleton Main Content */}
-          <div className="ml-64 p-8">
+          <div className="ml-52 p-8">
             <div className="max-w-7xl mx-auto">
               {/* Header Skeleton */}
               <div className="mb-8">
-                <div className="h-8 w-64 bg-muted/30 rounded mb-2"></div>
-                <div className="h-4 w-96 bg-muted/20 rounded"></div>
+                <div className="h-8 w-64 bg-muted rounded mb-2"></div>
+                <div className="h-4 w-96 bg-muted/60 rounded"></div>
               </div>
               
               {/* Quick Actions Skeleton */}
               <div className="mb-8 flex gap-4">
-                <div className="h-12 w-32 bg-muted/30 rounded"></div>
-                <div className="h-12 w-28 bg-muted/20 rounded"></div>
-                <div className="h-12 w-24 bg-muted/20 rounded"></div>
+                <div className="h-12 w-32 bg-muted rounded"></div>
+                <div className="h-12 w-28 bg-muted/60 rounded"></div>
+                <div className="h-12 w-24 bg-muted/60 rounded"></div>
               </div>
               
               {/* Stats Grid Skeleton */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-24 bg-muted/20 rounded-lg"></div>
+                  <div key={i} className="h-24 bg-card border border-border rounded-lg"></div>
                 ))}
               </div>
               
               {/* Content Grid Skeleton */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="h-64 bg-muted/20 rounded-lg"></div>
-                <div className="h-64 bg-muted/20 rounded-lg"></div>
+                <div className="h-64 bg-card border border-border rounded-lg"></div>
+                <div className="h-64 bg-card border border-border rounded-lg"></div>
               </div>
             </div>
           </div>
@@ -145,14 +145,14 @@ const Platform = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background w-full">
       <Navigation />
       
       <main className={`transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold">
+            <h1 className="text-3xl font-bold text-foreground">
               {t('platform.dashboard.title', 'Dashboard')}
             </h1>
           </div>
@@ -182,12 +182,12 @@ const Platform = () => {
                   <stat.icon className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
+                  <div className="text-2xl font-bold text-foreground">{stat.value}</div>
                   <p className={`text-xs ${
                     stat.changeType === 'positive' 
-                      ? 'text-green-600' 
+                      ? 'text-primary' 
                       : stat.changeType === 'negative' 
-                      ? 'text-red-600' 
+                      ? 'text-destructive' 
                       : 'text-muted-foreground'
                   }`}>
                     {stat.change} from last month
@@ -202,7 +202,7 @@ const Platform = () => {
             {/* Recent Activity */}
             <Card>
               <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
+                <CardTitle className="text-foreground">Recent Activity</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -211,25 +211,25 @@ const Platform = () => {
                       <TrendingUp className="h-5 w-5 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium">Content performance improving</p>
+                      <p className="text-sm font-medium text-foreground">Content performance improving</p>
                       <p className="text-xs text-muted-foreground">Your recent uploads are getting more engagement</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
-                    <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                      <Users className="h-5 w-5 text-green-600" />
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Users className="h-5 w-5 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium">New fans this week</p>
+                      <p className="text-sm font-medium text-foreground">New fans this week</p>
                       <p className="text-xs text-muted-foreground">You've gained new followers recently</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
-                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                      <DollarSign className="h-5 w-5 text-blue-600" />
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <DollarSign className="h-5 w-5 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium">Earnings update</p>
+                      <p className="text-sm font-medium text-foreground">Earnings update</p>
                       <p className="text-xs text-muted-foreground">Check your latest earnings and payouts</p>
                     </div>
                   </div>
@@ -240,25 +240,25 @@ const Platform = () => {
             {/* Quick Stats */}
             <Card>
               <CardHeader>
-                <CardTitle>Quick Overview</CardTitle>
+                <CardTitle className="text-foreground">Quick Overview</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Total Content</span>
-                    <span className="font-medium">0 items</span>
+                    <span className="font-medium text-foreground">0 items</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Active Subscriptions</span>
-                    <span className="font-medium">0</span>
+                    <span className="font-medium text-foreground">0</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Messages Today</span>
-                    <span className="font-medium">0</span>
+                    <span className="font-medium text-foreground">0</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Profile Views</span>
-                    <span className="font-medium">0</span>
+                    <span className="font-medium text-foreground">0</span>
                   </div>
                   <Button variant="outline" className="w-full" onClick={() => navigate('/analytics')}>
                     View Detailed Analytics
