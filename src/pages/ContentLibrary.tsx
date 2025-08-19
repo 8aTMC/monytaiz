@@ -45,12 +45,14 @@ const ContentLibrary = () => {
   const [selectedCategory, setSelectedCategory] = useState('all-files');
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
+  
   const [defaultCategories] = useState([
     { id: 'all-files', label: 'All Files', icon: Grid, description: 'All uploaded content', isDefault: true },
     { id: 'stories', label: 'Stories', icon: BookOpen, description: 'Content uploaded to stories', isDefault: true },
     { id: 'livestreams', label: 'LiveStreams', icon: Zap, description: 'Past live stream videos', isDefault: true },
     { id: 'messages', label: 'Messages', icon: MessageSquare, description: 'Content sent in messages', isDefault: true },
   ]);
+  
   const [customFolders, setCustomFolders] = useState<Array<{
     id: string;
     label: string;
@@ -59,6 +61,7 @@ const ContentLibrary = () => {
     isDefault: false;
     count?: number;
   }>>([]);
+
   const { isCollapsed } = useSidebar();
 
   useEffect(() => {
@@ -219,6 +222,30 @@ const ContentLibrary = () => {
     }
   };
 
+  const refreshCustomFolders = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('file_folders')
+        .select('*')
+        .eq('creator_id', user.id)
+        .order('name', { ascending: true });
+      if (!error && data) {
+        const folders = data.map(folder => ({
+          id: folder.id,
+          label: folder.name,
+          icon: Grid,
+          description: folder.description || 'Custom folder',
+          isDefault: false as const,
+          count: 0
+        }));
+        setCustomFolders(folders);
+      }
+    } catch (error) {
+      console.error('Error fetching folders:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -304,33 +331,7 @@ const ContentLibrary = () => {
                 )}
               </div>
               <div className="flex items-center gap-1">
-                <NewFolderDialog onFolderCreated={() => {
-                  // Refresh folders list
-                  const fetchCustomFolders = async () => {
-                    if (!user) return;
-                    try {
-                      const { data, error } = await supabase
-                        .from('file_folders')
-                        .select('*')
-                        .eq('creator_id', user.id)
-                        .order('name', { ascending: true });
-                      if (!error && data) {
-                        const folders = data.map(folder => ({
-                          id: folder.id,
-                          label: folder.name,
-                          icon: Grid,
-                          description: folder.description || 'Custom folder',
-                          isDefault: false as const,
-                          count: 0
-                        }));
-                        setCustomFolders(folders);
-                      }
-                    } catch (error) {
-                      console.error('Error fetching folders:', error);
-                    }
-                  };
-                  fetchCustomFolders();
-                }} />
+                <NewFolderDialog onFolderCreated={refreshCustomFolders} />
                 {customFolders.length > 0 && (
                   <Button
                     variant="outline"
@@ -430,7 +431,8 @@ const ContentLibrary = () => {
             <div className="bg-card border-b border-border p-6">
               <div className="flex items-center justify-between mb-6">
                 <h1 className="text-lg font-semibold text-foreground">
-                  {defaultCategories.find(c => c.id === selectedCategory)?.label || 'Library'}
+                  {defaultCategories.find(c => c.id === selectedCategory)?.label || 
+                   customFolders.find(c => c.id === selectedCategory)?.label || 'Library'}
                 </h1>
               </div>
 
