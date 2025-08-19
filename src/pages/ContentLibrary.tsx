@@ -144,7 +144,7 @@ const ContentLibrary = () => {
           {/* Skeleton Layout */}
           <div className="ml-52 flex h-screen">
             {/* Categories Sidebar Skeleton */}
-            <div className="w-80 bg-muted/10 border-r p-6">
+            <div className="w-96 bg-muted/10 border-r p-6">
               <div className="h-6 w-32 bg-muted/30 rounded mb-4"></div>
               <div className="space-y-2">
                 {[1, 2, 3, 4, 5].map((i) => (
@@ -224,7 +224,7 @@ const ContentLibrary = () => {
       <div className={`transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
         <div className="flex h-screen">
           {/* Categories Sidebar */}
-          <div className="w-80 bg-card border-r border-border p-6 overflow-y-auto">
+          <div className="w-96 bg-card border-r border-border p-6 overflow-y-auto">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-foreground">Library</h2>
               <div className="flex items-center gap-1">
@@ -271,12 +271,12 @@ const ContentLibrary = () => {
                       }}
                       disabled={isReorderMode}
                     >
-                      <div className="flex items-center gap-3">
-                        {isReorderMode && <GripVertical className="h-4 w-4 text-muted-foreground" />}
-                        <IconComponent className="h-4 w-4" />
-                        <div className="flex flex-col items-start">
-                          <span>{category.label}</span>
-                          <span className="text-xs text-muted-foreground">{category.description}</span>
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {isReorderMode && <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
+                        <IconComponent className="h-4 w-4 flex-shrink-0" />
+                        <div className="flex flex-col items-start min-w-0 flex-1">
+                          <span className="font-medium truncate w-full">{category.label}</span>
+                          <span className="text-xs text-muted-foreground line-clamp-2 w-full">{category.description}</span>
                         </div>
                       </div>
                       <Badge variant="secondary" className="text-xs">
