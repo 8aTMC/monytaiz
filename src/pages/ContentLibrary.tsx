@@ -381,9 +381,6 @@ const ContentLibrary = () => {
           <div className="w-80 bg-card border-r border-border p-4 overflow-y-auto flex-shrink-0">
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-foreground mb-3">Library</h2>
-              <div className="flex items-center gap-1">
-                <NewFolderDialog onFolderCreated={refreshCustomFolders} />
-              </div>
             </div>
               
             {/* Default Categories */}
@@ -425,36 +422,39 @@ const ContentLibrary = () => {
               <div className="space-y-1">
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-sm font-medium text-muted-foreground">Custom Folders</div>
-                  {!isReorderMode ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleStartReorder}
-                      className="text-xs h-7 px-2"
-                    >
-                      <ArrowUpDown className="h-3 w-3 mr-1" />
-                      Reorder
-                    </Button>
-                  ) : (
-                    <div className="flex gap-1">
+                  <div className="flex items-center gap-2">
+                    <NewFolderDialog onFolderCreated={refreshCustomFolders} />
+                    {!isReorderMode ? (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleCancelReorder}
+                        onClick={handleStartReorder}
                         className="text-xs h-7 px-2"
                       >
-                        ✕
+                        <ArrowUpDown className="h-3 w-3 mr-1" />
+                        Reorder
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleConfirmReorder}
-                        className="text-xs h-7 px-2"
-                      >
-                        ✓
-                      </Button>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="flex gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleCancelReorder}
+                          className="text-xs h-7 px-2"
+                        >
+                          ✕
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleConfirmReorder}
+                          className="text-xs h-7 px-2"
+                        >
+                          ✓
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 {sortedCustomFolders.map((folder, index) => {
                   const IconComponent = folder.icon;
