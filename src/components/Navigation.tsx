@@ -1,3 +1,4 @@
+// Navigation component with collapsible sidebar functionality
 import { useState, useEffect, createContext, useContext } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -69,7 +70,7 @@ export const Navigation = () => {
   const { isCollapsed, setIsCollapsed } = useSidebar();
 
   // Determine which section should be open based on current route
-  const getCurrentSection = () => {
+  const getCurrentSection = (): 'fans' | 'content' | 'management' | null => {
     if (location.pathname.startsWith('/fans')) return 'fans';
     if (location.pathname === '/library' || location.pathname === '/upload') return 'content';
     if (location.pathname.startsWith('/management')) return 'management';
