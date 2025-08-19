@@ -46,7 +46,7 @@ const Onboarding = () => {
     try {
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('username, display_name')
+        .select('username, display_name, signup_completed, temp_username')
         .eq('id', userId)
         .single();
 
@@ -55,9 +55,10 @@ const Onboarding = () => {
         return;
       }
 
-      // If profile is already complete, redirect to dashboard
-      if (profile?.username && profile?.display_name) {
-        navigate('/dashboard');
+      // If profile is already complete, redirect to fans section
+      if (profile?.username && profile?.display_name && profile?.signup_completed && !profile?.temp_username) {
+        console.log('✅ Profile already complete, redirecting to fans section');
+        navigate('/fans');
       }
     } catch (error) {
       console.error('Error checking profile status:', error);

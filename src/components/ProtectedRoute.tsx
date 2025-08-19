@@ -47,6 +47,14 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
                 profile.temp_username
               );
               
+              console.log('🔍 Profile completion check:', {
+                signup_completed: profile.signup_completed,
+                username: profile.username,
+                display_name: profile.display_name,
+                temp_username: profile.temp_username,
+                needsProfileCompletion
+              });
+              
               setNeedsOnboarding(!!needsProfileCompletion);
               setCheckingProfile(false);
             } catch (error) {
@@ -90,6 +98,14 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
             !profile.display_name ||
             profile.temp_username
           );
+          
+          console.log('🔍 Profile completion check (session check):', {
+            signup_completed: profile.signup_completed,
+            username: profile.username,
+            display_name: profile.display_name,
+            temp_username: profile.temp_username,
+            needsProfileCompletion
+          });
           
           setNeedsOnboarding(!!needsProfileCompletion);
           setCheckingProfile(false);
