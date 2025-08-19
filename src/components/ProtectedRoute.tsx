@@ -27,11 +27,18 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         if (session?.user) {
           setTimeout(async () => {
             try {
-              const { data: profile } = await supabase
+              const { data: profile, error } = await supabase
                 .from('profiles')
-                .select('signup_completed, username, display_name, temp_username')
+                .select('signup_completed, username, display_name, temp_username, deletion_status, deleted_at')
                 .eq('id', session.user.id)
                 .single();
+              
+              // If profile doesn't exist or user has been deleted, sign out
+              if (error || !profile || profile.deletion_status !== 'active' || profile.deleted_at) {
+                console.log('User profile deleted or not found, signing out...');
+                await supabase.auth.signOut();
+                return;
+              }
               
               const needsProfileCompletion = profile && (
                 !profile.signup_completed || 
@@ -44,6 +51,8 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
               setCheckingProfile(false);
             } catch (error) {
               console.error('Error checking profile completion:', error);
+              // If there's an error accessing the profile, sign out to be safe
+              await supabase.auth.signOut();
               setCheckingProfile(false);
             }
           }, 0);
@@ -62,11 +71,18 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       
       if (session?.user) {
         try {
-          const { data: profile } = await supabase
+          const { data: profile, error } = await supabase
             .from('profiles')
-            .select('signup_completed, username, display_name, temp_username')
+            .select('signup_completed, username, display_name, temp_username, deletion_status, deleted_at')
             .eq('id', session.user.id)
             .single();
+          
+          // If profile doesn't exist or user has been deleted, sign out
+          if (error || !profile || profile.deletion_status !== 'active' || profile.deleted_at) {
+            console.log('User profile deleted or not found, signing out...');
+            await supabase.auth.signOut();
+            return;
+          }
           
           const needsProfileCompletion = profile && (
             !profile.signup_completed || 
@@ -79,6 +95,8 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
           setCheckingProfile(false);
         } catch (error) {
           console.error('Error checking profile completion:', error);
+          // If there's an error accessing the profile, sign out to be safe
+          await supabase.auth.signOut();
           setCheckingProfile(false);
         }
       } else {
