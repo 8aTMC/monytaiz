@@ -30,7 +30,7 @@ export const ThemeToggle = () => {
       <button
         onClick={toggleTheme}
         className={`
-          relative w-16 h-8 rounded-full p-0.5 transition-all duration-700 ease-in-out
+          relative w-16 h-9 rounded-full p-0.5 transition-all duration-700 ease-in-out
           shadow-xl hover:shadow-2xl hover:scale-105
           ${isLight 
             ? 'bg-gradient-to-r from-sky-300 via-sky-400 to-blue-500' 
@@ -51,7 +51,7 @@ export const ThemeToggle = () => {
         <div 
           className={`
             relative w-7 h-7 rounded-full transition-all duration-700 ease-in-out
-            shadow-lg flex items-center justify-center transform z-10 top-0.5
+            shadow-lg flex items-center justify-center transform z-10
             ${isLight 
               ? 'translate-x-0 bg-gradient-to-br from-orange-300 via-yellow-400 to-orange-500' 
               : 'translate-x-8 bg-gradient-to-br from-slate-300 via-slate-400 to-slate-500'
