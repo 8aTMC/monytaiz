@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthForm } from '@/components/AuthForm';
 import { User, Session } from '@supabase/supabase-js';
+import { toast } from '@/hooks/use-toast';
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -20,6 +21,12 @@ const Auth = () => {
         // Redirect authenticated users (defer async calls to prevent deadlock)
         if (session?.user) {
           setTimeout(async () => {
+            // Check for email verification from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const isEmailVerification = urlParams.get('type') === 'signup' || 
+                                       urlParams.get('type') === 'email_change' ||
+                                       urlParams.get('type') === 'recovery';
+            
             // Check if user needs to complete signup
             if (event === 'SIGNED_IN') {
               try {
@@ -38,6 +45,16 @@ const Auth = () => {
                   email_confirmed: profile?.email_confirmed,
                   needsProfileCompletion: profile && profile.provider === 'google' && (!profile.username || !profile.display_name || profile.temp_username === true)
                 });
+
+                // Show success message for email verification
+                if (profile?.provider === 'email' && isEmailVerification) {
+                  toast({
+                    title: "✅ Account Activated!",
+                    description: "Your email has been verified successfully. Welcome to Monytaiz! 🎉",
+                    duration: 6000,
+                    className: "bg-gradient-to-r from-green-500 to-emerald-600 text-white border-none shadow-xl font-semibold",
+                  });
+                }
                 
                 // Only redirect to onboarding for Google users who need to complete their profile
                 // Email users should NEVER see onboarding after email verification
@@ -74,12 +91,30 @@ const Auth = () => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        // Check for email verification from URL on initial load
+        const urlParams = new URLSearchParams(window.location.search);
+        const isEmailVerification = urlParams.get('type') === 'signup' || 
+                                   urlParams.get('type') === 'email_change' ||
+                                   urlParams.get('type') === 'recovery';
+        
         try {
           const { data: profile } = await supabase
             .from('profiles')
             .select('signup_completed, username, display_name, provider, google_verified, temp_username, email_confirmed')
             .eq('id', session.user.id)
             .single();
+
+          // Show success message for email verification on initial load
+          if (profile?.provider === 'email' && isEmailVerification) {
+            setTimeout(() => {
+              toast({
+                title: "✅ Account Activated!",
+                description: "Your email has been verified successfully. Welcome to Monytaiz! 🎉",
+                duration: 6000,
+                className: "bg-gradient-to-r from-green-500 to-emerald-600 text-white border-none shadow-xl font-semibold",
+              });
+            }, 1000); // Delay to ensure dashboard loads first
+          }
           
           // Only redirect to onboarding for Google users who need to complete their profile
           // Email users should NEVER see onboarding after email verification
