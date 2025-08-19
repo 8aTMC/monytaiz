@@ -63,6 +63,8 @@ const ContentLibrary = () => {
     isDefault: false;
     count?: number;
   }>>([]);
+  
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const { isCollapsed } = useSidebar();
 
@@ -225,11 +227,39 @@ const ContentLibrary = () => {
   const handleCustomFolderDragStart = (e: React.DragEvent, index: number) => {
     e.dataTransfer.setData('text/plain', index.toString());
     e.dataTransfer.effectAllowed = 'move';
+    setDragOverIndex(null);
   };
 
   const handleCustomFolderDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleSeparatorDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  };
+
+  const handleSeparatorDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
+    
+    if (isNaN(dragIndex)) return;
+    
+    const newFolders = [...sortedCustomFolders];
+    const draggedItem = newFolders[dragIndex];
+    
+    // Remove the dragged item
+    newFolders.splice(dragIndex, 1);
+    // Insert it at the new position (adjust for removal if necessary)
+    const adjustedDropIndex = dragIndex < dropIndex ? dropIndex - 1 : dropIndex;
+    newFolders.splice(adjustedDropIndex, 0, draggedItem);
+    
+    setCustomFolders(newFolders);
+    setDragOverIndex(null);
+    // Reset sort order when manually reordering
+    setSortOrder(null);
   };
 
   const handleCustomFolderDrop = (e: React.DragEvent, dropIndex: number) => {
@@ -247,8 +277,13 @@ const ContentLibrary = () => {
     newFolders.splice(dropIndex, 0, draggedItem);
     
     setCustomFolders(newFolders);
+    setDragOverIndex(null);
     // Reset sort order when manually reordering
     setSortOrder(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragOverIndex(null);
   };
 
   const handleSortFolders = () => {
@@ -456,51 +491,85 @@ const ContentLibrary = () => {
                     )}
                   </div>
                 </div>
+                {/* Separator at the top for dropping before first item */}
+                {isReorderMode && (
+                  <div
+                    className={`h-1 transition-all duration-200 ${
+                      dragOverIndex === 0 ? 'bg-primary scale-y-150' : 'bg-transparent'
+                    }`}
+                    onDragOver={(e) => handleSeparatorDragOver(e, 0)}
+                    onDrop={(e) => handleSeparatorDrop(e, 0)}
+                  />
+                )}
+                
                 {sortedCustomFolders.map((folder, index) => {
                   const IconComponent = folder.icon;
                   return (
-                    <div
-                      key={folder.id}
-                      className={`relative ${isReorderMode ? 'cursor-move' : ''}`}
-                      draggable={isReorderMode}
-                      onDragStart={(e) => handleCustomFolderDragStart(e, index)}
-                      onDragOver={handleCustomFolderDragOver}
-                      onDrop={(e) => handleCustomFolderDrop(e, index)}
-                    >
-                      {!isReorderMode && (
-                        <div className="absolute top-1 left-1 z-10">
-                          <EditFolderDialog 
-                            folder={{
-                              id: folder.id,
-                              label: folder.label,
-                              description: folder.description
-                            }}
-                            onFolderUpdated={refreshCustomFolders}
-                          />
-                        </div>
-                      )}
-                      <Button
-                        variant={selectedCategory === folder.id ? "default" : "ghost"}
-                        className={`w-full justify-start text-left p-2 h-auto pr-10 ${!isReorderMode ? 'pl-10' : 'pl-2'}`}
-                        onClick={() => {
-                          if (!isReorderMode) {
-                            setSelectedCategory(folder.id);
-                            setSelectedFilter('all');
-                          }
-                        }}
-                        disabled={isReorderMode}
+                    <div key={folder.id}>
+                      <div
+                        className={`relative ${isReorderMode ? 'cursor-move' : ''}`}
+                        draggable={isReorderMode}
+                        onDragStart={(e) => handleCustomFolderDragStart(e, index)}
+                        onDragOver={handleCustomFolderDragOver}
+                        onDrop={(e) => handleCustomFolderDrop(e, index)}
+                        onDragEnd={handleDragEnd}
                       >
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          {isReorderMode && <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
-                          <div className="flex flex-col items-start min-w-0 flex-1">
-                            <span className="font-medium text-left w-full">{truncateText(folder.label, 30)}</span>
-                            <span className={`text-xs text-left w-full ${selectedCategory === folder.id ? 'text-foreground' : 'text-muted-foreground/80'}`}>{folder.description}</span>
+                        {!isReorderMode && (
+                          <div className="absolute top-1 left-1 z-10">
+                            <EditFolderDialog 
+                              folder={{
+                                id: folder.id,
+                                label: folder.label,
+                                description: folder.description
+                              }}
+                              onFolderUpdated={refreshCustomFolders}
+                            />
                           </div>
-                        </div>
-                      </Button>
-                      <Badge variant="secondary" className="absolute top-1 right-2 text-xs pointer-events-none">
-                        {folder.count || 0}
-                      </Badge>
+                        )}
+                        <Button
+                          variant={selectedCategory === folder.id ? "default" : "ghost"}
+                          className={`w-full justify-start text-left p-2 h-auto pr-10 ${!isReorderMode ? 'pl-10' : 'pl-2'}`}
+                          onClick={() => {
+                            if (!isReorderMode) {
+                              setSelectedCategory(folder.id);
+                              setSelectedFilter('all');
+                            }
+                          }}
+                          disabled={isReorderMode}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            {isReorderMode && <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
+                            <div className="flex flex-col items-start min-w-0 flex-1">
+                              <span className="font-medium text-left w-full">{truncateText(folder.label, 30)}</span>
+                              <span className={`text-xs text-left w-full ${selectedCategory === folder.id ? 'text-foreground' : 'text-muted-foreground/80'}`}>{folder.description}</span>
+                            </div>
+                          </div>
+                        </Button>
+                        <Badge variant="secondary" className="absolute top-1 right-2 text-xs pointer-events-none">
+                          {folder.count || 0}
+                        </Badge>
+                      </div>
+                      
+                      {/* Separator line with drop zone */}
+                      <div className="relative">
+                        {/* Normal separator line */}
+                        <div className={`h-px mx-2 transition-all duration-200 ${
+                          !isReorderMode ? 'bg-border/30' : 'bg-border/50'
+                        }`} />
+                        
+                        {/* Drag drop zone over separator */}
+                        {isReorderMode && (
+                          <div
+                            className={`absolute inset-0 h-3 -mt-1 transition-all duration-200 ${
+                              dragOverIndex === index + 1 
+                                ? 'bg-primary/20 border-t-2 border-primary' 
+                                : 'bg-transparent hover:bg-muted/10'
+                            }`}
+                            onDragOver={(e) => handleSeparatorDragOver(e, index + 1)}
+                            onDrop={(e) => handleSeparatorDrop(e, index + 1)}
+                          />
+                        )}
+                      </div>
                     </div>
                   );
                 })}
