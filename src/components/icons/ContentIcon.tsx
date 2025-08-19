@@ -16,23 +16,18 @@ export const ContentIcon: React.FC<ContentIconProps> = ({ className = "h-5 w-5" 
       strokeLinejoin="round"
       className={className}
     >
-      {/* Film strip outline */}
-      <rect x="3" y="4" width="18" height="16" rx="2" />
+      {/* Back frame */}
+      <rect x="6" y="4" width="16" height="12" rx="2" className="opacity-40" />
       
-      {/* Film strip perforations - left side */}
-      <rect x="3" y="6" width="2" height="2" />
-      <rect x="3" y="9" width="2" height="2" />
-      <rect x="3" y="12" width="2" height="2" />
-      <rect x="3" y="15" width="2" height="2" />
+      {/* Middle frame */}
+      <rect x="4" y="6" width="16" height="12" rx="2" className="opacity-70" />
       
-      {/* Film strip perforations - right side */}
-      <rect x="19" y="6" width="2" height="2" />
-      <rect x="19" y="9" width="2" height="2" />
-      <rect x="19" y="12" width="2" height="2" />
-      <rect x="19" y="15" width="2" height="2" />
+      {/* Front frame with content */}
+      <rect x="2" y="8" width="16" height="12" rx="2" />
       
-      {/* Play button in center */}
-      <polygon points="10,9 10,15 16,12" fill="currentColor" />
+      {/* Image content inside front frame */}
+      <circle cx="6" cy="12" r="1.5" />
+      <path d="m18 16-3-3-2 2-3-3-6 6" />
     </svg>
   );
 };
