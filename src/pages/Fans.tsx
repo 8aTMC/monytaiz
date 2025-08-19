@@ -29,6 +29,9 @@ interface Profile {
   deletion_status?: string;
   email?: string;
   email_confirmed?: boolean;
+  signup_completed?: boolean;
+  google_verified?: boolean;
+  temp_username?: boolean;
 }
 
 interface UserRole {
@@ -45,6 +48,7 @@ const Fans = () => {
   const [loading, setLoading] = useState(true);
   const [fans, setFans] = useState<Profile[]>([]);
   const [pendingDeletionFans, setPendingDeletionFans] = useState<Profile[]>([]);
+  const [pendingSignupFans, setPendingSignupFans] = useState<Profile[]>([]);
   const [loadingFans, setLoadingFans] = useState(true);
   const [selectedFan, setSelectedFan] = useState<Profile | null>(null);
   const [fanRoles, setFanRoles] = useState<Record<string, UserRole[]>>({});
@@ -131,11 +135,11 @@ const Fans = () => {
             const fanUserIds = fanRoles.map(role => role.user_id);
             console.log('👥 Fan user IDs:', fanUserIds);
 
-            // Then get the profiles for those users with optional category filter
-            let profilesQuery = supabase
-              .from('profiles')
-              .select('*, email, email_confirmed')
-              .in('id', fanUserIds);
+        // Then get the profiles for those users with optional category filter
+        let profilesQuery = supabase
+          .from('profiles')
+          .select('*, email, email_confirmed, signup_completed, google_verified, temp_username')
+          .in('id', fanUserIds);
             
             // Apply category filter if specified
             if (categoryFilter) {
@@ -149,18 +153,22 @@ const Fans = () => {
             if (error) {
               console.error('❌ Error fetching fan profiles:', error);
             } else {
-              console.log('✅ Setting fans data:', data);
-              
-              // Separate active fans from pending deletion fans
-              const activeFans = (data || []).filter(fan => 
-                fan.deletion_status !== 'pending_deletion'
-              );
-              const pendingDeletions = (data || []).filter(fan => 
-                fan.deletion_status === 'pending_deletion'
-              );
-              
-              setFans(activeFans);
-              setPendingDeletionFans(pendingDeletions);
+          console.log('✅ Setting fans data:', data);
+          
+          // Separate fans into categories
+          const activeFans = (data || []).filter(fan => 
+            fan.deletion_status !== 'pending_deletion' && fan.signup_completed !== false
+          );
+          const pendingDeletions = (data || []).filter(fan => 
+            fan.deletion_status === 'pending_deletion'
+          );
+          const pendingSignups = (data || []).filter(fan =>
+            fan.signup_completed === false && fan.deletion_status !== 'pending_deletion'
+          );
+          
+          setFans(activeFans);
+          setPendingDeletionFans(pendingDeletions);
+          setPendingSignupFans(pendingSignups);
               
               // Set up roles map for all fans
               if (data) {
@@ -250,7 +258,7 @@ const Fans = () => {
         // Then get the profiles for those users with optional category filter
         let profilesQuery = supabase
           .from('profiles')
-          .select('*, email, email_confirmed')
+          .select('*, email, email_confirmed, signup_completed, google_verified, temp_username')
           .in('id', fanUserIds);
         
         // Apply category filter if specified
@@ -267,16 +275,20 @@ const Fans = () => {
         } else {
           console.log('✅ Setting fans data:', data);
           
-          // Separate active fans from pending deletion fans
+          // Separate fans into categories
           const activeFans = (data || []).filter(fan => 
-            fan.deletion_status !== 'pending_deletion'
+            fan.deletion_status !== 'pending_deletion' && fan.signup_completed !== false
           );
           const pendingDeletions = (data || []).filter(fan => 
             fan.deletion_status === 'pending_deletion'
           );
+          const pendingSignups = (data || []).filter(fan =>
+            fan.signup_completed === false && fan.deletion_status !== 'pending_deletion'
+          );
           
           setFans(activeFans);
           setPendingDeletionFans(pendingDeletions);
+          setPendingSignupFans(pendingSignups);
           
           // Set up roles map for all fans
           if (data) {
@@ -479,7 +491,7 @@ const Fans = () => {
           const fanUserIds = fanRoles.map(role => role.user_id);
           let profilesQuery = supabase
             .from('profiles')
-            .select('*, email, email_confirmed')
+            .select('*, email, email_confirmed, signup_completed, google_verified, temp_username')
             .in('id', fanUserIds);
           
           if (categoryFilter) {
@@ -489,16 +501,20 @@ const Fans = () => {
           const { data, error } = await profilesQuery.order('created_at', { ascending: false });
 
           if (!error && data) {
-            // Separate active fans from pending deletion fans
+            // Separate fans into categories
             const activeFans = data.filter(fan => 
-              fan.deletion_status !== 'pending_deletion'
+              fan.deletion_status !== 'pending_deletion' && fan.signup_completed !== false
             );
             const pendingDeletions = data.filter(fan => 
               fan.deletion_status === 'pending_deletion'
             );
+            const pendingSignups = data.filter(fan =>
+              fan.signup_completed === false && fan.deletion_status !== 'pending_deletion'
+            );
             
             setFans(activeFans);
             setPendingDeletionFans(pendingDeletions);
+            setPendingSignupFans(pendingSignups);
           }
         } catch (error) {
           console.error('Error refreshing fans:', error);
@@ -576,6 +592,21 @@ const Fans = () => {
                     {pendingDeletionFans.length > 0 && (
                       <Badge variant="destructive" className="ml-1 text-xs">
                         {pendingDeletionFans.length}
+                      </Badge>
+                    )}
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1.5"
+                    onClick={() => navigate('/pending-signups')}
+                  >
+                    <Clock className="h-3.5 w-3.5 text-warning" />
+                    <span>Pending Sign Up</span>
+                    {pendingSignupFans.length > 0 && (
+                      <Badge variant="secondary" className="ml-1 text-xs">
+                        {pendingSignupFans.length}
                       </Badge>
                     )}
                   </Button>

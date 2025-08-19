@@ -143,24 +143,51 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
             // Check if email exists in profiles table
             const { data: profile, error: profileError } = await supabase
               .from('profiles')
-              .select('email, email_confirmed')
+              .select('email, email_confirmed, google_verified')
               .eq('email', email)
               .maybeSingle();
 
             if (profileError) {
               console.error('Error checking email status:', profileError);
-              return { exists: false, verified: false };
+              return { exists: false, verified: false, hasGoogle: false };
             }
 
             return {
               exists: !!profile,
-              verified: profile?.email_confirmed || false
+              verified: profile?.email_confirmed || false,
+              hasGoogle: profile?.google_verified || false
             };
           } catch (error) {
             console.error('Exception checking email status:', error);
-            return { exists: false, verified: false };
+            return { exists: false, verified: false, hasGoogle: false };
           }
         };
+
+        // Check email status before attempting signup
+        const emailStatus = await checkEmailStatus(formData.email);
+        
+        if (emailStatus.exists) {
+          if (!emailStatus.verified) {
+            toast({
+              title: "Email Already Used",
+              description: "That email is already used for another account but is not yet verified. Please check your email to verify.",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          } else {
+            toast({
+              title: "Email Already Taken",
+              description: "That email is already tied to an existing account. Redirecting to login...",
+              variant: "destructive",
+            });
+            setTimeout(() => {
+              onModeChange('signin');
+            }, 3000);
+            setLoading(false);
+            return;
+          }
+        }
 
         const { error } = await supabase.auth.signUp({
           email: formData.email,
@@ -175,25 +202,6 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         });
 
         if (error) {
-          // Check if this is an email already exists error
-          if (error.message?.includes('already registered') || 
-              error.message?.includes('already exists') ||
-              error.message?.includes('User already registered') ||
-              error.message?.includes('invalid') ||
-              error.message?.includes('duplicate')) {
-            
-            // Check the email status in our database
-            const emailStatus = await checkEmailStatus(formData.email);
-            
-            if (emailStatus.exists) {
-              if (!emailStatus.verified) {
-                throw new Error('UNVERIFIED_EMAIL');
-              } else {
-                throw new Error('VERIFIED_EMAIL_EXISTS');
-              }
-            }
-          }
-          
           throw error;
         }
 
@@ -220,77 +228,29 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
           description: "Signed in successfully!",
         });
       }
-      } catch (error: any) {
-        let errorMessage = error.message;
-        let shouldRedirectToLogin = false;
-        
-        // Handle specific error cases
-        if (error.message === 'UNVERIFIED_EMAIL') {
-          errorMessage = "That email is already in use and it is unverified. Please verify it now.";
-          shouldRedirectToLogin = true;
-        } else if (error.message === 'VERIFIED_EMAIL_EXISTS') {
-          errorMessage = "That email is already in use.";
-          shouldRedirectToLogin = true;
-        } else if (error.message?.includes('User already registered') || 
-                   error.message?.includes('already registered') ||
-                   error.message?.includes('already exists')) {
-          errorMessage = "An account with this email already exists. Redirecting to login...";
-          shouldRedirectToLogin = true;
-        } else if (error.message?.includes('Email not confirmed') ||
-                   error.message?.includes('not confirmed')) {
-          errorMessage = "Account is already pending activation. Please check your email to verify your account.";
-        } else if (error.message?.includes('duplicate key value violates unique constraint') &&
-                   error.message?.includes('profiles_username_key')) {
-          errorMessage = t('platform.validation.usernameExists');
-        } else if (error.message?.includes('Database error saving new user')) {
-          errorMessage = t('platform.validation.accountCreationError');
-        } else if (error.message?.includes('invalid') && error.message?.includes('email')) {
-          // This is likely the generic "invalid email" error we want to improve
-          // Check if email exists and provide better message
-          const checkEmailStatus = async (email: string) => {
-            try {
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('email, email_confirmed')
-                .eq('email', email)
-                .maybeSingle();
-
-              return {
-                exists: !!profile,
-                verified: profile?.email_confirmed || false
-              };
-            } catch {
-              return { exists: false, verified: false };
-            }
-          };
-
-          const emailStatus = await checkEmailStatus(formData.email);
-          
-          if (emailStatus.exists) {
-            if (!emailStatus.verified) {
-              errorMessage = "That email is already in use and it is unverified. Please verify it now.";
-            } else {
-              errorMessage = "That email is already in use.";
-            }
-            shouldRedirectToLogin = true;
-          } else {
-            errorMessage = "Please enter a valid email address.";
-          }
-        }
-        
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
-        
-        // Redirect to login if user already exists
-        if (shouldRedirectToLogin) {
-          setTimeout(() => {
-            onModeChange('signin');
-          }, 3000);
-        }
-      } finally {
+    } catch (error: any) {
+      let errorMessage = error.message;
+      
+      // Handle specific error cases
+      if (error.message?.includes('Email not confirmed') ||
+          error.message?.includes('not confirmed')) {
+        errorMessage = "Account is pending activation. Please check your email to verify your account.";
+      } else if (error.message?.includes('duplicate key value violates unique constraint') &&
+                 error.message?.includes('profiles_username_key')) {
+        errorMessage = t('platform.validation.usernameExists');
+      } else if (error.message?.includes('Database error saving new user')) {
+        errorMessage = t('platform.validation.accountCreationError');
+      } else if (error.message?.includes('Invalid login credentials')) {
+        errorMessage = "Invalid email or password. Please check your credentials.";
+      }
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      
+    } finally {
       setLoading(false);
     }
   };
@@ -303,10 +263,15 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
     setGoogleLoading(true);
     
     try {
+      // Check if email is being used for signup/signin to provide better redirects
+      const redirectUrl = mode === 'signin' 
+        ? `${window.location.origin}/dashboard`
+        : `${window.location.origin}/onboarding`;
+        
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/onboarding`,
+          redirectTo: redirectUrl,
         },
       });
 

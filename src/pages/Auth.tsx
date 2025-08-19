@@ -13,32 +13,65 @@ const Auth = () => {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
         // Redirect authenticated users
         if (session?.user) {
-          // Check if it's a new Google user needing onboarding
-          if (event === 'SIGNED_IN' && session.user.app_metadata.provider === 'google') {
-            // For Google users, always redirect to onboarding first
-            // The onboarding component will check if profile is complete
-            setTimeout(() => {
-              navigate('/onboarding');
-            }, 0);
-          } else {
-            navigate('/dashboard');
+          // Check if user needs to complete signup
+          if (event === 'SIGNED_IN') {
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('signup_completed, username, display_name')
+                .eq('id', session.user.id)
+                .single();
+              
+              if (profile && !profile.signup_completed) {
+                // User needs to complete signup
+                navigate('/onboarding');
+                return;
+              } else if (profile && (!profile.username || !profile.display_name)) {
+                // Fallback check for incomplete profiles
+                navigate('/onboarding');  
+                return;
+              }
+            } catch (error) {
+              console.error('Error checking profile completion:', error);
+            }
           }
+          
+          // Default redirect to dashboard
+          navigate('/dashboard');
         }
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('signup_completed, username, display_name')
+            .eq('id', session.user.id)
+            .single();
+          
+          if (profile && !profile.signup_completed) {
+            navigate('/onboarding');
+            return;
+          } else if (profile && (!profile.username || !profile.display_name)) {
+            navigate('/onboarding');  
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking profile completion:', error);
+        }
+        
         navigate('/dashboard');
       }
     });

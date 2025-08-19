@@ -51,7 +51,9 @@ export const OnboardingForm = ({ userEmail, userId }: OnboardingFormProps) => {
         .update({
           username: formData.username.trim(),
           display_name: formData.displayName.trim(),
-          bio: formData.bio.trim() || null
+          bio: formData.bio.trim() || null,
+          signup_completed: true,
+          temp_username: false,
         })
         .eq('id', userId);
 
