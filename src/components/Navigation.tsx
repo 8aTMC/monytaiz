@@ -209,7 +209,7 @@ export const Navigation = () => {
   return (
     <nav 
       className={`fixed left-0 top-0 bg-card border-r border-border h-screen flex flex-col z-40 transition-all duration-300 ${
-        isCollapsed ? 'w-16' : 'w-52'
+        isCollapsed ? 'w-16' : 'w-64'
       } ${isNarrowScreen && !isCollapsed ? 'shadow-2xl' : ''}`}
       data-auto-collapse
       {...(isNarrowScreen && !isCollapsed ? { 'data-manually-opened': 'true' } : {})}
@@ -586,50 +586,50 @@ export const Navigation = () => {
       <div className="p-4 border-t border-border">
         <Popover>
           <PopoverTrigger asChild>
-            <Button 
-              variant="ghost" 
-              className={`w-full justify-start gap-3 hover:bg-secondary/50 transition-smooth p-3 ${
-                isCollapsed ? 'justify-center' : ''
-              }`}
-            >
-              <div className="relative">
-                {userProfile?.avatar_url ? (
-                  <img
-                    src={userProfile.avatar_url}
-                    alt="Profile"
-                    className="h-10 w-10 rounded-full object-cover ring-2 ring-primary/20"
-                  />
-                ) : (
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary flex items-center justify-center ring-2 ring-primary/20 font-bold">
-                    {(() => {
-                      const name = userProfile?.display_name || userProfile?.username || 'User';
-                      const words = name.trim().split(/\s+/);
-                      if (words.length >= 2) {
-                        return (words[0][0] + words[1][0]).toUpperCase();
-                      } else {
-                        return name.slice(0, 2).toUpperCase();
-                      }
-                    })()}
-                  </div>
-                )}
-                {userProfile?.is_verified && (
-                  <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-card flex items-center justify-center">
-                    <svg className="h-2 w-2 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                )}
-              </div>
-              {!isCollapsed && (
-                <div className="flex-1 min-w-0 text-left">
-                  <p className="text-sm font-semibold text-foreground truncate">
-                    {userProfile?.display_name || userProfile?.username || 'Anonymous'}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    @{userProfile?.username || 'username'}
-                  </p>
-                </div>
-              )}
+             <Button 
+               variant="ghost" 
+               className={`w-full justify-start gap-2 hover:bg-secondary/50 transition-smooth p-2 ${
+                 isCollapsed ? 'justify-center' : ''
+               }`}
+             >
+               <div className="relative flex-shrink-0">
+                 {userProfile?.avatar_url ? (
+                   <img
+                     src={userProfile.avatar_url}
+                     alt="Profile"
+                     className="h-9 w-9 rounded-full object-cover ring-2 ring-primary/20"
+                   />
+                 ) : (
+                   <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary flex items-center justify-center ring-2 ring-primary/20 font-bold text-xs">
+                     {(() => {
+                       const name = userProfile?.display_name || userProfile?.username || 'User';
+                       const words = name.trim().split(/\s+/);
+                       if (words.length >= 2) {
+                         return (words[0][0] + words[1][0]).toUpperCase();
+                       } else {
+                         return name.slice(0, 2).toUpperCase();
+                       }
+                     })()}
+                   </div>
+                 )}
+                 {userProfile?.is_verified && (
+                   <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 bg-green-500 rounded-full border-2 border-card flex items-center justify-center">
+                     <svg className="h-1.5 w-1.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                     </svg>
+                   </div>
+                 )}
+               </div>
+               {!isCollapsed && (
+                 <div className="flex-1 min-w-0 text-left">
+                   <p className="text-xs font-semibold text-foreground truncate leading-tight">
+                     {userProfile?.display_name || userProfile?.username || 'Anonymous'}
+                   </p>
+                   <p className="text-xs text-muted-foreground truncate leading-tight">
+                     @{userProfile?.username || 'username'}
+                   </p>
+                 </div>
+               )}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-56 p-2" side="right" align="end">
