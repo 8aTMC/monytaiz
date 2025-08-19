@@ -34,27 +34,27 @@ const FansLists = () => {
   const [fanLists, setFanLists] = useState<FanList[]>([]);
   const { isCollapsed } = useSidebar();
 
-  // Mock data for demonstration
+  // Mock data for demonstration only - no fictional users
   const mockLists: FanList[] = [
     {
       id: '1',
       name: 'VIP Members',
       description: 'High-value supporters and premium subscribers',
-      count: 23,
+      count: 0, // Real count will be 0 until implemented
       createdAt: '2024-01-15'
     },
     {
       id: '2',
       name: 'New Subscribers',
       description: 'Fans who joined in the last 30 days',
-      count: 47,
+      count: 0, // Real count will be 0 until implemented
       createdAt: '2024-02-01'
     },
     {
       id: '3',
       name: 'Regular Tippers',
       description: 'Fans who tip regularly and frequently',
-      count: 12,
+      count: 0, // Real count will be 0 until implemented
       createdAt: '2024-01-20'
     }
   ];

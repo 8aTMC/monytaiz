@@ -58,91 +58,29 @@ const FanListDetail = () => {
   const [fans, setFans] = useState<Profile[]>([]);
   const { isCollapsed, isNarrowScreen } = useSidebar();
 
-  // Mock data for demonstration
+  // Mock data for demonstration - this would be replaced with real database queries
   const mockLists: Record<string, FanList> = {
     '1': {
       id: '1',
       name: 'VIP Members',
       description: 'High-value supporters and premium subscribers',
-      count: 23,
+      count: 0,
       createdAt: '2024-01-15'
     },
     '2': {
       id: '2',
       name: 'New Subscribers',
       description: 'Fans who joined in the last 30 days',
-      count: 47,
+      count: 0,
       createdAt: '2024-02-01'
     },
     '3': {
       id: '3',
       name: 'Regular Tippers',
       description: 'Fans who tip regularly and frequently',
-      count: 12,
+      count: 0,
       createdAt: '2024-01-20'
     }
-  };
-
-  // Mock fans data for each list
-  const mockListFans: Record<string, Profile[]> = {
-    '1': [
-      {
-        id: '1',
-        username: 'johndoe',
-        display_name: 'John Doe',
-        bio: 'VIP supporter since day one',
-        avatar_url: null,
-        is_verified: true,
-        created_at: '2024-01-10T00:00:00Z',
-        fan_category: 'supporter',
-        email: 'john@example.com',
-        email_confirmed: true,
-        google_verified: false
-      },
-      {
-        id: '2', 
-        username: 'premiumuser',
-        display_name: 'Premium User',
-        bio: 'Love the content!',
-        avatar_url: null,
-        is_verified: false,
-        created_at: '2024-01-12T00:00:00Z',
-        fan_category: 'fan',
-        email: 'premium@example.com',
-        email_confirmed: true,
-        google_verified: true
-      }
-    ],
-    '2': [
-      {
-        id: '3',
-        username: 'newbie1',
-        display_name: 'New Fan',
-        bio: 'Just joined!',
-        avatar_url: null,
-        is_verified: false,
-        created_at: '2024-01-25T00:00:00Z',
-        fan_category: 'fan',
-        email: 'newbie@example.com',
-        email_confirmed: true,
-        google_verified: false
-      }
-    ],
-    '3': [
-      {
-        id: '4',
-        username: 'generoustipper',
-        display_name: 'Generous Tipper',
-        bio: 'Happy to support amazing content',
-        avatar_url: null,
-        is_verified: true,
-        created_at: '2024-01-05T00:00:00Z',
-        fan_category: 'supporter',
-        email: 'tipper@example.com',
-        email_confirmed: true,
-        google_verified: false
-      }
-    ]
   };
 
   const getCategoryDisplay = (category: Profile['fan_category']) => {
@@ -187,16 +125,27 @@ const FanListDetail = () => {
 
   useEffect(() => {
     if (user && listId) {
-      // Load list data and fans (using mock data for now)
-      const list = mockLists[listId];
-      if (list) {
-        setListData(list);
-        setFans(mockListFans[listId] || []);
-      } else {
-        // List not found, redirect back
-        navigate('/fans/lists');
-      }
-      setListLoading(false);
+      // Load list data and fans from real database
+      const fetchListData = async () => {
+        try {
+          // For now, we only have mock list metadata since fan lists aren't implemented in DB yet
+          const list = mockLists[listId];
+          if (list) {
+            setListData(list);
+            // Set empty fans array - no fictional users
+            setFans([]);
+          } else {
+            // List not found, redirect back
+            navigate('/fans/lists');
+          }
+        } catch (error) {
+          console.error('Error fetching list data:', error);
+          navigate('/fans/lists');
+        }
+        setListLoading(false);
+      };
+      
+      fetchListData();
     }
   }, [user, listId, navigate]);
 
@@ -234,11 +183,13 @@ const FanListDetail = () => {
 
   const refreshList = () => {
     setListLoading(true);
-    // Simulate refresh
+    // Fetch real data when implemented
     setTimeout(() => {
       setListLoading(false);
+      // For now, just refresh with empty list since we don't have real fan list data
+      setFans([]);
       toast({
-        title: "Success",
+        title: "Success", 
         description: "List refreshed successfully",
       });
     }, 1000);
