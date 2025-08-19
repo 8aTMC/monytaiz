@@ -24,10 +24,7 @@ export interface PendingFanDeletion {
     fan_category?: string;
     is_verified?: boolean;
     created_at?: string;
-  };
-  user_metadata?: {
     provider?: string;
-    providers?: string[];
   };
 }
 
@@ -101,6 +98,37 @@ export const useFanDeletion = () => {
     }
   };
 
+  const immediatelyDeleteFan = async (
+    targetUserId: string,
+    deletionReason?: string
+  ) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('immediately_delete_user', {
+        target_user_id: targetUserId,
+        admin_reason: deletionReason
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Fan Deleted",
+        description: "Fan account has been permanently deleted.",
+      });
+
+      return data;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete fan",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getPendingFanDeletions = async (): Promise<PendingFanDeletion[]> => {
     try {
       // Get all user IDs that have the 'fan' role
@@ -117,7 +145,7 @@ export const useFanDeletion = () => {
         return [];
       }
 
-      // Get pending deletions for fan users only with full profile data
+      // Get pending deletions for fan users only with full profile data including provider
       const { data, error } = await supabase
         .from('pending_deletions')
         .select(`
@@ -131,7 +159,8 @@ export const useFanDeletion = () => {
             banner_url,
             fan_category,
             is_verified,
-            created_at
+            created_at,
+            provider
           )
         `)
         .is('restored_at', null)
@@ -139,36 +168,7 @@ export const useFanDeletion = () => {
         .order('requested_at', { ascending: false });
 
       if (error) throw error;
-
-      // Get user auth metadata for each user to determine sign-up provider
-      const deletionsWithProvider = await Promise.all(
-        (data || []).map(async (deletion) => {
-          try {
-            // Get user from auth.users to check their providers
-            const { data: userData, error: userError } = await supabase.auth.admin.getUserById(deletion.user_id);
-            
-            if (!userError && userData?.user) {
-              const providers = userData.user.app_metadata?.providers || [];
-              const isGoogleUser = providers.includes('google');
-              
-              return {
-                ...deletion,
-                user_metadata: {
-                  provider: isGoogleUser ? 'google' : 'email',
-                  providers: providers
-                }
-              };
-            }
-            
-            return deletion;
-          } catch (error) {
-            console.error('Error fetching user auth data:', error);
-            return deletion;
-          }
-        })
-      );
-
-      return deletionsWithProvider;
+      return data || [];
     } catch (error: any) {
       console.error('Full error details:', error);
       toast({
@@ -202,5 +202,6 @@ export const useFanDeletion = () => {
     restoreFanFromDeletion,
     getPendingFanDeletions,
     checkFanDeletionStatus,
+    immediatelyDeleteFan,
   };
 };

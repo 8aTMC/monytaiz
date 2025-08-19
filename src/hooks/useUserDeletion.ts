@@ -17,6 +17,7 @@ export interface PendingDeletion {
   profiles?: {
     username?: string;
     display_name?: string;
+    provider?: string;
   };
 }
 
@@ -109,7 +110,8 @@ export const useUserDeletion = () => {
           *,
           profiles:user_id (
             username,
-            display_name
+            display_name,
+            provider
           )
         `)
         .is('restored_at', null);
@@ -160,6 +162,37 @@ export const useUserDeletion = () => {
     }
   };
 
+  const immediatelyDeleteUser = async (
+    targetUserId: string,
+    deletionReason?: string
+  ) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('immediately_delete_user', {
+        target_user_id: targetUserId,
+        admin_reason: deletionReason
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "User Deleted",
+        description: "User account has been permanently deleted.",
+      });
+
+      return data;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete user",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const checkUserDeletionStatus = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -183,5 +216,6 @@ export const useUserDeletion = () => {
     getPendingDeletions,
     permanentlyDeleteExpiredUsers,
     checkUserDeletionStatus,
+    immediatelyDeleteUser,
   };
 };

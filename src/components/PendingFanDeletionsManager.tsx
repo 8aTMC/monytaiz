@@ -26,9 +26,12 @@ export const PendingFanDeletionsManager = () => {
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
   const [showFanDetailsDialog, setShowFanDetailsDialog] = useState(false);
   const [selectedFanForDetails, setSelectedFanForDetails] = useState<PendingFanDeletion | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedUserForDelete, setSelectedUserForDelete] = useState<PendingFanDeletion | null>(null);
+  const [deletionReason, setDeletionReason] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  const { loading, restoreFanFromDeletion, getPendingFanDeletions } = useFanDeletion();
+  const { loading, restoreFanFromDeletion, getPendingFanDeletions, immediatelyDeleteFan } = useFanDeletion();
   const { toast } = useToast();
 
   const loadPendingDeletions = async () => {
@@ -64,6 +67,25 @@ export const PendingFanDeletionsManager = () => {
   const openRestoreDialog = (deletion: PendingFanDeletion) => {
     setSelectedUser(deletion);
     setShowRestoreDialog(true);
+  };
+
+  const handleDeleteFan = async () => {
+    if (!selectedUserForDelete || !deletionReason.trim()) return;
+
+    try {
+      await immediatelyDeleteFan(selectedUserForDelete.user_id, deletionReason);
+      setShowDeleteDialog(false);
+      setSelectedUserForDelete(null);
+      setDeletionReason('');
+      await loadPendingDeletions();
+    } catch (error) {
+      console.error('Error deleting fan:', error);
+    }
+  };
+
+  const openDeleteDialog = (deletion: PendingFanDeletion) => {
+    setSelectedUserForDelete(deletion);
+    setShowDeleteDialog(true);
   };
 
   const openFanDetailsDialog = (deletion: PendingFanDeletion) => {
@@ -140,7 +162,7 @@ export const PendingFanDeletionsManager = () => {
                       {deletion.profiles?.is_verified && (
                         <Badge variant="secondary" className="text-xs">Verified</Badge>
                       )}
-                      {deletion.user_metadata?.provider === 'google' && (
+                      {deletion.profiles?.provider === 'google' && (
                         <Badge variant="outline" className="text-xs flex items-center gap-1">
                           <GoogleIcon className="h-3 w-3" />
                           Google
@@ -150,6 +172,15 @@ export const PendingFanDeletionsManager = () => {
                     {getStatusBadge(deletion.scheduled_for)}
                   </CardTitle>
                   <div className="flex gap-2">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => openDeleteDialog(deletion)}
+                      disabled={loading}
+                    >
+                      <AlertCircle className="h-4 w-4" />
+                      Fully Delete
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -230,6 +261,69 @@ export const PendingFanDeletionsManager = () => {
         </div>
       )}
 
+      {/* Fully Delete Fan Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Permanently Delete Fan Account</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <p className="text-sm text-destructive font-medium mb-2">
+                ⚠️ WARNING: This action cannot be undone!
+              </p>
+              <p className="text-sm text-muted-foreground">
+                This will immediately and permanently delete the fan account and all associated data.
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">
+                You are about to permanently delete the following fan account:
+              </p>
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="font-medium">
+                  {selectedUserForDelete?.profiles?.display_name || selectedUserForDelete?.profiles?.username || 'Unknown Fan'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  User ID: {selectedUserForDelete?.user_id}
+                </p>
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground">
+                Deletion Reason <span className="text-destructive">*</span>
+              </label>
+              <Textarea
+                value={deletionReason}
+                onChange={(e) => setDeletionReason(e.target.value)}
+                placeholder="Explain why this fan account is being permanently deleted..."
+                className="mt-1"
+                rows={3}
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteDialog(false);
+                  setSelectedUserForDelete(null);
+                  setDeletionReason('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteFan}
+                disabled={!deletionReason.trim() || loading}
+              >
+                {loading ? "Deleting..." : "Permanently Delete"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Fan Details Dialog */}
       <Dialog open={showFanDetailsDialog} onOpenChange={setShowFanDetailsDialog}>
         <DialogContent className="max-w-2xl">
@@ -265,7 +359,7 @@ export const PendingFanDeletionsManager = () => {
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Sign-up Method</label>
                   <p className="text-sm font-medium flex items-center gap-1">
-                    {selectedFanForDetails.user_metadata?.provider === 'google' ? (
+                    {selectedFanForDetails.profiles?.provider === 'google' ? (
                       <>
                         <GoogleIcon className="h-4 w-4" />
                         Google
