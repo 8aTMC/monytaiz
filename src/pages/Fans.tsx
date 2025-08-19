@@ -24,6 +24,7 @@ interface Profile {
   is_verified: boolean;
   created_at: string;
   fan_category: 'husband' | 'boyfriend' | 'supporter' | 'friend' | 'fan';
+  deletion_status?: string;
 }
 
 interface UserRole {
@@ -38,6 +39,7 @@ const Fans = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [fans, setFans] = useState<Profile[]>([]);
+  const [pendingDeletionFans, setPendingDeletionFans] = useState<Profile[]>([]);
   const [loadingFans, setLoadingFans] = useState(true);
   const [selectedFan, setSelectedFan] = useState<Profile | null>(null);
   const [fanRoles, setFanRoles] = useState<Record<string, UserRole[]>>({});
@@ -111,6 +113,7 @@ const Fans = () => {
         if (!fanRoles || fanRoles.length === 0) {
           console.log('⚠️ No fan roles found');
           setFans([]);
+          setPendingDeletionFans([]);
           setLoadingFans(false);
           return;
         }
@@ -137,9 +140,19 @@ const Fans = () => {
           console.error('❌ Error fetching fan profiles:', error);
         } else {
           console.log('✅ Setting fans data:', data);
-          setFans(data || []);
           
-          // Set up roles map for fans
+          // Separate active fans from pending deletion fans
+          const activeFans = (data || []).filter(fan => 
+            fan.deletion_status !== 'pending_deletion'
+          );
+          const pendingDeletions = (data || []).filter(fan => 
+            fan.deletion_status === 'pending_deletion'
+          );
+          
+          setFans(activeFans);
+          setPendingDeletionFans(pendingDeletions);
+          
+          // Set up roles map for all fans
           if (data) {
             const rolesMap: Record<string, UserRole[]> = {};
             data.forEach((fan) => {
@@ -182,6 +195,7 @@ const Fans = () => {
 
           if (roleError || !fanRoles || fanRoles.length === 0) {
             setFans([]);
+            setPendingDeletionFans([]);
             return;
           }
 
@@ -197,8 +211,17 @@ const Fans = () => {
           
           const { data, error } = await profilesQuery.order('created_at', { ascending: false });
 
-          if (!error) {
-            setFans(data || []);
+          if (!error && data) {
+            // Separate active fans from pending deletion fans
+            const activeFans = data.filter(fan => 
+              fan.deletion_status !== 'pending_deletion'
+            );
+            const pendingDeletions = data.filter(fan => 
+              fan.deletion_status === 'pending_deletion'
+            );
+            
+            setFans(activeFans);
+            setPendingDeletionFans(pendingDeletions);
           }
         } catch (error) {
           console.error('Error refreshing fans:', error);
@@ -372,20 +395,126 @@ const Fans = () => {
                      </CardContent>
                    </Card>
                  ))}
-              </div>
-              
-              {fans.length === 0 && !loadingFans && (
-                <div className="col-span-full text-center py-12">
-                  <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-foreground mb-2">No fans found</h3>
-                  <p className="text-muted-foreground">
-                    {categoryFilter 
-                      ? `No fans found in the ${categoryFilter} category.`
-                      : 'No fans have joined yet.'
-                    }
-                  </p>
-                </div>
-              )}
+               </div>
+               
+               {fans.length === 0 && pendingDeletionFans.length === 0 && !loadingFans && (
+                 <div className="col-span-full text-center py-12">
+                   <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                   <h3 className="text-lg font-semibold text-foreground mb-2">No fans found</h3>
+                   <p className="text-muted-foreground">
+                     {categoryFilter 
+                       ? `No fans found in the ${categoryFilter} category.`
+                       : 'No fans have joined yet.'
+                     }
+                   </p>
+                 </div>
+               )}
+
+               {/* Deletions Section */}
+               {pendingDeletionFans.length > 0 && (
+                 <>
+                   <div className="mt-12 mb-6">
+                     <div className="flex items-center gap-3">
+                       <Clock className="h-6 w-6 text-destructive" />
+                       <h2 className="text-2xl font-bold text-foreground">Deletions</h2>
+                       <Badge variant="outline" className="text-destructive border-destructive">
+                         {pendingDeletionFans.length} pending
+                       </Badge>
+                     </div>
+                     <p className="text-sm text-muted-foreground mt-2">
+                       Fans scheduled for deletion. These accounts will be permanently deleted after their 30-day grace period.
+                     </p>
+                   </div>
+
+                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                     {pendingDeletionFans.map((fan) => (
+                       <Card key={fan.id} className="bg-card border-destructive/20 shadow-sm hover:shadow-md transition-all cursor-pointer group opacity-75">
+                         <CardHeader className="pb-3">
+                           <div className="flex items-start justify-between">
+                             <div className="flex items-start space-x-3 flex-1 min-w-0" onClick={() => handleFanClick(fan)}>
+                               <Avatar className="h-12 w-12">
+                                 <AvatarImage src={fan.avatar_url || undefined} />
+                                 <AvatarFallback className="text-sm font-medium bg-muted text-muted-foreground">
+                                   {(() => {
+                                     const name = fan.display_name || fan.username || 'User';
+                                     const words = name.trim().split(/\s+/);
+                                     if (words.length >= 2) {
+                                       return (words[0][0] + words[1][0]).toUpperCase();
+                                     } else {
+                                       return name.slice(0, 2).toUpperCase();
+                                     }
+                                   })()}
+                                 </AvatarFallback>
+                               </Avatar>
+                               <div className="flex-1 min-w-0">
+                                 <div className="flex items-center justify-between mb-1">
+                                   <CardTitle className="text-foreground truncate text-lg font-semibold">
+                                     {fan.display_name || fan.username || 'Anonymous'}
+                                   </CardTitle>
+                                   <Badge variant="destructive" className="ml-2 text-xs">
+                                     Pending Deletion
+                                   </Badge>
+                                 </div>
+                                 {fan.username && fan.display_name && (
+                                   <p className="text-sm text-muted-foreground truncate mb-2">
+                                     @{fan.username}
+                                   </p>
+                                 )}
+                                 <Badge variant="outline" className="w-fit">
+                                   {fan.fan_category && getCategoryDisplay(fan.fan_category)}
+                                 </Badge>
+                               </div>
+                             </div>
+                             
+                             <DropdownMenu>
+                               <DropdownMenuTrigger asChild>
+                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                   <MoreVertical className="h-4 w-4" />
+                                 </Button>
+                               </DropdownMenuTrigger>
+                               <DropdownMenuContent align="end" className="w-48">
+                                 <DropdownMenuItem onClick={() => {
+                                   setSelectedFanForHistory(fan);
+                                   setUsernameHistoryDialogOpen(true);
+                                 }}>
+                                   <Clock className="h-4 w-4 mr-2" />
+                                   Past Usernames
+                                 </DropdownMenuItem>
+                                 <DropdownMenuSeparator />
+                                 <DropdownMenuItem onClick={() => handleMenuAction('restore', fan)} className="text-green-600">
+                                   <UserCheck className="h-4 w-4 mr-2" />
+                                   Restore Account
+                                 </DropdownMenuItem>
+                               </DropdownMenuContent>
+                             </DropdownMenu>
+                           </div>
+                         </CardHeader>
+                         <CardContent onClick={() => handleFanClick(fan)}>
+                           <div className="space-y-3">
+                             {fan.bio && (
+                               <p className="text-sm text-muted-foreground line-clamp-2">
+                                 {fan.bio}
+                               </p>
+                             )}
+                             <div className="flex items-center justify-between text-xs text-muted-foreground">
+                               <span>
+                                 Joined {new Date(fan.created_at).toLocaleDateString('en-US', { 
+                                   month: 'short', 
+                                   day: 'numeric',
+                                   year: 'numeric'
+                                 })}
+                               </span>
+                               <span className="text-destructive font-medium">
+                                 Deletion pending
+                               </span>
+                             </div>
+                           </div>
+                         </CardContent>
+                       </Card>
+                     ))}
+                   </div>
+                 </>
+               )}
               {/* User Details Modal */}
               <Dialog open={!!selectedFan} onOpenChange={() => setSelectedFan(null)}>
                 <DialogContent className="max-w-2xl">
@@ -496,13 +625,6 @@ const Fans = () => {
                 </DialogContent>
               </Dialog>
             </>
-          )}
-
-          {!loadingFans && fans.length === 0 && (
-            <div className="text-center py-12">
-              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No fans registered yet</p>
-            </div>
           )}
         </div>
       </main>
