@@ -255,30 +255,28 @@ const Fans = () => {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center justify-between gap-3 mb-2">
-              <div className="flex items-center gap-3">
-                {categoryFilter ? (
-                  categoryFilter === 'husband' ? <Heart className="h-8 w-8 text-primary" /> :
-                  categoryFilter === 'boyfriend' ? <UserCheck className="h-8 w-8 text-primary" /> :
-                  categoryFilter === 'supporter' ? <Star className="h-8 w-8 text-primary" /> :
-                  categoryFilter === 'friend' ? <ThumbsUp className="h-8 w-8 text-primary" /> :
-                  <Users className="h-8 w-8 text-primary" />
-                ) : (
-                  <Users className="h-8 w-8 text-primary" />
-                )}
-                <h1 className="text-3xl font-bold text-foreground">
-                  {categoryFilter 
-                    ? `${categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1)}${categoryFilter === 'fan' ? 's' : categoryFilter.endsWith('s') ? '' : 's'}`
-                    : 'All Fans'
-                  }
-                </h1>
-              </div>
+            <div className="flex items-center gap-3 mb-2">
+              {categoryFilter ? (
+                categoryFilter === 'husband' ? <Heart className="h-8 w-8 text-primary" /> :
+                categoryFilter === 'boyfriend' ? <UserCheck className="h-8 w-8 text-primary" /> :
+                categoryFilter === 'supporter' ? <Star className="h-8 w-8 text-primary" /> :
+                categoryFilter === 'friend' ? <ThumbsUp className="h-8 w-8 text-primary" /> :
+                <Users className="h-8 w-8 text-primary" />
+              ) : (
+                <Users className="h-8 w-8 text-primary" />
+              )}
+              <h1 className="text-3xl font-bold text-foreground">
+                {categoryFilter 
+                  ? `${categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1)}${categoryFilter === 'fan' ? 's' : categoryFilter.endsWith('s') ? '' : 's'}`
+                  : 'All Fans'
+                }
+              </h1>
               
               {pendingDeletionFans.length > 0 && (
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 ml-4"
                   onClick={() => navigate('/management/pending-deletions')}
                 >
                   <Clock className="h-4 w-4 text-destructive" />
