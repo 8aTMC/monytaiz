@@ -73,7 +73,7 @@ export const AdvancedFileUpload = () => {
   };
 
   return (
-    <Card className="w-full h-[calc(100vh-200px)]">
+    <Card className="w-full h-[calc(100vh-140px)]">
       <CardContent className="p-6 h-full flex flex-col">
         {/* Top Controls Row */}
         {uploadQueue.length > 0 && (
