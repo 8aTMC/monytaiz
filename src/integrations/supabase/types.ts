@@ -498,6 +498,9 @@ export type Database = {
           id: string
           is_undeletable: boolean | null
           is_verified: boolean | null
+          pending_email: string | null
+          pending_email_requested_at: string | null
+          pending_email_token: string | null
           provider: string | null
           signup_completed: boolean | null
           temp_username: boolean | null
@@ -522,6 +525,9 @@ export type Database = {
           id: string
           is_undeletable?: boolean | null
           is_verified?: boolean | null
+          pending_email?: string | null
+          pending_email_requested_at?: string | null
+          pending_email_token?: string | null
           provider?: string | null
           signup_completed?: boolean | null
           temp_username?: boolean | null
@@ -546,6 +552,9 @@ export type Database = {
           id?: string
           is_undeletable?: boolean | null
           is_verified?: boolean | null
+          pending_email?: string | null
+          pending_email_requested_at?: string | null
+          pending_email_token?: string | null
           provider?: string | null
           signup_completed?: boolean | null
           temp_username?: boolean | null

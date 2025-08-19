@@ -6,10 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { User, Settings, Upload, Edit, Mail, Camera, X } from 'lucide-react';
+import { User, Settings, Upload, Edit, Mail, Camera, X, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from '@/hooks/useTranslation';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { ChangeEmailDialog } from './ChangeEmailDialog';
 
 interface UserProfile {
   id: string;
@@ -18,6 +19,9 @@ interface UserProfile {
   bio: string | null;
   avatar_url: string | null;
   email: string | null;
+  pending_email: string | null;
+  pending_email_token: string | null;
+  pending_email_requested_at: string | null;
 }
 
 interface UserRole {
@@ -35,6 +39,9 @@ export const MyAccount = () => {
   const [uploading, setUploading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [deletingAvatar, setDeletingAvatar] = useState(false);
+  const [showChangeEmailDialog, setShowChangeEmailDialog] = useState(false);
+  const [resendingVerification, setResendingVerification] = useState(false);
+  const [cancelingEmailChange, setCancelingEmailChange] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     display_name: '',
@@ -53,7 +60,7 @@ export const MyAccount = () => {
       // Fetch profile data
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, display_name, bio, avatar_url, email')
+        .select('id, username, display_name, bio, avatar_url, email, pending_email, pending_email_token, pending_email_requested_at')
         .eq('id', user.id)
         .single();
 
@@ -339,11 +346,84 @@ export const MyAccount = () => {
     }
   };
 
-  const handleChangeEmail = async () => {
-    toast({
-      title: t('account.changeEmail', 'Change Email'),
-      description: t('account.changeEmailDesc', 'Email change functionality will be implemented soon.'),
-    });
+  const handleChangeEmail = () => {
+    setShowChangeEmailDialog(true);
+  };
+
+  const handleEmailChangeInitiated = (newEmail: string) => {
+    // Refresh profile to show pending email
+    loadProfile();
+  };
+
+  const handleResendVerification = async () => {
+    if (!profile?.pending_email) return;
+
+    setResendingVerification(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ 
+        email: profile.pending_email 
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Verification Email Sent",
+        description: `A new verification email has been sent to ${profile.pending_email}.`,
+        duration: 3000,
+      });
+    } catch (error: any) {
+      console.error('Error resending verification:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to resend verification email. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setResendingVerification(false);
+    }
+  };
+
+  const handleCancelEmailChange = async () => {
+    if (!profile?.pending_email) return;
+
+    setCancelingEmailChange(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          pending_email: null,
+          pending_email_token: null,
+          pending_email_requested_at: null
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        throw error;
+      }
+
+      // Refresh profile
+      loadProfile();
+
+      toast({
+        title: "Email Change Cancelled",
+        description: "Your email change request has been cancelled.",
+        duration: 3000,
+      });
+    } catch (error: any) {
+      console.error('Error cancelling email change:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to cancel email change. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setCancelingEmailChange(false);
+    }
   };
 
   const handleEdit = () => {
@@ -537,16 +617,61 @@ export const MyAccount = () => {
 
           <Card className="hover:shadow-md transition-shadow duration-200 md:col-span-2">
             <CardContent className="p-6">
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 bg-green-500 rounded-full"></div>
                   <label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                     {t('account.email', 'Email')}
                   </label>
                 </div>
-                <p className="text-lg font-medium text-foreground">
-                  {profile?.email || 'Not set'}
-                </p>
+                
+                {/* Active Email */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <p className="text-lg font-medium text-foreground">
+                      {profile?.email || 'Not set'}
+                    </p>
+                    <Badge className="bg-green-100 text-green-800 border-green-200">
+                      Active
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Pending Email */}
+                {profile?.pending_email && (
+                  <div className="flex items-center justify-between bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                    <div className="flex items-center gap-3">
+                      <p className="text-lg font-medium text-foreground">
+                        {profile.pending_email}
+                      </p>
+                      <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                        Pending
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleResendVerification}
+                        disabled={resendingVerification}
+                        className="text-sm"
+                      >
+                        <RotateCcw className="h-3 w-3 mr-1" />
+                        {resendingVerification ? 'Sending...' : 'Resend'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleCancelEmailChange}
+                        disabled={cancelingEmailChange}
+                        className="text-sm text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        {cancelingEmailChange ? 'Canceling...' : 'Cancel'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -574,6 +699,14 @@ export const MyAccount = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Change Email Dialog */}
+        <ChangeEmailDialog
+          isOpen={showChangeEmailDialog}
+          onClose={() => setShowChangeEmailDialog(false)}
+          currentEmail={profile?.email || ''}
+          onEmailChangeInitiated={handleEmailChangeInitiated}
+        />
       </div>
     );
   }
