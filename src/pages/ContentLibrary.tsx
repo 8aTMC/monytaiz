@@ -197,24 +197,31 @@ const ContentLibrary = () => {
 
   const handleCustomFolderDragStart = (e: React.DragEvent, index: number) => {
     e.dataTransfer.setData('text/plain', index.toString());
+    e.dataTransfer.effectAllowed = 'move';
   };
 
   const handleCustomFolderDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
   };
 
   const handleCustomFolderDrop = (e: React.DragEvent, dropIndex: number) => {
     e.preventDefault();
     const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
     
-    if (dragIndex === dropIndex) return;
+    if (dragIndex === dropIndex || isNaN(dragIndex)) return;
     
     const newFolders = [...sortedCustomFolders];
     const draggedItem = newFolders[dragIndex];
+    
+    // Remove the dragged item
     newFolders.splice(dragIndex, 1);
+    // Insert it at the new position
     newFolders.splice(dropIndex, 0, draggedItem);
     
     setCustomFolders(newFolders);
+    // Reset sort order when manually reordering
+    setSortOrder(null);
   };
 
   const handleSortFolders = () => {
@@ -391,19 +398,21 @@ const ContentLibrary = () => {
                       onDragOver={handleCustomFolderDragOver}
                       onDrop={(e) => handleCustomFolderDrop(e, index)}
                     >
-                      <div className="absolute top-1 left-1 z-10">
-                        <EditFolderDialog 
-                          folder={{
-                            id: folder.id,
-                            label: folder.label,
-                            description: folder.description
-                          }}
-                          onFolderUpdated={refreshCustomFolders}
-                        />
-                      </div>
+                      {!isReorderMode && (
+                        <div className="absolute top-1 left-1 z-10">
+                          <EditFolderDialog 
+                            folder={{
+                              id: folder.id,
+                              label: folder.label,
+                              description: folder.description
+                            }}
+                            onFolderUpdated={refreshCustomFolders}
+                          />
+                        </div>
+                      )}
                       <Button
                         variant={selectedCategory === folder.id ? "default" : "ghost"}
-                        className="w-full justify-start text-left p-2 h-auto pr-10 pl-10"
+                        className={`w-full justify-start text-left p-2 h-auto pr-10 ${!isReorderMode ? 'pl-10' : 'pl-2'}`}
                         onClick={() => {
                           if (!isReorderMode) {
                             setSelectedCategory(folder.id);
