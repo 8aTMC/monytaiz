@@ -44,7 +44,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/h
 const SidebarContext = createContext<{
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
-  isNarrowScreen?: boolean;
+  isNarrowScreen: boolean;
 }>({
   isCollapsed: false,
   setIsCollapsed: () => {},
@@ -110,7 +110,7 @@ export const Navigation = () => {
   const { user, signOut } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [openSection, setOpenSection] = useState<'fans' | 'content' | 'management' | null>(null);
-  const { isCollapsed, setIsCollapsed, isNarrowScreen } = useSidebar();
+  const { isCollapsed, setIsCollapsed, isNarrowScreen = false } = useSidebar();
 
   // Determine which section should be open based on current route
   const getCurrentSection = (): 'fans' | 'content' | 'management' | null => {
