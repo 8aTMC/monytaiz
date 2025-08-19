@@ -212,6 +212,7 @@ export const Navigation = () => {
         isCollapsed ? 'w-16' : 'w-52'
       } ${isNarrowScreen && !isCollapsed ? 'shadow-2xl' : ''}`}
       data-auto-collapse
+      {...(isNarrowScreen && !isCollapsed ? { 'data-manually-opened': 'true' } : {})}
     >
       {isCollapsed ? (
         /* Collapsed state - logo centered with arrow on right edge */

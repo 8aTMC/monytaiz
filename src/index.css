@@ -158,9 +158,9 @@ body::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
 
-/* Responsive sidebar auto-collapse - force collapse on narrow screens */
+/* Responsive sidebar auto-collapse - force collapse on narrow screens only when collapsed */
 @media (max-width: 1023px) {
-  [data-auto-collapse] {
+  [data-auto-collapse]:not([data-manually-opened]) {
     width: 4rem !important;
   }
 }
