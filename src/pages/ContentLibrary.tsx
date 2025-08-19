@@ -352,7 +352,7 @@ const ContentLibrary = () => {
                         <IconComponent className="h-4 w-4 flex-shrink-0" />
                          <div className="flex flex-col items-start min-w-0 flex-1">
                            <span className="font-medium text-left w-full">{truncateText(category.label, 26)}</span>
-                           <span className="text-xs text-muted-foreground text-left w-full">{truncateText(category.description, 22)}</span>
+                           <span className="text-xs text-muted-foreground/60 text-left w-full">{category.description}</span>
                          </div>
                       </div>
                     </Button>
@@ -404,9 +404,9 @@ const ContentLibrary = () => {
                         <div className="flex items-center gap-2 min-w-0 flex-1">
                           {isReorderMode && <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
                           <IconComponent className="h-4 w-4 flex-shrink-0" />
-                           <div className="flex flex-col items-start min-w-0 flex-1">
+                            <div className="flex flex-col items-start min-w-0 flex-1">
                              <span className="font-medium text-left w-full">{truncateText(folder.label, 26)}</span>
-                             <span className="text-xs text-muted-foreground text-left w-full">{truncateText(folder.description, 22)}</span>
+                             <span className="text-xs text-muted-foreground/60 text-left w-full">{folder.description}</span>
                            </div>
                         </div>
                       </Button>
