@@ -9,8 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Filter, Grid, Image, Video, FileAudio, FileText, Calendar, ArrowUpDown, BookOpen, Zap, MessageSquare, GripVertical } from 'lucide-react';
+import { Search, Filter, Grid, Image, Video, FileAudio, FileText, Calendar, ArrowUpDown, BookOpen, Zap, MessageSquare, GripVertical, Edit } from 'lucide-react';
 import { NewFolderDialog } from '@/components/NewFolderDialog';
+import { EditFolderDialog } from '@/components/EditFolderDialog';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface ContentFile {
@@ -403,16 +404,26 @@ const ContentLibrary = () => {
                       >
                         <div className="flex items-center gap-2 min-w-0 flex-1">
                           {isReorderMode && <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
-                          <IconComponent className="h-4 w-4 flex-shrink-0" />
+                          <Edit className="h-4 w-4 flex-shrink-0" />
                             <div className="flex flex-col items-start min-w-0 flex-1">
-                             <span className="font-medium text-left w-full">{truncateText(folder.label, 24)}</span>
-                             <span className={`text-xs text-left w-full ${selectedCategory === folder.id ? 'text-foreground' : 'text-muted-foreground/80'}`}>{truncateText(folder.description, 30)}</span>
-                           </div>
+                              <span className="font-medium text-left w-full">{truncateText(folder.label, 24)}</span>
+                              <span className={`text-xs text-left w-full ${selectedCategory === folder.id ? 'text-foreground' : 'text-muted-foreground/80'}`}>{truncateText(folder.description, 30)}</span>
+                            </div>
                         </div>
                       </Button>
-                      <Badge variant="secondary" className="absolute top-1 right-2 text-xs pointer-events-none">
-                        {folder.count || 0}
-                      </Badge>
+                      <div className="absolute top-1 right-2 flex items-center gap-1">
+                        <EditFolderDialog 
+                          folder={{
+                            id: folder.id,
+                            label: folder.label,
+                            description: folder.description
+                          }}
+                          onFolderUpdated={refreshCustomFolders}
+                        />
+                        <Badge variant="secondary" className="text-xs pointer-events-none">
+                          {folder.count || 0}
+                        </Badge>
+                      </div>
                     </div>
                   );
                 })}
