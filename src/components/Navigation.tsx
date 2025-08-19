@@ -211,7 +211,6 @@ export const Navigation = () => {
       className={`fixed left-0 top-0 bg-card border-r border-border h-screen flex flex-col z-40 transition-all duration-300 ${
         isCollapsed ? 'w-16' : 'w-52'
       } ${isNarrowScreen && !isCollapsed ? 'shadow-2xl' : ''}`}
-      style={isNarrowScreen && !isCollapsed ? { width: '208px' } : undefined}
       data-auto-collapse
     >
       {isCollapsed ? (
