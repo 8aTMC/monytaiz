@@ -260,12 +260,12 @@ export const Navigation = () => {
                   </div>
                 </CollapsibleTrigger>
                 
-                <CollapsibleContent className="mt-1 space-y-1">
+                 <CollapsibleContent className="mt-1 space-y-1">
                   <Link
                     to="/fans"
                     className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
                       location.pathname === '/fans' && !location.search
-                        ? 'bg-primary/5 text-primary border border-primary/10'
+                        ? 'bg-primary/3 text-primary/90'
                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                     }`}
                   >
@@ -276,7 +276,7 @@ export const Navigation = () => {
                     to="/fans/categories"
                     className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
                       location.pathname === '/fans/categories'
-                        ? 'bg-primary/5 text-primary border border-primary/10'
+                        ? 'bg-primary/3 text-primary/90'
                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                     }`}
                   >
@@ -287,7 +287,7 @@ export const Navigation = () => {
                     to="/fans/lists"
                     className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
                       location.pathname === '/fans/lists'
-                        ? 'bg-primary/5 text-primary border border-primary/10'
+                        ? 'bg-primary/3 text-primary/90'
                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                     }`}
                   >
@@ -342,7 +342,7 @@ export const Navigation = () => {
                     to="/library"
                     className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
                       location.pathname === '/library'
-                        ? 'bg-primary/5 text-primary border border-primary/10'
+                        ? 'bg-primary/3 text-primary/90'
                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                     }`}
                   >
@@ -353,7 +353,7 @@ export const Navigation = () => {
                     to="/upload"
                     className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
                       location.pathname === '/upload'
-                        ? 'bg-primary/5 text-primary border border-primary/10'
+                        ? 'bg-primary/3 text-primary/90'
                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                     }`}
                   >
@@ -408,7 +408,7 @@ export const Navigation = () => {
                     to="/management/users"
                     className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
                       location.pathname === '/management/users'
-                        ? 'bg-primary/5 text-primary border border-primary/10'
+                        ? 'bg-primary/3 text-primary/90'
                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                     }`}
                   >
