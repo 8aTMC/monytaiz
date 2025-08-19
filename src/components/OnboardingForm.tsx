@@ -45,8 +45,15 @@ export const OnboardingForm = ({ userEmail, userId }: OnboardingFormProps) => {
     setLoading(true);
 
     try {
-      // Update the user profile
-      const { error } = await supabase
+      console.log('🔄 Starting onboarding form submission for user:', userId);
+      console.log('📝 Form data:', {
+        username: formData.username.trim(),
+        displayName: formData.displayName.trim(),
+        bio: formData.bio.trim() || null
+      });
+
+      // Update the user profile with better error handling
+      const { data: updateData, error: updateError } = await supabase
         .from('profiles')
         .update({
           username: formData.username.trim(),
@@ -55,23 +62,57 @@ export const OnboardingForm = ({ userEmail, userId }: OnboardingFormProps) => {
           signup_completed: true,
           temp_username: false,
         })
-        .eq('id', userId);
+        .eq('id', userId)
+        .select(); // Add select to get the updated data back
 
-      if (error) throw error;
+      if (updateError) {
+        console.error('❌ Profile update error:', updateError);
+        throw updateError;
+      }
+
+      console.log('✅ Profile updated successfully:', updateData);
+
+      // Verify the update was successful
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('profiles')
+        .select('signup_completed, temp_username, username, display_name')
+        .eq('id', userId)
+        .single();
+
+      if (verifyError) {
+        console.error('❌ Profile verification error:', verifyError);
+        throw new Error('Failed to verify profile update');
+      }
+
+      console.log('🔍 Profile verification result:', verifyData);
+
+      if (!verifyData.signup_completed || verifyData.temp_username) {
+        console.error('❌ Profile update verification failed:', verifyData);
+        throw new Error('Profile update was not saved correctly');
+      }
 
       // Sync profile data to auth.users metadata
       try {
-        await supabase.functions.invoke('sync-profile-to-auth', {
+        console.log('🔄 Syncing profile to auth metadata...');
+        const { data: syncData, error: syncError } = await supabase.functions.invoke('sync-profile-to-auth', {
           body: {
             userId: userId,
             displayName: formData.displayName.trim(),
             username: formData.username.trim(),
           }
         });
+
+        if (syncError) {
+          console.warn('⚠️ Profile sync to auth failed:', syncError);
+        } else {
+          console.log('✅ Profile sync completed:', syncData);
+        }
       } catch (syncError) {
-        console.warn('Profile sync to auth failed:', syncError);
+        console.warn('⚠️ Profile sync to auth failed:', syncError);
         // Don't block the flow if sync fails
       }
+
+      console.log('🎉 Onboarding completed successfully, redirecting to fans page...');
 
       toast({
         title: "Welcome!",
@@ -80,6 +121,8 @@ export const OnboardingForm = ({ userEmail, userId }: OnboardingFormProps) => {
 
       navigate('/fans');
     } catch (error: any) {
+      console.error('❌ Onboarding form submission failed:', error);
+      
       let errorMessage = error.message;
       
       // Handle specific error cases
