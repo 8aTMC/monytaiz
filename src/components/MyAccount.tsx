@@ -17,6 +17,7 @@ interface UserProfile {
   display_name: string | null;
   bio: string | null;
   avatar_url: string | null;
+  email: string | null;
 }
 
 interface UserRole {
@@ -52,7 +53,7 @@ export const MyAccount = () => {
       // Fetch profile data
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, username, display_name, bio, avatar_url, email')
         .eq('id', user.id)
         .single();
 
@@ -529,6 +530,22 @@ export const MyAccount = () => {
                 </div>
                 <p className="text-lg font-medium text-foreground">
                   {profile?.display_name || 'Not set'}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow duration-200 md:col-span-2">
+            <CardContent className="p-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                  <label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                    {t('account.email', 'Email')}
+                  </label>
+                </div>
+                <p className="text-lg font-medium text-foreground">
+                  {profile?.email || 'Not set'}
                 </p>
               </div>
             </CardContent>
