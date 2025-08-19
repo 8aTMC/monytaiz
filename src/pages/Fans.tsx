@@ -26,6 +26,7 @@ interface Profile {
   fan_category: 'husband' | 'boyfriend' | 'supporter' | 'friend' | 'fan';
   deletion_status?: string;
   email?: string;
+  email_confirmed?: boolean;
 }
 
 interface UserRole {
@@ -125,7 +126,7 @@ const Fans = () => {
         // Then get the profiles for those users with optional category filter
         let profilesQuery = supabase
           .from('profiles')
-          .select('*, email')
+          .select('*, email, email_confirmed')
           .in('id', fanUserIds);
         
         // Apply category filter if specified
@@ -203,7 +204,7 @@ const Fans = () => {
           const fanUserIds = fanRoles.map(role => role.user_id);
           let profilesQuery = supabase
             .from('profiles')
-            .select('*, email')
+            .select('*, email, email_confirmed')
             .in('id', fanUserIds);
           
           if (categoryFilter) {
@@ -477,7 +478,17 @@ const Fans = () => {
                             <Separator />
                             <div className="flex justify-between py-2">
                               <span className="text-muted-foreground">Email</span>
-                              <span className="text-sm">{selectedFan.email || 'Not available'}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">{selectedFan.email || 'Not available'}</span>
+                                {selectedFan.email && (
+                                  <Badge 
+                                    variant={selectedFan.email_confirmed ? "default" : "destructive"}
+                                    className="text-xs"
+                                  >
+                                    {selectedFan.email_confirmed ? "Verified" : "Not Verified"}
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                             <Separator />
                             <div className="flex justify-between py-2">

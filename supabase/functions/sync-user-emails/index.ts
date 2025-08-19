@@ -44,14 +44,17 @@ Deno.serve(async (req) => {
       try {
         const { error: updateError } = await supabaseAdmin
           .from('profiles')
-          .update({ email: authUser.email })
+          .update({ 
+            email: authUser.email,
+            email_confirmed: authUser.email_confirmed_at !== null
+          })
           .eq('id', authUser.id);
 
         if (updateError) {
           console.error(`Error updating profile for user ${authUser.id}:`, updateError);
           errorCount++;
         } else {
-          console.log(`Updated email for user ${authUser.id}: ${authUser.email}`);
+          console.log(`Updated email and confirmation status for user ${authUser.id}: ${authUser.email} (confirmed: ${authUser.email_confirmed_at !== null})`);
           updatedCount++;
         }
       } catch (error) {

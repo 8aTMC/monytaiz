@@ -492,6 +492,7 @@ export type Database = {
           deletion_status: string | null
           display_name: string | null
           email: string | null
+          email_confirmed: boolean | null
           fan_category: Database["public"]["Enums"]["fan_category"] | null
           id: string
           is_undeletable: boolean | null
@@ -512,6 +513,7 @@ export type Database = {
           deletion_status?: string | null
           display_name?: string | null
           email?: string | null
+          email_confirmed?: boolean | null
           fan_category?: Database["public"]["Enums"]["fan_category"] | null
           id: string
           is_undeletable?: boolean | null
@@ -532,6 +534,7 @@ export type Database = {
           deletion_status?: string | null
           display_name?: string | null
           email?: string | null
+          email_confirmed?: boolean | null
           fan_category?: Database["public"]["Enums"]["fan_category"] | null
           id?: string
           is_undeletable?: boolean | null

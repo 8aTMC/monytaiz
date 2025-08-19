@@ -25,6 +25,7 @@ interface UserProfile {
   created_at: string;
   roles: string[];
   email?: string;
+  email_confirmed?: boolean;
 }
 
 const Users = () => {
@@ -115,6 +116,7 @@ const Users = () => {
           .select(`
             *,
             email,
+            email_confirmed,
             user_roles!user_roles_user_id_fkey(role)
           `)
           .not('user_roles.role', 'eq', 'fan');
@@ -142,6 +144,7 @@ const Users = () => {
               is_verified: user.is_verified,
               created_at: user.created_at,
               email: user.email,
+              email_confirmed: user.email_confirmed,
               roles: []
             });
           }
@@ -336,9 +339,17 @@ const Users = () => {
                                   @{user.username}
                                 </p>
                                 {user.email && (
-                                  <p className="text-sm text-muted-foreground">
-                                    {user.email}
-                                  </p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm text-muted-foreground">
+                                      {user.email}
+                                    </p>
+                                    <Badge 
+                                      variant={user.email_confirmed ? "default" : "destructive"}
+                                      className="text-xs"
+                                    >
+                                      {user.email_confirmed ? "Verified" : "Not Verified"}
+                                    </Badge>
+                                  </div>
                                 )}
                                 {user.bio && (
                                   <p className="text-sm text-muted-foreground max-w-md">
