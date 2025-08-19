@@ -296,6 +296,25 @@ export const MyAccount = () => {
         throw error;
       }
 
+      // Sync profile changes to auth.users
+      try {
+        const { error: syncError } = await supabase.functions.invoke('sync-profile-to-auth', {
+          body: {
+            userId: profile.id,
+            displayName: formData.display_name || null,
+            username: formData.username || null
+          }
+        });
+
+        if (syncError) {
+          console.error('Error syncing profile to auth:', syncError);
+          // Don't throw error here as profile was updated successfully
+        }
+      } catch (syncError) {
+        console.error('Error calling sync function:', syncError);
+        // Don't throw error here as profile was updated successfully
+      }
+
       setProfile(prev => prev ? {
         ...prev,
         username: formData.username || null,

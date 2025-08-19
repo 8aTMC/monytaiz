@@ -1,1 +1,22 @@
 project_id = "alzyzfjzwvofmjccirjq"
+
+[functions.cleanup-deleted-users]
+verify_jwt = true
+
+[functions.sync-fan-emails]
+verify_jwt = true
+
+[functions.sync-management-emails]
+verify_jwt = true
+
+[functions.sync-profile-to-auth]
+verify_jwt = true
+
+[functions.cleanup-unverified-accounts]
+verify_jwt = true
+
+[functions.sync-user-emails]
+verify_jwt = true
+
+[functions.verify-user-email]
+verify_jwt = true
