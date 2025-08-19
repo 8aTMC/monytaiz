@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, Clock, User, Shield, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, User, Shield, AlertCircle, Eye, Heart, UserCheck, Star, ThumbsUp } from 'lucide-react';
 import { useFanDeletion, PendingFanDeletion } from '@/hooks/useFanDeletion';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -14,6 +14,8 @@ export const PendingFanDeletionsManager = () => {
   const [selectedUser, setSelectedUser] = useState<PendingFanDeletion | null>(null);
   const [restorationReason, setRestorationReason] = useState('');
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [showFanDetailsDialog, setShowFanDetailsDialog] = useState(false);
+  const [selectedFanForDetails, setSelectedFanForDetails] = useState<PendingFanDeletion | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const { loading, restoreFanFromDeletion, getPendingFanDeletions } = useFanDeletion();
@@ -52,6 +54,21 @@ export const PendingFanDeletionsManager = () => {
   const openRestoreDialog = (deletion: PendingFanDeletion) => {
     setSelectedUser(deletion);
     setShowRestoreDialog(true);
+  };
+
+  const openFanDetailsDialog = (deletion: PendingFanDeletion) => {
+    setSelectedFanForDetails(deletion);
+    setShowFanDetailsDialog(true);
+  };
+
+  const getFanCategoryIcon = (category?: string) => {
+    switch (category) {
+      case 'husband': return <Heart className="h-4 w-4 text-red-500" />;
+      case 'boyfriend': return <UserCheck className="h-4 w-4 text-pink-500" />;
+      case 'supporter': return <Star className="h-4 w-4 text-yellow-500" />;
+      case 'friend': return <ThumbsUp className="h-4 w-4 text-blue-500" />;
+      default: return <User className="h-4 w-4 text-muted-foreground" />;
+    }
   };
 
   const isExpired = (scheduledFor: string) => {
@@ -107,18 +124,33 @@ export const PendingFanDeletionsManager = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <User className="h-5 w-5 text-primary" />
-                    {deletion.profiles?.display_name || deletion.profiles?.username || 'Unknown Fan'}
+                    {getFanCategoryIcon(deletion.profiles?.fan_category)}
+                    <span className="flex items-center gap-2">
+                      {deletion.profiles?.display_name || deletion.profiles?.username || `Fan ${deletion.user_id.slice(0, 8)}`}
+                      {deletion.profiles?.is_verified && (
+                        <Badge variant="secondary" className="text-xs">Verified</Badge>
+                      )}
+                    </span>
                     {getStatusBadge(deletion.scheduled_for)}
                   </CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openRestoreDialog(deletion)}
-                    disabled={loading}
-                  >
-                    Restore Fan
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openFanDetailsDialog(deletion)}
+                    >
+                      <Eye className="h-4 w-4" />
+                      View Details
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openRestoreDialog(deletion)}
+                      disabled={loading}
+                    >
+                      Restore Fan
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -181,6 +213,90 @@ export const PendingFanDeletionsManager = () => {
           ))}
         </div>
       )}
+
+      {/* Fan Details Dialog */}
+      <Dialog open={showFanDetailsDialog} onOpenChange={setShowFanDetailsDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedFanForDetails && getFanCategoryIcon(selectedFanForDetails.profiles?.fan_category)}
+              Fan Account Details
+            </DialogTitle>
+          </DialogHeader>
+          {selectedFanForDetails && (
+            <div className="space-y-6">
+              {/* Basic Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Display Name</label>
+                  <p className="text-sm font-medium">
+                    {selectedFanForDetails.profiles?.display_name || 'Not set'}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Username</label>
+                  <p className="text-sm font-medium">
+                    {selectedFanForDetails.profiles?.username || 'Not set'}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Fan Category</label>
+                  <p className="text-sm font-medium flex items-center gap-1">
+                    {getFanCategoryIcon(selectedFanForDetails.profiles?.fan_category)}
+                    {selectedFanForDetails.profiles?.fan_category || 'fan'}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Joined</label>
+                  <p className="text-sm font-medium">
+                    {selectedFanForDetails.profiles?.created_at 
+                      ? format(new Date(selectedFanForDetails.profiles.created_at), 'PPP')
+                      : 'Unknown'
+                    }
+                  </p>
+                </div>
+              </div>
+
+              {/* Bio */}
+              {selectedFanForDetails.profiles?.bio && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Bio</label>
+                  <p className="text-sm mt-1 p-3 bg-muted rounded-lg">
+                    {selectedFanForDetails.profiles.bio}
+                  </p>
+                </div>
+              )}
+
+              {/* Deletion Info */}
+              <div className="border-t pt-4">
+                <label className="text-sm font-medium text-muted-foreground">Deletion Information</label>
+                <div className="grid grid-cols-2 gap-4 mt-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Deletion Type</p>
+                    <p className="text-sm font-medium">
+                      {selectedFanForDetails.is_self_requested ? 'Self-requested' : 'Admin-initiated'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Scheduled For</p>
+                    <p className="text-sm font-medium">
+                      {format(new Date(selectedFanForDetails.scheduled_for), 'PPP')}
+                    </p>
+                  </div>
+                </div>
+                {selectedFanForDetails.reason && (
+                  <div className="mt-3">
+                    <p className="text-xs text-muted-foreground">Reason</p>
+                    <p className="text-sm mt-1 p-2 bg-muted rounded">
+                      {selectedFanForDetails.reason}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Restore Fan Dialog */}
       <Dialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>

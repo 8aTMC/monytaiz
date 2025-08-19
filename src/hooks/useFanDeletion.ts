@@ -15,8 +15,15 @@ export interface PendingFanDeletion {
   restored_by?: string;
   restored_reason?: string;
   profiles?: {
+    id?: string;
     username?: string;
     display_name?: string;
+    bio?: string;
+    avatar_url?: string;
+    banner_url?: string;
+    fan_category?: string;
+    is_verified?: boolean;
+    created_at?: string;
   };
 }
 
@@ -106,14 +113,21 @@ export const useFanDeletion = () => {
         return [];
       }
 
-      // Get pending deletions for fan users only
+      // Get pending deletions for fan users only with full profile data
       const { data, error } = await supabase
         .from('pending_deletions')
         .select(`
           *,
-          profiles:user_id (
+          profiles!inner (
+            id,
             username,
-            display_name
+            display_name,
+            bio,
+            avatar_url,
+            banner_url,
+            fan_category,
+            is_verified,
+            created_at
           )
         `)
         .is('restored_at', null)
@@ -123,6 +137,7 @@ export const useFanDeletion = () => {
       if (error) throw error;
       return data || [];
     } catch (error: any) {
+      console.error('Full error details:', error);
       toast({
         title: "Error",
         description: "Failed to fetch pending fan deletions",
