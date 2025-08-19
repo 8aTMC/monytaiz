@@ -81,7 +81,22 @@ Deno.serve(async (req) => {
 
     console.log(`🧹 Cleaning up data for pending user: ${userId} (${profile.display_name || profile.username})`);
 
-    // Delete all associated data first
+    // STEP 1: Immediately revoke all sessions for the user (log them out from all devices)
+    console.log('🔒 Revoking all active sessions for user:', userId);
+    try {
+      const { error: sessionError } = await supabaseAdmin.auth.admin.signOut(userId, 'global');
+      if (sessionError) {
+        console.error('⚠️ Failed to revoke sessions:', sessionError);
+        // Continue with deletion even if session revocation fails
+      } else {
+        console.log('✅ Successfully revoked all sessions for user:', userId);
+      }
+    } catch (sessionError) {
+      console.error('⚠️ Session revocation failed:', sessionError);
+      // Continue with deletion process - this shouldn't block the deletion
+    }
+
+    // STEP 2: Delete all associated data
     await Promise.all([
       // Delete user roles
       supabaseAdmin.from('user_roles').delete().eq('user_id', userId),
