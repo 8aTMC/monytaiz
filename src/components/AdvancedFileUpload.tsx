@@ -73,23 +73,75 @@ export const AdvancedFileUpload = () => {
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>Upload Files</span>
-          {totalCount > 0 && (
-            <Badge variant="secondary">
-              {processedCount}/{totalCount} processed
-            </Badge>
-          )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <Card className="w-full h-[calc(100vh-200px)]">
+      <CardContent className="p-6 h-full flex flex-col">
+        {/* Top Controls Row */}
+        {uploadQueue.length > 0 && (
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              {totalCount > 0 && (
+                <Badge variant="secondary">
+                  {processedCount}/{totalCount} processed
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {uploadQueue.length < 100 && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Upload More
+                </Button>
+              )}
+              {!isUploading && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearQueue}
+                  >
+                    Clear All
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={startUpload}
+                    disabled={uploadQueue.length === 0}
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Start Upload
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Upload Status */}
+        {isUploading && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">Uploading files...</span>
+              <span className="text-sm text-muted-foreground">
+                {currentUploadIndex + 1} of {totalCount}
+              </span>
+            </div>
+            <Progress 
+              value={((currentUploadIndex + 1) / totalCount) * 100} 
+              className="h-2"
+            />
+          </div>
+        )}
+
         {/* Upload Area - Only show when no files selected */}
         {uploadQueue.length === 0 && (
           <div 
             className={cn(
-              "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
+              "border-2 border-dashed rounded-lg p-8 text-center transition-colors flex-1 flex flex-col justify-center",
               "border-muted-foreground/25 hover:border-muted-foreground/50",
               "bg-muted/10 hover:bg-muted/20"
             )}
@@ -127,58 +179,10 @@ export const AdvancedFileUpload = () => {
           </div>
         )}
 
-        {/* Upload More Button - Show when files are selected and less than 100 */}
-        {uploadQueue.length > 0 && uploadQueue.length < 100 && (
-          <div className="flex justify-end">
-            <Button 
-              variant="outline" 
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-              className="flex items-center gap-2"
-            >
-              <Upload className="h-4 w-4" />
-              Upload More
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              onChange={handleFileSelect}
-              className="hidden"
-              accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.mov,.webm,.avi,.mkv,.mp3,.wav,.aac,.ogg,.pdf,.doc,.docx,.txt,.rtf"
-            />
-          </div>
-        )}
-
-        {/* Upload Queue */}
+        {/* Upload Queue - Takes remaining height */}
         {uploadQueue.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium">Upload Queue</h4>
-              <div className="flex gap-2">
-                {!isUploading && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={clearQueue}
-                    >
-                      Clear All
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={startUpload}
-                      disabled={uploadQueue.length === 0}
-                    >
-                      <Play className="w-4 h-4 mr-2" />
-                      Start Upload
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <ScrollArea className="h-80 border rounded-lg p-4">
+          <div className="flex-1 flex flex-col min-h-0">
+            <ScrollArea className="flex-1 border rounded-lg p-4">
               <div className="space-y-3">
                 {uploadQueue.map((item, index) => (
                 <FileUploadRow
@@ -200,21 +204,16 @@ export const AdvancedFileUpload = () => {
           </div>
         )}
 
-        {/* Upload Status */}
-        {isUploading && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Uploading files...</span>
-              <span className="text-sm text-muted-foreground">
-                {currentUploadIndex + 1} of {totalCount}
-              </span>
-            </div>
-            <Progress 
-              value={((currentUploadIndex + 1) / totalCount) * 100} 
-              className="h-2"
-            />
-          </div>
-        )}
+        {/* Hidden input for upload more functionality */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          onChange={handleFileSelect}
+          className="hidden"
+          accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.mov,.webm,.avi,.mkv,.mp3,.wav,.aac,.ogg,.pdf,.doc,.docx,.txt,.rtf"
+        />
+
       </CardContent>
     </Card>
   );
