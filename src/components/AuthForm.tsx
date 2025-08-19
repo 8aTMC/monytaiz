@@ -240,13 +240,13 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
                   id="displayName"
                   type="text"
                   value={formData.displayName}
-                  onChange={(e) => handleInputChange('displayName', e.target.value.slice(0, 20))}
+                  onChange={(e) => handleInputChange('displayName', e.target.value.slice(0, 24))}
                   className="bg-black/50 border-gray-600 text-white placeholder:text-gray-400"
-                  maxLength={20}
+                  maxLength={24}
                   placeholder="Your name"
                   title=""
                 />
-                <p className="text-xs text-gray-400">{formData.displayName.length}/20 characters</p>
+                <p className="text-xs text-gray-400">{formData.displayName.length}/24 characters</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="username" className="text-white">
@@ -256,12 +256,12 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
                   id="username"
                   type="text"
                   value={formData.username}
-                  onChange={(e) => handleInputChange('username', e.target.value.slice(0, 20))}
+                  onChange={(e) => handleInputChange('username', e.target.value.slice(0, 24))}
                   className="bg-black/50 border-gray-600 text-white placeholder:text-gray-400"
-                  maxLength={20}
+                  maxLength={24}
                   title=""
                 />
-                <p className="text-xs text-gray-400">{formData.username.length}/20 characters</p>
+                <p className="text-xs text-gray-400">{formData.username.length}/24 characters</p>
               </div>
             </>
           )}
