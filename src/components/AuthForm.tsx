@@ -189,6 +189,27 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
           }
         }
 
+        // Check username availability
+        const { data: existingUsername, error: usernameError } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('username', formData.username)
+          .maybeSingle();
+
+        if (usernameError) {
+          console.error('Error checking username availability:', usernameError);
+        }
+
+        if (existingUsername) {
+          toast({
+            title: "Username Taken",
+            description: "That username is already taken. Please choose a different username.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
         const { error } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
@@ -202,6 +223,7 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         });
 
         if (error) {
+          console.error('Signup error details:', error);
           throw error;
         }
 
@@ -229,6 +251,7 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         });
       }
     } catch (error: any) {
+      console.error('Auth error details:', error);
       let errorMessage = error.message;
       
       // Handle specific error cases
@@ -237,11 +260,23 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         errorMessage = "Account is pending activation. Please check your email to verify your account.";
       } else if (error.message?.includes('duplicate key value violates unique constraint') &&
                  error.message?.includes('profiles_username_key')) {
-        errorMessage = t('platform.validation.usernameExists');
-      } else if (error.message?.includes('Database error saving new user')) {
-        errorMessage = t('platform.validation.accountCreationError');
+        errorMessage = "This username is already taken. Please choose a different username.";
+      } else if (error.message?.includes('duplicate key value violates unique constraint') &&
+                 error.message?.includes('profiles_email_key')) {
+        errorMessage = "This email is already registered. Please use a different email or try signing in.";
+      } else if (error.message?.includes('Database error saving new user') ||
+                 error.message?.includes('trigger function')) {
+        errorMessage = "There was an error creating your account. Please try again or choose a different username.";
       } else if (error.message?.includes('Invalid login credentials')) {
         errorMessage = "Invalid email or password. Please check your credentials.";
+      } else if (error.message?.includes('Email rate limit exceeded')) {
+        errorMessage = "Too many requests. Please wait a moment before trying again.";
+      } else if (error.message?.includes('Password should be at least')) {
+        errorMessage = "Password must meet the requirements shown above.";
+      } else if (error.message?.includes('Invalid email')) {
+        errorMessage = "Please enter a valid email address.";
+      } else if (error.message === "Failed to fetch" || error.message?.includes('fetch')) {
+        errorMessage = "Network error. Please check your internet connection and try again.";
       }
       
       toast({
