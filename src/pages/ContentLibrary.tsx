@@ -46,6 +46,7 @@ const ContentLibrary = () => {
   const [selectedCategory, setSelectedCategory] = useState('all-files');
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
+  const [originalFolderOrder, setOriginalFolderOrder] = useState<typeof customFolders>([]);
   
   const [defaultCategories] = useState([
     { id: 'all-files', label: 'All Files', icon: Grid, description: 'All uploaded content', isDefault: true },
@@ -234,6 +235,27 @@ const ContentLibrary = () => {
     }
   };
 
+  const handleStartReorder = () => {
+    // Save current order before starting reorder mode
+    setOriginalFolderOrder([...customFolders]);
+    setIsReorderMode(true);
+  };
+
+  const handleCancelReorder = () => {
+    // Restore original order and exit reorder mode
+    setCustomFolders(originalFolderOrder);
+    setIsReorderMode(false);
+    setOriginalFolderOrder([]);
+  };
+
+  const handleConfirmReorder = async () => {
+    // Save the new order to database (if needed) and exit reorder mode
+    // For now, we'll just keep the current order in state
+    // You could add database persistence here if needed
+    setIsReorderMode(false);
+    setOriginalFolderOrder([]);
+  };
+
   const refreshCustomFolders = async () => {
     if (!user) return;
     try {
@@ -377,15 +399,36 @@ const ContentLibrary = () => {
               <div className="space-y-1">
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-sm font-medium text-muted-foreground">Custom Folders</div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsReorderMode(!isReorderMode)}
-                    className="text-xs h-7 px-2"
-                  >
-                    <ArrowUpDown className="h-3 w-3 mr-1" />
-                    Reorder
-                  </Button>
+                  {!isReorderMode ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleStartReorder}
+                      className="text-xs h-7 px-2"
+                    >
+                      <ArrowUpDown className="h-3 w-3 mr-1" />
+                      Reorder
+                    </Button>
+                  ) : (
+                    <div className="flex gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCancelReorder}
+                        className="text-xs h-7 px-2"
+                      >
+                        ✕
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleConfirmReorder}
+                        className="text-xs h-7 px-2"
+                      >
+                        ✓
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 {sortedCustomFolders.map((folder, index) => {
                   const IconComponent = folder.icon;
