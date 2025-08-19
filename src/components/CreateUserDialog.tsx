@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,7 @@ interface CreateUserDialogProps {
 const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDialogProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -28,8 +29,39 @@ const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDialogPro
     displayName: '',
     username: '',
     bio: '',
-    role: 'admin' as 'admin' | 'moderator' | 'chatter' | 'creator',
+    role: 'admin' as 'admin' | 'superadmin' | 'moderator' | 'chatter' | 'creator',
   });
+
+  // Check current user's role to determine what roles they can create
+  useEffect(() => {
+    const checkCurrentUserRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: userRoles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id);
+        
+        if (userRoles && userRoles.length > 0) {
+          // Get the highest role (owner has precedence)
+          const roles = userRoles.map(r => r.role);
+          if (roles.includes('owner')) {
+            setCurrentUserRole('owner');
+          } else if (roles.includes('superadmin')) {
+            setCurrentUserRole('superadmin');
+          } else if (roles.includes('admin')) {
+            setCurrentUserRole('admin');
+          } else {
+            setCurrentUserRole(roles[0]);
+          }
+        }
+      }
+    };
+
+    if (open) {
+      checkCurrentUserRole();
+    }
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,6 +154,8 @@ const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDialogPro
 
   const getRoleIcon = (role: string) => {
     switch (role) {
+      case 'superadmin':
+        return <Shield className="h-4 w-4 text-purple-500" />;
       case 'admin':
         return <Shield className="h-4 w-4" />;
       case 'moderator':
@@ -130,6 +164,23 @@ const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDialogPro
         return <MessageCircle className="h-4 w-4" />;
       default:
         return <User className="h-4 w-4" />;
+    }
+  };
+
+  // Determine which roles the current user can create
+  const getAvailableRoles = () => {
+    if (currentUserRole === 'owner') {
+      // Owner can create all roles including superadmin
+      return ['superadmin', 'admin', 'moderator', 'chatter', 'creator'];
+    } else if (currentUserRole === 'superadmin') {
+      // Superadmin can create all roles except owner and other superadmins
+      return ['admin', 'moderator', 'chatter', 'creator'];
+    } else if (currentUserRole === 'admin') {
+      // Admin can create lower level roles
+      return ['moderator', 'chatter', 'creator'];
+    } else {
+      // Other roles have limited creation rights
+      return ['chatter'];
     }
   };
 
@@ -261,30 +312,47 @@ const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDialogPro
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">
-                  <div className="flex items-center gap-2">
-                    {getRoleIcon('admin')}
-                    Admin
-                  </div>
-                </SelectItem>
-                <SelectItem value="moderator">
-                  <div className="flex items-center gap-2">
-                    {getRoleIcon('moderator')}
-                    Moderator
-                  </div>
-                </SelectItem>
-                <SelectItem value="chatter">
-                  <div className="flex items-center gap-2">
-                    {getRoleIcon('chatter')}
-                    Chatter
-                  </div>
-                </SelectItem>
-                <SelectItem value="creator">
-                  <div className="flex items-center gap-2">
-                    {getRoleIcon('creator')}
-                    Creator
-                  </div>
-                </SelectItem>
+                {getAvailableRoles().includes('superadmin') && (
+                  <SelectItem value="superadmin">
+                    <div className="flex items-center gap-2">
+                      {getRoleIcon('superadmin')}
+                      <span>Super Admin</span>
+                      <span className="text-xs text-purple-500 ml-1">(Most Powerful)</span>
+                    </div>
+                  </SelectItem>
+                )}
+                {getAvailableRoles().includes('admin') && (
+                  <SelectItem value="admin">
+                    <div className="flex items-center gap-2">
+                      {getRoleIcon('admin')}
+                      Admin
+                    </div>
+                  </SelectItem>
+                )}
+                {getAvailableRoles().includes('moderator') && (
+                  <SelectItem value="moderator">
+                    <div className="flex items-center gap-2">
+                      {getRoleIcon('moderator')}
+                      Moderator
+                    </div>
+                  </SelectItem>
+                )}
+                {getAvailableRoles().includes('chatter') && (
+                  <SelectItem value="chatter">
+                    <div className="flex items-center gap-2">
+                      {getRoleIcon('chatter')}
+                      Chatter
+                    </div>
+                  </SelectItem>
+                )}
+                {getAvailableRoles().includes('creator') && (
+                  <SelectItem value="creator">
+                    <div className="flex items-center gap-2">
+                      {getRoleIcon('creator')}
+                      Creator
+                    </div>
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>

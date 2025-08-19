@@ -178,6 +178,8 @@ const Users = () => {
     switch (role) {
       case 'owner':
         return <Crown className="h-4 w-4" />;
+      case 'superadmin':
+        return <Crown className="h-4 w-4 text-purple-500" />;
       case 'admin':
         return <Crown className="h-4 w-4" />;
       case 'moderator':
@@ -193,6 +195,8 @@ const Users = () => {
     switch (role) {
       case 'owner':
         return 'bg-purple-500/10 text-purple-700 border-purple-200 dark:text-purple-400 dark:border-purple-800';
+      case 'superadmin':
+        return 'bg-purple-500/10 text-purple-600 border-purple-200 dark:text-purple-300 dark:border-purple-800';
       case 'admin':
         return 'bg-red-500/10 text-red-700 border-red-200 dark:text-red-400 dark:border-red-800';
       case 'moderator':
@@ -204,6 +208,8 @@ const Users = () => {
     }
   };
 
+  const roleOrder = ['owner', 'superadmin', 'admin', 'moderator', 'chatter', 'creator'];
+
   const usersByRole = users.reduce((acc, user) => {
     user.roles.forEach(role => {
       if (!acc[role]) acc[role] = [];
@@ -211,8 +217,6 @@ const Users = () => {
     });
     return acc;
   }, {} as Record<string, UserProfile[]>);
-
-  const roleOrder = ['owner', 'admin', 'moderator', 'chatter', 'creator'];
 
   if (loading) {
     return (
