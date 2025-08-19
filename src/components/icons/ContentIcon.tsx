@@ -21,7 +21,7 @@ export const ContentIcon: React.FC<ContentIconProps> = ({ className = "h-5 w-5" 
       
       {/* Simple image icon inside */}
       <circle cx="8.5" cy="10.5" r="1.5" />
-      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 19" />
       
       {/* Small play indicator in corner */}
       <polygon points="17,7 17,11 20,9" fill="currentColor" />
