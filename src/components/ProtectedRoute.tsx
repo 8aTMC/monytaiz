@@ -11,6 +11,8 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [checkingProfile, setCheckingProfile] = useState(true);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -21,22 +23,74 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // If user logs out, they'll be redirected by the Navigate component below
+        // Check if user needs onboarding when session changes
+        if (session?.user) {
+          setTimeout(async () => {
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('signup_completed, username, display_name, temp_username')
+                .eq('id', session.user.id)
+                .single();
+              
+              const needsProfileCompletion = profile && (
+                !profile.signup_completed || 
+                !profile.username || 
+                !profile.display_name ||
+                profile.temp_username
+              );
+              
+              setNeedsOnboarding(!!needsProfileCompletion);
+              setCheckingProfile(false);
+            } catch (error) {
+              console.error('Error checking profile completion:', error);
+              setCheckingProfile(false);
+            }
+          }, 0);
+        } else {
+          setCheckingProfile(false);
+          setNeedsOnboarding(false);
+        }
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      
+      if (session?.user) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('signup_completed, username, display_name, temp_username')
+            .eq('id', session.user.id)
+            .single();
+          
+          const needsProfileCompletion = profile && (
+            !profile.signup_completed || 
+            !profile.username || 
+            !profile.display_name ||
+            profile.temp_username
+          );
+          
+          setNeedsOnboarding(!!needsProfileCompletion);
+          setCheckingProfile(false);
+        } catch (error) {
+          console.error('Error checking profile completion:', error);
+          setCheckingProfile(false);
+        }
+      } else {
+        setCheckingProfile(false);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // Show loading while checking authentication
-  if (loading) {
+  // Show loading while checking authentication or profile
+  if (loading || checkingProfile) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -52,6 +106,11 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
-  // User is authenticated, render the protected content
+  // If user needs to complete onboarding, redirect to onboarding
+  if (needsOnboarding && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
+  }
+
+  // User is authenticated and profile is complete, render the protected content
   return <>{children}</>;
 };
