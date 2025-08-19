@@ -6,16 +6,16 @@ import { User, Session } from '@supabase/supabase-js';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, TrendingUp, Users, DollarSign } from 'lucide-react';
-import FanDashboard from './FanDashboard';
+import { MessageCircle, Heart, Star, Gift } from 'lucide-react';
+import { ChatDialog } from '@/components/ChatDialog';
 
-const Platform = () => {
+const FanDashboard = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
   const { isCollapsed } = useSidebar();
 
   useEffect(() => {
@@ -27,8 +27,7 @@ const Platform = () => {
         if (!session?.user) {
           navigate('/');
         } else {
-          // Fetch user role after authentication
-          fetchUserRole(session.user.id);
+          setLoading(false);
         }
       }
     );
@@ -40,34 +39,12 @@ const Platform = () => {
       if (!session?.user) {
         navigate('/');
       } else {
-        fetchUserRole(session.user.id);
+        setLoading(false);
       }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
-
-  const fetchUserRole = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching user role:', error);
-        setUserRole('fan'); // Default to fan if no role found
-      } else {
-        setUserRole(data.role);
-      }
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching user role:', error);
-      setUserRole('fan');
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -89,7 +66,6 @@ const Platform = () => {
               <div className="mb-8 flex gap-4">
                 <div className="h-12 w-32 bg-muted/30 rounded"></div>
                 <div className="h-12 w-28 bg-muted/20 rounded"></div>
-                <div className="h-12 w-24 bg-muted/20 rounded"></div>
               </div>
               
               {/* Stats Grid Skeleton */}
@@ -97,12 +73,6 @@ const Platform = () => {
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="h-24 bg-muted/20 rounded-lg"></div>
                 ))}
-              </div>
-              
-              {/* Content Grid Skeleton */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="h-64 bg-muted/20 rounded-lg"></div>
-                <div className="h-64 bg-muted/20 rounded-lg"></div>
               </div>
             </div>
           </div>
@@ -115,30 +85,25 @@ const Platform = () => {
     return null;
   }
 
-  // Render fan dashboard for fans
-  if (userRole === 'fan') {
-    return <FanDashboard />;
-  }
-
   const stats = [
     {
-      title: "Total Earnings",
-      value: "$0.00",
-      icon: DollarSign,
+      title: "Following",
+      value: "0",
+      icon: Heart,
       change: "+0%",
       changeType: "positive" as const,
     },
     {
-      title: "Active Fans",
+      title: "Favorites",
       value: "0",
-      icon: Users,
+      icon: Star,
       change: "+0%",
       changeType: "positive" as const,
     },
     {
-      title: "Content Views",
+      title: "Purchases",
       value: "0",
-      icon: TrendingUp,
+      icon: Gift,
       change: "+0%",
       changeType: "positive" as const,
     },
@@ -153,21 +118,21 @@ const Platform = () => {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold">
-              {t('platform.dashboard.title', 'Dashboard')}
+              {t('fan.dashboard.title', 'Fan Dashboard')}
             </h1>
+            <p className="text-muted-foreground mt-2">
+              Welcome back! Discover and connect with your favorite creators.
+            </p>
           </div>
 
           {/* Quick Actions */}
           <div className="mb-8 flex gap-4">
-            <Button onClick={() => navigate('/upload')} className="gap-2">
-              <Plus className="h-4 w-4" />
-              {t('platform.dashboard.uploadContent', 'Upload Content')}
+            <Button onClick={() => setChatOpen(true)} className="gap-2">
+              <MessageCircle className="h-4 w-4" />
+              Chat
             </Button>
-            <Button variant="outline" onClick={() => navigate('/messages')}>
-              {t('platform.dashboard.viewMessages', 'View Messages')}
-            </Button>
-            <Button variant="outline" onClick={() => navigate('/fans')}>
-              {t('platform.dashboard.manageFans', 'Manage Fans')}
+            <Button variant="outline" onClick={() => navigate('/library')}>
+              Browse Content
             </Button>
           </div>
 
@@ -208,29 +173,29 @@ const Platform = () => {
                 <div className="space-y-4">
                   <div className="flex items-center space-x-4">
                     <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <TrendingUp className="h-5 w-5 text-primary" />
+                      <Heart className="h-5 w-5 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium">Content performance improving</p>
-                      <p className="text-xs text-muted-foreground">Your recent uploads are getting more engagement</p>
+                      <p className="text-sm font-medium">New favorites available</p>
+                      <p className="text-xs text-muted-foreground">Check out the latest content from creators you follow</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
                     <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                      <Users className="h-5 w-5 text-green-600" />
+                      <MessageCircle className="h-5 w-5 text-green-600" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium">New fans this week</p>
-                      <p className="text-xs text-muted-foreground">You've gained new followers recently</p>
+                      <p className="text-sm font-medium">Start chatting</p>
+                      <p className="text-xs text-muted-foreground">Connect with your favorite creators through chat</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
                     <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                      <DollarSign className="h-5 w-5 text-blue-600" />
+                      <Star className="h-5 w-5 text-blue-600" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium">Earnings update</p>
-                      <p className="text-xs text-muted-foreground">Check your latest earnings and payouts</p>
+                      <p className="text-sm font-medium">Discover new content</p>
+                      <p className="text-xs text-muted-foreground">Explore trending content and new creators</p>
                     </div>
                   </div>
                 </div>
@@ -240,28 +205,28 @@ const Platform = () => {
             {/* Quick Stats */}
             <Card>
               <CardHeader>
-                <CardTitle>Quick Overview</CardTitle>
+                <CardTitle>Your Activity</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Total Content</span>
-                    <span className="font-medium">0 items</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Active Subscriptions</span>
+                    <span className="text-sm text-muted-foreground">Messages Sent</span>
                     <span className="font-medium">0</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Messages Today</span>
+                    <span className="text-sm text-muted-foreground">Content Viewed</span>
                     <span className="font-medium">0</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Profile Views</span>
-                    <span className="font-medium">0</span>
+                    <span className="text-sm text-muted-foreground">Tips Given</span>
+                    <span className="font-medium">$0.00</span>
                   </div>
-                  <Button variant="outline" className="w-full" onClick={() => navigate('/analytics')}>
-                    View Detailed Analytics
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Following</span>
+                    <span className="font-medium">0 creators</span>
+                  </div>
+                  <Button variant="outline" className="w-full" onClick={() => navigate('/profile')}>
+                    View Profile Settings
                   </Button>
                 </div>
               </CardContent>
@@ -269,8 +234,10 @@ const Platform = () => {
           </div>
         </div>
       </main>
+
+      <ChatDialog open={chatOpen} onOpenChange={setChatOpen} />
     </div>
   );
 };
 
-export default Platform;
+export default FanDashboard;
