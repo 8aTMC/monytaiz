@@ -134,8 +134,11 @@ export const EditFolderDialog = ({ folder, onFolderUpdated }: EditFolderDialogPr
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter folder name"
-              maxLength={50}
+              maxLength={24}
             />
+            <p className="text-xs text-muted-foreground">
+              {name.length}/24 characters
+            </p>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="folder-description">Description</Label>
@@ -144,8 +147,11 @@ export const EditFolderDialog = ({ folder, onFolderUpdated }: EditFolderDialogPr
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Enter folder description"
-              maxLength={100}
+              maxLength={30}
             />
+            <p className="text-xs text-muted-foreground">
+              {description.length}/30 characters
+            </p>
           </div>
         </div>
         <div className="flex justify-between">

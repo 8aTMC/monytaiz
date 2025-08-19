@@ -31,19 +31,19 @@ export const NewFolderDialog = ({ onFolderCreated }: NewFolderDialogProps) => {
       return;
     }
 
-    if (name.length > 15) {
+    if (name.length > 24) {
       toast({
         title: "Error",
-        description: "Folder name must be 15 characters or less",
+        description: "Folder name must be 24 characters or less",
         variant: "destructive",
       });
       return;
     }
 
-    if (description.length > 20) {
+    if (description.length > 30) {
       toast({
         title: "Error",
-        description: "Description must be 20 characters or less",
+        description: "Description must be 30 characters or less",
         variant: "destructive",
       });
       return;
@@ -111,11 +111,11 @@ export const NewFolderDialog = ({ onFolderCreated }: NewFolderDialogProps) => {
               placeholder="Enter folder name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              maxLength={15}
+              maxLength={24}
               required
             />
             <p className="text-xs text-muted-foreground">
-              {name.length}/15 characters
+              {name.length}/24 characters
             </p>
           </div>
           
@@ -126,11 +126,11 @@ export const NewFolderDialog = ({ onFolderCreated }: NewFolderDialogProps) => {
               placeholder="Enter folder description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              maxLength={20}
+              maxLength={30}
               rows={2}
             />
             <p className="text-xs text-muted-foreground">
-              {description.length}/20 characters
+              {description.length}/30 characters
             </p>
           </div>
 
