@@ -16,18 +16,15 @@ export const ContentIcon: React.FC<ContentIconProps> = ({ className = "h-5 w-5" 
       strokeLinejoin="round"
       className={className}
     >
-      {/* Back frame */}
-      <rect x="6" y="4" width="16" height="12" rx="2" className="opacity-40" />
+      {/* Single clean frame */}
+      <rect x="3" y="5" width="18" height="14" rx="2" />
       
-      {/* Middle frame */}
-      <rect x="4" y="6" width="16" height="12" rx="2" className="opacity-70" />
+      {/* Simple image icon inside */}
+      <circle cx="8.5" cy="10.5" r="1.5" />
+      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
       
-      {/* Front frame with content */}
-      <rect x="2" y="8" width="16" height="12" rx="2" />
-      
-      {/* Image content inside front frame */}
-      <circle cx="6" cy="12" r="1.5" />
-      <path d="m18 16-3-3-2 2-3-3-6 6" />
+      {/* Small play indicator in corner */}
+      <polygon points="17,7 17,11 20,9" fill="currentColor" />
     </svg>
   );
 };
