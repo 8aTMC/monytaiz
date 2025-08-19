@@ -25,17 +25,13 @@ const Auth = () => {
               try {
                 const { data: profile } = await supabase
                   .from('profiles')
-                  .select('signup_completed, username, display_name, provider, google_verified')
+                  .select('signup_completed, username, display_name, provider, google_verified, temp_username')
                   .eq('id', session.user.id)
                   .single();
                 
-                // Only redirect to onboarding if:
-                // 1. signup_completed is false, OR
-                // 2. It's a Google user who needs to complete their profile (temp username scenario)
-                if (profile && !profile.signup_completed) {
-                  navigate('/onboarding');
-                  return;
-                } else if (profile && profile.provider === 'google' && profile.google_verified && (!profile.username || !profile.display_name)) {
+                // Only redirect to onboarding for Google users who need to complete their profile
+                // Regular email users already provided username/display_name during signup
+                if (profile && profile.provider === 'google' && (!profile.username || !profile.display_name || profile.temp_username)) {
                   navigate('/onboarding');  
                   return;
                 }
@@ -60,17 +56,13 @@ const Auth = () => {
         try {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('signup_completed, username, display_name, provider, google_verified')
+            .select('signup_completed, username, display_name, provider, google_verified, temp_username')
             .eq('id', session.user.id)
             .single();
           
-          // Only redirect to onboarding if:
-          // 1. signup_completed is false, OR
-          // 2. It's a Google user who needs to complete their profile
-          if (profile && !profile.signup_completed) {
-            navigate('/onboarding');
-            return;
-          } else if (profile && profile.provider === 'google' && profile.google_verified && (!profile.username || !profile.display_name)) {
+          // Only redirect to onboarding for Google users who need to complete their profile
+          // Regular email users already provided username/display_name during signup
+          if (profile && profile.provider === 'google' && (!profile.username || !profile.display_name || profile.temp_username)) {
             navigate('/onboarding');  
             return;
           }
