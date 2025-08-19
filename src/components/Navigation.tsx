@@ -57,16 +57,23 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [userCollapsed, setUserCollapsed] = useState(false);
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
+  const [wasNarrowScreen, setWasNarrowScreen] = useState(false);
 
   // Auto-collapse on narrow screens
   useEffect(() => {
     const handleResize = () => {
       const isNarrow = window.innerWidth < 1024; // lg breakpoint
-      setIsNarrowScreen(isNarrow);
+      const wasNarrow = wasNarrowScreen;
       
-      if (isNarrow && !userCollapsed) {
+      setIsNarrowScreen(isNarrow);
+      setWasNarrowScreen(isNarrow);
+      
+      // Only auto-collapse when transitioning from wide to narrow
+      if (isNarrow && !wasNarrow) {
         setIsCollapsed(true);
-      } else if (!isNarrow && !userCollapsed) {
+        setUserCollapsed(true);
+      } else if (!isNarrow && wasNarrow && !userCollapsed) {
+        // Auto-expand when transitioning from narrow to wide (if user didn't manually collapse)
         setIsCollapsed(false);
       }
     };
@@ -77,10 +84,16 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
     // Listen for resize
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [userCollapsed]);
+  }, [wasNarrowScreen, userCollapsed]);
 
   const handleSetCollapsed = (collapsed: boolean) => {
     setIsCollapsed(collapsed);
+    // On narrow screens, don't set userCollapsed to false when manually opening
+    // This prevents the auto-collapse logic from immediately closing it
+    if (isNarrowScreen && !collapsed) {
+      // Keep userCollapsed as true so auto-collapse doesn't interfere
+      return;
+    }
     setUserCollapsed(collapsed);
   };
 
