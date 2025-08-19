@@ -129,19 +129,18 @@ export const Navigation = () => {
     return location.pathname === href;
   };
 
-  // Helper function to check if fans section is active
-  const isFansActive = () => {
-    return location.pathname.startsWith('/fans');
-  };
-
-  // Helper function to check if content section is active
-  const isContentActive = () => {
-    return location.pathname === '/library' || location.pathname === '/upload';
-  };
-
-  // Helper function to check if management section is active
-  const isManagementActive = () => {
-    return location.pathname.startsWith('/management');
+  // Helper function to check if a section is active
+  const isSectionActive = (section: 'fans' | 'content' | 'management') => {
+    switch (section) {
+      case 'fans':
+        return location.pathname.startsWith('/fans');
+      case 'content':
+        return location.pathname === '/library' || location.pathname === '/upload';
+      case 'management':
+        return location.pathname.startsWith('/management');
+      default:
+        return false;
+    }
   };
 
   const navItems = [
@@ -228,15 +227,15 @@ export const Navigation = () => {
             {isCollapsed ? (
               <Link
                 to="/fans"
-                className={`flex items-center rounded-lg transition-smooth ${
-                  isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
-                } ${
-                  isFansActive() 
-                    ? isCollapsed 
-                      ? 'bg-primary/20 text-primary' 
-                      : 'bg-primary/10 text-primary border border-primary/20'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                }`}
+                 className={`flex items-center rounded-lg transition-smooth ${
+                   isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
+                 } ${
+                   isSectionActive('fans') 
+                     ? isCollapsed 
+                       ? 'bg-primary/20 text-primary' 
+                       : 'bg-primary/10 text-primary border border-primary/20'
+                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                 }`}
                 title="Fans"
               >
                 <Users className="h-5 w-5 flex-shrink-0" />
@@ -244,7 +243,7 @@ export const Navigation = () => {
             ) : (
               <Collapsible open={openSection === 'fans'} onOpenChange={() => handleSectionToggle('fans')}>
                 <CollapsibleTrigger className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
-                  isFansActive() 
+                  isSectionActive('fans') 
                     ? 'bg-primary/10 text-primary border border-primary/20' 
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                 }`}>
@@ -305,15 +304,15 @@ export const Navigation = () => {
             {isCollapsed ? (
               <Link
                 to="/library"
-                className={`flex items-center rounded-lg transition-smooth ${
-                  isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
-                } ${
-                  isContentActive() 
-                    ? isCollapsed 
-                      ? 'bg-primary/20 text-primary' 
-                      : 'bg-primary/10 text-primary border border-primary/20'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                }`}
+                 className={`flex items-center rounded-lg transition-smooth ${
+                   isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
+                 } ${
+                   isSectionActive('content') 
+                     ? isCollapsed 
+                       ? 'bg-primary/20 text-primary' 
+                       : 'bg-primary/10 text-primary border border-primary/20'
+                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                 }`}
                 title="Content"
               >
                 <FileText className="h-5 w-5 flex-shrink-0" />
@@ -321,7 +320,7 @@ export const Navigation = () => {
             ) : (
               <Collapsible open={openSection === 'content'} onOpenChange={() => handleSectionToggle('content')}>
                 <CollapsibleTrigger className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
-                  isContentActive() 
+                  isSectionActive('content') 
                     ? 'bg-primary/10 text-primary border border-primary/20' 
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                 }`}>
@@ -371,15 +370,15 @@ export const Navigation = () => {
             {isCollapsed ? (
               <Link
                 to="/management/users"
-                className={`flex items-center rounded-lg transition-smooth ${
-                  isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
-                } ${
-                  isManagementActive() 
-                    ? isCollapsed 
-                      ? 'bg-primary/20 text-primary' 
-                      : 'bg-primary/10 text-primary border border-primary/20'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                }`}
+                 className={`flex items-center rounded-lg transition-smooth ${
+                   isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
+                 } ${
+                   isSectionActive('management') 
+                     ? isCollapsed 
+                       ? 'bg-primary/20 text-primary' 
+                       : 'bg-primary/10 text-primary border border-primary/20'
+                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                 }`}
                 title="Management"
               >
                 <UserIcon className="h-5 w-5 flex-shrink-0" />
@@ -387,7 +386,7 @@ export const Navigation = () => {
             ) : (
               <Collapsible open={openSection === 'management'} onOpenChange={() => handleSectionToggle('management')}>
                 <CollapsibleTrigger className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
-                  isManagementActive() 
+                  isSectionActive('management') 
                     ? 'bg-primary/10 text-primary border border-primary/20' 
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                 }`}>
