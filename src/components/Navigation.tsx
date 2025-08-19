@@ -88,8 +88,15 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
     <SidebarContext.Provider value={{ isCollapsed, setIsCollapsed: handleSetCollapsed, isNarrowScreen }}>
       <div 
         className={`min-h-screen ${isNarrowScreen && !isCollapsed ? 'overflow-x-auto' : ''}`}
-        {...(isNarrowScreen && !isCollapsed ? { 'data-narrow-screen-open': true } : {})}
+        {...(isNarrowScreen && !isCollapsed ? { 'data-narrow-screen-open': 'true' } : {})}
       >
+        {/* Overlay for narrow screens when sidebar is open */}
+        {isNarrowScreen && !isCollapsed && (
+          <div 
+            className="fixed inset-0 bg-black/20 z-30" 
+            onClick={() => handleSetCollapsed(true)}
+          />
+        )}
         {children}
       </div>
     </SidebarContext.Provider>
@@ -103,7 +110,7 @@ export const Navigation = () => {
   const { user, signOut } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [openSection, setOpenSection] = useState<'fans' | 'content' | 'management' | null>(null);
-  const { isCollapsed, setIsCollapsed } = useSidebar();
+  const { isCollapsed, setIsCollapsed, isNarrowScreen } = useSidebar();
 
   // Determine which section should be open based on current route
   const getCurrentSection = (): 'fans' | 'content' | 'management' | null => {
@@ -190,7 +197,7 @@ export const Navigation = () => {
     <nav 
       className={`fixed left-0 top-0 bg-card border-r border-border h-screen flex flex-col z-40 transition-all duration-300 ${
         isCollapsed ? 'w-16' : 'w-52'
-      }`}
+      } ${isNarrowScreen && !isCollapsed ? 'shadow-2xl' : ''}`}
       data-auto-collapse
     >
       {isCollapsed ? (

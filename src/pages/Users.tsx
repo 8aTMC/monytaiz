@@ -308,7 +308,7 @@ const Users = () => {
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold text-foreground">Users</h1>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 ml-auto pr-20">
               <Button 
                 variant="outline" 
                 size="sm"

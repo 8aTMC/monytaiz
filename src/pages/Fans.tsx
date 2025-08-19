@@ -553,7 +553,7 @@ const Fans = () => {
               
               {/* Only show admin buttons on "All Fans" page, not on category-filtered pages */}
               {!categoryFilter && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 ml-auto pr-20">
                   <Button 
                     variant="outline" 
                     size="sm"
