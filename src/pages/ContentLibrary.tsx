@@ -225,8 +225,8 @@ const ContentLibrary = () => {
         <div className="flex h-screen">
           {/* Categories Sidebar */}
           <div className="w-96 bg-card border-r border-border p-6 overflow-y-auto">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">Library</h2>
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-foreground mb-3">Library</h2>
               <div className="flex items-center gap-1">
                 <NewFolderDialog onFolderCreated={() => {
                   // Optionally refresh folders list here
