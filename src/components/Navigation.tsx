@@ -465,7 +465,7 @@ export const Navigation = () => {
                     {userProfile?.display_name || userProfile?.username || 'Anonymous'}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {user?.email}
+                    @{userProfile?.username || 'username'}
                   </p>
                 </div>
               )}
@@ -477,7 +477,7 @@ export const Navigation = () => {
                 {userProfile?.display_name || userProfile?.username || 'Anonymous'}
               </p>
               <p className="text-xs text-muted-foreground truncate">
-                {user?.email}
+                @{userProfile?.username || 'username'}
               </p>
             </div>
             <Button 
