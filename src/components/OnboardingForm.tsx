@@ -45,55 +45,80 @@ export const OnboardingForm = ({ userEmail, userId }: OnboardingFormProps) => {
     setLoading(true);
 
     try {
-      console.log('🔄 Starting onboarding form submission for user:', userId);
-      console.log('📝 Form data:', {
+      console.log('🚀 STARTING ONBOARDING SUBMISSION');
+      console.log('📋 User ID:', userId);
+      console.log('📋 Form Data:', {
         username: formData.username.trim(),
         displayName: formData.displayName.trim(),
         bio: formData.bio.trim() || null
       });
 
-      // Update the user profile with better error handling
+      // STEP 1: Update the user profile with detailed logging
+      console.log('🔄 Step 1: Updating profile in database...');
+      const updatePayload = {
+        username: formData.username.trim(),
+        display_name: formData.displayName.trim(),
+        bio: formData.bio.trim() || null,
+        signup_completed: true,
+        temp_username: false,
+      };
+      
+      console.log('📤 Database update payload:', updatePayload);
+
       const { data: updateData, error: updateError } = await supabase
         .from('profiles')
-        .update({
-          username: formData.username.trim(),
-          display_name: formData.displayName.trim(),
-          bio: formData.bio.trim() || null,
-          signup_completed: true,
-          temp_username: false,
-        })
+        .update(updatePayload)
         .eq('id', userId)
-        .select(); // Add select to get the updated data back
+        .select('id, username, display_name, signup_completed, temp_username'); // Get back the updated data
 
       if (updateError) {
-        console.error('❌ Profile update error:', updateError);
-        throw updateError;
+        console.error('❌ PROFILE UPDATE FAILED:', updateError);
+        throw new Error(`Database update failed: ${updateError.message}`);
       }
 
-      console.log('✅ Profile updated successfully:', updateData);
+      if (!updateData || updateData.length === 0) {
+        console.error('❌ NO DATA RETURNED FROM UPDATE');
+        throw new Error('No data returned from database update - user may not exist');
+      }
 
-      // Verify the update was successful
+      console.log('✅ Step 1 COMPLETE - Profile updated:', updateData[0]);
+
+      // STEP 2: Verify the update was successful
+      console.log('🔄 Step 2: Verifying database update...');
       const { data: verifyData, error: verifyError } = await supabase
         .from('profiles')
-        .select('signup_completed, temp_username, username, display_name')
+        .select('id, signup_completed, temp_username, username, display_name')
         .eq('id', userId)
         .single();
 
       if (verifyError) {
-        console.error('❌ Profile verification error:', verifyError);
-        throw new Error('Failed to verify profile update');
+        console.error('❌ VERIFICATION FAILED:', verifyError);
+        throw new Error(`Verification failed: ${verifyError.message}`);
       }
 
-      console.log('🔍 Profile verification result:', verifyData);
+      console.log('🔍 Verification result:', verifyData);
 
-      if (!verifyData.signup_completed || verifyData.temp_username) {
-        console.error('❌ Profile update verification failed:', verifyData);
-        throw new Error('Profile update was not saved correctly');
+      // CRITICAL CHECK: Ensure the fields were actually updated
+      if (!verifyData.signup_completed) {
+        console.error('❌ CRITICAL: signup_completed is still false!');
+        throw new Error('Database update failed: signup_completed was not set to true');
       }
 
-      // Sync profile data to auth.users metadata
+      if (verifyData.temp_username) {
+        console.error('❌ CRITICAL: temp_username is still true!');
+        throw new Error('Database update failed: temp_username was not set to false');
+      }
+
+      if (!verifyData.username || !verifyData.display_name) {
+        console.error('❌ CRITICAL: username or display_name is missing!');
+        throw new Error('Database update failed: username or display_name is missing');
+      }
+
+      console.log('✅ Step 2 COMPLETE - Verification passed');
+
+      // STEP 3: Sync profile data to auth.users metadata
+      console.log('🔄 Step 3: Syncing to auth metadata...');
       try {
-        console.log('🔄 Syncing profile to auth metadata...');
         const { data: syncData, error: syncError } = await supabase.functions.invoke('sync-profile-to-auth', {
           body: {
             userId: userId,
@@ -103,38 +128,43 @@ export const OnboardingForm = ({ userEmail, userId }: OnboardingFormProps) => {
         });
 
         if (syncError) {
-          console.warn('⚠️ Profile sync to auth failed:', syncError);
+          console.warn('⚠️ Auth sync failed (non-blocking):', syncError);
         } else {
-          console.log('✅ Profile sync completed:', syncData);
+          console.log('✅ Step 3 COMPLETE - Auth sync successful:', syncData);
         }
       } catch (syncError) {
-        console.warn('⚠️ Profile sync to auth failed:', syncError);
-        // Don't block the flow if sync fails
+        console.warn('⚠️ Auth sync failed (non-blocking):', syncError);
       }
 
-      console.log('🎉 Onboarding completed successfully, redirecting to fans page...');
+      // STEP 4: Success! Show message and redirect
+      console.log('🎉 ONBOARDING COMPLETED SUCCESSFULLY!');
+      console.log('🚀 Redirecting to /fans...');
 
       toast({
         title: "Welcome!",
-        description: "Your profile has been set up successfully",
+        description: "Your profile has been set up successfully. You're now an active user!",
       });
 
-      navigate('/fans');
+      // Small delay to ensure database changes propagate
+      setTimeout(() => {
+        navigate('/fans');
+      }, 500);
+
     } catch (error: any) {
-      console.error('❌ Onboarding form submission failed:', error);
+      console.error('💥 ONBOARDING FAILED:', error);
       
       let errorMessage = error.message;
       
       // Handle specific error cases
       if (error.message?.includes('duplicate key value violates unique constraint') &&
           error.message?.includes('profiles_username_key')) {
-        errorMessage = t('platform.validation.usernameExists');
+        errorMessage = 'This username is already taken. Please choose a different one.';
       } else if (error.message?.includes('unique constraint')) {
-        errorMessage = t('platform.validation.usernameExists');
+        errorMessage = 'This username is already taken. Please choose a different one.';
       }
       
       toast({
-        title: "Error",
+        title: "Setup Failed",
         description: errorMessage,
         variant: "destructive",
       });
