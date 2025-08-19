@@ -494,10 +494,13 @@ export type Database = {
           email: string | null
           email_confirmed: boolean | null
           fan_category: Database["public"]["Enums"]["fan_category"] | null
+          google_verified: boolean | null
           id: string
           is_undeletable: boolean | null
           is_verified: boolean | null
           provider: string | null
+          signup_completed: boolean | null
+          temp_username: boolean | null
           updated_at: string | null
           username: string | null
         }
@@ -515,10 +518,13 @@ export type Database = {
           email?: string | null
           email_confirmed?: boolean | null
           fan_category?: Database["public"]["Enums"]["fan_category"] | null
+          google_verified?: boolean | null
           id: string
           is_undeletable?: boolean | null
           is_verified?: boolean | null
           provider?: string | null
+          signup_completed?: boolean | null
+          temp_username?: boolean | null
           updated_at?: string | null
           username?: string | null
         }
@@ -536,10 +542,13 @@ export type Database = {
           email?: string | null
           email_confirmed?: boolean | null
           fan_category?: Database["public"]["Enums"]["fan_category"] | null
+          google_verified?: boolean | null
           id?: string
           is_undeletable?: boolean | null
           is_verified?: boolean | null
           provider?: string | null
+          signup_completed?: boolean | null
+          temp_username?: boolean | null
           updated_at?: string | null
           username?: string | null
         }
@@ -811,6 +820,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_temp_username: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_content_discovery: {
         Args: Record<PropertyKey, never>
         Returns: {
