@@ -764,103 +764,102 @@ const Fans = () => {
                    </p>
                  </div>
                )}
-               {/* User Details Modal */}
-               <Dialog open={!!selectedFan} onOpenChange={() => setSelectedFan(null)}>
-                 <DialogContent className="max-w-lg">
-                   {selectedFan && (
-                     <>
-                         <DialogHeader>
-                           <div className="flex items-center justify-between">
-                             <div className="flex items-center space-x-3">
-                               <Avatar className="h-12 w-12">
-                                 <AvatarImage src={selectedFan.avatar_url || undefined} />
-                                 <AvatarFallback className="text-sm font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
-                                   {(() => {
-                                     const name = selectedFan.display_name || selectedFan.username || 'User';
-                                     const words = name.trim().split(/\s+/);
-                                     if (words.length >= 2) {
-                                       return (words[0][0] + words[1][0]).toUpperCase();
-                                     } else {
-                                       return name.slice(0, 2).toUpperCase();
-                                     }
-                                   })()}
-                                 </AvatarFallback>
-                               </Avatar>
-                               <div className="flex-1 min-w-0">
-                                 <DialogTitle className="flex items-center gap-2 text-base">
-                                   {selectedFan.display_name || selectedFan.username || 'Anonymous'}
-                                   {selectedFan.is_verified && (
-                                     <Badge variant="secondary" className="text-xs">Verified</Badge>
-                                   )}
-                                 </DialogTitle>
-                                 {selectedFan.username && selectedFan.display_name && (
-                                   <p className="text-muted-foreground text-sm">@{selectedFan.username}</p>
-                                 )}
-                               </div>
-                             </div>
-                             
-                             <div className="flex items-center gap-2">
-                               {/* Fan Actions Dropdown */}
-                               <DropdownMenu>
-                                 <DropdownMenuTrigger asChild>
-                                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0">
-                                     <MoreVertical className="h-4 w-4" />
-                                   </Button>
-                                 </DropdownMenuTrigger>
-                               <DropdownMenuContent align="end" className="w-48 bg-background border shadow-lg z-50">
-                                 <DropdownMenuItem onClick={() => {
-                                   navigator.clipboard.writeText(selectedFan.id);
-                                   toast({ title: "Copied", description: "User ID copied to clipboard" });
-                                 }}>
-                                   <Copy className="mr-2 h-4 w-4" />
-                                   Copy User ID
-                                 </DropdownMenuItem>
-                                 
-                                 <DropdownMenuItem onClick={() => {
-                                   setSelectedFanForHistory(selectedFan);
-                                   setUsernameHistoryDialogOpen(true);
-                                 }}>
-                                   <Clock className="mr-2 h-4 w-4" />
-                                   Username History
-                                 </DropdownMenuItem>
-                                 
-                                 <DropdownMenuItem onClick={() => handleMenuAction('message', selectedFan)}>
-                                   <MessageSquare className="mr-2 h-4 w-4" />
-                                   Send Message
-                                 </DropdownMenuItem>
-                                 
-                                 <DropdownMenuItem onClick={() => handleMenuAction('profile', selectedFan)}>
-                                   <Eye className="mr-2 h-4 w-4" />
-                                   View Full Profile
-                                 </DropdownMenuItem>
-                                 
-                                 <DropdownMenuSeparator />
-                                 
-                                 <DropdownMenuItem 
-                                   onClick={() => {
-                                     setSelectedFanForDeletion(selectedFan);
-                                     setDeleteDialogOpen(true);
-                                   }}
-                                   className="text-destructive focus:text-destructive"
-                                 >
-                                   <Trash2 className="mr-2 h-4 w-4" />
-                                   Delete Account
-                                 </DropdownMenuItem>
-                               </DropdownMenuContent>
-                             </DropdownMenu>
-                             
-                             {/* Close button */}
-                             <Button 
-                               variant="ghost" 
-                               size="sm" 
-                               className="h-8 w-8 p-0 shrink-0" 
-                               onClick={() => setSelectedFan(null)}
-                             >
-                               <X className="h-4 w-4" />
-                             </Button>
+                {/* User Details Modal */}
+                <Dialog open={!!selectedFan} onOpenChange={() => setSelectedFan(null)}>
+                  <DialogContent className="max-w-lg relative">
+                    {selectedFan && (
+                      <>
+                          {/* Top Right Action Buttons */}
+                          <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+                            {/* Fan Actions Dropdown */}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 bg-background border shadow-lg z-50">
+                              <DropdownMenuItem onClick={() => {
+                                navigator.clipboard.writeText(selectedFan.id);
+                                toast({ title: "Copied", description: "User ID copied to clipboard" });
+                              }}>
+                                <Copy className="mr-2 h-4 w-4" />
+                                Copy User ID
+                              </DropdownMenuItem>
+                              
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedFanForHistory(selectedFan);
+                                setUsernameHistoryDialogOpen(true);
+                              }}>
+                                <Clock className="mr-2 h-4 w-4" />
+                                Username History
+                              </DropdownMenuItem>
+                              
+                              <DropdownMenuItem onClick={() => handleMenuAction('message', selectedFan)}>
+                                <MessageSquare className="mr-2 h-4 w-4" />
+                                Send Message
+                              </DropdownMenuItem>
+                              
+                              <DropdownMenuItem onClick={() => handleMenuAction('profile', selectedFan)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Full Profile
+                              </DropdownMenuItem>
+                              
+                              <DropdownMenuSeparator />
+                              
+                              <DropdownMenuItem 
+                                onClick={() => {
+                                  setSelectedFanForDeletion(selectedFan);
+                                  setDeleteDialogOpen(true);
+                                }}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete Account
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          
+                          {/* Close button */}
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 shrink-0" 
+                            onClick={() => setSelectedFan(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                          <DialogHeader>
+                            <div className="flex items-center space-x-3 pr-20">
+                              <Avatar className="h-12 w-12">
+                                <AvatarImage src={selectedFan.avatar_url || undefined} />
+                                <AvatarFallback className="text-sm font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+                                  {(() => {
+                                    const name = selectedFan.display_name || selectedFan.username || 'User';
+                                    const words = name.trim().split(/\s+/);
+                                    if (words.length >= 2) {
+                                      return (words[0][0] + words[1][0]).toUpperCase();
+                                    } else {
+                                      return name.slice(0, 2).toUpperCase();
+                                    }
+                                  })()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <DialogTitle className="flex items-center gap-2 text-base">
+                                  {selectedFan.display_name || selectedFan.username || 'Anonymous'}
+                                  {selectedFan.is_verified && (
+                                    <Badge variant="secondary" className="text-xs">Verified</Badge>
+                                  )}
+                                </DialogTitle>
+                                {selectedFan.username && selectedFan.display_name && (
+                                  <p className="text-muted-foreground text-sm">@{selectedFan.username}</p>
+                                )}
                               </div>
                             </div>
-                          </DialogHeader>
+                           </DialogHeader>
 
                         {/* Tab Navigation */}
                         <div className="flex space-x-1 border-b border-border">
