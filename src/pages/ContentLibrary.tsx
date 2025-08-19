@@ -345,14 +345,14 @@ const ContentLibrary = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-auto">
       <Navigation />
       <ThemeToggle />
       
-      <div className={`transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
-        <div className="flex h-screen">
+      <div className={`transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-52'} min-w-[800px]`}>
+        <div className="flex h-screen min-w-[800px]">
           {/* Categories Sidebar */}
-          <div className="w-80 bg-card border-r border-border p-4 overflow-y-auto">
+          <div className="w-80 bg-card border-r border-border p-4 overflow-y-auto flex-shrink-0">
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-foreground mb-3">Library</h2>
               <div className="flex items-center gap-1">
