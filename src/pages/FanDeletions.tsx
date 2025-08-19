@@ -9,8 +9,10 @@ const FanDeletions = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
-        <PendingFanDeletionsManager />
+      <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-52'} overflow-x-auto`}>
+        <div className="min-w-[600px]">
+          <PendingFanDeletionsManager />
+        </div>
       </main>
     </div>
   );

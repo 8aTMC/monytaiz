@@ -64,8 +64,8 @@ const Messages = () => {
   return (
     <div className={`min-h-screen bg-background ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+13rem)]' : ''}`}>
       <Navigation />
-      <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
-        <div className="max-w-6xl mx-auto">
+      <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-52'} overflow-x-auto`}>
+        <div className="max-w-6xl mx-auto min-w-[600px]">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">Messages</h1>
           </div>

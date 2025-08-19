@@ -265,8 +265,8 @@ const Users = () => {
     return (
       <div className={`min-h-screen bg-background ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+13rem)]' : ''}`}>
         <Navigation />
-        <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
-          <div className="space-y-6">
+        <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-52'} overflow-x-auto`}>
+          <div className="space-y-6 min-w-[600px]">
             <div className="space-y-2">
               <Skeleton className="h-8 w-48" />
               <Skeleton className="h-4 w-96" />
@@ -302,8 +302,8 @@ const Users = () => {
   return (
     <div className={`min-h-screen bg-background ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+13rem)]' : ''}`}>
       <Navigation />
-      <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
-        <div className="space-y-6">
+      <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-52'} overflow-x-auto`}>
+        <div className="space-y-6 min-w-[600px]">
           <div className="flex items-center gap-4 mb-6">
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold text-foreground">Users</h1>

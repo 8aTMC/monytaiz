@@ -54,8 +54,8 @@ const FanDashboard = () => {
           <div className="fixed left-0 top-0 h-full w-64 bg-muted/20 border-r"></div>
           
           {/* Skeleton Main Content */}
-          <div className={`transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
-            <div className="max-w-7xl mx-auto">
+          <div className={`transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-52'} overflow-x-auto`}>
+            <div className="max-w-7xl mx-auto min-w-[700px]">
               {/* Header Skeleton */}
               <div className="mb-8">
                 <div className="h-8 w-64 bg-muted/30 rounded mb-2"></div>
@@ -113,8 +113,8 @@ const FanDashboard = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      <main className={`transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
-        <div className="max-w-7xl mx-auto">
+      <main className={`transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-52'} overflow-x-auto`}>
+        <div className="max-w-7xl mx-auto min-w-[700px]">
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold">

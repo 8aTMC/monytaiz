@@ -167,8 +167,8 @@ const FansCategories = () => {
     <div className={`min-h-screen bg-background ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+13rem)]' : ''}`}>
       <Navigation />
       
-      <main className={`transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
-        <div className="max-w-7xl mx-auto">
+      <main className={`transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-52'} overflow-x-auto`}>
+        <div className="max-w-7xl mx-auto min-w-[700px]">
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-4 mb-2">
