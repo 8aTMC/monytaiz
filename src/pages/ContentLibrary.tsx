@@ -352,7 +352,7 @@ const ContentLibrary = () => {
                         <IconComponent className="h-4 w-4 flex-shrink-0" />
                          <div className="flex flex-col items-start min-w-0 flex-1">
                            <span className="font-medium text-left w-full">{truncateText(category.label, 26)}</span>
-                           <span className={`text-xs text-left w-full ${selectedCategory === category.id ? 'text-foreground' : 'text-muted-foreground/80'}`}>{category.description}</span>
+                           <span className={`text-xs text-left w-full ${selectedCategory === category.id ? 'text-foreground' : 'text-muted-foreground/80'}`}>{truncateText(category.description, 30)}</span>
                          </div>
                       </div>
                     </Button>
@@ -406,7 +406,7 @@ const ContentLibrary = () => {
                           <IconComponent className="h-4 w-4 flex-shrink-0" />
                             <div className="flex flex-col items-start min-w-0 flex-1">
                              <span className="font-medium text-left w-full">{truncateText(folder.label, 26)}</span>
-                             <span className={`text-xs text-left w-full ${selectedCategory === folder.id ? 'text-foreground' : 'text-muted-foreground/80'}`}>{folder.description}</span>
+                             <span className={`text-xs text-left w-full ${selectedCategory === folder.id ? 'text-foreground' : 'text-muted-foreground/80'}`}>{truncateText(folder.description, 30)}</span>
                            </div>
                         </div>
                       </Button>
