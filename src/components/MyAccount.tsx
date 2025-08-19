@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { User, Settings, Upload, Edit, Mail, Camera } from 'lucide-react';
+import { User, Settings, Upload, Edit, Mail, Camera, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from '@/hooks/useTranslation';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface UserProfile {
   id: string;
@@ -32,6 +33,7 @@ export const MyAccount = () => {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [deletingAvatar, setDeletingAvatar] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     display_name: '',
@@ -212,6 +214,70 @@ export const MyAccount = () => {
     }
   };
 
+  const deleteAvatar = async () => {
+    if (!profile?.avatar_url) return;
+
+    try {
+      setDeletingAvatar(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Update profile to remove avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: null })
+        .eq('id', user.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Extract file path from the signed URL to delete from storage
+      if (profile.avatar_url.includes('/content/')) {
+        try {
+          // Try to extract the file path from the signed URL
+          const urlParts = profile.avatar_url.split('/');
+          const pathIndex = urlParts.findIndex(part => part === 'content');
+          if (pathIndex !== -1 && pathIndex < urlParts.length - 1) {
+            const filePath = urlParts.slice(pathIndex + 1).join('/').split('?')[0]; // Remove query params
+            
+            // Delete from storage
+            await supabase.storage
+              .from('content')
+              .remove([filePath]);
+
+            // Delete file metadata record
+            await supabase
+              .from('files')
+              .delete()
+              .eq('creator_id', user.id)
+              .eq('file_path', filePath);
+          }
+        } catch (storageError) {
+          console.warn('Could not delete file from storage:', storageError);
+          // Continue even if storage deletion fails
+        }
+      }
+
+      setProfile(prev => prev ? { ...prev, avatar_url: null } : null);
+
+      toast({
+        title: t('account.success', 'Success'),
+        description: t('account.avatarDeleted', 'Profile picture deleted successfully.'),
+      });
+    } catch (error) {
+      console.error('Error deleting avatar:', error);
+      toast({
+        title: t('account.error', 'Error'),
+        description: t('account.avatarDeleteError', 'Failed to delete profile picture. Please try again.'),
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingAvatar(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!profile) return;
 
@@ -347,9 +413,38 @@ export const MyAccount = () => {
                       {getProfileInitials()}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                    <Camera className="h-6 w-6 text-white" />
-                  </div>
+                  {profile?.avatar_url && (
+                    <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button 
+                            className="p-2 bg-red-500 hover:bg-red-600 rounded-full transition-colors duration-200"
+                            disabled={deletingAvatar}
+                          >
+                            <X className="h-4 w-4 text-white" />
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Profile Picture</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete your profile picture? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={deleteAvatar}
+                              disabled={deletingAvatar}
+                              className="bg-red-500 hover:bg-red-600"
+                            >
+                              {deletingAvatar ? 'Deleting...' : 'Delete'}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-3">
@@ -486,9 +581,38 @@ export const MyAccount = () => {
                   {getProfileInitials()}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center">
-                <Camera className="h-8 w-8 text-white" />
-              </div>
+              {profile?.avatar_url && (
+                <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <button 
+                        className="p-3 bg-red-500 hover:bg-red-600 rounded-full transition-colors duration-200"
+                        disabled={deletingAvatar}
+                      >
+                        <X className="h-6 w-6 text-white" />
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Profile Picture</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete your profile picture? This action cannot be undone and will remove the image from storage.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={deleteAvatar}
+                          disabled={deletingAvatar}
+                          className="bg-red-500 hover:bg-red-600"
+                        >
+                          {deletingAvatar ? 'Deleting...' : 'Delete'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              )}
             </div>
             <Button 
               variant="outline" 
