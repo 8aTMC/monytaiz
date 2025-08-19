@@ -7,28 +7,33 @@ interface ContentIconProps {
 
 export const ContentIcon: React.FC<ContentIconProps> = ({ className = "h-5 w-5" }) => {
   return (
-    <div className={`inline-flex items-center justify-center ${className}`}>
+    <div className={`relative inline-flex items-center justify-center ${className}`}>
       <svg
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
         className="w-full h-full"
       >
-        {/* Film strip background (vertical) */}
-        <rect x="3" y="2" width="4" height="20" rx="1" className="opacity-60" />
-        <rect x="3.5" y="4" width="3" height="2" className="fill-current opacity-30" />
-        <rect x="3.5" y="8" width="3" height="2" className="fill-current opacity-30" />
-        <rect x="3.5" y="12" width="3" height="2" className="fill-current opacity-30" />
-        <rect x="3.5" y="16" width="3" height="2" className="fill-current opacity-30" />
-        <rect x="3.5" y="20" width="3" height="1.5" className="fill-current opacity-30" />
+        {/* Film strip background (behind) */}
+        <rect x="2" y="3" width="20" height="18" rx="2" className="opacity-40" />
+        <rect x="2" y="5" width="2" height="2" className="fill-current opacity-20" />
+        <rect x="2" y="8" width="2" height="2" className="fill-current opacity-20" />
+        <rect x="2" y="11" width="2" height="2" className="fill-current opacity-20" />
+        <rect x="2" y="14" width="2" height="2" className="fill-current opacity-20" />
+        <rect x="2" y="17" width="2" height="2" className="fill-current opacity-20" />
+        <rect x="20" y="5" width="2" height="2" className="fill-current opacity-20" />
+        <rect x="20" y="8" width="2" height="2" className="fill-current opacity-20" />
+        <rect x="20" y="11" width="2" height="2" className="fill-current opacity-20" />
+        <rect x="20" y="14" width="2" height="2" className="fill-current opacity-20" />
+        <rect x="20" y="17" width="2" height="2" className="fill-current opacity-20" />
         
-        {/* Photograph icon (horizontal, in front) */}
-        <rect x="8" y="7" width="12" height="10" rx="2" />
-        <circle cx="11" cy="10" r="1" />
-        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L8 19" />
+        {/* Image/photograph icon (in front) */}
+        <rect x="6" y="7" width="12" height="10" rx="2" strokeWidth="2" />
+        <circle cx="9" cy="10" r="1.5" strokeWidth="2" />
+        <path d="m18 15-3.5-3.5a2 2 0 0 0-2.8 0L8 15" strokeWidth="2" />
       </svg>
     </div>
   );
