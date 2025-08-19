@@ -94,16 +94,14 @@ export function UsernameHistoryDialog({
               {history.map((entry) => (
                 <div key={entry.id} className="p-3 rounded-lg bg-muted/50 border">
                   <div className="flex items-center justify-between">
-                    <span className="font-medium">{entry.new_username}</span>
+                    <span className="font-medium">{entry.old_username}</span>
                     <span className="text-xs text-muted-foreground">
                       {format(new Date(entry.changed_at), 'MMM dd, yyyy')}
                     </span>
                   </div>
-                  {entry.old_username && (
-                    <div className="text-sm text-muted-foreground mt-1">
-                      {translationLoading ? "Changed from" : t('platform.usernames.changedFrom', 'Changed from')}: {entry.old_username}
-                    </div>
-                  )}
+                  <div className="text-sm text-muted-foreground mt-1">
+                    {translationLoading ? "Changed to" : t('platform.usernames.changedTo', 'Changed to')}: {entry.new_username}
+                  </div>
                 </div>
               ))}
             </div>
