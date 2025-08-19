@@ -25,15 +25,36 @@ const Auth = () => {
               try {
                 const { data: profile } = await supabase
                   .from('profiles')
-                  .select('signup_completed, username, display_name, provider, google_verified, temp_username')
+                  .select('signup_completed, username, display_name, provider, google_verified, temp_username, email_confirmed')
                   .eq('id', session.user.id)
                   .single();
                 
+                console.log('🔍 Profile completion check:', {
+                  signup_completed: profile?.signup_completed,
+                  username: profile?.username,
+                  display_name: profile?.display_name,
+                  temp_username: profile?.temp_username,
+                  provider: profile?.provider,
+                  email_confirmed: profile?.email_confirmed,
+                  needsProfileCompletion: profile && profile.provider === 'google' && (!profile.username || !profile.display_name || profile.temp_username === true)
+                });
+                
                 // Only redirect to onboarding for Google users who need to complete their profile
-                // Regular email users already provided username/display_name during signup
-                if (profile && profile.provider === 'google' && (!profile.username || !profile.display_name || profile.temp_username)) {
+                // Email users should NEVER see onboarding after email verification
+                if (profile && profile.provider === 'google' && (!profile.username || !profile.display_name || profile.temp_username === true)) {
                   navigate('/onboarding');  
                   return;
+                }
+                
+                // If this is an email user and they don't have signup_completed set, fix it
+                if (profile && profile.provider === 'email' && profile.signup_completed !== true) {
+                  await supabase
+                    .from('profiles')
+                    .update({ 
+                      signup_completed: true,
+                      email_confirmed: true 
+                    })
+                    .eq('id', session.user.id);
                 }
               } catch (error) {
                 console.error('Error checking profile completion:', error);
@@ -56,15 +77,26 @@ const Auth = () => {
         try {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('signup_completed, username, display_name, provider, google_verified, temp_username')
+            .select('signup_completed, username, display_name, provider, google_verified, temp_username, email_confirmed')
             .eq('id', session.user.id)
             .single();
           
           // Only redirect to onboarding for Google users who need to complete their profile
-          // Regular email users already provided username/display_name during signup
-          if (profile && profile.provider === 'google' && (!profile.username || !profile.display_name || profile.temp_username)) {
+          // Email users should NEVER see onboarding after email verification
+          if (profile && profile.provider === 'google' && (!profile.username || !profile.display_name || profile.temp_username === true)) {
             navigate('/onboarding');  
             return;
+          }
+          
+          // If this is an email user and they don't have signup_completed set, fix it
+          if (profile && profile.provider === 'email' && profile.signup_completed !== true) {
+            await supabase
+              .from('profiles')
+              .update({ 
+                signup_completed: true,
+                email_confirmed: true 
+              })
+              .eq('id', session.user.id);
           }
         } catch (error) {
           console.error('Error checking profile completion:', error);
