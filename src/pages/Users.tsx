@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { User, Crown, Shield, MessageCircle, Plus, UserX, MoreHorizontal } from 'lucide-react';
+import { User, Crown, Shield, MessageCircle, Plus, UserX, MoreHorizontal, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import CreateUserDialog from '@/components/CreateUserDialog';
 import { UserDeletionDialog } from '@/components/UserDeletionDialog';
@@ -276,6 +276,53 @@ const Users = () => {
                 <User className="h-3.5 w-3.5" />
                 <span>Sync Emails</span>
               </Button>
+              
+              <Button
+                variant="destructive"
+                size="sm"
+                className="flex items-center gap-1.5"
+                onClick={async () => {
+                  try {
+                    setLoading(true);
+                    const { data, error } = await supabase.functions.invoke('cleanup-deleted-users');
+                    
+                    if (error) {
+                      console.error('Error cleaning up deleted users:', error);
+                      toast({
+                        title: "Error",
+                        description: "Failed to cleanup deleted users. Please try again.",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    
+                    console.log('Cleanup result:', data);
+                    
+                    toast({
+                      title: "Success",
+                      description: data.message || "Deleted users cleaned up successfully!",
+                    });
+                    
+                    // Refresh the users list
+                    await fetchUsers();
+                    
+                  } catch (error) {
+                    console.error('Exception during cleanup:', error);
+                    toast({
+                      title: "Error",
+                      description: "An unexpected error occurred during cleanup.",
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>Cleanup Deleted Users</span>
+              </Button>
+
               <Button 
                 variant="outline" 
                 size="sm"
