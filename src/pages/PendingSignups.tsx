@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Clock, ArrowLeft, RefreshCw, Users } from 'lucide-react';
+import { Clock, ArrowLeft, RefreshCw, Users, Trash2 } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -153,6 +153,41 @@ const PendingSignups = () => {
     }
   };
 
+  const deletePendingUser = async (userId: string, displayName: string | null) => {
+    if (!confirm(`Are you sure you want to permanently delete ${displayName || 'this user'}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-pending-user', {
+        body: { userId }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.success) {
+        toast({
+          title: "User Deleted",
+          description: `${displayName || 'User'} has been permanently deleted.`,
+        });
+        
+        // Refresh the list
+        await refreshData();
+      } else {
+        throw new Error(data.message || 'Failed to delete user');
+      }
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete user. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -270,9 +305,20 @@ const PendingSignups = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-muted-foreground mb-3">
                       <p><strong>Created:</strong> {new Date(user.created_at).toLocaleDateString()}</p>
                       <p><strong>Status:</strong> Waiting for profile completion</p>
+                    </div>
+                    <div className="flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => deletePendingUser(user.id, user.display_name)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
