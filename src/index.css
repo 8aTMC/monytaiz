@@ -126,7 +126,16 @@ All colors MUST be HSL.
   html,
   body {
     @apply bg-background text-foreground antialiased;
-    overflow-x: hidden; /* Prevent horizontal scrolling */
+  }
+  
+  /* Allow overflow-x on the SidebarProvider wrapper when needed */
+  body {
+    overflow-x: hidden; /* Default - prevent horizontal scroll */
+  }
+  
+  /* When narrow screen and sidebar is open, allow horizontal scroll */
+  body:has([data-narrow-screen-open]) {
+    overflow-x: auto;
   }
 }
 

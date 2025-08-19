@@ -37,7 +37,7 @@ const Users = () => {
   const [createUserOpen, setCreateUserOpen] = useState(false);
   const [deletionDialogOpen, setDeletionDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, isNarrowScreen } = useSidebar();
 
   const syncEmails = async () => {
     const confirmSync = window.confirm("Are you sure you want to sync management emails? This will update user email information from the authentication system.");
@@ -263,7 +263,7 @@ const Users = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className={`min-h-screen bg-background ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+13rem)]' : ''}`}>
         <Navigation />
         <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
           <div className="space-y-6">
@@ -300,7 +300,7 @@ const Users = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen bg-background ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+13rem)]' : ''}`}>
       <Navigation />
       <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
         <div className="space-y-6">

@@ -44,9 +44,11 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/h
 const SidebarContext = createContext<{
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
+  isNarrowScreen?: boolean;
 }>({
   isCollapsed: false,
   setIsCollapsed: () => {},
+  isNarrowScreen: false,
 });
 
 export const useSidebar = () => useContext(SidebarContext);
@@ -54,11 +56,14 @@ export const useSidebar = () => useContext(SidebarContext);
 export const SidebarProvider = ({ children }: { children: React.ReactNode }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [userCollapsed, setUserCollapsed] = useState(false);
+  const [isNarrowScreen, setIsNarrowScreen] = useState(false);
 
   // Auto-collapse on narrow screens
   useEffect(() => {
     const handleResize = () => {
       const isNarrow = window.innerWidth < 1024; // lg breakpoint
+      setIsNarrowScreen(isNarrow);
+      
       if (isNarrow && !userCollapsed) {
         setIsCollapsed(true);
       } else if (!isNarrow && !userCollapsed) {
@@ -80,8 +85,13 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   return (
-    <SidebarContext.Provider value={{ isCollapsed, setIsCollapsed: handleSetCollapsed }}>
-      {children}
+    <SidebarContext.Provider value={{ isCollapsed, setIsCollapsed: handleSetCollapsed, isNarrowScreen }}>
+      <div 
+        className={`min-h-screen ${isNarrowScreen && !isCollapsed ? 'overflow-x-auto' : ''}`}
+        {...(isNarrowScreen && !isCollapsed ? { 'data-narrow-screen-open': true } : {})}
+      >
+        {children}
+      </div>
     </SidebarContext.Provider>
   );
 };

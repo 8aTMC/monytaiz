@@ -16,7 +16,7 @@ const AdminDashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [createLoading, setCreateLoading] = useState(false);
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, isNarrowScreen } = useSidebar();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -141,7 +141,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className={`min-h-screen bg-background ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+13rem)]' : ''}`}>
       <Navigation />
       <div className={`flex-1 transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
         <div className="max-w-2xl mx-auto">

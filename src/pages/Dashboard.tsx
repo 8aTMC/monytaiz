@@ -16,7 +16,7 @@ const Platform = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, isNarrowScreen } = useSidebar();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(

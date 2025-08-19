@@ -57,7 +57,7 @@ const Fans = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedFanForDeletion, setSelectedFanForDeletion] = useState<Profile | null>(null);
   const [activeTab, setActiveTab] = useState<'info' | 'financials' | 'notes'>('info');
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, isNarrowScreen } = useSidebar();
 
   // Emoji mapping for fan categories
   const getCategoryDisplay = (category: Profile['fan_category']) => {
@@ -525,7 +525,7 @@ const Fans = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen bg-background ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+13rem)]' : ''}`}>
       <Navigation />
       
       <main className={`transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>

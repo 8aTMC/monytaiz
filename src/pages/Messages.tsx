@@ -15,7 +15,7 @@ const Messages = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, isNarrowScreen } = useSidebar();
 
   useEffect(() => {
     // Set up auth state listener
@@ -62,7 +62,7 @@ const Messages = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen bg-background ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+13rem)]' : ''}`}>
       <Navigation />
       <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
         <div className="max-w-6xl mx-auto">

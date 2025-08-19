@@ -35,7 +35,7 @@ const FansCategories = () => {
   const [loading, setLoading] = useState(true);
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   const [isEditMode, setIsEditMode] = useState(false);
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, isNarrowScreen } = useSidebar();
 
   const categories: CategoryItem[] = [
     {
@@ -164,7 +164,7 @@ const FansCategories = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen bg-background ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+13rem)]' : ''}`}>
       <Navigation />
       
       <main className={`transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
