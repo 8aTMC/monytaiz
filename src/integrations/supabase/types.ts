@@ -491,6 +491,7 @@ export type Database = {
           deletion_scheduled_for: string | null
           deletion_status: string | null
           display_name: string | null
+          email: string | null
           fan_category: Database["public"]["Enums"]["fan_category"] | null
           id: string
           is_undeletable: boolean | null
@@ -510,6 +511,7 @@ export type Database = {
           deletion_scheduled_for?: string | null
           deletion_status?: string | null
           display_name?: string | null
+          email?: string | null
           fan_category?: Database["public"]["Enums"]["fan_category"] | null
           id: string
           is_undeletable?: boolean | null
@@ -529,6 +531,7 @@ export type Database = {
           deletion_scheduled_for?: string | null
           deletion_status?: string | null
           display_name?: string | null
+          email?: string | null
           fan_category?: Database["public"]["Enums"]["fan_category"] | null
           id?: string
           is_undeletable?: boolean | null
@@ -768,6 +771,10 @@ export type Database = {
       restore_user_from_deletion: {
         Args: { restoration_reason?: string; target_user_id: string }
         Returns: Json
+      }
+      sync_user_emails: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       user_can_manage_role: {
         Args: {

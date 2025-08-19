@@ -25,6 +25,7 @@ interface Profile {
   created_at: string;
   fan_category: 'husband' | 'boyfriend' | 'supporter' | 'friend' | 'fan';
   deletion_status?: string;
+  email?: string;
 }
 
 interface UserRole {
@@ -124,7 +125,7 @@ const Fans = () => {
         // Then get the profiles for those users with optional category filter
         let profilesQuery = supabase
           .from('profiles')
-          .select('*')
+          .select('*, email')
           .in('id', fanUserIds);
         
         // Apply category filter if specified
@@ -202,7 +203,7 @@ const Fans = () => {
           const fanUserIds = fanRoles.map(role => role.user_id);
           let profilesQuery = supabase
             .from('profiles')
-            .select('*')
+            .select('*, email')
             .in('id', fanUserIds);
           
           if (categoryFilter) {
@@ -472,6 +473,11 @@ const Fans = () => {
                             <div className="flex justify-between py-2">
                               <span className="text-muted-foreground">Username</span>
                               <span>{selectedFan.username || 'Not set'}</span>
+                            </div>
+                            <Separator />
+                            <div className="flex justify-between py-2">
+                              <span className="text-muted-foreground">Email</span>
+                              <span className="text-sm">{selectedFan.email || 'Not available'}</span>
                             </div>
                             <Separator />
                             <div className="flex justify-between py-2">

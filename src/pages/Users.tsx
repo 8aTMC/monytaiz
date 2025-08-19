@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Navigation, useSidebar } from '@/components/Navigation';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -23,10 +24,12 @@ interface UserProfile {
   is_verified: boolean;
   created_at: string;
   roles: string[];
+  email?: string;
 }
 
 const Users = () => {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +37,44 @@ const Users = () => {
   const [deletionDialogOpen, setDeletionDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const { isCollapsed } = useSidebar();
+
+  const syncEmails = async () => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase.functions.invoke('sync-user-emails');
+      
+      if (error) {
+        console.error('Error syncing emails:', error);
+        toast({
+          title: "Error",
+          description: "Failed to sync user emails. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      console.log('Email sync result:', data);
+      
+      toast({
+        title: "Success",
+        description: data.message || "User emails synced successfully!",
+      });
+      
+      // Refresh the users list to show updated emails
+      await fetchUsers();
+      
+    } catch (error) {
+      console.error('Exception during email sync:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while syncing emails.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCreateUser = () => {
     setCreateUserOpen(true);
@@ -99,6 +140,7 @@ const Users = () => {
               bio: user.bio,
               is_verified: user.is_verified,
               created_at: user.created_at,
+              email: user.email,
               roles: []
             });
           }
@@ -220,6 +262,16 @@ const Users = () => {
                 variant="outline" 
                 size="sm"
                 className="flex items-center gap-1.5"
+                onClick={syncEmails}
+                disabled={loading}
+              >
+                <User className="h-3.5 w-3.5" />
+                <span>Sync Emails</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-1.5"
                 onClick={() => navigate('/management/pending-deletions')}
               >
                 <UserX className="h-3.5 w-3.5 text-destructive" />
@@ -282,6 +334,11 @@ const Users = () => {
                                 <p className="text-sm text-muted-foreground">
                                   @{user.username}
                                 </p>
+                                {user.email && (
+                                  <p className="text-sm text-muted-foreground">
+                                    {user.email}
+                                  </p>
+                                )}
                                 {user.bio && (
                                   <p className="text-sm text-muted-foreground max-w-md">
                                     {user.bio}
