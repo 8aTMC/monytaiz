@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Navigation, useSidebar } from '@/components/Navigation';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -26,6 +27,7 @@ interface UserProfile {
 
 const Users = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [createUserOpen, setCreateUserOpen] = useState(false);
@@ -213,10 +215,21 @@ const Users = () => {
             <div>
               <h1 className="text-3xl font-bold text-foreground">Users</h1>
             </div>
-            <Button className="flex items-center gap-2" onClick={handleCreateUser}>
-              <Plus className="h-4 w-4" />
-              Create User
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-2"
+                onClick={() => navigate('/management/pending-deletions')}
+              >
+                <UserX className="h-4 w-4 text-destructive" />
+                <span>Pending Deletions</span>
+              </Button>
+              <Button className="flex items-center gap-2" onClick={handleCreateUser}>
+                <Plus className="h-4 w-4" />
+                Create User
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-6">
