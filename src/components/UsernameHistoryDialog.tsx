@@ -70,9 +70,11 @@ export function UsernameHistoryDialog({
           {/* Current username */}
           <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
             <div className="flex items-center justify-between">
-              <span className="font-medium text-primary">{currentUsername}</span>
-              <span className="text-xs text-muted-foreground bg-primary/20 px-2 py-1 rounded">
+              <span className="text-sm text-muted-foreground">
                 {translationLoading ? "Current" : t('platform.usernames.current', 'Current')}
+              </span>
+              <span className="font-medium text-primary">
+                {currentUsername}
               </span>
             </div>
           </div>
