@@ -1,3 +1,4 @@
+// Custom content icon combining photo and film strip
 import React from 'react';
 
 interface ContentIconProps {
