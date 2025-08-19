@@ -38,6 +38,7 @@ import {
 import { ContentIcon } from './icons/ContentIcon';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 
 // Create a context for sidebar state
 const SidebarContext = createContext<{
@@ -225,21 +226,65 @@ export const Navigation = () => {
           {/* Fans Menu */}
           <li>
             {isCollapsed ? (
-              <Link
-                to="/fans"
-                 className={`flex items-center rounded-lg transition-smooth ${
-                   isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
-                 } ${
-                   isSectionActive('fans') 
-                     ? isCollapsed 
-                       ? 'bg-primary/20 text-primary' 
-                       : 'bg-primary/10 text-primary border border-primary/20'
-                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                 }`}
-                title="Fans"
-              >
-                <Users className="h-5 w-5 flex-shrink-0" />
-              </Link>
+              <HoverCard openDelay={150} closeDelay={150}>
+                <HoverCardTrigger asChild>
+                  <Link
+                    to="/fans"
+                     className={`flex items-center rounded-lg transition-smooth ${
+                       isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
+                     } ${
+                       isSectionActive('fans') 
+                         ? isCollapsed 
+                           ? 'bg-primary/20 text-primary' 
+                           : 'bg-primary/10 text-primary border border-primary/20'
+                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                     }`}
+                    title="Fans"
+                  >
+                    <Users className="h-5 w-5 flex-shrink-0" />
+                  </Link>
+                </HoverCardTrigger>
+                <HoverCardContent side="right" className="w-48 p-2 ml-2" sideOffset={8}>
+                  <div className="space-y-1">
+                    <div className="px-2 py-1 text-sm font-medium text-foreground border-b border-border mb-2">
+                      Fans
+                    </div>
+                    <Link
+                      to="/fans"
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
+                        location.pathname === '/fans' && !location.search
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                      }`}
+                    >
+                      <Users className="h-4 w-4" />
+                      <span>All Fans</span>
+                    </Link>
+                    <Link
+                      to="/fans/categories"
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
+                        location.pathname === '/fans/categories'
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                      }`}
+                    >
+                      <Grid className="h-4 w-4" />
+                      <span>Categories</span>
+                    </Link>
+                    <Link
+                      to="/fans/lists"
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
+                        location.pathname === '/fans/lists'
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                      }`}
+                    >
+                      <List className="h-4 w-4" />
+                      <span>Lists</span>
+                    </Link>
+                  </div>
+                </HoverCardContent>
+              </HoverCard>
             ) : (
               <Collapsible open={openSection === 'fans'} onOpenChange={() => handleSectionToggle('fans')}>
                 <CollapsibleTrigger className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
@@ -302,21 +347,54 @@ export const Navigation = () => {
           {/* Content Menu */}
           <li>
             {isCollapsed ? (
-              <Link
-                to="/library"
-                 className={`flex items-center rounded-lg transition-smooth ${
-                   isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
-                 } ${
-                   isSectionActive('content') 
-                     ? isCollapsed 
-                       ? 'bg-primary/20 text-primary' 
-                       : 'bg-primary/10 text-primary border border-primary/20'
-                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                 }`}
-                title="Content"
-              >
-                <ContentIcon className="h-5 w-5 flex-shrink-0" />
-              </Link>
+              <HoverCard openDelay={150} closeDelay={150}>
+                <HoverCardTrigger asChild>
+                  <Link
+                    to="/library"
+                     className={`flex items-center rounded-lg transition-smooth ${
+                       isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
+                     } ${
+                       isSectionActive('content') 
+                         ? isCollapsed 
+                           ? 'bg-primary/20 text-primary' 
+                           : 'bg-primary/10 text-primary border border-primary/20'
+                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                     }`}
+                    title="Content"
+                  >
+                    <ContentIcon className="h-5 w-5 flex-shrink-0" />
+                  </Link>
+                </HoverCardTrigger>
+                <HoverCardContent side="right" className="w-48 p-2 ml-2" sideOffset={8}>
+                  <div className="space-y-1">
+                    <div className="px-2 py-1 text-sm font-medium text-foreground border-b border-border mb-2">
+                      Content
+                    </div>
+                    <Link
+                      to="/library"
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
+                        location.pathname === '/library'
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                      }`}
+                    >
+                      <Library className="h-4 w-4" />
+                      <span>Library</span>
+                    </Link>
+                    <Link
+                      to="/upload"
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
+                        location.pathname === '/upload'
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                      }`}
+                    >
+                      <Upload className="h-4 w-4" />
+                      <span>Upload</span>
+                    </Link>
+                  </div>
+                </HoverCardContent>
+              </HoverCard>
             ) : (
               <Collapsible open={openSection === 'content'} onOpenChange={() => handleSectionToggle('content')}>
                 <CollapsibleTrigger className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
@@ -368,21 +446,43 @@ export const Navigation = () => {
           {/* Management Menu */}
           <li>
             {isCollapsed ? (
-              <Link
-                to="/management/users"
-                 className={`flex items-center rounded-lg transition-smooth ${
-                   isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
-                 } ${
-                   isSectionActive('management') 
-                     ? isCollapsed 
-                       ? 'bg-primary/20 text-primary' 
-                       : 'bg-primary/10 text-primary border border-primary/20'
-                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                 }`}
-                title="Management"
-              >
-                <UserIcon className="h-5 w-5 flex-shrink-0" />
-              </Link>
+              <HoverCard openDelay={150} closeDelay={150}>
+                <HoverCardTrigger asChild>
+                  <Link
+                    to="/management/users"
+                     className={`flex items-center rounded-lg transition-smooth ${
+                       isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
+                     } ${
+                       isSectionActive('management') 
+                         ? isCollapsed 
+                           ? 'bg-primary/20 text-primary' 
+                           : 'bg-primary/10 text-primary border border-primary/20'
+                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                     }`}
+                    title="Management"
+                  >
+                    <UserIcon className="h-5 w-5 flex-shrink-0" />
+                  </Link>
+                </HoverCardTrigger>
+                <HoverCardContent side="right" className="w-48 p-2 ml-2" sideOffset={8}>
+                  <div className="space-y-1">
+                    <div className="px-2 py-1 text-sm font-medium text-foreground border-b border-border mb-2">
+                      Management
+                    </div>
+                    <Link
+                      to="/management/users"
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
+                        location.pathname === '/management/users'
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                      }`}
+                    >
+                      <Users className="h-4 w-4" />
+                      <span>Users</span>
+                    </Link>
+                  </div>
+                </HoverCardContent>
+              </HoverCard>
             ) : (
               <Collapsible open={openSection === 'management'} onOpenChange={() => handleSectionToggle('management')}>
                 <CollapsibleTrigger className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
