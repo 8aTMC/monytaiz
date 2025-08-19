@@ -662,6 +662,81 @@ export type Database = {
         }
         Relationships: []
       }
+      user_blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_notes: {
+        Row: {
+          admin_id: string
+          created_at: string
+          id: string
+          notes: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          id?: string
+          notes: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          id?: string
+          notes?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_restrictions: {
+        Row: {
+          created_at: string
+          id: string
+          restricted_id: string
+          restrictor_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          restricted_id: string
+          restrictor_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          restricted_id?: string
+          restrictor_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           assigned_at: string | null
@@ -766,6 +841,14 @@ export type Database = {
           target_user_id: string
         }
         Returns: Json
+      }
+      is_user_blocked: {
+        Args: { _blocked_id: string; _blocker_id: string }
+        Returns: boolean
+      }
+      is_user_restricted: {
+        Args: { _restricted_id: string; _restrictor_id: string }
+        Returns: boolean
       }
       permanently_delete_expired_users: {
         Args: Record<PropertyKey, never>

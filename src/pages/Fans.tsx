@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { UsernameHistoryDialog } from '@/components/UsernameHistoryDialog';
 import SpendingChart from '@/components/SpendingChart';
+import { UserNotesDialog } from '@/components/UserNotesDialog';
 import { useToast } from '@/hooks/use-toast';
 import { Users, MoreVertical, Copy, UserMinus, UserX, MessageSquare, FileText, Eye, Shield, Heart, UserCheck, ThumbsUp, Star, Clock, Trash2, User as UserIcon } from 'lucide-react';
 
@@ -49,6 +50,10 @@ const Fans = () => {
   const [fanRoles, setFanRoles] = useState<Record<string, UserRole[]>>({});
   const [usernameHistoryDialogOpen, setUsernameHistoryDialogOpen] = useState(false);
   const [selectedFanForHistory, setSelectedFanForHistory] = useState<Profile | null>(null);
+  const [userNotesDialogOpen, setUserNotesDialogOpen] = useState(false);
+  const [selectedFanForNotes, setSelectedFanForNotes] = useState<Profile | null>(null);
+  const [userBlocks, setUserBlocks] = useState<Record<string, boolean>>({});
+  const [userRestrictions, setUserRestrictions] = useState<Record<string, boolean>>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedFanForDeletion, setSelectedFanForDeletion] = useState<Profile | null>(null);
   const { isCollapsed } = useSidebar();
@@ -298,9 +303,160 @@ const Fans = () => {
     setSelectedFan(fan);
   };
 
+  // Load user blocks and restrictions status
+  useEffect(() => {
+    const loadUserStatus = async () => {
+      if (!user || fans.length === 0) return;
+      
+      try {
+        // Load blocks
+        const { data: blocks, error: blocksError } = await supabase
+          .from('user_blocks')
+          .select('blocked_id')
+          .eq('blocker_id', user.id);
+        
+        if (!blocksError && blocks) {
+          const blocksMap: Record<string, boolean> = {};
+          blocks.forEach(block => {
+            blocksMap[block.blocked_id] = true;
+          });
+          setUserBlocks(blocksMap);
+        }
+        
+        // Load restrictions
+        const { data: restrictions, error: restrictionsError } = await supabase
+          .from('user_restrictions')
+          .select('restricted_id')
+          .eq('restrictor_id', user.id);
+        
+        if (!restrictionsError && restrictions) {
+          const restrictionsMap: Record<string, boolean> = {};
+          restrictions.forEach(restriction => {
+            restrictionsMap[restriction.restricted_id] = true;
+          });
+          setUserRestrictions(restrictionsMap);
+        }
+      } catch (error) {
+        console.error('Error loading user status:', error);
+      }
+    };
+    
+    loadUserStatus();
+  }, [user, fans]);
+
+  const handleBlockUser = async (fan: Profile) => {
+    if (!user) return;
+    
+    const isBlocked = userBlocks[fan.id];
+    
+    try {
+      if (isBlocked) {
+        // Unblock user
+        const { error } = await supabase
+          .from('user_blocks')
+          .delete()
+          .eq('blocker_id', user.id)
+          .eq('blocked_id', fan.id);
+        
+        if (error) throw error;
+        
+        setUserBlocks(prev => ({ ...prev, [fan.id]: false }));
+        toast({
+          title: "Success",
+          description: `${fan.display_name || fan.username || 'User'} has been unblocked`,
+        });
+      } else {
+        // Block user
+        const { error } = await supabase
+          .from('user_blocks')
+          .insert({
+            blocker_id: user.id,
+            blocked_id: fan.id,
+          });
+        
+        if (error) throw error;
+        
+        setUserBlocks(prev => ({ ...prev, [fan.id]: true }));
+        toast({
+          title: "Success",
+          description: `${fan.display_name || fan.username || 'User'} has been blocked`,
+        });
+      }
+    } catch (error) {
+      console.error('Error handling block:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update block status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRestrictUser = async (fan: Profile) => {
+    if (!user) return;
+    
+    const isRestricted = userRestrictions[fan.id];
+    
+    try {
+      if (isRestricted) {
+        // Unrestrict user
+        const { error } = await supabase
+          .from('user_restrictions')
+          .delete()
+          .eq('restrictor_id', user.id)
+          .eq('restricted_id', fan.id);
+        
+        if (error) throw error;
+        
+        setUserRestrictions(prev => ({ ...prev, [fan.id]: false }));
+        toast({
+          title: "Success",
+          description: `${fan.display_name || fan.username || 'User'} restrictions have been removed`,
+        });
+      } else {
+        // Restrict user
+        const { error } = await supabase
+          .from('user_restrictions')
+          .insert({
+            restrictor_id: user.id,
+            restricted_id: fan.id,
+          });
+        
+        if (error) throw error;
+        
+        setUserRestrictions(prev => ({ ...prev, [fan.id]: true }));
+        toast({
+          title: "Success",
+          description: `${fan.display_name || fan.username || 'User'} has been restricted`,
+        });
+      }
+    } catch (error) {
+      console.error('Error handling restriction:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update restriction status",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleMenuAction = (action: string, fan: Profile) => {
-    console.log(`${action} action for user:`, fan.id);
-    // Here you would implement the actual actions
+    switch (action) {
+      case 'add-notes':
+      case 'notes':
+        setSelectedFanForNotes(fan);
+        setUserNotesDialogOpen(true);
+        break;
+      case 'block':
+        handleBlockUser(fan);
+        break;
+      case 'restrict':
+        handleRestrictUser(fan);
+        break;
+      default:
+        console.log(`${action} action for user:`, fan.id);
+        break;
+    }
   };
 
   const handleDeleteSuccess = () => {
@@ -492,7 +648,10 @@ const Fans = () => {
                                 <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
                                 View user's comments
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleMenuAction('add-notes', fan)}>
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedFanForNotes(fan);
+                                setUserNotesDialogOpen(true);
+                              }}>
                                 <FileText className="h-3.5 w-3.5 mr-1.5" />
                                 Add notes
                               </DropdownMenuItem>
@@ -505,13 +664,13 @@ const Fans = () => {
                                 Past Usernames
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleMenuAction('restrict', fan)}>
+                              <DropdownMenuItem onClick={() => handleRestrictUser(fan)}>
                                 <Shield className="h-3.5 w-3.5 mr-1.5" />
-                                Restrict
+                                {userRestrictions[fan.id] ? 'Unrestrict' : 'Restrict'}
                               </DropdownMenuItem>
-                               <DropdownMenuItem onClick={() => handleMenuAction('block', fan)} className="text-destructive">
+                               <DropdownMenuItem onClick={() => handleBlockUser(fan)} className={userBlocks[fan.id] ? "text-green-600" : "text-destructive"}>
                                  <UserX className="h-3.5 w-3.5 mr-1.5" />
-                                 Block
+                                 {userBlocks[fan.id] ? 'Unblock' : 'Block'}
                                </DropdownMenuItem>
                                <DropdownMenuSeparator />
                                <DropdownMenuItem 
@@ -624,7 +783,10 @@ const Fans = () => {
                                   Send Message
                                 </DropdownMenuItem>
                                 
-                                <DropdownMenuItem onClick={() => handleMenuAction('notes', selectedFan)}>
+                                <DropdownMenuItem onClick={() => {
+                                  setSelectedFanForNotes(selectedFan);
+                                  setUserNotesDialogOpen(true);
+                                }}>
                                   <FileText className="mr-2 h-4 w-4" />
                                   Add Notes
                                 </DropdownMenuItem>
@@ -636,9 +798,14 @@ const Fans = () => {
                                 
                                 <DropdownMenuSeparator />
                                 
-                                <DropdownMenuItem onClick={() => handleMenuAction('block', selectedFan)}>
+                                <DropdownMenuItem onClick={() => handleRestrictUser(selectedFan)}>
                                   <Shield className="mr-2 h-4 w-4" />
-                                  Block User
+                                  {userRestrictions[selectedFan.id] ? 'Unrestrict User' : 'Restrict User'}
+                                </DropdownMenuItem>
+                                
+                                <DropdownMenuItem onClick={() => handleBlockUser(selectedFan)} className={userBlocks[selectedFan.id] ? "text-green-600" : "text-destructive"}>
+                                  <UserX className="mr-2 h-4 w-4" />
+                                  {userBlocks[selectedFan.id] ? 'Unblock User' : 'Block User'}
                                 </DropdownMenuItem>
                                 
                                 <DropdownMenuItem 
@@ -842,6 +1009,14 @@ const Fans = () => {
           )}
         </div>
       </main>
+
+      {/* User Notes Dialog */}
+      <UserNotesDialog
+        open={userNotesDialogOpen}
+        onOpenChange={setUserNotesDialogOpen}
+        userId={selectedFanForNotes?.id || ''}
+        userName={selectedFanForNotes?.display_name || selectedFanForNotes?.username || 'Unknown User'}
+      />
 
       {/* Username History Dialog */}
       <UsernameHistoryDialog
