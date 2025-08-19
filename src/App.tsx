@@ -20,6 +20,8 @@ import FansCategories from "./pages/FansCategories";
 import FansLists from "./pages/FansLists";
 import PendingDeletions from "./pages/PendingDeletions";
 import FanDeletions from "./pages/FanDeletions";
+import PendingSignups from "./pages/PendingSignups";
+import FanListDetail from "./pages/FanListDetail";
 import NotFound from "./pages/NotFound";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import { ThemeToggle } from "./components/ThemeToggle";
@@ -69,6 +71,16 @@ const App = () => (
               <Route path="/fans/lists" element={
                 <ProtectedRoute>
                   <FansLists />
+                </ProtectedRoute>
+              } />
+              <Route path="/fans/lists/:listId" element={
+                <ProtectedRoute>
+                  <FanListDetail />
+                </ProtectedRoute>
+              } />
+              <Route path="/pending-signups" element={
+                <ProtectedRoute>
+                  <PendingSignups />
                 </ProtectedRoute>
               } />
               <Route path="/library" element={
