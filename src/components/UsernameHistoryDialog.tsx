@@ -25,7 +25,7 @@ export function UsernameHistoryDialog({
   userId, 
   currentUsername 
 }: UsernameHistoryDialogProps) {
-  const { t } = useTranslation();
+  const { t, loading: translationLoading } = useTranslation();
   const [history, setHistory] = useState<UsernameHistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -62,7 +62,7 @@ export function UsernameHistoryDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            {t('platform.usernames.pastUsernames')}
+            {translationLoading ? "Past Usernames" : t('platform.usernames.pastUsernames', 'Past Usernames')}
           </DialogTitle>
         </DialogHeader>
         
@@ -72,7 +72,7 @@ export function UsernameHistoryDialog({
             <div className="flex items-center justify-between">
               <span className="font-medium text-primary">{currentUsername}</span>
               <span className="text-xs text-muted-foreground bg-primary/20 px-2 py-1 rounded">
-                {t('platform.usernames.current')}
+                {translationLoading ? "Current" : t('platform.usernames.current', 'Current')}
               </span>
             </div>
           </div>
@@ -80,16 +80,16 @@ export function UsernameHistoryDialog({
           {/* History */}
           {loading ? (
             <div className="text-center py-4 text-muted-foreground">
-              {t('platform.usernames.loading')}...
+              {translationLoading ? "Loading" : t('platform.usernames.loading', 'Loading')}...
             </div>
           ) : history.length === 0 ? (
             <div className="text-center py-4 text-muted-foreground">
-              {t('platform.usernames.noUsernameHistory')}
+              {translationLoading ? "No username history found" : t('platform.usernames.noUsernameHistory', 'No username history found')}
             </div>
           ) : (
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-muted-foreground mb-2">
-                {t('platform.usernames.previousUsernames')}
+                {translationLoading ? "Previous Usernames" : t('platform.usernames.previousUsernames', 'Previous Usernames')}
               </h4>
               {history.map((entry) => (
                 <div key={entry.id} className="p-3 rounded-lg bg-muted/50 border">
@@ -101,7 +101,7 @@ export function UsernameHistoryDialog({
                   </div>
                   {entry.old_username && (
                     <div className="text-sm text-muted-foreground mt-1">
-                      {t('platform.usernames.changedFrom')}: {entry.old_username}
+                      {translationLoading ? "Changed from" : t('platform.usernames.changedFrom', 'Changed from')}: {entry.old_username}
                     </div>
                   )}
                 </div>
