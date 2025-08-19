@@ -611,12 +611,102 @@ const Fans = () => {
                               <div className="flex items-center gap-2">
                                 <span className="text-sm">{selectedFan.email || 'Not available'}</span>
                                 {selectedFan.email && (
-                                  <Badge 
-                                    variant={selectedFan.email_confirmed ? "default" : "destructive"}
-                                    className="text-xs"
-                                  >
-                                    {selectedFan.email_confirmed ? "Verified" : "Not Verified"}
-                                  </Badge>
+                                  <div className="flex items-center gap-2">
+                                    <Badge 
+                                      variant={selectedFan.email_confirmed ? "default" : "destructive"}
+                                      className="text-xs"
+                                    >
+                                      {selectedFan.email_confirmed ? "Verified" : "Not Verified"}
+                                    </Badge>
+                                    {!selectedFan.email_confirmed && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 px-2 text-xs"
+                                        onClick={async () => {
+                                          try {
+                                            const { data, error } = await supabase.functions.invoke('verify-user-email', {
+                                              body: { user_id: selectedFan.id }
+                                            });
+                                            
+                                            if (error) {
+                                              console.error('Error verifying email:', error);
+                                              toast({
+                                                title: "Error",
+                                                description: "Failed to verify email. Please try again.",
+                                                variant: "destructive",
+                                              });
+                                              return;
+                                            }
+                                            
+                                            toast({
+                                              title: "Success",
+                                              description: "Email verified successfully!",
+                                            });
+                                            
+                                            // Update the selected fan data to reflect the change
+                                            setSelectedFan(prev => prev ? { ...prev, email_confirmed: true } : null);
+                                            
+                                            // Refresh the fans list
+                                            if (user) {
+                                              const fetchFans = async () => {
+                                                try {
+                                                  const { data: fanRoles, error: roleError } = await supabase
+                                                    .from('user_roles')
+                                                    .select('user_id')
+                                                    .eq('role', 'fan');
+
+                                                  if (roleError || !fanRoles || fanRoles.length === 0) {
+                                                    setFans([]);
+                                                    setPendingDeletionFans([]);
+                                                    return;
+                                                  }
+
+                                                  const fanUserIds = fanRoles.map(role => role.user_id);
+                                                  let profilesQuery = supabase
+                                                    .from('profiles')
+                                                    .select('*, email, email_confirmed')
+                                                    .in('id', fanUserIds);
+                                                  
+                                                  if (categoryFilter) {
+                                                    profilesQuery = profilesQuery.eq('fan_category', categoryFilter);
+                                                  }
+                                                  
+                                                  const { data, error } = await profilesQuery.order('created_at', { ascending: false });
+
+                                                  if (!error && data) {
+                                                    const activeFans = data.filter(fan => 
+                                                      fan.deletion_status !== 'pending_deletion'
+                                                    );
+                                                    const pendingDeletions = data.filter(fan => 
+                                                      fan.deletion_status === 'pending_deletion'
+                                                    );
+                                                    
+                                                    setFans(activeFans);
+                                                    setPendingDeletionFans(pendingDeletions);
+                                                  }
+                                                } catch (error) {
+                                                  console.error('Error refreshing fans:', error);
+                                                }
+                                              };
+                                              
+                                              await fetchFans();
+                                            }
+                                            
+                                          } catch (error) {
+                                            console.error('Exception during email verification:', error);
+                                            toast({
+                                              title: "Error",
+                                              description: "An unexpected error occurred.",
+                                              variant: "destructive",
+                                            });
+                                          }
+                                        }}
+                                      >
+                                        Verify
+                                      </Button>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                             </div>

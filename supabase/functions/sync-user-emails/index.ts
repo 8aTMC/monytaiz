@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
 
     console.log('Starting email sync process...');
 
-    // Get all users from auth.users (admin access required)
+    // Also improve the sync function to show which users are being processed
     const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
     
     if (authError) {
@@ -35,6 +35,7 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Found ${authUsers.users.length} users in auth.users`);
+    console.log('User IDs found:', authUsers.users.map(u => ({ id: u.id, email: u.email, role: 'checking...' })));
 
     let updatedCount = 0;
     let errorCount = 0;
