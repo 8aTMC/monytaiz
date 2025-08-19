@@ -44,12 +44,21 @@ const ContentLibrary = () => {
   const [sortBy, setSortBy] = useState('newest');
   const [selectedCategory, setSelectedCategory] = useState('all-files');
   const [isReorderMode, setIsReorderMode] = useState(false);
-  const [defaultCategories, setDefaultCategories] = useState([
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
+  const [defaultCategories] = useState([
     { id: 'all-files', label: 'All Files', icon: Grid, description: 'All uploaded content', isDefault: true },
-    { id: 'stories', label: 'Stories', icon: BookOpen, description: 'Content uploaded to stories' },
-    { id: 'livestreams', label: 'LiveStreams', icon: Zap, description: 'Past live stream videos' },
-    { id: 'messages', label: 'Messages', icon: MessageSquare, description: 'Content sent in messages' },
+    { id: 'stories', label: 'Stories', icon: BookOpen, description: 'Content uploaded to stories', isDefault: true },
+    { id: 'livestreams', label: 'LiveStreams', icon: Zap, description: 'Past live stream videos', isDefault: true },
+    { id: 'messages', label: 'Messages', icon: MessageSquare, description: 'Content sent in messages', isDefault: true },
   ]);
+  const [customFolders, setCustomFolders] = useState<Array<{
+    id: string;
+    label: string;
+    icon: any;
+    description: string;
+    isDefault: false;
+    count?: number;
+  }>>([]);
   const { isCollapsed } = useSidebar();
 
   useEffect(() => {
@@ -134,6 +143,82 @@ const ContentLibrary = () => {
     }
   }, [user, selectedFilter, searchQuery, sortBy]);
 
+  // Fetch custom folders from database
+  useEffect(() => {
+    const fetchCustomFolders = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('file_folders')
+          .select('*')
+          .eq('creator_id', user.id)
+          .order('name', { ascending: true });
+
+        if (error) {
+          console.error('Error fetching folders:', error);
+        } else {
+          const folders = data?.map(folder => ({
+            id: folder.id,
+            label: folder.name,
+            icon: Grid,
+            description: folder.description || 'Custom folder',
+            isDefault: false as const,
+            count: 0
+          })) || [];
+          setCustomFolders(folders);
+        }
+      } catch (error) {
+        console.error('Error fetching folders:', error);
+      }
+    };
+
+    fetchCustomFolders();
+  }, [user]);
+
+  // Sort custom folders based on sortOrder
+  const sortedCustomFolders = sortOrder 
+    ? [...customFolders].sort((a, b) => {
+        if (sortOrder === 'asc') {
+          return a.label.localeCompare(b.label);
+        } else {
+          return b.label.localeCompare(a.label);
+        }
+      })
+    : customFolders;
+
+  const handleCustomFolderDragStart = (e: React.DragEvent, index: number) => {
+    e.dataTransfer.setData('text/plain', index.toString());
+  };
+
+  const handleCustomFolderDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleCustomFolderDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
+    
+    if (dragIndex === dropIndex) return;
+    
+    const newFolders = [...sortedCustomFolders];
+    const draggedItem = newFolders[dragIndex];
+    newFolders.splice(dragIndex, 1);
+    newFolders.splice(dropIndex, 0, draggedItem);
+    
+    setCustomFolders(newFolders);
+  };
+
+  const handleSortFolders = () => {
+    if (sortOrder === null) {
+      setSortOrder('asc');
+    } else if (sortOrder === 'asc') {
+      setSortOrder('desc');
+    } else {
+      setSortOrder(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -184,28 +269,6 @@ const ContentLibrary = () => {
     return null;
   }
 
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    e.dataTransfer.setData('text/plain', index.toString());
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
-    e.preventDefault();
-    const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
-    
-    if (dragIndex === dropIndex) return;
-    
-    const newCategories = [...defaultCategories];
-    const draggedItem = newCategories[dragIndex];
-    newCategories.splice(dragIndex, 1);
-    newCategories.splice(dropIndex, 0, draggedItem);
-    
-    setDefaultCategories(newCategories);
-  };
-
   const getContentTypeIcon = (type: string) => {
     switch (type) {
       case 'image': return <Image className="h-4 w-4" />;
@@ -226,53 +289,81 @@ const ContentLibrary = () => {
           {/* Categories Sidebar */}
           <div className="w-96 bg-card border-r border-border p-6 overflow-y-auto">
             <div className="mb-4">
-              <h2 className="text-lg font-semibold text-foreground mb-3">Library</h2>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold text-foreground">Library</h2>
+                {sortedCustomFolders.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSortFolders}
+                    className="text-xs h-7 px-2"
+                  >
+                    <ArrowUpDown className="h-3 w-3 mr-1" />
+                    Sort By {sortOrder === 'asc' ? '↑' : sortOrder === 'desc' ? '↓' : ''}
+                  </Button>
+                )}
+              </div>
               <div className="flex items-center gap-1">
                 <NewFolderDialog onFolderCreated={() => {
-                  // Optionally refresh folders list here
+                  // Refresh folders list
+                  const fetchCustomFolders = async () => {
+                    if (!user) return;
+                    try {
+                      const { data, error } = await supabase
+                        .from('file_folders')
+                        .select('*')
+                        .eq('creator_id', user.id)
+                        .order('name', { ascending: true });
+                      if (!error && data) {
+                        const folders = data.map(folder => ({
+                          id: folder.id,
+                          label: folder.name,
+                          icon: Grid,
+                          description: folder.description || 'Custom folder',
+                          isDefault: false as const,
+                          count: 0
+                        }));
+                        setCustomFolders(folders);
+                      }
+                    } catch (error) {
+                      console.error('Error fetching folders:', error);
+                    }
+                  };
+                  fetchCustomFolders();
                 }} />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsReorderMode(!isReorderMode)}
-                  className="text-xs h-7 px-2"
-                >
-                  <ArrowUpDown className="h-3 w-3 mr-1" />
-                  Reorder
-                </Button>
+                {customFolders.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsReorderMode(!isReorderMode)}
+                    className="text-xs h-7 px-2"
+                  >
+                    <ArrowUpDown className="h-3 w-3 mr-1" />
+                    Reorder
+                  </Button>
+                )}
               </div>
             </div>
               
             {/* Default Categories */}
-            <div className="space-y-2">
-              {defaultCategories.map((category, index) => {
+            <div className="space-y-2 mb-4">
+              {defaultCategories.map((category) => {
                 const IconComponent = category.icon;
                 return (
-                  <div
-                    key={category.id}
-                    className={`${isReorderMode ? 'cursor-move' : ''}`}
-                    draggable={isReorderMode}
-                    onDragStart={(e) => handleDragStart(e, index)}
-                    onDragOver={handleDragOver}
-                    onDrop={(e) => handleDrop(e, index)}
-                  >
+                  <div key={category.id}>
                     <Button
                       variant={selectedCategory === category.id ? "default" : "ghost"}
                       className="w-full justify-between text-left"
                       onClick={() => {
-                        if (!isReorderMode) {
-                          setSelectedCategory(category.id);
-                          if (category.id === 'all-files') {
-                            setSelectedFilter('all'); // Show all content
-                          } else {
-                            setSelectedFilter('all'); // Show all content for other categories too for now
-                          }
+                        setSelectedCategory(category.id);
+                        if (category.id === 'all-files') {
+                          setSelectedFilter('all');
+                        } else {
+                          setSelectedFilter('all');
                         }
                       }}
-                      disabled={isReorderMode}
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        {isReorderMode && <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
                         <IconComponent className="h-4 w-4 flex-shrink-0" />
                         <div className="flex flex-col items-start min-w-0 flex-1">
                           <span className="font-medium truncate w-full">{category.label}</span>
@@ -287,6 +378,50 @@ const ContentLibrary = () => {
                 );
               })}
             </div>
+
+            {/* Custom Folders */}
+            {sortedCustomFolders.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-muted-foreground mb-2">Custom Folders</div>
+                {sortedCustomFolders.map((folder, index) => {
+                  const IconComponent = folder.icon;
+                  return (
+                    <div
+                      key={folder.id}
+                      className={`${isReorderMode ? 'cursor-move' : ''}`}
+                      draggable={isReorderMode}
+                      onDragStart={(e) => handleCustomFolderDragStart(e, index)}
+                      onDragOver={handleCustomFolderDragOver}
+                      onDrop={(e) => handleCustomFolderDrop(e, index)}
+                    >
+                      <Button
+                        variant={selectedCategory === folder.id ? "default" : "ghost"}
+                        className="w-full justify-between text-left"
+                        onClick={() => {
+                          if (!isReorderMode) {
+                            setSelectedCategory(folder.id);
+                            setSelectedFilter('all');
+                          }
+                        }}
+                        disabled={isReorderMode}
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          {isReorderMode && <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
+                          <IconComponent className="h-4 w-4 flex-shrink-0" />
+                          <div className="flex flex-col items-start min-w-0 flex-1">
+                            <span className="font-medium truncate w-full">{folder.label}</span>
+                            <span className="text-xs text-muted-foreground line-clamp-2 w-full">{folder.description}</span>
+                          </div>
+                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          {folder.count || 0}
+                        </Badge>
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Main Content Area */}
