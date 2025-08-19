@@ -188,6 +188,11 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         } else if (error.message?.includes('Email not confirmed') ||
                    error.message?.includes('not confirmed')) {
           errorMessage = "Account is already pending activation. Please check your email to verify your account.";
+        } else if (error.message?.includes('duplicate key value violates unique constraint') &&
+                   error.message?.includes('profiles_username_key')) {
+          errorMessage = t('platform.validation.usernameExists');
+        } else if (error.message?.includes('Database error saving new user')) {
+          errorMessage = t('platform.validation.accountCreationError');
         }
         
         toast({

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +18,7 @@ interface OnboardingFormProps {
 export const OnboardingForm = ({ userEmail, userId }: OnboardingFormProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
@@ -62,9 +64,19 @@ export const OnboardingForm = ({ userEmail, userId }: OnboardingFormProps) => {
 
       navigate('/dashboard');
     } catch (error: any) {
+      let errorMessage = error.message;
+      
+      // Handle specific error cases
+      if (error.message?.includes('duplicate key value violates unique constraint') &&
+          error.message?.includes('profiles_username_key')) {
+        errorMessage = t('platform.validation.usernameExists');
+      } else if (error.message?.includes('unique constraint')) {
+        errorMessage = t('platform.validation.usernameExists');
+      }
+      
       toast({
         title: "Error",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

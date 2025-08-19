@@ -85,7 +85,9 @@
       "passwordRequired": "Please enter a password",
       "invalidEmail": "Please enter a valid email address (example@domain.com)",
       "usernameNoSpaces": "Username cannot contain spaces",
-      "passwordNotValid": "Password does not meet all requirements"
+      "passwordNotValid": "Password does not meet all requirements",
+      "usernameExists": "This username is already taken. Please choose a different username.",
+      "accountCreationError": "There was an error creating your account. Please try again or choose a different username."
     },
     "usernames": {
       "pastUsernames": "Past Usernames",
