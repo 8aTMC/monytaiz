@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useTranslation } from '@/hooks/useTranslation';
 import { Loader2, Eye, EyeOff, Check, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ForgotPasswordDialog } from './ForgotPasswordDialog';
 
 interface AuthFormProps {
   mode: 'signin' | 'signup';
@@ -19,6 +20,7 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -383,6 +385,19 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {mode === 'signin' ? t('platform.auth.signIn') : t('platform.auth.createAccount')}
           </Button>
+
+          {mode === 'signin' && (
+            <div className="text-center">
+              <Button
+                type="button"
+                variant="link"
+                onClick={() => setForgotPasswordOpen(true)}
+                className="text-purple-400 hover:text-purple-300 text-sm"
+              >
+                Forgot Password?
+              </Button>
+            </div>
+          )}
         </form>
 
         <div className="mt-6">
@@ -436,6 +451,11 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
           </Button>
         </div>
       </CardContent>
+
+      <ForgotPasswordDialog 
+        open={forgotPasswordOpen}
+        onOpenChange={setForgotPasswordOpen}
+      />
     </Card>
   );
 };
