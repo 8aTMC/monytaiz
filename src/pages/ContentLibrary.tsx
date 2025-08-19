@@ -319,17 +319,6 @@ const ContentLibrary = () => {
               <h2 className="text-lg font-semibold text-foreground mb-3">Library</h2>
               <div className="flex items-center gap-1">
                 <NewFolderDialog onFolderCreated={refreshCustomFolders} />
-                {customFolders.length > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsReorderMode(!isReorderMode)}
-                    className="text-xs h-7 px-2"
-                  >
-                    <ArrowUpDown className="h-3 w-3 mr-1" />
-                    Reorder
-                  </Button>
-                )}
               </div>
             </div>
               
@@ -370,7 +359,18 @@ const ContentLibrary = () => {
             {/* Custom Folders */}
             {sortedCustomFolders.length > 0 && (
               <div className="space-y-2">
-                <div className="text-sm font-medium text-muted-foreground mb-2">Custom Folders</div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-sm font-medium text-muted-foreground">Custom Folders</div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsReorderMode(!isReorderMode)}
+                    className="text-xs h-7 px-2"
+                  >
+                    <ArrowUpDown className="h-3 w-3 mr-1" />
+                    Reorder
+                  </Button>
+                </div>
                 {sortedCustomFolders.map((folder, index) => {
                   const IconComponent = folder.icon;
                   return (
