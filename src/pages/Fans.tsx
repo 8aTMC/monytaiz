@@ -12,7 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { UsernameHistoryDialog } from '@/components/UsernameHistoryDialog';
-import { DeleteFanAccountDialog } from '@/components/DeleteFanAccountDialog';
+import SpendingChart from '@/components/SpendingChart';
 import { useToast } from '@/hooks/use-toast';
 import { Users, MoreVertical, Copy, UserMinus, UserX, MessageSquare, FileText, Eye, Shield, Heart, UserCheck, ThumbsUp, Star, Clock, Trash2, User as UserIcon } from 'lucide-react';
 
@@ -559,121 +559,124 @@ const Fans = () => {
                    </p>
                  </div>
                )}
-              {/* User Details Modal */}
-              <Dialog open={!!selectedFan} onOpenChange={() => setSelectedFan(null)}>
-                <DialogContent className="max-w-2xl">
-                  {selectedFan && (
-                    <>
-                       <DialogHeader>
-                         <div className="flex items-center space-x-4">
-                           <Avatar className="h-16 w-16">
-                             <AvatarImage src={selectedFan.avatar_url || undefined} />
-                             <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
-                               {(() => {
-                                 const name = selectedFan.display_name || selectedFan.username || 'User';
-                                 const words = name.trim().split(/\s+/);
-                                 if (words.length >= 2) {
-                                   return (words[0][0] + words[1][0]).toUpperCase();
-                                 } else {
-                                   return name.slice(0, 2).toUpperCase();
-                                 }
-                               })()}
-                             </AvatarFallback>
-                           </Avatar>
-                           <div className="flex-1">
-                             <DialogTitle className="flex items-center gap-2">
-                               {selectedFan.display_name || selectedFan.username || 'Anonymous'}
-                               {selectedFan.is_verified && (
-                                 <Badge variant="secondary">Verified</Badge>
-                               )}
-                             </DialogTitle>
-                             {selectedFan.username && selectedFan.display_name && (
-                               <p className="text-muted-foreground">@{selectedFan.username}</p>
-                             )}
-                           </div>
-                           
-                           {/* Fan Actions Dropdown - positioned to the left of close button */}
-                           <DropdownMenu>
-                             <DropdownMenuTrigger asChild>
-                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0">
-                                 <MoreVertical className="h-4 w-4" />
-                               </Button>
-                             </DropdownMenuTrigger>
-                             <DropdownMenuContent align="end" className="w-48 bg-background border shadow-lg z-50">
-                               <DropdownMenuItem onClick={() => {
-                                 navigator.clipboard.writeText(selectedFan.id);
-                                 toast({ title: "Copied", description: "User ID copied to clipboard" });
-                               }}>
-                                 <Copy className="mr-2 h-4 w-4" />
-                                 Copy User ID
-                               </DropdownMenuItem>
-                               
-                               <DropdownMenuItem onClick={() => {
-                                 setSelectedFanForHistory(selectedFan);
-                                 setUsernameHistoryDialogOpen(true);
-                               }}>
-                                 <Clock className="mr-2 h-4 w-4" />
-                                 Username History
-                               </DropdownMenuItem>
-                               
-                               <DropdownMenuItem onClick={() => handleMenuAction('message', selectedFan)}>
-                                 <MessageSquare className="mr-2 h-4 w-4" />
-                                 Send Message
-                               </DropdownMenuItem>
-                               
-                               <DropdownMenuItem onClick={() => handleMenuAction('notes', selectedFan)}>
-                                 <FileText className="mr-2 h-4 w-4" />
-                                 Add Notes
-                               </DropdownMenuItem>
-                               
-                               <DropdownMenuItem onClick={() => handleMenuAction('profile', selectedFan)}>
-                                 <Eye className="mr-2 h-4 w-4" />
-                                 View Full Profile
-                               </DropdownMenuItem>
-                               
-                               <DropdownMenuSeparator />
-                               
-                               <DropdownMenuItem onClick={() => handleMenuAction('block', selectedFan)}>
-                                 <Shield className="mr-2 h-4 w-4" />
-                                 Block User
-                               </DropdownMenuItem>
-                               
-                               <DropdownMenuItem 
-                                 onClick={() => {
-                                   setSelectedFanForDeletion(selectedFan);
-                                   setDeleteDialogOpen(true);
-                                 }}
-                                 className="text-destructive focus:text-destructive"
-                               >
-                                 <Trash2 className="mr-2 h-4 w-4" />
-                                 Delete Account
-                               </DropdownMenuItem>
-                             </DropdownMenuContent>
-                           </DropdownMenu>
-                         </div>
-                       </DialogHeader>
+               {/* User Details Modal */}
+               <Dialog open={!!selectedFan} onOpenChange={() => setSelectedFan(null)}>
+                 <DialogContent className="max-w-lg">
+                   {selectedFan && (
+                     <>
+                        <DialogHeader>
+                          <div className="flex items-center space-x-3">
+                            <Avatar className="h-12 w-12">
+                              <AvatarImage src={selectedFan.avatar_url || undefined} />
+                              <AvatarFallback className="text-sm font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+                                {(() => {
+                                  const name = selectedFan.display_name || selectedFan.username || 'User';
+                                  const words = name.trim().split(/\s+/);
+                                  if (words.length >= 2) {
+                                    return (words[0][0] + words[1][0]).toUpperCase();
+                                  } else {
+                                    return name.slice(0, 2).toUpperCase();
+                                  }
+                                })()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <DialogTitle className="flex items-center gap-2 text-base">
+                                {selectedFan.display_name || selectedFan.username || 'Anonymous'}
+                                {selectedFan.is_verified && (
+                                  <Badge variant="secondary" className="text-xs">Verified</Badge>
+                                )}
+                              </DialogTitle>
+                              {selectedFan.username && selectedFan.display_name && (
+                                <p className="text-muted-foreground text-sm">@{selectedFan.username}</p>
+                              )}
+                            </div>
+                            
+                            {/* Fan Actions Dropdown - positioned to the left of close button */}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48 bg-background border shadow-lg z-50">
+                                <DropdownMenuItem onClick={() => {
+                                  navigator.clipboard.writeText(selectedFan.id);
+                                  toast({ title: "Copied", description: "User ID copied to clipboard" });
+                                }}>
+                                  <Copy className="mr-2 h-4 w-4" />
+                                  Copy User ID
+                                </DropdownMenuItem>
+                                
+                                <DropdownMenuItem onClick={() => {
+                                  setSelectedFanForHistory(selectedFan);
+                                  setUsernameHistoryDialogOpen(true);
+                                }}>
+                                  <Clock className="mr-2 h-4 w-4" />
+                                  Username History
+                                </DropdownMenuItem>
+                                
+                                <DropdownMenuItem onClick={() => handleMenuAction('message', selectedFan)}>
+                                  <MessageSquare className="mr-2 h-4 w-4" />
+                                  Send Message
+                                </DropdownMenuItem>
+                                
+                                <DropdownMenuItem onClick={() => handleMenuAction('notes', selectedFan)}>
+                                  <FileText className="mr-2 h-4 w-4" />
+                                  Add Notes
+                                </DropdownMenuItem>
+                                
+                                <DropdownMenuItem onClick={() => handleMenuAction('profile', selectedFan)}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Full Profile
+                                </DropdownMenuItem>
+                                
+                                <DropdownMenuSeparator />
+                                
+                                <DropdownMenuItem onClick={() => handleMenuAction('block', selectedFan)}>
+                                  <Shield className="mr-2 h-4 w-4" />
+                                  Block User
+                                </DropdownMenuItem>
+                                
+                                <DropdownMenuItem 
+                                  onClick={() => {
+                                    setSelectedFanForDeletion(selectedFan);
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete Account
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </DialogHeader>
 
-                      <div className="space-y-6">
-                        {/* User Info Section */}
-                        <div>
-                          <h3 className="font-semibold mb-3">User Information</h3>
-                          <div className="space-y-3">
-                            <div className="flex justify-between py-2">
-                              <span className="text-muted-foreground">Display Name</span>
-                              <span>{selectedFan.display_name || 'Not set'}</span>
-                            </div>
-                            <Separator />
-                            <div className="flex justify-between py-2">
-                              <span className="text-muted-foreground">Username</span>
-                              <span>{selectedFan.username || 'Not set'}</span>
-                            </div>
-                            <Separator />
-                            <div className="flex justify-between py-2">
-                              <span className="text-muted-foreground">Email</span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm">{selectedFan.email || 'Not available'}</span>
-                                {selectedFan.email && (
-                                  <div className="flex items-center gap-2">
+                       <div className="space-y-4">
+                         {/* Spending Chart */}
+                         <SpendingChart userId={selectedFan.id} />
+                         
+                         {/* User Info Section */}
+                         <div>
+                           <h3 className="font-medium mb-2 text-sm">User Information</h3>
+                           <div className="space-y-2">
+                             <div className="flex justify-between py-1">
+                               <span className="text-muted-foreground text-sm">Display Name</span>
+                               <span className="text-sm">{selectedFan.display_name || 'Not set'}</span>
+                             </div>
+                             <Separator />
+                             <div className="flex justify-between py-1">
+                               <span className="text-muted-foreground text-sm">Username</span>
+                               <span className="text-sm">{selectedFan.username || 'Not set'}</span>
+                             </div>
+                             <Separator />
+                             <div className="flex justify-between py-1">
+                               <span className="text-muted-foreground text-sm">Email</span>
+                               <div className="flex items-center gap-2">
+                                 <span className="text-sm">{selectedFan.email || 'Not available'}</span>
+                                 {selectedFan.email && (
+                                   <div className="flex items-center gap-2">
                                     <Badge 
                                       variant={selectedFan.email_confirmed ? "default" : "destructive"}
                                       className="text-xs"
@@ -772,61 +775,61 @@ const Fans = () => {
                                 )}
                               </div>
                             </div>
-                            <Separator />
-                            <div className="flex justify-between py-2">
-                              <span className="text-muted-foreground">Verified</span>
-                              <span>{selectedFan.is_verified ? 'Yes' : 'No'}</span>
-                            </div>
-                            <Separator />
-                            <div className="flex justify-between py-2">
-                              <span className="text-muted-foreground">Member since</span>
-                              <span>{new Date(selectedFan.created_at).toLocaleDateString()}</span>
-                            </div>
-                            <div className="flex justify-between py-2">
-                              <span className="text-muted-foreground">Category</span>
-                              <Badge variant="outline" className="text-xs">
-                                {selectedFan.fan_category && getCategoryDisplay(selectedFan.fan_category)}
-                              </Badge>
-                            </div>
-                            {selectedFan.bio && (
-                              <>
-                                <Separator />
-                                <div className="py-2">
-                                  <span className="text-muted-foreground block mb-2">Bio</span>
-                                  <p className="text-sm">{selectedFan.bio}</p>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </div>
+                             <Separator />
+                             <div className="flex justify-between py-1">
+                               <span className="text-muted-foreground text-sm">Verified</span>
+                               <span className="text-sm">{selectedFan.is_verified ? 'Yes' : 'No'}</span>
+                             </div>
+                             <Separator />
+                             <div className="flex justify-between py-1">
+                               <span className="text-muted-foreground text-sm">Member since</span>
+                               <span className="text-sm">{new Date(selectedFan.created_at).toLocaleDateString()}</span>
+                             </div>
+                             <div className="flex justify-between py-1">
+                               <span className="text-muted-foreground text-sm">Category</span>
+                               <Badge variant="outline" className="text-xs">
+                                 {selectedFan.fan_category && getCategoryDisplay(selectedFan.fan_category)}
+                               </Badge>
+                             </div>
+                             {selectedFan.bio && (
+                               <>
+                                 <Separator />
+                                 <div className="py-1">
+                                   <span className="text-muted-foreground text-sm block mb-1">Bio</span>
+                                   <p className="text-sm">{selectedFan.bio}</p>
+                                 </div>
+                               </>
+                             )}
+                           </div>
+                         </div>
 
-                        {/* Subscription Details */}
-                        <div>
-                          <h3 className="font-semibold mb-3">Subscription Details</h3>
-                          <div className="space-y-3">
-                            <div className="flex justify-between py-2">
-                              <span className="text-muted-foreground">Status</span>
-                              <Badge variant="outline" className="text-blue-600">Free</Badge>
-                            </div>
-                            <Separator />
-                            <div className="flex justify-between py-2">
-                              <span className="text-muted-foreground">Previous subscription</span>
-                              <span className="text-muted-foreground">$0.00</span>
-                            </div>
-                            <Separator />
-                            <div className="flex justify-between py-2">
-                              <span className="text-muted-foreground">Started</span>
-                              <span>{new Date(selectedFan.created_at).toLocaleDateString()}</span>
-                            </div>
-                            <Separator />
-                            <div className="flex justify-between py-2">
-                              <span className="text-muted-foreground">Total duration</span>
-                              <span>
-                                {Math.floor((Date.now() - new Date(selectedFan.created_at).getTime()) / (1000 * 60 * 60 * 24))} days
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+                         {/* Subscription Details */}
+                         <div>
+                           <h3 className="font-medium mb-2 text-sm">Subscription Details</h3>
+                           <div className="space-y-2">
+                             <div className="flex justify-between py-1">
+                               <span className="text-muted-foreground text-sm">Status</span>
+                               <Badge variant="outline" className="text-blue-600 text-xs">Free</Badge>
+                             </div>
+                             <Separator />
+                             <div className="flex justify-between py-1">
+                               <span className="text-muted-foreground text-sm">Previous subscription</span>
+                               <span className="text-muted-foreground text-sm">$0.00</span>
+                             </div>
+                             <Separator />
+                             <div className="flex justify-between py-1">
+                               <span className="text-muted-foreground text-sm">Started</span>
+                               <span className="text-sm">{new Date(selectedFan.created_at).toLocaleDateString()}</span>
+                             </div>
+                             <Separator />
+                             <div className="flex justify-between py-1">
+                               <span className="text-muted-foreground text-sm">Total duration</span>
+                               <span className="text-sm">
+                                 {Math.floor((Date.now() - new Date(selectedFan.created_at).getTime()) / (1000 * 60 * 60 * 24))} days
+                               </span>
+                             </div>
+                           </div>
+                         </div>
                       </div>
                     </>
                   )}
@@ -843,14 +846,6 @@ const Fans = () => {
         onOpenChange={setUsernameHistoryDialogOpen}
         userId={selectedFanForHistory?.id || ''}
         currentUsername={selectedFanForHistory?.username || ''}
-      />
-
-      {/* Delete Fan Account Dialog */}
-      <DeleteFanAccountDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        fan={selectedFanForDeletion}
-        onSuccess={handleDeleteSuccess}
       />
     </div>
   );
