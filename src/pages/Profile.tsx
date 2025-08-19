@@ -5,12 +5,15 @@ import { User, Session } from '@supabase/supabase-js';
 import { Navigation, useSidebar } from '@/components/Navigation';
 import { MyAccount } from '@/components/MyAccount';
 import { DeleteAccountSection } from '@/components/DeleteAccountSection';
+import { Button } from '@/components/ui/button';
+import { Trash2, X } from 'lucide-react';
 
 const Profile = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showDeleteSection, setShowDeleteSection] = useState(false);
   const { isCollapsed } = useSidebar();
 
   useEffect(() => {
@@ -69,11 +72,36 @@ const Profile = () => {
           <div className="space-y-8">
             <MyAccount />
             
-            {user && (
-              <DeleteAccountSection 
-                userId={user.id} 
-                userName={user.user_metadata?.display_name || user.email} 
-              />
+            {user && !showDeleteSection && (
+              <div className="pt-6 border-t border-border">
+                <Button
+                  variant="destructive"
+                  onClick={() => setShowDeleteSection(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete My Account
+                </Button>
+              </div>
+            )}
+            
+            {user && showDeleteSection && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-semibold text-destructive">Delete Account</h2>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowDeleteSection(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <DeleteAccountSection 
+                  userId={user.id} 
+                  userName={user.user_metadata?.display_name || user.email} 
+                />
+              </div>
             )}
           </div>
         </div>
