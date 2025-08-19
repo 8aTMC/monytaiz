@@ -13,37 +13,39 @@ const Auth = () => {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Redirect authenticated users
+        // Redirect authenticated users (defer async calls to prevent deadlock)
         if (session?.user) {
-          // Check if user needs to complete signup
-          if (event === 'SIGNED_IN') {
-            try {
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('signup_completed, username, display_name')
-                .eq('id', session.user.id)
-                .single();
-              
-              if (profile && !profile.signup_completed) {
-                // User needs to complete signup
-                navigate('/onboarding');
-                return;
-              } else if (profile && (!profile.username || !profile.display_name)) {
-                // Fallback check for incomplete profiles
-                navigate('/onboarding');  
-                return;
+          setTimeout(async () => {
+            // Check if user needs to complete signup
+            if (event === 'SIGNED_IN') {
+              try {
+                const { data: profile } = await supabase
+                  .from('profiles')
+                  .select('signup_completed, username, display_name')
+                  .eq('id', session.user.id)
+                  .single();
+                
+                if (profile && !profile.signup_completed) {
+                  // User needs to complete signup
+                  navigate('/onboarding');
+                  return;
+                } else if (profile && (!profile.username || !profile.display_name)) {
+                  // Fallback check for incomplete profiles
+                  navigate('/onboarding');  
+                  return;
+                }
+              } catch (error) {
+                console.error('Error checking profile completion:', error);
               }
-            } catch (error) {
-              console.error('Error checking profile completion:', error);
             }
-          }
-          
-          // Default redirect to dashboard
-          navigate('/dashboard');
+            
+            // Default redirect to dashboard
+            navigate('/dashboard');
+          }, 0);
         }
       }
     );
