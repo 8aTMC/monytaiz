@@ -7,6 +7,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
 import { 
   List,
   Plus,
@@ -219,7 +220,7 @@ const FansLists = () => {
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Created {new Date(list.createdAt).toLocaleDateString()}
+                        Created {format(new Date(list.createdAt), 'dd/MM/yyyy')}
                       </p>
                     </div>
                   </CardContent>

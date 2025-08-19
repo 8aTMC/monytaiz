@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 import { 
   ArrowLeft, 
   Users, 
@@ -353,7 +354,7 @@ const FanListDetail = () => {
                       </p>
                     )}
                     <div className="text-xs text-muted-foreground">
-                      <p><strong>Joined:</strong> {new Date(fan.created_at).toLocaleDateString()}</p>
+                      <p><strong>Joined:</strong> {format(new Date(fan.created_at), 'dd/MM/yyyy')}</p>
                       {fan.email && (
                         <p><strong>Email:</strong> {fan.email_confirmed ? '✓' : '✗'} Verified</p>
                       )}
