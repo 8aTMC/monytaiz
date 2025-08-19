@@ -399,6 +399,7 @@ export type Database = {
           id: string
           is_undeletable: boolean | null
           is_verified: boolean | null
+          provider: string | null
           updated_at: string | null
           username: string | null
         }
@@ -417,6 +418,7 @@ export type Database = {
           id: string
           is_undeletable?: boolean | null
           is_verified?: boolean | null
+          provider?: string | null
           updated_at?: string | null
           username?: string | null
         }
@@ -435,6 +437,7 @@ export type Database = {
           id?: string
           is_undeletable?: boolean | null
           is_verified?: boolean | null
+          provider?: string | null
           updated_at?: string | null
           username?: string | null
         }
@@ -649,6 +652,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      immediately_delete_user: {
+        Args: { admin_reason?: string; target_user_id: string }
+        Returns: Json
       }
       initiate_user_deletion: {
         Args: {
