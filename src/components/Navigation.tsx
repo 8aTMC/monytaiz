@@ -65,10 +65,29 @@ export const Navigation = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isManagementOpen, setIsManagementOpen] = useState(false);
-  const [isContentOpen, setIsContentOpen] = useState(false);
-  const [isFansOpen, setIsFansOpen] = useState(false);
+  const [openSection, setOpenSection] = useState<'fans' | 'content' | 'management' | null>(null);
   const { isCollapsed, setIsCollapsed } = useSidebar();
+
+  // Determine which section should be open based on current route
+  const getCurrentSection = () => {
+    if (location.pathname.startsWith('/fans')) return 'fans';
+    if (location.pathname === '/library' || location.pathname === '/upload') return 'content';
+    if (location.pathname.startsWith('/management')) return 'management';
+    return null;
+  };
+
+  // Update open section when route changes
+  useEffect(() => {
+    const currentSection = getCurrentSection();
+    if (currentSection) {
+      setOpenSection(currentSection);
+    }
+  }, [location.pathname]);
+
+  // Handle section toggle with accordion behavior
+  const handleSectionToggle = (section: 'fans' | 'content' | 'management') => {
+    setOpenSection(openSection === section ? null : section);
+  };
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -222,7 +241,7 @@ export const Navigation = () => {
                 <Users className="h-5 w-5 flex-shrink-0" />
               </Link>
             ) : (
-              <Collapsible open={isFansOpen} onOpenChange={setIsFansOpen}>
+              <Collapsible open={openSection === 'fans'} onOpenChange={() => handleSectionToggle('fans')}>
                 <CollapsibleTrigger className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
                   isFansActive() 
                     ? 'bg-primary/10 text-primary border border-primary/20' 
@@ -233,7 +252,7 @@ export const Navigation = () => {
                     <span>Fans</span>
                   </div>
                   <div className="ml-auto pr-1">
-                    {isFansOpen ? (
+                    {openSection === 'fans' ? (
                       <ChevronUp className="h-4 w-4" />
                     ) : (
                       <ChevronDown className="h-4 w-4" />
@@ -299,7 +318,7 @@ export const Navigation = () => {
                 <FileText className="h-5 w-5 flex-shrink-0" />
               </Link>
             ) : (
-              <Collapsible open={isContentOpen} onOpenChange={setIsContentOpen}>
+              <Collapsible open={openSection === 'content'} onOpenChange={() => handleSectionToggle('content')}>
                 <CollapsibleTrigger className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
                   isContentActive() 
                     ? 'bg-primary/10 text-primary border border-primary/20' 
@@ -310,7 +329,7 @@ export const Navigation = () => {
                     <span>Content</span>
                   </div>
                   <div className="ml-auto pr-1">
-                    {isContentOpen ? (
+                    {openSection === 'content' ? (
                       <ChevronUp className="h-4 w-4" />
                     ) : (
                       <ChevronDown className="h-4 w-4" />
@@ -365,7 +384,7 @@ export const Navigation = () => {
                 <UserIcon className="h-5 w-5 flex-shrink-0" />
               </Link>
             ) : (
-              <Collapsible open={isManagementOpen} onOpenChange={setIsManagementOpen}>
+              <Collapsible open={openSection === 'management'} onOpenChange={() => handleSectionToggle('management')}>
                 <CollapsibleTrigger className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
                   isManagementActive() 
                     ? 'bg-primary/10 text-primary border border-primary/20' 
@@ -376,7 +395,7 @@ export const Navigation = () => {
                     <span>Management</span>
                   </div>
                   <div className="ml-auto pr-1">
-                    {isManagementOpen ? (
+                    {openSection === 'management' ? (
                       <ChevronUp className="h-4 w-4" />
                     ) : (
                       <ChevronDown className="h-4 w-4" />
