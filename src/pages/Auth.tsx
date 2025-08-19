@@ -25,16 +25,17 @@ const Auth = () => {
               try {
                 const { data: profile } = await supabase
                   .from('profiles')
-                  .select('signup_completed, username, display_name')
+                  .select('signup_completed, username, display_name, provider, google_verified')
                   .eq('id', session.user.id)
                   .single();
                 
+                // Only redirect to onboarding if:
+                // 1. signup_completed is false, OR
+                // 2. It's a Google user who needs to complete their profile (temp username scenario)
                 if (profile && !profile.signup_completed) {
-                  // User needs to complete signup
                   navigate('/onboarding');
                   return;
-                } else if (profile && (!profile.username || !profile.display_name)) {
-                  // Fallback check for incomplete profiles
+                } else if (profile && profile.provider === 'google' && profile.google_verified && (!profile.username || !profile.display_name)) {
                   navigate('/onboarding');  
                   return;
                 }
@@ -59,14 +60,17 @@ const Auth = () => {
         try {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('signup_completed, username, display_name')
+            .select('signup_completed, username, display_name, provider, google_verified')
             .eq('id', session.user.id)
             .single();
           
+          // Only redirect to onboarding if:
+          // 1. signup_completed is false, OR
+          // 2. It's a Google user who needs to complete their profile
           if (profile && !profile.signup_completed) {
             navigate('/onboarding');
             return;
-          } else if (profile && (!profile.username || !profile.display_name)) {
+          } else if (profile && profile.provider === 'google' && profile.google_verified && (!profile.username || !profile.display_name)) {
             navigate('/onboarding');  
             return;
           }
