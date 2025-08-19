@@ -9,7 +9,9 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-lg border bg-card text-card-foreground shadow-sm",
+      "rounded-lg border text-card-foreground shadow-sm",
+      // Only apply bg-card if no gradient background is specified
+      !className?.includes('bg-gradient') && "bg-card",
       className
     )}
     {...props}
