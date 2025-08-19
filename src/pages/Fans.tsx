@@ -394,33 +394,36 @@ const Fans = () => {
                 </h1>
               </div>
               
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="flex items-center gap-1.5"
-                  onClick={syncEmails}
-                  disabled={loadingFans}
-                >
-                  <UserIcon className="h-3.5 w-3.5" />
-                  <span>Sync Emails</span>
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-1.5"
-                  onClick={() => navigate('/fan-deletions')}
-                >
-                  <UserX className="h-3.5 w-3.5 text-destructive" />
-                  <span>Pending Deletions</span>
-                  {pendingDeletionFans.length > 0 && (
-                    <Badge variant="destructive" className="ml-1 text-xs">
-                      {pendingDeletionFans.length}
-                    </Badge>
-                  )}
-                </Button>
-              </div>
+              {/* Only show admin buttons on "All Fans" page, not on category-filtered pages */}
+              {!categoryFilter && (
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="flex items-center gap-1.5"
+                    onClick={syncEmails}
+                    disabled={loadingFans}
+                  >
+                    <UserIcon className="h-3.5 w-3.5" />
+                    <span>Sync Emails</span>
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1.5"
+                    onClick={() => navigate('/fan-deletions')}
+                  >
+                    <UserX className="h-3.5 w-3.5 text-destructive" />
+                    <span>Pending Deletions</span>
+                    {pendingDeletionFans.length > 0 && (
+                      <Badge variant="destructive" className="ml-1 text-xs">
+                        {pendingDeletionFans.length}
+                      </Badge>
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
