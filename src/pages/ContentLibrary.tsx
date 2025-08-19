@@ -423,52 +423,52 @@ const ContentLibrary = () => {
                 </h1>
               </div>
 
-              {/* Filter Tabs */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {[
-                    { id: 'all', label: 'All' },
-                    { id: 'image', label: 'Photo' },
-                    { id: 'video', label: 'Video' },
-                    { id: 'audio', label: 'Audio' },
-                    { id: 'document', label: 'Documents' }
-                  ].map((filter) => (
-                    <Button
-                      key={filter.id}
-                      variant={selectedFilter === filter.id ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedFilter(filter.id)}
-                    >
-                      {filter.label}
-                    </Button>
-                  ))}
+              {/* Search and Sort Controls */}
+              <div className="flex items-center gap-4 justify-end mb-4">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search content..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 w-64"
+                  />
                 </div>
 
-                <div className="flex items-center gap-4 w-full sm:w-auto">
-                  {/* Search */}
-                  <div className="relative flex-1 sm:flex-none">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input
-                      placeholder="Search content..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 w-full sm:w-64"
-                    />
-                  </div>
+                {/* Sort By */}
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="oldest">Oldest First</SelectItem>
+                    <SelectItem value="price_high">Price: High to Low</SelectItem>
+                    <SelectItem value="price_low">Price: Low to High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                  {/* Sort By */}
-                  <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-full sm:w-48">
-                      <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="newest">Newest First</SelectItem>
-                      <SelectItem value="oldest">Oldest First</SelectItem>
-                      <SelectItem value="price_high">Price: High to Low</SelectItem>
-                      <SelectItem value="price_low">Price: Low to High</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Filter Tabs - Always Horizontal */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {[
+                  { id: 'all', label: 'All' },
+                  { id: 'image', label: 'Photo' },
+                  { id: 'video', label: 'Video' },
+                  { id: 'audio', label: 'Audio' },
+                  { id: 'document', label: 'Documents' }
+                ].map((filter) => (
+                  <Button
+                    key={filter.id}
+                    variant={selectedFilter === filter.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedFilter(filter.id)}
+                    className="whitespace-nowrap"
+                  >
+                    {filter.label}
+                  </Button>
+                ))}
               </div>
             </div>
 
