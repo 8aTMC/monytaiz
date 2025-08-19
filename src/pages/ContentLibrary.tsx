@@ -316,20 +316,7 @@ const ContentLibrary = () => {
           {/* Categories Sidebar */}
           <div className="w-96 bg-card border-r border-border p-6 overflow-y-auto">
             <div className="mb-4">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold text-foreground">Library</h2>
-                {sortedCustomFolders.length > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSortFolders}
-                    className="text-xs h-7 px-2"
-                  >
-                    <ArrowUpDown className="h-3 w-3 mr-1" />
-                    Sort By {sortOrder === 'asc' ? '↑' : sortOrder === 'desc' ? '↓' : ''}
-                  </Button>
-                )}
-              </div>
+              <h2 className="text-lg font-semibold text-foreground mb-3">Library</h2>
               <div className="flex items-center gap-1">
                 <NewFolderDialog onFolderCreated={refreshCustomFolders} />
                 {customFolders.length > 0 && (
