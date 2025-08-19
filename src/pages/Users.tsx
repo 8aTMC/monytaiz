@@ -375,22 +375,25 @@ const Users = () => {
                                   </span>
                                 </Badge>
                               ))}
-                               <DropdownMenu>
-                                 <DropdownMenuTrigger asChild>
-                                   <Button variant="ghost" size="sm">
-                                     <MoreHorizontal className="h-3.5 w-3.5" />
-                                   </Button>
-                                 </DropdownMenuTrigger>
-                                 <DropdownMenuContent align="end">
-                                   <DropdownMenuItem 
-                                     onClick={() => handleDeleteUser(user)}
-                                     className="text-destructive focus:text-destructive"
-                                   >
-                                     <UserX className="h-3.5 w-3.5 mr-1.5" />
-                                     Delete User
-                                   </DropdownMenuItem>
-                                 </DropdownMenuContent>
-                               </DropdownMenu>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <MoreHorizontal className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    {/* Only show delete option if the user is not an owner and can be deleted */}
+                                    {!user.roles.includes('owner') && (
+                                      <DropdownMenuItem 
+                                        onClick={() => handleDeleteUser(user)}
+                                        className="text-destructive focus:text-destructive"
+                                      >
+                                        <UserX className="h-3.5 w-3.5 mr-1.5" />
+                                        Delete User
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
                           </div>
                           {index < roleUsers.length - 1 && (
