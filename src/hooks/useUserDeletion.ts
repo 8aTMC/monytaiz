@@ -93,18 +93,22 @@ export const useUserDeletion = () => {
 
   const getPendingDeletions = async (): Promise<PendingDeletion[]> => {
     try {
-      // First get all user IDs that have the 'fan' role
-      const { data: fanUserIds, error: fanError } = await supabase
+      // Get all user IDs that have non-fan roles (management users)
+      const { data: managementUserIds, error: roleError } = await supabase
         .from('user_roles')
         .select('user_id')
-        .eq('role', 'fan');
+        .neq('role', 'fan');
 
-      if (fanError) throw fanError;
+      if (roleError) throw roleError;
 
-      const fanIds = fanUserIds?.map(role => role.user_id) || [];
+      const managementIds = managementUserIds?.map(role => role.user_id) || [];
 
-      // Get pending deletions excluding fan users
-      let query = supabase
+      if (managementIds.length === 0) {
+        return [];
+      }
+
+      // Get pending deletions for management users only (non-fans)
+      const { data, error } = await supabase
         .from('pending_deletions')
         .select(`
           *,
@@ -114,14 +118,9 @@ export const useUserDeletion = () => {
             provider
           )
         `)
-        .is('restored_at', null);
-
-      // Only apply the exclusion filter if there are fan IDs to exclude
-      if (fanIds.length > 0) {
-        query = query.not('user_id', 'in', `(${fanIds.map(id => `"${id}"`).join(',')})`);
-      }
-
-      const { data, error } = await query.order('requested_at', { ascending: false });
+        .is('restored_at', null)
+        .in('user_id', managementIds)
+        .order('requested_at', { ascending: false });
 
       if (error) throw error;
       return data || [];
