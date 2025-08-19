@@ -423,8 +423,8 @@ const ContentLibrary = () => {
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col">
             {/* Header */}
-            <div className="bg-card border-b border-border p-6">
-              <div className="flex items-center justify-between mb-6">
+            <div className="bg-card border-b border-border p-6 pb-4">
+              <div className="flex items-center justify-between mb-4">
                 <h1 className="text-lg font-semibold text-foreground">
                   {defaultCategories.find(c => c.id === selectedCategory)?.label || 
                    customFolders.find(c => c.id === selectedCategory)?.label || 'Library'}
@@ -432,7 +432,7 @@ const ContentLibrary = () => {
               </div>
 
               {/* Controls and Filters */}
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 {/* Filter Tabs */}
                 <div className="flex items-center gap-2 flex-wrap order-2 lg:order-1">
                   {[
