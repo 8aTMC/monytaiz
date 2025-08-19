@@ -15,7 +15,7 @@ import { UsernameHistoryDialog } from '@/components/UsernameHistoryDialog';
 import SpendingChart from '@/components/SpendingChart';
 import { UserNotesDialog } from '@/components/UserNotesDialog';
 import { useToast } from '@/hooks/use-toast';
-import { Users, MoreVertical, Copy, UserMinus, UserX, MessageSquare, FileText, Eye, Shield, Heart, UserCheck, ThumbsUp, Star, Clock, Trash2, User as UserIcon } from 'lucide-react';
+import { Users, MoreVertical, Copy, UserMinus, UserX, MessageSquare, FileText, Eye, Shield, Heart, UserCheck, ThumbsUp, Star, Clock, Trash2, User as UserIcon, X } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -56,6 +56,7 @@ const Fans = () => {
   const [userRestrictions, setUserRestrictions] = useState<Record<string, boolean>>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedFanForDeletion, setSelectedFanForDeletion] = useState<Profile | null>(null);
+  const [activeTab, setActiveTab] = useState<'info' | 'financials' | 'notes'>('info');
   const { isCollapsed } = useSidebar();
 
   // Emoji mapping for fan categories
@@ -726,281 +727,285 @@ const Fans = () => {
                  <DialogContent className="max-w-lg">
                    {selectedFan && (
                      <>
-                        <DialogHeader>
-                          <div className="flex items-center space-x-3">
-                            <Avatar className="h-12 w-12">
-                              <AvatarImage src={selectedFan.avatar_url || undefined} />
-                              <AvatarFallback className="text-sm font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
-                                {(() => {
-                                  const name = selectedFan.display_name || selectedFan.username || 'User';
-                                  const words = name.trim().split(/\s+/);
-                                  if (words.length >= 2) {
-                                    return (words[0][0] + words[1][0]).toUpperCase();
-                                  } else {
-                                    return name.slice(0, 2).toUpperCase();
-                                  }
-                                })()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <DialogTitle className="flex items-center gap-2 text-base">
-                                {selectedFan.display_name || selectedFan.username || 'Anonymous'}
-                                {selectedFan.is_verified && (
-                                  <Badge variant="secondary" className="text-xs">Verified</Badge>
-                                )}
-                              </DialogTitle>
-                              {selectedFan.username && selectedFan.display_name && (
-                                <p className="text-muted-foreground text-sm">@{selectedFan.username}</p>
-                              )}
-                            </div>
-                            
-                            {/* Fan Actions Dropdown - positioned to the left of close button */}
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48 bg-background border shadow-lg z-50">
-                                <DropdownMenuItem onClick={() => {
-                                  navigator.clipboard.writeText(selectedFan.id);
-                                  toast({ title: "Copied", description: "User ID copied to clipboard" });
-                                }}>
-                                  <Copy className="mr-2 h-4 w-4" />
-                                  Copy User ID
-                                </DropdownMenuItem>
-                                
-                                <DropdownMenuItem onClick={() => {
-                                  setSelectedFanForHistory(selectedFan);
-                                  setUsernameHistoryDialogOpen(true);
-                                }}>
-                                  <Clock className="mr-2 h-4 w-4" />
-                                  Username History
-                                </DropdownMenuItem>
-                                
-                                <DropdownMenuItem onClick={() => handleMenuAction('message', selectedFan)}>
-                                  <MessageSquare className="mr-2 h-4 w-4" />
-                                  Send Message
-                                </DropdownMenuItem>
-                                
-                                <DropdownMenuItem onClick={() => {
-                                  setSelectedFanForNotes(selectedFan);
-                                  setUserNotesDialogOpen(true);
-                                }}>
-                                  <FileText className="mr-2 h-4 w-4" />
-                                  Add Notes
-                                </DropdownMenuItem>
-                                
-                                <DropdownMenuItem onClick={() => handleMenuAction('profile', selectedFan)}>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  View Full Profile
-                                </DropdownMenuItem>
-                                
-                                <DropdownMenuSeparator />
-                                
-                                <DropdownMenuItem onClick={() => handleRestrictUser(selectedFan)}>
-                                  <Shield className="mr-2 h-4 w-4" />
-                                  {userRestrictions[selectedFan.id] ? 'Unrestrict User' : 'Restrict User'}
-                                </DropdownMenuItem>
-                                
-                                <DropdownMenuItem onClick={() => handleBlockUser(selectedFan)} className={userBlocks[selectedFan.id] ? "text-green-600" : "text-destructive"}>
-                                  <UserX className="mr-2 h-4 w-4" />
-                                  {userBlocks[selectedFan.id] ? 'Unblock User' : 'Block User'}
-                                </DropdownMenuItem>
-                                
-                                <DropdownMenuItem 
-                                  onClick={() => {
-                                    setSelectedFanForDeletion(selectedFan);
-                                    setDeleteDialogOpen(true);
-                                  }}
-                                  className="text-destructive focus:text-destructive"
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete Account
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </DialogHeader>
-
-                       <div className="space-y-4">
-                         {/* Spending Chart */}
-                         <SpendingChart userId={selectedFan.id} />
-                         
-                         {/* User Info Section */}
-                         <div>
-                           <h3 className="font-medium mb-2 text-sm">User Information</h3>
-                           <div className="space-y-2">
-                             <div className="flex justify-between py-1">
-                               <span className="text-muted-foreground text-sm">Display Name</span>
-                               <span className="text-sm">{selectedFan.display_name || 'Not set'}</span>
+                         <DialogHeader>
+                           <div className="flex items-center justify-between">
+                             <div className="flex items-center space-x-3">
+                               <Avatar className="h-12 w-12">
+                                 <AvatarImage src={selectedFan.avatar_url || undefined} />
+                                 <AvatarFallback className="text-sm font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+                                   {(() => {
+                                     const name = selectedFan.display_name || selectedFan.username || 'User';
+                                     const words = name.trim().split(/\s+/);
+                                     if (words.length >= 2) {
+                                       return (words[0][0] + words[1][0]).toUpperCase();
+                                     } else {
+                                       return name.slice(0, 2).toUpperCase();
+                                     }
+                                   })()}
+                                 </AvatarFallback>
+                               </Avatar>
+                               <div className="flex-1 min-w-0">
+                                 <DialogTitle className="flex items-center gap-2 text-base">
+                                   {selectedFan.display_name || selectedFan.username || 'Anonymous'}
+                                   {selectedFan.is_verified && (
+                                     <Badge variant="secondary" className="text-xs">Verified</Badge>
+                                   )}
+                                 </DialogTitle>
+                                 {selectedFan.username && selectedFan.display_name && (
+                                   <p className="text-muted-foreground text-sm">@{selectedFan.username}</p>
+                                 )}
+                               </div>
                              </div>
-                             <Separator />
-                             <div className="flex justify-between py-1">
-                               <span className="text-muted-foreground text-sm">Username</span>
-                               <span className="text-sm">{selectedFan.username || 'Not set'}</span>
-                             </div>
-                             <Separator />
-                             <div className="flex justify-between py-1">
-                               <span className="text-muted-foreground text-sm">Email</span>
-                               <div className="flex items-center gap-2">
-                                 <span className="text-sm">{selectedFan.email || 'Not available'}</span>
-                                 {selectedFan.email && (
-                                   <div className="flex items-center gap-2">
-                                    <Badge 
-                                      variant={selectedFan.email_confirmed ? "default" : "destructive"}
-                                      className="text-xs"
-                                    >
-                                      {selectedFan.email_confirmed ? "Verified" : "Not Verified"}
-                                    </Badge>
-                                    {!selectedFan.email_confirmed && (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-6 px-2 text-xs"
-                                        onClick={async () => {
-                                          try {
-                                            const { data, error } = await supabase.functions.invoke('verify-user-email', {
-                                              body: { user_id: selectedFan.id }
-                                            });
-                                            
-                                            if (error) {
-                                              console.error('Error verifying email:', error);
-                                              toast({
-                                                title: "Error",
-                                                description: "Failed to verify email. Please try again.",
-                                                variant: "destructive",
-                                              });
-                                              return;
-                                            }
-                                            
-                                            toast({
-                                              title: "Success",
-                                              description: "Email verified successfully!",
-                                            });
-                                            
-                                            // Update the selected fan data to reflect the change
-                                            setSelectedFan(prev => prev ? { ...prev, email_confirmed: true } : null);
-                                            
-                                            // Refresh the fans list
-                                            if (user) {
-                                              const fetchFans = async () => {
-                                                try {
-                                                  const { data: fanRoles, error: roleError } = await supabase
-                                                    .from('user_roles')
-                                                    .select('user_id')
-                                                    .eq('role', 'fan');
-
-                                                  if (roleError || !fanRoles || fanRoles.length === 0) {
-                                                    setFans([]);
-                                                    setPendingDeletionFans([]);
-                                                    return;
-                                                  }
-
-                                                  const fanUserIds = fanRoles.map(role => role.user_id);
-                                                  let profilesQuery = supabase
-                                                    .from('profiles')
-                                                    .select('*, email, email_confirmed')
-                                                    .in('id', fanUserIds);
-                                                  
-                                                  if (categoryFilter) {
-                                                    profilesQuery = profilesQuery.eq('fan_category', categoryFilter);
-                                                  }
-                                                  
-                                                  const { data, error } = await profilesQuery.order('created_at', { ascending: false });
-
-                                                  if (!error && data) {
-                                                    const activeFans = data.filter(fan => 
-                                                      fan.deletion_status !== 'pending_deletion'
-                                                    );
-                                                    const pendingDeletions = data.filter(fan => 
-                                                      fan.deletion_status === 'pending_deletion'
-                                                    );
-                                                    
-                                                    setFans(activeFans);
-                                                    setPendingDeletionFans(pendingDeletions);
-                                                  }
-                                                } catch (error) {
-                                                  console.error('Error refreshing fans:', error);
-                                                }
-                                              };
-                                              
-                                              await fetchFans();
-                                            }
-                                            
-                                          } catch (error) {
-                                            console.error('Exception during email verification:', error);
-                                            toast({
-                                              title: "Error",
-                                              description: "An unexpected error occurred.",
-                                              variant: "destructive",
-                                            });
-                                          }
-                                        }}
-                                      >
-                                        Verify
-                                      </Button>
-                                    )}
-                                  </div>
-                                )}
+                             
+                             <div className="flex items-center gap-2">
+                               {/* Fan Actions Dropdown */}
+                               <DropdownMenu>
+                                 <DropdownMenuTrigger asChild>
+                                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0">
+                                     <MoreVertical className="h-4 w-4" />
+                                   </Button>
+                                 </DropdownMenuTrigger>
+                               <DropdownMenuContent align="end" className="w-48 bg-background border shadow-lg z-50">
+                                 <DropdownMenuItem onClick={() => {
+                                   navigator.clipboard.writeText(selectedFan.id);
+                                   toast({ title: "Copied", description: "User ID copied to clipboard" });
+                                 }}>
+                                   <Copy className="mr-2 h-4 w-4" />
+                                   Copy User ID
+                                 </DropdownMenuItem>
+                                 
+                                 <DropdownMenuItem onClick={() => {
+                                   setSelectedFanForHistory(selectedFan);
+                                   setUsernameHistoryDialogOpen(true);
+                                 }}>
+                                   <Clock className="mr-2 h-4 w-4" />
+                                   Username History
+                                 </DropdownMenuItem>
+                                 
+                                 <DropdownMenuItem onClick={() => handleMenuAction('message', selectedFan)}>
+                                   <MessageSquare className="mr-2 h-4 w-4" />
+                                   Send Message
+                                 </DropdownMenuItem>
+                                 
+                                 <DropdownMenuItem onClick={() => handleMenuAction('profile', selectedFan)}>
+                                   <Eye className="mr-2 h-4 w-4" />
+                                   View Full Profile
+                                 </DropdownMenuItem>
+                                 
+                                 <DropdownMenuSeparator />
+                                 
+                                 <DropdownMenuItem 
+                                   onClick={() => {
+                                     setSelectedFanForDeletion(selectedFan);
+                                     setDeleteDialogOpen(true);
+                                   }}
+                                   className="text-destructive focus:text-destructive"
+                                 >
+                                   <Trash2 className="mr-2 h-4 w-4" />
+                                   Delete Account
+                                 </DropdownMenuItem>
+                               </DropdownMenuContent>
+                             </DropdownMenu>
+                             
+                             {/* Close button */}
+                             <Button 
+                               variant="ghost" 
+                               size="sm" 
+                               className="h-8 w-8 p-0 shrink-0" 
+                               onClick={() => setSelectedFan(null)}
+                             >
+                               <X className="h-4 w-4" />
+                             </Button>
                               </div>
                             </div>
-                             <Separator />
-                             <div className="flex justify-between py-1">
-                               <span className="text-muted-foreground text-sm">Verified</span>
-                               <span className="text-sm">{selectedFan.is_verified ? 'Yes' : 'No'}</span>
-                             </div>
-                             <Separator />
-                             <div className="flex justify-between py-1">
-                               <span className="text-muted-foreground text-sm">Member since</span>
-                               <span className="text-sm">{new Date(selectedFan.created_at).toLocaleDateString()}</span>
-                             </div>
-                             <div className="flex justify-between py-1">
-                               <span className="text-muted-foreground text-sm">Category</span>
-                               <Badge variant="outline" className="text-xs">
-                                 {selectedFan.fan_category && getCategoryDisplay(selectedFan.fan_category)}
-                               </Badge>
-                             </div>
-                             {selectedFan.bio && (
-                               <>
-                                 <Separator />
-                                 <div className="py-1">
-                                   <span className="text-muted-foreground text-sm block mb-1">Bio</span>
-                                   <p className="text-sm">{selectedFan.bio}</p>
-                                 </div>
-                               </>
-                             )}
-                           </div>
-                         </div>
+                          </DialogHeader>
 
-                         {/* Subscription Details */}
-                         <div>
-                           <h3 className="font-medium mb-2 text-sm">Subscription Details</h3>
-                           <div className="space-y-2">
-                             <div className="flex justify-between py-1">
-                               <span className="text-muted-foreground text-sm">Status</span>
-                               <Badge variant="outline" className="text-blue-600 text-xs">Free</Badge>
-                             </div>
-                             <Separator />
-                             <div className="flex justify-between py-1">
-                               <span className="text-muted-foreground text-sm">Previous subscription</span>
-                               <span className="text-muted-foreground text-sm">$0.00</span>
-                             </div>
-                             <Separator />
-                             <div className="flex justify-between py-1">
-                               <span className="text-muted-foreground text-sm">Started</span>
-                               <span className="text-sm">{new Date(selectedFan.created_at).toLocaleDateString()}</span>
-                             </div>
-                             <Separator />
-                             <div className="flex justify-between py-1">
-                               <span className="text-muted-foreground text-sm">Total duration</span>
-                               <span className="text-sm">
-                                 {Math.floor((Date.now() - new Date(selectedFan.created_at).getTime()) / (1000 * 60 * 60 * 24))} days
-                               </span>
-                             </div>
-                           </div>
-                         </div>
-                      </div>
+                        {/* Tab Navigation */}
+                        <div className="flex space-x-1 border-b border-border">
+                          <Button
+                            variant={activeTab === 'info' ? 'default' : 'ghost'}
+                            size="sm"
+                            onClick={() => setActiveTab('info')}
+                            className="rounded-b-none"
+                          >
+                            Info
+                          </Button>
+                          <Button
+                            variant={activeTab === 'financials' ? 'default' : 'ghost'}
+                            size="sm"
+                            onClick={() => setActiveTab('financials')}
+                            className="rounded-b-none"
+                          >
+                            Financials
+                          </Button>
+                          <Button
+                            variant={activeTab === 'notes' ? 'default' : 'ghost'}
+                            size="sm"
+                            onClick={() => setActiveTab('notes')}
+                            className="rounded-b-none"
+                          >
+                            Notes
+                          </Button>
+                        </div>
+
+                        <div className="space-y-4">
+                          {/* Tab Content */}
+                          {activeTab === 'info' && (
+                            <>
+                              {/* User Information */}
+                              <div>
+                                <h3 className="font-medium mb-2 text-sm">User Information</h3>
+                                <div className="space-y-2">
+                                  <div className="flex justify-between py-1">
+                                    <span className="text-muted-foreground text-sm">Display Name</span>
+                                    <span className="text-sm">{selectedFan.display_name || 'Not set'}</span>
+                                  </div>
+                                  <Separator />
+                                  <div className="flex justify-between py-1">
+                                    <span className="text-muted-foreground text-sm">Username</span>
+                                    <span className="text-sm">{selectedFan.username || 'Not set'}</span>
+                                  </div>
+                                  <Separator />
+                                  <div className="flex justify-between py-1">
+                                    <span className="text-muted-foreground text-sm">Email</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm">{selectedFan.email || 'Not available'}</span>
+                                      {selectedFan.email && (
+                                        <div className="flex items-center gap-2">
+                                         <Badge 
+                                           variant={selectedFan.email_confirmed ? "default" : "destructive"}
+                                           className="text-xs"
+                                         >
+                                           {selectedFan.email_confirmed ? "Verified" : "Not Verified"}
+                                         </Badge>
+                                         {!selectedFan.email_confirmed && (
+                                           <Button
+                                             size="sm"
+                                             variant="outline"
+                                             className="h-6 px-2 text-xs"
+                                             onClick={async () => {
+                                               try {
+                                                 const { data, error } = await supabase.functions.invoke('verify-user-email', {
+                                                   body: { user_id: selectedFan.id }
+                                                 });
+                                                 
+                                                 if (error) {
+                                                   console.error('Error verifying email:', error);
+                                                   toast({
+                                                     title: "Error",
+                                                     description: "Failed to verify email. Please try again.",
+                                                     variant: "destructive",
+                                                   });
+                                                   return;
+                                                 }
+                                                 
+                                                 toast({
+                                                   title: "Success",
+                                                   description: "Email verified successfully!",
+                                                 });
+                                                 
+                                                 setSelectedFan(prev => prev ? { ...prev, email_confirmed: true } : null);
+                                               } catch (error) {
+                                                 console.error('Exception during email verification:', error);
+                                                 toast({
+                                                   title: "Error",
+                                                   description: "An unexpected error occurred.",
+                                                   variant: "destructive",
+                                                 });
+                                               }
+                                             }}
+                                           >
+                                             Verify
+                                           </Button>
+                                         )}
+                                       </div>
+                                     )}
+                                   </div>
+                                 </div>
+                                  <Separator />
+                                  <div className="flex justify-between py-1">
+                                    <span className="text-muted-foreground text-sm">Verified</span>
+                                    <span className="text-sm">{selectedFan.is_verified ? 'Yes' : 'No'}</span>
+                                  </div>
+                                  <Separator />
+                                  <div className="flex justify-between py-1">
+                                    <span className="text-muted-foreground text-sm">Member since</span>
+                                    <span className="text-sm">{new Date(selectedFan.created_at).toLocaleDateString()}</span>
+                                  </div>
+                                  <div className="flex justify-between py-1">
+                                    <span className="text-muted-foreground text-sm">Category</span>
+                                    <Badge variant="outline" className="text-xs">
+                                      {selectedFan.fan_category && getCategoryDisplay(selectedFan.fan_category)}
+                                    </Badge>
+                                  </div>
+                                  {selectedFan.bio && (
+                                    <>
+                                      <Separator />
+                                      <div className="py-1">
+                                        <span className="text-muted-foreground text-sm block mb-1">Bio</span>
+                                        <p className="text-sm">{selectedFan.bio}</p>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Subscription Details */}
+                              <div>
+                                <h3 className="font-medium mb-2 text-sm">Subscription Details</h3>
+                                <div className="space-y-2">
+                                  <div className="flex justify-between py-1">
+                                    <span className="text-muted-foreground text-sm">Status</span>
+                                    <Badge variant="outline" className="text-blue-600 text-xs">Free</Badge>
+                                  </div>
+                                  <Separator />
+                                  <div className="flex justify-between py-1">
+                                    <span className="text-muted-foreground text-sm">Previous subscription</span>
+                                    <span className="text-muted-foreground text-sm">$0.00</span>
+                                  </div>
+                                  <Separator />
+                                  <div className="flex justify-between py-1">
+                                    <span className="text-muted-foreground text-sm">Started</span>
+                                    <span className="text-sm">{new Date(selectedFan.created_at).toLocaleDateString()}</span>
+                                  </div>
+                                  <Separator />
+                                  <div className="flex justify-between py-1">
+                                    <span className="text-muted-foreground text-sm">Total duration</span>
+                                    <span className="text-sm">
+                                      {Math.floor((Date.now() - new Date(selectedFan.created_at).getTime()) / (1000 * 60 * 60 * 24))} days
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          )}
+
+                          {activeTab === 'financials' && (
+                            <div className="text-center py-8">
+                              <p className="text-muted-foreground">No data yet</p>
+                            </div>
+                          )}
+
+                          {activeTab === 'notes' && (
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <h3 className="font-medium text-sm">User Notes</h3>
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedFanForNotes(selectedFan);
+                                    setUserNotesDialogOpen(true);
+                                  }}
+                                >
+                                  Add Note
+                                </Button>
+                              </div>
+                              <div className="text-center py-8">
+                                <p className="text-muted-foreground text-sm">Click "Add Note" to create your first note for this user.</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                     </>
                   )}
                 </DialogContent>
