@@ -562,39 +562,37 @@ const Fans = () => {
                   {selectedFan && (
                     <>
                        <DialogHeader>
-                         <div className="flex items-center justify-between">
-                           <div className="flex items-center space-x-4">
-                             <Avatar className="h-16 w-16">
-                               <AvatarImage src={selectedFan.avatar_url || undefined} />
-                               <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
-                                 {(() => {
-                                   const name = selectedFan.display_name || selectedFan.username || 'User';
-                                   const words = name.trim().split(/\s+/);
-                                   if (words.length >= 2) {
-                                     return (words[0][0] + words[1][0]).toUpperCase();
-                                   } else {
-                                     return name.slice(0, 2).toUpperCase();
-                                   }
-                                 })()}
-                               </AvatarFallback>
-                             </Avatar>
-                             <div>
-                               <DialogTitle className="flex items-center gap-2">
-                                 {selectedFan.display_name || selectedFan.username || 'Anonymous'}
-                                 {selectedFan.is_verified && (
-                                   <Badge variant="secondary">Verified</Badge>
-                                 )}
-                               </DialogTitle>
-                               {selectedFan.username && selectedFan.display_name && (
-                                 <p className="text-muted-foreground">@{selectedFan.username}</p>
+                         <div className="flex items-center space-x-4">
+                           <Avatar className="h-16 w-16">
+                             <AvatarImage src={selectedFan.avatar_url || undefined} />
+                             <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+                               {(() => {
+                                 const name = selectedFan.display_name || selectedFan.username || 'User';
+                                 const words = name.trim().split(/\s+/);
+                                 if (words.length >= 2) {
+                                   return (words[0][0] + words[1][0]).toUpperCase();
+                                 } else {
+                                   return name.slice(0, 2).toUpperCase();
+                                 }
+                               })()}
+                             </AvatarFallback>
+                           </Avatar>
+                           <div className="flex-1">
+                             <DialogTitle className="flex items-center gap-2">
+                               {selectedFan.display_name || selectedFan.username || 'Anonymous'}
+                               {selectedFan.is_verified && (
+                                 <Badge variant="secondary">Verified</Badge>
                                )}
-                             </div>
+                             </DialogTitle>
+                             {selectedFan.username && selectedFan.display_name && (
+                               <p className="text-muted-foreground">@{selectedFan.username}</p>
+                             )}
                            </div>
                            
-                           {/* Fan Actions Dropdown */}
+                           {/* Fan Actions Dropdown - positioned to the left of close button */}
                            <DropdownMenu>
                              <DropdownMenuTrigger asChild>
-                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0">
                                  <MoreVertical className="h-4 w-4" />
                                </Button>
                              </DropdownMenuTrigger>
