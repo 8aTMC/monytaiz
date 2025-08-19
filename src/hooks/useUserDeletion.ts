@@ -192,6 +192,40 @@ export const useUserDeletion = () => {
     }
   };
 
+  const immediatelyDeleteFanUser = async (
+    targetUserId: string,
+    deletionReason?: string
+  ) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('immediately_delete_fan_user', {
+        target_user_id: targetUserId,
+        admin_reason: deletionReason
+      });
+
+      if (error) throw error;
+
+      // Also call cleanup function to remove from auth.users
+      await supabase.functions.invoke('cleanup-deleted-users');
+
+      toast({
+        title: "Fan Deleted",
+        description: "Fan account has been permanently deleted and removed from auth.",
+      });
+
+      return data;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete fan user",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const checkUserDeletionStatus = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -216,5 +250,6 @@ export const useUserDeletion = () => {
     permanentlyDeleteExpiredUsers,
     checkUserDeletionStatus,
     immediatelyDeleteUser,
+    immediatelyDeleteFanUser,
   };
 };

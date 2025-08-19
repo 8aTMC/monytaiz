@@ -31,7 +31,7 @@ export const UserDeletionDialog = ({
 }: UserDeletionDialogProps) => {
   const [reason, setReason] = useState('');
   const [confirmText, setConfirmText] = useState('');
-  const { loading, initiateUserDeletion } = useUserDeletion();
+  const { loading, immediatelyDeleteFanUser, initiateUserDeletion } = useUserDeletion();
 
   const expectedConfirmText = isSelfDeletion ? 'DELETE MY ACCOUNT' : 'DELETE USER';
   const isConfirmed = confirmText === expectedConfirmText;
@@ -40,7 +40,13 @@ export const UserDeletionDialog = ({
     if (!isConfirmed) return;
 
     try {
-      await initiateUserDeletion(userId, reason, isSelfDeletion);
+      if (isSelfDeletion) {
+        // For self-deletion, use the regular 30-day process
+        await initiateUserDeletion(userId, reason, isSelfDeletion);
+      } else {
+        // For admin deletion of fans, delete immediately
+        await immediatelyDeleteFanUser(userId, reason);
+      }
       onClose();
       setReason('');
       setConfirmText('');
@@ -58,29 +64,52 @@ export const UserDeletionDialog = ({
             {isSelfDeletion ? 'Delete Your Account' : 'Delete User Account'}
           </DialogTitle>
           <DialogDescription>
-            This action will initiate the account deletion process. The account will be 
-            scheduled for permanent deletion in 30 days.
+            {isSelfDeletion 
+              ? "This action will initiate the account deletion process. The account will be scheduled for permanent deletion in 30 days."
+              : "This action will permanently delete the fan account immediately. This cannot be undone."
+            }
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
-            <div className="flex items-start gap-3">
-              <Clock className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
-              <div className="space-y-2">
-                <h4 className="font-medium text-yellow-800 dark:text-yellow-200">
-                  What happens during the 30-day period:
-                </h4>
-                <ul className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
-                  <li>• Account will be immediately disabled (cannot log in)</li>
-                  <li>• All content will be hidden from public view</li>
-                  <li>• {isSelfDeletion ? 'You' : 'The user'} cannot interact with the platform</li>
-                  <li>• Admins can restore the account if needed</li>
-                  <li>• After 30 days, all personal data will be permanently deleted</li>
-                </ul>
+          {isSelfDeletion && (
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <div className="flex items-start gap-3">
+                <Clock className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                <div className="space-y-2">
+                  <h4 className="font-medium text-yellow-800 dark:text-yellow-200">
+                    What happens during the 30-day period:
+                  </h4>
+                  <ul className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
+                    <li>• Account will be immediately disabled (cannot log in)</li>
+                    <li>• All content will be hidden from public view</li>
+                    <li>• You cannot interact with the platform</li>
+                    <li>• Admins can restore the account if needed</li>
+                    <li>• After 30 days, all personal data will be permanently deleted</li>
+                  </ul>
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {!isSelfDeletion && (
+            <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
+                <div className="space-y-2">
+                  <h4 className="font-medium text-red-800 dark:text-red-200">
+                    Immediate Deletion Warning:
+                  </h4>
+                  <ul className="text-sm text-red-700 dark:text-red-300 space-y-1">
+                    <li>• User will be permanently deleted immediately</li>
+                    <li>• All user data will be completely removed</li>
+                    <li>• User will be removed from authentication system</li>
+                    <li>• This action cannot be undone</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-4">
             <div>
@@ -116,7 +145,7 @@ export const UserDeletionDialog = ({
               <p className="text-sm text-muted-foreground">
                 {isSelfDeletion 
                   ? 'Your account will be scheduled for deletion'
-                  : `User "${userName}" will be scheduled for deletion`
+                  : `User "${userName}" will be permanently deleted immediately`
                 }
               </p>
             )}
@@ -136,7 +165,7 @@ export const UserDeletionDialog = ({
             onClick={handleSubmit}
             disabled={!isConfirmed || loading}
           >
-            {loading ? 'Processing...' : 'Schedule Deletion'}
+            {loading ? 'Processing...' : (isSelfDeletion ? 'Schedule Deletion' : 'Delete Immediately')}
           </Button>
         </DialogFooter>
       </DialogContent>
