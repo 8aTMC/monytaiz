@@ -843,6 +843,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      immediately_delete_fan_user: {
+        Args: { admin_reason?: string; target_user_id: string }
+        Returns: Json
+      }
       immediately_delete_user: {
         Args: { admin_reason?: string; target_user_id: string }
         Returns: Json

@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { UsernameHistoryDialog } from '@/components/UsernameHistoryDialog';
 import SpendingChart from '@/components/SpendingChart';
 import { UserNotesDialog } from '@/components/UserNotesDialog';
-import { UserDeletionDialog } from '@/components/UserDeletionDialog';
+import { DeleteFanAccountDialog } from '@/components/DeleteFanAccountDialog';
 import { useToast } from '@/hooks/use-toast';
 import { Users, MoreVertical, Copy, UserMinus, UserX, MessageSquare, FileText, Eye, Shield, Heart, UserCheck, ThumbsUp, Star, Clock, Trash2, User as UserIcon, X, ArrowLeft } from 'lucide-react';
 
@@ -1073,18 +1073,20 @@ const Fans = () => {
         currentUsername={selectedFanForHistory?.username || ''}
       />
 
-      {/* User Deletion Dialog */}
-      <UserDeletionDialog
-        isOpen={deleteDialogOpen}
-        onClose={() => {
+      {/* Fan Deletion Dialog */}
+      <DeleteFanAccountDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        fan={{
+          id: selectedFanForDeletion?.id || '',
+          username: selectedFanForDeletion?.username || '',
+          display_name: selectedFanForDeletion?.display_name || ''
+        }}
+        onSuccess={() => {
           setDeleteDialogOpen(false);
           setSelectedFanForDeletion(null);
-          // Refresh the fans list after deletion
           handleDeleteSuccess();
         }}
-        userId={selectedFanForDeletion?.id || ''}
-        userName={selectedFanForDeletion?.display_name || selectedFanForDeletion?.username || ''}
-        isSelfDeletion={false}
       />
     </div>
   );

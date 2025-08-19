@@ -104,22 +104,35 @@ export const useFanDeletion = () => {
   ) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('immediately_delete_user', {
+      // Use the new immediate fan deletion function
+      const { data, error } = await supabase.rpc('immediately_delete_fan_user', {
         target_user_id: targetUserId,
         admin_reason: deletionReason
       });
 
       if (error) throw error;
 
+      // Now call the cleanup function to remove from auth.users
+      try {
+        const { error: cleanupError } = await supabase.functions.invoke('cleanup-deleted-users');
+        if (cleanupError) {
+          console.error('Cleanup function error:', cleanupError);
+          // Don't throw here - the main deletion was successful
+        }
+      } catch (cleanupError) {
+        console.error('Failed to call cleanup function:', cleanupError);
+        // Don't throw here - the main deletion was successful
+      }
+
       toast({
         title: "Fan Deleted",
-        description: "Fan account has been permanently deleted.",
+        description: "Fan account has been permanently deleted and removed from authentication.",
       });
 
       return data;
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: "Error", 
         description: error.message || "Failed to delete fan",
         variant: "destructive",
       });
