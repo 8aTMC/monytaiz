@@ -69,20 +69,21 @@ export const PendingFanDeletionsManager = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="space-y-4">
+        <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold text-foreground">Pending Fan Deletions</h2>
-          <p className="text-muted-foreground">
-            Manage fan accounts scheduled for deletion
-          </p>
+          <Button 
+            onClick={loadPendingDeletions} 
+            disabled={refreshing}
+            variant="outline"
+            size="sm"
+          >
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </Button>
         </div>
-        <Button 
-          onClick={loadPendingDeletions} 
-          disabled={refreshing}
-          variant="outline"
-        >
-          {refreshing ? "Refreshing..." : "Refresh"}
-        </Button>
+        <p className="text-muted-foreground">
+          Manage fan accounts scheduled for deletion
+        </p>
       </div>
 
       {pendingDeletions.length === 0 ? (
