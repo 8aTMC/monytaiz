@@ -111,9 +111,13 @@ const ContentLibrary = () => {
           query = query.eq('content_type', selectedFilter as 'image' | 'video' | 'audio' | 'document' | 'pack');
         }
 
-        // Apply search filter
+        // Apply search filter with improved matching
         if (searchQuery) {
-          query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+          const searchTerms = searchQuery.trim().split(/\s+/).map(term => term.toLowerCase());
+          const searchConditions = searchTerms.map(term => 
+            `title.ilike.%${term}%,description.ilike.%${term}%,tags.cs.{${term}}`
+          ).join(',');
+          query = query.or(searchConditions);
         }
 
         // Apply sorting
@@ -423,52 +427,55 @@ const ContentLibrary = () => {
                 </h1>
               </div>
 
-              {/* Search and Sort Controls */}
-              <div className="flex items-center gap-4 justify-end mb-4">
-                {/* Search */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search content..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 w-64"
-                  />
+              {/* Controls and Filters */}
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+                {/* Filter Tabs */}
+                <div className="flex items-center gap-2 flex-wrap order-2 lg:order-1">
+                  {[
+                    { id: 'all', label: 'All' },
+                    { id: 'image', label: 'Photo' },
+                    { id: 'video', label: 'Video' },
+                    { id: 'audio', label: 'Audio' },
+                    { id: 'document', label: 'Documents' }
+                  ].map((filter) => (
+                    <Button
+                      key={filter.id}
+                      variant={selectedFilter === filter.id ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedFilter(filter.id)}
+                      className="whitespace-nowrap"
+                    >
+                      {filter.label}
+                    </Button>
+                  ))}
                 </div>
 
-                {/* Sort By */}
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="newest">Newest First</SelectItem>
-                    <SelectItem value="oldest">Oldest First</SelectItem>
-                    <SelectItem value="price_high">Price: High to Low</SelectItem>
-                    <SelectItem value="price_low">Price: Low to High</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                {/* Search and Sort Controls */}
+                <div className="flex items-center gap-3 order-1 lg:order-2">
+                  {/* Search */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Search content..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 w-40 focus:w-64 transition-all duration-200"
+                    />
+                  </div>
 
-              {/* Filter Tabs - Always Horizontal */}
-              <div className="flex items-center gap-2 flex-wrap">
-                {[
-                  { id: 'all', label: 'All' },
-                  { id: 'image', label: 'Photo' },
-                  { id: 'video', label: 'Video' },
-                  { id: 'audio', label: 'Audio' },
-                  { id: 'document', label: 'Documents' }
-                ].map((filter) => (
-                  <Button
-                    key={filter.id}
-                    variant={selectedFilter === filter.id ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedFilter(filter.id)}
-                    className="whitespace-nowrap"
-                  >
-                    {filter.label}
-                  </Button>
-                ))}
+                  {/* Sort By */}
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-36">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="newest">Newest First</SelectItem>
+                      <SelectItem value="oldest">Oldest First</SelectItem>
+                      <SelectItem value="price_high">Price: High to Low</SelectItem>
+                      <SelectItem value="price_low">Price: Low to High</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
