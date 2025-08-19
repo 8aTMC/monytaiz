@@ -90,7 +90,7 @@ export const PendingDeletionsManager = () => {
         <div>
           <h2 className="text-2xl font-bold">Pending Deletions</h2>
           <p className="text-muted-foreground">
-            Manage user accounts scheduled for deletion
+            Manage management user accounts scheduled for deletion (excludes fans)
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
