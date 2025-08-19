@@ -142,7 +142,7 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-background flex">
       <Navigation />
-      <div className="flex-1 ml-64 p-8">
+      <div className="flex-1 ml-52 p-8">
         <div className="max-w-2xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>

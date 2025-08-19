@@ -9,7 +9,7 @@ const PendingDeletions = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+      <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
         <PendingDeletionsManager />
       </main>
     </div>

@@ -126,7 +126,7 @@ const FansLists = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      <main className={`transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+      <main className={`transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-52'}`}>
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
