@@ -51,7 +51,7 @@ export const ThemeToggle = () => {
         <div 
           className={`
             relative w-7 h-7 rounded-full transition-all duration-700 ease-in-out
-            shadow-lg flex items-center justify-center transform z-10
+            shadow-lg flex items-center justify-center transform z-10 top-0.5
             ${isLight 
               ? 'translate-x-0 bg-gradient-to-br from-orange-300 via-yellow-400 to-orange-500' 
               : 'translate-x-8 bg-gradient-to-br from-slate-300 via-slate-400 to-slate-500'
