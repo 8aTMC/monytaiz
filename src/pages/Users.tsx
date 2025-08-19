@@ -304,8 +304,8 @@ const Users = () => {
       <Navigation />
       <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex items-center gap-4 mb-6">
+            <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold text-foreground">Users</h1>
             </div>
             <div className="flex items-center gap-2">

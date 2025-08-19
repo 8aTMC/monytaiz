@@ -171,7 +171,7 @@ const FansCategories = () => {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-4 mb-2">
               <div className="flex items-center gap-3">
                 <Grid className="h-8 w-8 text-primary" />
                 <h1 className="text-3xl font-bold text-foreground">Fan Categories</h1>

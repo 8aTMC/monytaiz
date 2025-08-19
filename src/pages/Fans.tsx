@@ -71,6 +71,9 @@ const Fans = () => {
   const categoryFilter = searchParams.get('category') as Profile['fan_category'] | null;
 
   const syncEmails = async () => {
+    const confirmSync = window.confirm("Are you sure you want to sync fan emails? This will update user email information from the authentication system.");
+    if (!confirmSync) return;
+
     try {
       setLoadingFans(true);
       
@@ -372,7 +375,7 @@ const Fans = () => {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-4 mb-2">
               <div className="flex items-center gap-3">
                 {categoryFilter ? (
                   categoryFilter === 'husband' ? <Heart className="h-8 w-8 text-primary" /> :
@@ -391,7 +394,7 @@ const Fans = () => {
                 </h1>
               </div>
               
-              <div className="flex items-center gap-2 ml-auto">
+              <div className="flex items-center gap-2">
                 <Button 
                   variant="outline" 
                   size="sm"
