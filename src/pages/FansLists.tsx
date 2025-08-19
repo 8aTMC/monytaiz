@@ -108,7 +108,7 @@ const FansLists = () => {
     console.log('Delete list:', listId);
   };
 
-  const handleListDoubleClick = (listId: string) => {
+  const handleListClick = (listId: string) => {
     navigate(`/fans/lists/${listId}`);
   };
 
@@ -171,7 +171,7 @@ const FansLists = () => {
                 <Card 
                   key={list.id} 
                   className="bg-gradient-card border-border shadow-card hover:shadow-lg transition-all cursor-pointer group"
-                  onDoubleClick={() => handleListDoubleClick(list.id)}
+                  onClick={() => handleListClick(list.id)}
                 >
                   <CardHeader className="pb-4">
                     <div className="flex items-start justify-between">
