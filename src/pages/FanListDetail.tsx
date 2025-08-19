@@ -222,11 +222,11 @@ const FanListDetail = () => {
             <div className="flex items-center gap-4 mb-6">
               <Button
                 variant="ghost"
+                size="sm"
                 onClick={() => navigate('/fans/lists')}
-                className="flex items-center gap-2"
+                className="h-8 w-8 p-0"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Back to Fan Lists
               </Button>
             </div>
             
