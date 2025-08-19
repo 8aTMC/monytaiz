@@ -25,6 +25,10 @@ export interface PendingFanDeletion {
     is_verified?: boolean;
     created_at?: string;
   };
+  user_metadata?: {
+    provider?: string;
+    providers?: string[];
+  };
 }
 
 export const useFanDeletion = () => {
@@ -135,7 +139,36 @@ export const useFanDeletion = () => {
         .order('requested_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+
+      // Get user auth metadata for each user to determine sign-up provider
+      const deletionsWithProvider = await Promise.all(
+        (data || []).map(async (deletion) => {
+          try {
+            // Get user from auth.users to check their providers
+            const { data: userData, error: userError } = await supabase.auth.admin.getUserById(deletion.user_id);
+            
+            if (!userError && userData?.user) {
+              const providers = userData.user.app_metadata?.providers || [];
+              const isGoogleUser = providers.includes('google');
+              
+              return {
+                ...deletion,
+                user_metadata: {
+                  provider: isGoogleUser ? 'google' : 'email',
+                  providers: providers
+                }
+              };
+            }
+            
+            return deletion;
+          } catch (error) {
+            console.error('Error fetching user auth data:', error);
+            return deletion;
+          }
+        })
+      );
+
+      return deletionsWithProvider;
     } catch (error: any) {
       console.error('Full error details:', error);
       toast({
