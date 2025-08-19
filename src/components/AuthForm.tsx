@@ -360,13 +360,8 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         </form>
 
         <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-600" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-black/40 px-2 text-gray-400">OR CONTINUE WITH</span>
-            </div>
+          <div className="flex justify-center text-xs uppercase mb-4">
+            <span className="text-gray-400">OR CONTINUE WITH</span>
           </div>
           
           <Button
