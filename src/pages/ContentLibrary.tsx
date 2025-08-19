@@ -391,9 +391,19 @@ const ContentLibrary = () => {
                       onDragOver={handleCustomFolderDragOver}
                       onDrop={(e) => handleCustomFolderDrop(e, index)}
                     >
+                      <div className="absolute top-1 left-1 z-10">
+                        <EditFolderDialog 
+                          folder={{
+                            id: folder.id,
+                            label: folder.label,
+                            description: folder.description
+                          }}
+                          onFolderUpdated={refreshCustomFolders}
+                        />
+                      </div>
                       <Button
                         variant={selectedCategory === folder.id ? "default" : "ghost"}
-                        className="w-full justify-start text-left p-2 h-auto pr-10"
+                        className="w-full justify-start text-left p-2 h-auto pr-10 pl-10"
                         onClick={() => {
                           if (!isReorderMode) {
                             setSelectedCategory(folder.id);
@@ -404,26 +414,15 @@ const ContentLibrary = () => {
                       >
                         <div className="flex items-center gap-2 min-w-0 flex-1">
                           {isReorderMode && <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
-                          <Edit className="h-4 w-4 flex-shrink-0" />
-                            <div className="flex flex-col items-start min-w-0 flex-1">
-                              <span className="font-medium text-left w-full">{truncateText(folder.label, 24)}</span>
-                              <span className={`text-xs text-left w-full ${selectedCategory === folder.id ? 'text-foreground' : 'text-muted-foreground/80'}`}>{truncateText(folder.description, 30)}</span>
-                            </div>
+                          <div className="flex flex-col items-start min-w-0 flex-1">
+                            <span className="font-medium text-left w-full">{truncateText(folder.label, 24)}</span>
+                            <span className={`text-xs text-left w-full ${selectedCategory === folder.id ? 'text-foreground' : 'text-muted-foreground/80'}`}>{truncateText(folder.description, 30)}</span>
+                          </div>
                         </div>
                       </Button>
-                      <div className="absolute top-1 right-2 flex items-center gap-1">
-                        <EditFolderDialog 
-                          folder={{
-                            id: folder.id,
-                            label: folder.label,
-                            description: folder.description
-                          }}
-                          onFolderUpdated={refreshCustomFolders}
-                        />
-                        <Badge variant="secondary" className="text-xs pointer-events-none">
-                          {folder.count || 0}
-                        </Badge>
-                      </div>
+                      <Badge variant="secondary" className="absolute top-1 right-2 text-xs pointer-events-none">
+                        {folder.count || 0}
+                      </Badge>
                     </div>
                   );
                 })}
