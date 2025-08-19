@@ -27,7 +27,6 @@ import {
   ChevronUp,
   ChevronLeft,
   ChevronRight,
-  FileText,
   Receipt,
   Heart,
   UserCheck,
@@ -36,6 +35,7 @@ import {
   Grid,
   List
 } from 'lucide-react';
+import { ContentIcon } from './icons/ContentIcon';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
@@ -315,7 +315,7 @@ export const Navigation = () => {
                  }`}
                 title="Content"
               >
-                <FileText className="h-5 w-5 flex-shrink-0" />
+                <ContentIcon className="h-5 w-5 flex-shrink-0" />
               </Link>
             ) : (
               <Collapsible open={openSection === 'content'} onOpenChange={() => handleSectionToggle('content')}>
@@ -325,7 +325,7 @@ export const Navigation = () => {
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                 }`}>
                   <div className="flex items-center gap-3 flex-1">
-                    <FileText className="h-5 w-5" />
+                    <ContentIcon className="h-5 w-5" />
                     <span>Content</span>
                   </div>
                   <div className="ml-auto pr-1">
