@@ -215,18 +215,18 @@ const Users = () => {
             <div>
               <h1 className="text-3xl font-bold text-foreground">Users</h1>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <Button 
                 variant="outline" 
                 size="sm"
-                className="flex items-center gap-2"
+                className="flex items-center gap-1.5"
                 onClick={() => navigate('/management/pending-deletions')}
               >
-                <UserX className="h-4 w-4 text-destructive" />
+                <UserX className="h-3.5 w-3.5 text-destructive" />
                 <span>Pending Deletions</span>
               </Button>
-              <Button className="flex items-center gap-2" onClick={handleCreateUser}>
-                <Plus className="h-4 w-4" />
+              <Button size="sm" className="flex items-center gap-1.5" onClick={handleCreateUser}>
+                <Plus className="h-3.5 w-3.5" />
                 Create User
               </Button>
             </div>
@@ -302,22 +302,22 @@ const Users = () => {
                                   </span>
                                 </Badge>
                               ))}
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem 
-                                    onClick={() => handleDeleteUser(user)}
-                                    className="text-destructive focus:text-destructive"
-                                  >
-                                    <UserX className="h-4 w-4 mr-2" />
-                                    Delete User
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                               <DropdownMenu>
+                                 <DropdownMenuTrigger asChild>
+                                   <Button variant="ghost" size="sm">
+                                     <MoreHorizontal className="h-3.5 w-3.5" />
+                                   </Button>
+                                 </DropdownMenuTrigger>
+                                 <DropdownMenuContent align="end">
+                                   <DropdownMenuItem 
+                                     onClick={() => handleDeleteUser(user)}
+                                     className="text-destructive focus:text-destructive"
+                                   >
+                                     <UserX className="h-3.5 w-3.5 mr-1.5" />
+                                     Delete User
+                                   </DropdownMenuItem>
+                                 </DropdownMenuContent>
+                               </DropdownMenu>
                             </div>
                           </div>
                           {index < roleUsers.length - 1 && (

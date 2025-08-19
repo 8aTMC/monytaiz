@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, Clock, User, Shield, AlertCircle, Eye, Heart, UserCheck, Star, ThumbsUp } from 'lucide-react';
+import { Calendar, Clock, User, Shield, AlertCircle, Eye, Heart, UserCheck, Star, ThumbsUp, RefreshCw } from 'lucide-react';
 import { useFanDeletion, PendingFanDeletion } from '@/hooks/useFanDeletion';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -126,7 +126,9 @@ export const PendingFanDeletionsManager = () => {
             disabled={refreshing}
             variant="outline"
             size="sm"
+            className="flex items-center gap-1.5"
           >
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             {refreshing ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
@@ -177,16 +179,18 @@ export const PendingFanDeletionsManager = () => {
                       size="sm"
                       onClick={() => openDeleteDialog(deletion)}
                       disabled={loading}
+                      className="flex items-center gap-1"
                     >
-                      <AlertCircle className="h-4 w-4" />
+                      <AlertCircle className="h-3.5 w-3.5" />
                       Fully Delete
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => openFanDetailsDialog(deletion)}
+                      className="flex items-center gap-1"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-3.5 w-3.5" />
                       View Details
                     </Button>
                     <Button
@@ -194,7 +198,9 @@ export const PendingFanDeletionsManager = () => {
                       size="sm"
                       onClick={() => openRestoreDialog(deletion)}
                       disabled={loading}
+                      className="flex items-center gap-1"
                     >
+                      <UserCheck className="h-3.5 w-3.5" />
                       Restore Fan
                     </Button>
                   </div>

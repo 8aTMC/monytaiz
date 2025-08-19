@@ -129,20 +129,22 @@ export const PendingDeletionsManager = () => {
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
+            size="sm"
             onClick={loadPendingDeletions}
             disabled={refreshing}
             className="flex-shrink-0"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           <Button
             variant="destructive"
+            size="sm"
             onClick={handleCleanupExpired}
             disabled={loading}
             className="flex-shrink-0"
           >
-            <Trash2 className="h-4 w-4 mr-2" />
+            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
             Cleanup Expired
           </Button>
         </div>
@@ -230,15 +232,16 @@ export const PendingDeletionsManager = () => {
                     onClick={() => openDeleteDialog(deletion)}
                     disabled={loading}
                   >
-                    <AlertCircle className="h-4 w-4 mr-1" />
+                    <AlertCircle className="h-3.5 w-3.5 mr-1" />
                     Fully Delete
                   </Button>
                   <Button
                     variant="outline"
+                    size="sm"
                     onClick={() => openRestoreDialog(deletion)}
                     disabled={loading}
                   >
-                    <UserCheck className="h-4 w-4 mr-2" />
+                    <UserCheck className="h-3.5 w-3.5 mr-1.5" />
                     Restore User
                   </Button>
                 </div>
