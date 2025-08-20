@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getInitials } from '@/lib/initials';
 import { useToast } from '@/components/ui/use-toast';
+import { useSidebar } from '@/components/Navigation';
 import { 
   Send, 
   Search, 
@@ -63,6 +64,7 @@ interface MessagesLayoutProps {
 
 export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   const { toast } = useToast();
+  const { setIsCollapsed } = useSidebar();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -71,6 +73,11 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-collapse sidebar to give more space for chat
+  useEffect(() => {
+    setIsCollapsed(true);
+  }, [setIsCollapsed]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
