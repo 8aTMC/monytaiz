@@ -147,6 +147,15 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     try {
       setLoading(true);
       
+      // Check if user has admin/management role
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+      
+      const roles = roleData?.map(r => r.role) || [];
+      const isAdmin = roles.some(role => ['admin', 'owner', 'superadmin'].includes(role));
+      
       const query = supabase
         .from('conversations')
         .select(`
@@ -161,10 +170,13 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
         .eq('status', 'active')
         .order('last_message_at', { ascending: false });
 
-      if (isCreator) {
-        query.eq('creator_id', user.id);
-      } else {
-        query.eq('fan_id', user.id);
+      // Admin users can see all conversations, others see only their own
+      if (!isAdmin) {
+        if (isCreator) {
+          query.eq('creator_id', user.id);
+        } else {
+          query.eq('fan_id', user.id);
+        }
       }
 
       const { data, error } = await query;
