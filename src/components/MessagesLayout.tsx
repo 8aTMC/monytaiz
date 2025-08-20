@@ -456,7 +456,6 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   };
 
   const actionButtons = [
-    { icon: Bot, label: 'AI Assistant', color: 'text-purple-500' },
     { icon: Smile, label: 'Emoji', color: 'text-amber-500' },
     { icon: Paperclip, label: 'Attach', color: 'text-muted-foreground' },
     { icon: Library, label: 'Library', color: 'text-blue-500' },
@@ -725,9 +724,9 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                     }}
                     disabled={isUploading}
                   />
-                  {actionButtons.slice(1).map((button, index) => (
+                  {actionButtons.map((button, index) => (
                     <button
-                      key={index + 1}
+                      key={index}
                       type="button"
                       className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 px-3 flex-shrink-0"
                       title={button.label}

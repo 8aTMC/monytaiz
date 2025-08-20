@@ -519,9 +519,6 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
         {/* Action Buttons Row */}
         <div className="flex items-center gap-2 mb-2">
           <Button variant="ghost" size="sm" className="h-8 px-3">
-            <Bot className="h-4 w-4 text-purple-500" />
-          </Button>
-          <Button variant="ghost" size="sm" className="h-8 px-3">
             <Smile className="h-4 w-4 text-amber-500" />
           </Button>
           <Button variant="ghost" size="sm" className="h-8 px-3">
