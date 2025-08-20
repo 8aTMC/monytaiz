@@ -26,11 +26,11 @@ const FanDashboard = () => {
     if (!user) return;
 
     try {
-      // Get the first available creator
+      // Get the first available management user (creator/admin)
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('user_id')
-        .in('role', ['owner', 'creator'])
+        .in('role', ['owner', 'superadmin', 'admin', 'manager'])
         .limit(1);
 
       if (roleError) throw roleError;
