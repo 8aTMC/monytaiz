@@ -62,7 +62,7 @@ const App = () => (
               <Route path="/messages" element={
                 <ProtectedRoute>
                   <Layout>
-                    <ManagementMessages />
+                    <Messages />
                   </Layout>
                 </ProtectedRoute>
               } />
@@ -126,6 +126,13 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <Users />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/management/messages" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ManagementMessages />
                   </Layout>
                 </ProtectedRoute>
               } />
