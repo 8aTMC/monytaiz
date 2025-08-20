@@ -59,7 +59,7 @@ const Upload = () => {
   }
 
   return (
-    <div className="p-6 pt-6">
+    <div className="p-6 pt-2">
       <div className="max-w-7xl mx-auto min-w-[700px]">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">
