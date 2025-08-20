@@ -456,19 +456,25 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
         
         {/* Fixed Input Area - Always at bottom */}
         <div className="flex-none h-[81px] p-4 border-t border-border bg-background flex items-center">
-          <div className="flex gap-2 w-full">
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              sendMessage();
+            }}
+            className="flex gap-2 w-full"
+          >
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               placeholder="Type your message..."
               disabled={sending}
               className="flex-1"
             />
-            <Button onClick={sendMessage} disabled={!newMessage.trim() || sending}>
+            <Button type="submit" disabled={!newMessage.trim() || sending}>
               <Send className="h-4 w-4" />
             </Button>
-          </div>
+          </form>
         </div>
       </main>
     </div>
