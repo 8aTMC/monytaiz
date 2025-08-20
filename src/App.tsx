@@ -40,7 +40,8 @@ const App = () => (
         <BrowserRouter>
           <SidebarProvider>
             <FixedHeader />
-            <Routes>
+            <div className="pt-[73px]">
+              <Routes>
               {/* Public route - only accessible when not authenticated */}
               <Route path="/" element={<Auth />} />
               
@@ -124,6 +125,7 @@ const App = () => (
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </div>
           </SidebarProvider>
         </BrowserRouter>
       </AuthProvider>
