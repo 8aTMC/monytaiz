@@ -65,8 +65,23 @@ const Messages = () => {
   return (
     <div className="flex min-h-screen bg-background">
       <Navigation />
-      <main className={`flex-1 transition-all duration-300 pt-[73px] ${isNarrowScreen && !isCollapsed ? 'overflow-x-auto overflow-y-auto' : ''}`}>
-        <div className={`p-6 ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+200px)] pl-72' : 'max-w-6xl mx-auto min-w-[600px]'}`}>
+      <main 
+        className={`flex-1 transition-all duration-300 pt-[73px]`}
+        style={{
+          overflowX: isNarrowScreen && !isCollapsed ? 'scroll' : 'visible',
+          overflowY: isNarrowScreen && !isCollapsed ? 'scroll' : 'visible'
+        }}
+        onScroll={(e) => {
+          // Prevent sidebar from closing when scrolling
+          e.stopPropagation();
+        }}
+      >
+        <div 
+          className={`p-6 ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+200px)] pl-72' : 'max-w-6xl mx-auto min-w-[600px]'}`}
+          style={{
+            minHeight: isNarrowScreen && !isCollapsed ? 'calc(100vh + 100px)' : 'auto'
+          }}
+        >
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">Messages</h1>
           </div>

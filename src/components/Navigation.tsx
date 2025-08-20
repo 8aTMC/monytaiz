@@ -100,12 +100,27 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
   return (
     <SidebarContext.Provider value={{ isCollapsed, setIsCollapsed: handleSetCollapsed, isNarrowScreen }}>
       <div className={`flex min-h-screen w-full ${isNarrowScreen && !isCollapsed ? 'overflow-x-auto' : ''}`}>
-        {/* Overlay for narrow screens when sidebar is open */}
+        {/* Overlay for narrow screens when sidebar is open - only allow clicks outside content */}
         {isNarrowScreen && !isCollapsed && (
           <div 
-            className="fixed inset-0 bg-black/20 z-40" 
-            onClick={() => handleSetCollapsed(true)}
-          />
+            className="fixed inset-0 z-40" 
+            onClick={(e) => {
+              // Only close if clicking directly on the background overlay area
+              if (e.target === e.currentTarget) {
+                handleSetCollapsed(true);
+              }
+            }}
+            style={{ 
+              background: 'rgba(0, 0, 0, 0.2)',
+              pointerEvents: 'auto'
+            }}
+          >
+            {/* Create a non-interactive area for content that allows scrolling */}
+            <div 
+              className="ml-64 h-full w-full"
+              style={{ pointerEvents: 'none' }}
+            />
+          </div>
         )}
         {children}
       </div>
