@@ -23,6 +23,7 @@ import PendingDeletions from "./pages/PendingDeletions";
 import FanDeletions from "./pages/FanDeletions";
 import PendingSignups from "./pages/PendingSignups";
 import FanListDetail from "./pages/FanListDetail";
+import FanDashboard from "./pages/FanDashboard";
 import NotFound from "./pages/NotFound";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 
@@ -141,6 +142,13 @@ const App = () => (
                 </Layout>
               </ProtectedRoute>
             } />
+              <Route path="/fan-dashboard" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <FanDashboard />
+                  </Layout>
+                </ProtectedRoute>
+              } />
               <Route path="/profile" element={
                 <ProtectedRoute>
                   <Layout>
