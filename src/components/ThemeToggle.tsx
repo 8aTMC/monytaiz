@@ -26,7 +26,7 @@ export const ThemeToggle = () => {
   const isLight = theme === 'light';
 
   return (
-    <div className="fixed top-4 right-4 z-[60]">
+    <div className="fixed top-4 right-4 z-[9999]">
       <button
         onClick={toggleTheme}
         className={`
