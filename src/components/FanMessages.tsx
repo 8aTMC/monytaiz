@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/initials';
-import { Send, MessageCircle, Check, CheckCheck } from 'lucide-react';
+import { Send, MessageCircle, Check, CheckCheck, Bot, Smile, Paperclip, Library, Mic, FileText, Gift, DollarSign } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { Navigation, useSidebar } from '@/components/Navigation';
@@ -515,13 +515,41 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
       </div>
       
       {/* Fixed Input Area - Always at bottom */}
-      <div className="flex-none h-[81px] p-4 border-t border-border bg-background flex items-center">
+      <div className="flex-none h-[81px] p-4 border-t border-border bg-background">
+        {/* Action Buttons Row */}
+        <div className="flex items-center gap-2 mb-2">
+          <Button variant="ghost" size="sm" className="h-8 px-3">
+            <Bot className="h-4 w-4 text-purple-500" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 px-3">
+            <Smile className="h-4 w-4 text-amber-500" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 px-3">
+            <Paperclip className="h-4 w-4 text-muted-foreground" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 px-3">
+            <Library className="h-4 w-4 text-blue-500" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 px-3">
+            <Mic className="h-4 w-4 text-purple-500" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 px-3">
+            <Gift className="h-4 w-4 text-yellow-500" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 px-3">
+            <DollarSign className="h-4 w-4 text-emerald-500" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 px-3">
+            <FileText className="h-4 w-4 text-orange-500" />
+          </Button>
+        </div>
+        
         <form 
           onSubmit={(e) => {
             e.preventDefault();
             sendMessage();
           }}
-          className="flex gap-2 w-full"
+          className="flex gap-2"
         >
           <Input
             value={newMessage}
