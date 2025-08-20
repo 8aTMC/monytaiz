@@ -35,7 +35,8 @@ import {
   Calendar,
   Check,
   CheckCheck,
-  Bot
+  Bot,
+  AtSign
 } from 'lucide-react';
 
 interface Message {
@@ -456,6 +457,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   };
 
   const actionButtons = [
+    { icon: Bot, label: 'AI Assistant', color: 'text-purple-500' },
     { icon: Smile, label: 'Emoji', color: 'text-amber-500' },
     { icon: Paperclip, label: 'Attach', color: 'text-muted-foreground' },
     { icon: Library, label: 'Library', color: 'text-blue-500' },
@@ -464,6 +466,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     ...(!isCreator ? [{ icon: Gift, label: 'Tip', color: 'text-yellow-500' }] : []),
     { icon: DollarSign, label: 'Price', color: 'text-emerald-500' },
     { icon: FileText, label: 'Scripts', color: 'text-orange-500' },
+    { icon: AtSign, label: 'Tag Creator', color: 'text-blue-600' },
   ];
 
   if (loading) {

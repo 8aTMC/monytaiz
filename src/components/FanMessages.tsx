@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/initials';
-import { Send, MessageCircle, Check, CheckCheck, Bot, Smile, Paperclip, Library, Mic, FileText, Gift, DollarSign } from 'lucide-react';
+import { Send, MessageCircle, Check, CheckCheck, Bot, Smile, Paperclip, Library, Mic, FileText, Gift, DollarSign, AtSign } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { Navigation, useSidebar } from '@/components/Navigation';
@@ -518,26 +518,32 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
       <div className="flex-none h-[81px] p-4 border-t border-border bg-background">
         {/* Action Buttons Row */}
         <div className="flex items-center gap-2 mb-2">
-          <Button variant="ghost" size="sm" className="h-8 px-3">
+          <Button variant="ghost" size="sm" className="h-8 px-3" title="AI Assistant">
+            <Bot className="h-4 w-4 text-purple-500" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 px-3" title="Emoji">
             <Smile className="h-4 w-4 text-amber-500" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-8 px-3">
+          <Button variant="ghost" size="sm" className="h-8 px-3" title="Attach">
             <Paperclip className="h-4 w-4 text-muted-foreground" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-8 px-3">
+          <Button variant="ghost" size="sm" className="h-8 px-3" title="Library">
             <Library className="h-4 w-4 text-blue-500" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-8 px-3">
+          <Button variant="ghost" size="sm" className="h-8 px-3" title="Voice">
             <Mic className="h-4 w-4 text-purple-500" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-8 px-3">
+          <Button variant="ghost" size="sm" className="h-8 px-3" title="Tip">
             <Gift className="h-4 w-4 text-yellow-500" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-8 px-3">
+          <Button variant="ghost" size="sm" className="h-8 px-3" title="Price">
             <DollarSign className="h-4 w-4 text-emerald-500" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-8 px-3">
+          <Button variant="ghost" size="sm" className="h-8 px-3" title="Scripts">
             <FileText className="h-4 w-4 text-orange-500" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 px-3" title="Tag Creator">
+            <AtSign className="h-4 w-4 text-blue-600" />
           </Button>
         </div>
         
