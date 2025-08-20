@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { formatSubscriptionDuration } from '@/lib/utils';
 import { getInitials } from '@/lib/initials';
 import { useToast } from '@/hooks/use-toast';
 import { useSidebar } from '@/components/Navigation';
@@ -820,7 +821,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm text-muted-foreground">Subscription</span>
-                      <Badge variant="outline">0 months</Badge>
+                      <Badge variant="outline">{formatSubscriptionDuration(3)}</Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-lg font-semibold">$0.00</span>
