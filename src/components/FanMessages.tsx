@@ -61,8 +61,8 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
       loadMessages();
       
       // Set up real-time subscription for messages
-      const channel = supabase
-        .channel(`conversation-${conversation.id}`)
+      const messagesChannel = supabase
+        .channel(`fan-messages-${conversation.id}`)
         .on(
           'postgres_changes',
           {
@@ -72,14 +72,21 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
             filter: `conversation_id=eq.${conversation.id}`,
           },
           (payload) => {
+            console.log('New message received:', payload);
             const newMessage = payload.new as Message;
-            setMessages((current) => [...current, newMessage]);
+            setMessages((current) => {
+              // Avoid duplicates
+              if (current.find(msg => msg.id === newMessage.id)) {
+                return current;
+              }
+              return [...current, newMessage];
+            });
           }
         )
         .subscribe();
 
       return () => {
-        supabase.removeChannel(channel);
+        supabase.removeChannel(messagesChannel);
       };
     }
   }, [conversation]);

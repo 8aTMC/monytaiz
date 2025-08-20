@@ -82,15 +82,37 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
   useEffect(() => {
     loadConversations();
+    
+    // Set up real-time subscription for conversation updates
+    const conversationsChannel = supabase
+      .channel('conversations-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'conversations',
+        },
+        (payload) => {
+          console.log('Conversation updated:', payload);
+          // Reload conversations to get latest message info
+          loadConversations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(conversationsChannel);
+    };
   }, [user]);
 
   useEffect(() => {
     if (activeConversation) {
       loadMessages();
       
-      // Set up real-time subscription
-      const channel = supabase
-        .channel(`conversation-${activeConversation.id}`)
+      // Set up real-time subscription for messages
+      const messagesChannel = supabase
+        .channel(`conversation-messages-${activeConversation.id}`)
         .on(
           'postgres_changes',
           {
@@ -100,14 +122,23 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             filter: `conversation_id=eq.${activeConversation.id}`,
           },
           (payload) => {
+            console.log('New message received:', payload);
             const newMessage = payload.new as Message;
-            setMessages((current) => [...current, newMessage]);
+            setMessages((current) => {
+              // Avoid duplicates
+              if (current.find(msg => msg.id === newMessage.id)) {
+                return current;
+              }
+              return [...current, newMessage];
+            });
+            // Update conversations list to reflect new message
+            loadConversations();
           }
         )
         .subscribe();
 
       return () => {
-        supabase.removeChannel(channel);
+        supabase.removeChannel(messagesChannel);
       };
     }
   }, [activeConversation]);
