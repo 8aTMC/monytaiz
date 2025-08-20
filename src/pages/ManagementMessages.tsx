@@ -256,9 +256,9 @@ const ManagementMessages = () => {
   const selectedConversation = conversations.find(conv => conv.id === activeConversation);
 
   return (
-    <div className="h-[calc(100vh-var(--header-h))] flex">
+    <div className="h-[calc(100vh-var(--header-h))] flex min-h-0">
       {/* Conversations Sidebar */}
-      <div className="w-80 border-r flex flex-col bg-muted/30">
+      <div className="w-80 border-r flex flex-col bg-muted/30 min-h-0">
         {/* Header */}
         <div className="p-4 border-b border-border/60">
           <div className="flex items-center gap-2 mb-4">
@@ -317,7 +317,7 @@ const ManagementMessages = () => {
         </div>
 
         {/* Conversations List */}
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 min-h-0">
           <div className="p-2">
             {filteredConversations.map((conversation) => (
               <div
@@ -384,7 +384,7 @@ const ManagementMessages = () => {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex min-h-0 flex-col">
         {activeConversation && selectedConversation ? (
           <>
             {/* Chat Header */}
@@ -412,7 +412,7 @@ const ManagementMessages = () => {
             </div>
 
             {/* Messages */}
-            <ScrollArea className="flex-1 p-4">
+            <ScrollArea className="flex-1 min-h-0 p-4">
               <div className="space-y-4">
                 {messages.map((message) => (
                   <div

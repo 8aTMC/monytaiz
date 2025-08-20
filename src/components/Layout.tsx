@@ -47,7 +47,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         }}
       >
         {/* Inner container enforces minimum width for horizontal scroll within main */}
-        <div className="min-w-[1024px] min-h-[calc(100vh-var(--header-h))] box-border p-6">
+        <div className="min-w-[1024px] min-h-[calc(100vh-var(--header-h))] box-border">
           {children}
         </div>
       </main>
