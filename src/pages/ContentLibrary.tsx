@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Filter, Grid, Image, Video, FileAudio, FileText, Calendar, ArrowUpDown, BookOpen, Zap, MessageSquare, GripVertical, Edit } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { NewFolderDialog } from '@/components/NewFolderDialog';
 import { EditFolderDialog } from '@/components/EditFolderDialog';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -410,7 +411,8 @@ const ContentLibrary = () => {
       <Navigation />
       
       <div className={`flex-1 transition-all duration-300 min-w-[800px] pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
-        <div className="flex h-screen min-w-[800px]">
+        <ScrollArea className="h-[calc(100vh-73px)] w-full">
+          <div className="flex min-h-[calc(100vh-73px)] min-w-[800px]">
           {/* Categories Sidebar */}
           <div className="w-80 bg-card border-r border-border p-4 overflow-y-auto flex-shrink-0">
             <div className="mb-4">
@@ -724,8 +726,9 @@ const ContentLibrary = () => {
                 </div>
               )}
             </div>
+            </div>
           </div>
-        </div>
+        </ScrollArea>
       </div>
     </div>
   );

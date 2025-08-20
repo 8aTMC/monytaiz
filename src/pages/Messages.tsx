@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MessageCircle, Send, Search } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTranslation } from '@/hooks/useTranslation';
 
 const Messages = () => {
@@ -64,8 +65,9 @@ const Messages = () => {
   return (
     <div className="flex min-h-screen bg-background">
       <Navigation />
-      <main className={`flex-1 transition-all duration-300 p-6 overflow-x-auto pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
-        <div className="max-w-6xl mx-auto min-w-[600px]">
+      <main className={`flex-1 transition-all duration-300 pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
+        <ScrollArea className="h-[calc(100vh-73px)] w-full">
+          <div className="max-w-6xl mx-auto min-w-[600px] p-6">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">Messages</h1>
           </div>
@@ -131,8 +133,9 @@ const Messages = () => {
                 </CardContent>
               </Card>
             </div>
+            </div>
           </div>
-        </div>
+        </ScrollArea>
       </main>
     </div>
   );
