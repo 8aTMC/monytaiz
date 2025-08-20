@@ -97,31 +97,44 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
     setUserCollapsed(collapsed);
   };
 
+  // Esc key to close sidebar on narrow screens
+  useEffect(() => {
+    if (!(isNarrowScreen && !isCollapsed)) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleSetCollapsed(true);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isNarrowScreen, isCollapsed]);
+
   return (
     <SidebarContext.Provider value={{ isCollapsed, setIsCollapsed: handleSetCollapsed, isNarrowScreen }}>
-      <div className={`flex min-h-screen w-full ${isNarrowScreen && !isCollapsed ? 'overflow-x-auto' : ''}`}>
-        {/* Overlay for narrow screens when sidebar is open - only allow clicks outside content */}
+      <div className="flex min-h-screen w-full">
+        {/* Optional: visual dim with no pointer capture */}
         {isNarrowScreen && !isCollapsed && (
-          <div 
-            className="fixed inset-0 z-40" 
-            onClick={(e) => {
-              // Only close if clicking directly on the background overlay area
-              if (e.target === e.currentTarget) {
-                handleSetCollapsed(true);
-              }
-            }}
-            style={{ 
-              background: 'rgba(0, 0, 0, 0.2)',
-              pointerEvents: 'auto'
-            }}
-          >
-            {/* Create a non-interactive area for content that allows scrolling */}
-            <div 
-              className="ml-64 h-full w-full"
-              style={{ pointerEvents: 'none' }}
-            />
-          </div>
+          <div
+            className="fixed inset-0 z-40"
+            style={{ background: 'rgba(0,0,0,0.20)', pointerEvents: 'none' }}
+          />
         )}
+
+        {/* Click-capture strip (does NOT cover content). 
+           It sits at the sidebar's right edge; clicking it collapses the sidebar. */}
+        {isNarrowScreen && !isCollapsed && (
+          <button
+            aria-label="Close sidebar"
+            onClick={() => handleSetCollapsed(true)}
+            className="fixed z-50 top-[var(--header-h)] bottom-0"
+            style={{
+              left: 'var(--sidebar-w)',   // exactly where main area starts
+              width: '24px',              // small strip; adjust as you like
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          />
+        )}
+
         {children}
       </div>
     </SidebarContext.Provider>

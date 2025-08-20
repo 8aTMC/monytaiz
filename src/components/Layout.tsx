@@ -41,22 +41,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <main
         className="fixed top-[var(--header-h)] right-0 bottom-0 overflow-auto z-10"
         style={{ 
-          left: isNarrowScreen && !isCollapsed ? '0' : 'var(--sidebar-w)'
+          left: 'var(--sidebar-w)'  // Always offset by sidebar width
         }}
       >
         {/* Inner container enforces minimum width for horizontal scroll within main */}
-        <div className="min-w-[800px] min-h-[calc(100vh-var(--header-h))] p-6">
+        <div className="min-w-[1024px] min-h-[calc(100vh-var(--header-h))] p-6">
           {children}
         </div>
       </main>
-
-      {/* Overlay for narrow screens when sidebar is open */}
-      {isNarrowScreen && !isCollapsed && (
-        <div 
-          className="fixed inset-0 bg-black/20 z-30"
-          style={{ left: 'var(--sidebar-w)' }}
-        />
-      )}
     </div>
   );
 }
