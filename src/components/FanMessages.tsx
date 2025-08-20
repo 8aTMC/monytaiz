@@ -363,14 +363,6 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
     <div className="flex h-screen bg-background">
       <Navigation />
       <main className={`flex-1 flex flex-col transition-all duration-300 ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
-        {/* Header */}
-        <div className="flex-shrink-0 p-4 border-b border-border bg-background">
-          <h1 className="text-2xl font-bold text-foreground">Messages</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Chat with {conversation.creator_profile?.display_name || 'Management'}
-          </p>
-        </div>
-
         {/* Chat Header */}
         <div className="flex-shrink-0 p-4 border-b border-border bg-background">
           <div className="flex items-center gap-3">
