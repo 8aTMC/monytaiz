@@ -99,14 +99,11 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
 
   return (
     <SidebarContext.Provider value={{ isCollapsed, setIsCollapsed: handleSetCollapsed, isNarrowScreen }}>
-      <div 
-        className={`min-h-screen ${isNarrowScreen && !isCollapsed ? 'overflow-x-auto' : ''}`}
-        {...(isNarrowScreen && !isCollapsed ? { 'data-narrow-screen-open': 'true' } : {})}
-      >
+      <div className={`flex min-h-screen w-full ${isNarrowScreen && !isCollapsed ? 'overflow-x-auto' : ''}`}>
         {/* Overlay for narrow screens when sidebar is open */}
         {isNarrowScreen && !isCollapsed && (
           <div 
-            className="fixed inset-0 bg-black/20 z-30" 
+            className="fixed inset-0 bg-black/20 z-40" 
             onClick={() => handleSetCollapsed(true)}
           />
         )}
@@ -208,7 +205,7 @@ export const Navigation = () => {
 
   return (
     <nav 
-      className={`fixed left-0 top-0 bg-card border-r border-border h-screen flex flex-col z-40 transition-all duration-300 ${
+      className={`${isNarrowScreen && !isCollapsed ? 'fixed left-0 top-0 z-50' : 'relative'} bg-card border-r border-border h-screen flex flex-col transition-all duration-300 ${
         isCollapsed ? 'w-16' : 'w-64'
       } ${isNarrowScreen && !isCollapsed ? 'shadow-2xl' : ''}`}
       data-auto-collapse
