@@ -328,155 +328,139 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-background">
-        <Navigation />
-        <main className={`flex-1 transition-all duration-300 p-6 pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
-          <div className="animate-pulse">
-            <div className="h-8 w-32 bg-muted/30 rounded mb-4"></div>
-            <div className="h-96 bg-muted/20 rounded-lg"></div>
-          </div>
-        </main>
+      <div className="p-6 animate-pulse">
+        <div className="h-8 w-32 bg-muted/30 rounded mb-4"></div>
+        <div className="h-96 bg-muted/20 rounded-lg"></div>
       </div>
     );
   }
 
   if (!conversation) {
     return (
-      <div className="flex min-h-screen bg-background">
-        <Navigation />
-        <main className={`flex-1 transition-all duration-300 p-6 pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No conversation available</h3>
-              <p className="text-muted-foreground text-center">
-                Unable to start a conversation at this time. Please try again later.
-              </p>
-            </CardContent>
-          </Card>
-        </main>
+      <div className="p-6">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">No conversation available</h3>
+            <p className="text-muted-foreground text-center">
+              Unable to start a conversation at this time. Please try again later.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden">
-      <Navigation />
-      <main 
-        className="fixed overflow-hidden flex flex-col transition-all duration-300 bg-background"
-        style={{ 
-          inset: '0 0 0 var(--sidebar-w)'  // top right bottom left - account for sidebar width
-        }}
-      >
-        {/* Chat Header - Fixed height */}
-        <div className="flex-none h-[73px] p-4 border-b border-border bg-background z-10 flex items-center">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={conversation.creator_profile?.avatar_url} />
-              <AvatarFallback>
-                {getInitials(conversation.creator_profile?.display_name, conversation.creator_profile?.username)}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="font-medium">
-                {conversation.creator_profile?.display_name || 'Management'}
-              </div>
-              {conversation.creator_profile?.username && (
-                <div className="text-sm text-muted-foreground">
-                  @{conversation.creator_profile.username}
-                </div>
-              )}
+    <div className="h-full overflow-hidden flex flex-col bg-background">
+      {/* Chat Header - Fixed height */}
+      <div className="flex-none h-[73px] p-4 border-b border-border bg-background z-10 flex items-center">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={conversation.creator_profile?.avatar_url} />
+            <AvatarFallback>
+              {getInitials(conversation.creator_profile?.display_name, conversation.creator_profile?.username)}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <div className="font-medium">
+              {conversation.creator_profile?.display_name || 'Management'}
             </div>
-          </div>
-        </div>
-        
-        {/* Messages Area - Takes remaining space */}
-        <div className="flex-1 min-h-0">
-            <div 
-            ref={messagesContainerRef}
-            onScroll={handleScroll}
-            className="h-full overflow-y-auto px-6 py-4"
-            style={{ height: 'calc(100vh - 73px - 81px)' }}
-          >
-            {loadingMoreMessages && (
-              <div className="text-center py-4">
-                <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                  Loading more messages...
-                </div>
+            {conversation.creator_profile?.username && (
+              <div className="text-sm text-muted-foreground">
+                @{conversation.creator_profile.username}
               </div>
             )}
-            
-            <div className="space-y-4 pb-4 max-w-4xl mx-auto">
-              {messages.length === 0 && !loadingMoreMessages ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-2">Start the conversation</h3>
-                  <p className="text-muted-foreground">
-                    Send your first message to get started!
-                  </p>
-                </div>
-              ) : (
-                messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex gap-3 px-4 ${
-                      message.sender_id === user.id ? 'justify-end' : 'justify-start'
-                    }`}
-                  >
-                    {message.sender_id !== user.id && (
-                      <Avatar className="h-8 w-8 flex-shrink-0">
-                        <AvatarImage src={conversation.creator_profile?.avatar_url} />
-                        <AvatarFallback>
-                          {getInitials(conversation.creator_profile?.display_name, conversation.creator_profile?.username)}
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
-                    <div className={`flex-1 max-w-sm ${message.sender_id === user.id ? 'text-right' : ''}`}>
-                      <div
-                        className={`inline-block p-3 rounded-lg ${
-                          message.sender_id === user.id
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
-                        }`}
-                      >
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {formatTime(message.created_at)}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-              <div ref={messagesEndRef} />
-            </div>
           </div>
         </div>
-        
-        {/* Fixed Input Area - Always at bottom */}
-        <div className="flex-none h-[81px] p-4 border-t border-border bg-background flex items-center">
-          <form 
-            onSubmit={(e) => {
-              e.preventDefault();
-              sendMessage();
-            }}
-            className="flex gap-2 w-full"
-          >
-            <Input
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder="Type your message..."
-              disabled={sending}
-              className="flex-1"
-            />
-            <Button type="submit" disabled={!newMessage.trim() || sending}>
-              <Send className="h-4 w-4" />
-            </Button>
-          </form>
+      </div>
+      
+      {/* Messages Area - Takes remaining space */}
+      <div className="flex-1 min-h-0">
+        <div 
+          ref={messagesContainerRef}
+          onScroll={handleScroll}
+          className="h-full overflow-y-auto px-6 py-4"
+          style={{ height: 'calc(100vh - 73px - 81px)' }}
+        >
+          {loadingMoreMessages && (
+            <div className="text-center py-4">
+              <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                Loading more messages...
+              </div>
+            </div>
+          )}
+          
+          <div className="space-y-4 pb-4 max-w-4xl mx-auto">
+            {messages.length === 0 && !loadingMoreMessages ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">Start the conversation</h3>
+                <p className="text-muted-foreground">
+                  Send your first message to get started!
+                </p>
+              </div>
+            ) : (
+              messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex gap-3 px-4 ${
+                    message.sender_id === user.id ? 'justify-end' : 'justify-start'
+                  }`}
+                >
+                  {message.sender_id !== user.id && (
+                    <Avatar className="h-8 w-8 flex-shrink-0">
+                      <AvatarImage src={conversation.creator_profile?.avatar_url} />
+                      <AvatarFallback>
+                        {getInitials(conversation.creator_profile?.display_name, conversation.creator_profile?.username)}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
+                  <div className={`flex-1 max-w-sm ${message.sender_id === user.id ? 'text-right' : ''}`}>
+                    <div
+                      className={`inline-block p-3 rounded-lg ${
+                        message.sender_id === user.id
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted'
+                      }`}
+                    >
+                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {formatTime(message.created_at)}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+            <div ref={messagesEndRef} />
+          </div>
         </div>
-      </main>
+      </div>
+      
+      {/* Fixed Input Area - Always at bottom */}
+      <div className="flex-none h-[81px] p-4 border-t border-border bg-background flex items-center">
+        <form 
+          onSubmit={(e) => {
+            e.preventDefault();
+            sendMessage();
+          }}
+          className="flex gap-2 w-full"
+        >
+          <Input
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder="Type your message..."
+            disabled={sending}
+            className="flex-1"
+          />
+          <Button type="submit" disabled={!newMessage.trim() || sending}>
+            <Send className="h-4 w-4" />
+          </Button>
+        </form>
+      </div>
     </div>
   );
 };
