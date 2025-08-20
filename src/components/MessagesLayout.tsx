@@ -17,6 +17,7 @@ import { MessageFilesPack } from '@/components/MessageFilesPack';
 import { PaymentConfirmationDialog } from '@/components/PaymentConfirmationDialog';
 import { AddCardDialog } from '@/components/AddCardDialog';
 import { useMessageFileUpload } from '@/hooks/useMessageFileUpload';
+import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { toast as sonnerToast } from 'sonner';
 import { 
   Send, 
@@ -99,6 +100,12 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     allFilesUploaded,
     hasFiles
   } = useMessageFileUpload();
+
+  // Initialize typing indicator hook
+  const { typingUsers, handleInputChange, stopTyping } = useTypingIndicator(
+    activeConversation?.id || null, 
+    user.id
+  );
 
 
   const scrollToBottom = () => {
@@ -313,6 +320,8 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
     try {
       setSending(true);
+      stopTyping(); // Stop typing indicator when sending
+      
       const { data: messageData, error } = await supabase
         .from('messages')
         .insert({
@@ -658,8 +667,36 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                         </div>
                       </div>
                     </div>
-                  ))}
-                  <div ref={messagesEndRef} />
+                   ))}
+                   
+                   {/* Typing Indicator */}
+                   {typingUsers.length > 0 && (
+                     <div className="flex gap-3 px-4 mb-4">
+                       <Avatar className="h-8 w-8 flex-shrink-0">
+                         <AvatarImage src={getProfileForConversation(activeConversation)?.avatar_url} />
+                         <AvatarFallback>
+                           {getInitials(
+                             getProfileForConversation(activeConversation)?.display_name,
+                             getProfileForConversation(activeConversation)?.username
+                           )}
+                         </AvatarFallback>
+                       </Avatar>
+                       <div className="flex-1 max-w-sm">
+                         <div className="inline-block p-3 rounded-lg bg-muted">
+                           <div className="flex items-center gap-1">
+                             <div className="flex gap-1">
+                               <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                               <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                               <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                             </div>
+                             <span className="text-xs text-muted-foreground ml-2">Typing...</span>
+                           </div>
+                         </div>
+                       </div>
+                     </div>
+                   )}
+                   
+                   <div ref={messagesEndRef} />
                 </div>
               </ScrollArea>
             </div>
@@ -708,7 +745,10 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                 >
                   <Input
                     value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
+                    onChange={(e) => {
+                      setNewMessage(e.target.value);
+                      handleInputChange();
+                    }}
                     onKeyDown={handleKeyPress}
                     placeholder="Type a message..."
                     disabled={sending || (hasFiles && !allFilesUploaded)}

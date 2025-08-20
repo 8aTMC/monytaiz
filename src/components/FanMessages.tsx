@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/initials';
-import { Send, MessageCircle } from 'lucide-react';
+import { Send, MessageCircle, Check, CheckCheck } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Navigation, useSidebar } from '@/components/Navigation';
+import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 
 interface Message {
   id: string;
@@ -17,6 +18,10 @@ interface Message {
   sender_id: string;
   created_at: string;
   conversation_id: string;
+  message_type: string;
+  delivered_at?: string;
+  read_by_recipient: boolean;
+  read_at?: string;
 }
 
 interface Conversation {
@@ -48,6 +53,12 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const MESSAGES_PER_PAGE = 100;
+
+  // Initialize typing indicator hook
+  const { typingUsers, handleInputChange, stopTyping } = useTypingIndicator(
+    conversation?.id || null, 
+    user.id
+  );
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -86,6 +97,20 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
               }
               return [...current, newMessage];
             });
+            
+            // Auto-mark messages as read when received
+            if (newMessage.sender_id !== user.id) {
+              setTimeout(async () => {
+                try {
+                  await supabase.rpc('mark_conversation_as_read', {
+                    conv_id: conversation.id,
+                    reader_user_id: user.id
+                  });
+                } catch (error) {
+                  console.error('Error marking message as read:', error);
+                }
+              }, 1000);
+            }
           }
         )
         .subscribe();
@@ -289,16 +314,28 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
 
     try {
       setSending(true);
-      const { error } = await supabase
+      stopTyping(); // Stop typing indicator when sending
+      
+      const { data: messageData, error } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversation.id,
           sender_id: user.id,
           content: newMessage.trim(),
           status: 'active'
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+      
+      // Mark message as delivered immediately since it was sent successfully
+      if (messageData) {
+        await supabase.rpc('mark_message_delivered', { 
+          message_id: messageData.id 
+        });
+      }
+      
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
@@ -316,6 +353,19 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
+    }
+  };
+
+  // Get delivery status icon for messages
+  const getDeliveryStatusIcon = (message: Message) => {
+    if (message.sender_id !== user.id) return null;
+    
+    if (message.read_by_recipient) {
+      return <CheckCheck className="h-3 w-3 text-blue-500" />;
+    } else if (message.delivered_at) {
+      return <CheckCheck className="h-3 w-3 text-muted-foreground" />;
+    } else {
+      return <Check className="h-3 w-3 text-muted-foreground" />;
     }
   };
 
@@ -424,17 +474,42 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-muted'
                       }`}
-                    >
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {formatTime(message.created_at)}
-                    </div>
+                     >
+                       <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                     </div>
+                     <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                       <span>{formatTime(message.created_at)}</span>
+                       {getDeliveryStatusIcon(message)}
+                     </div>
                   </div>
                 </div>
               ))
             )}
             <div ref={messagesEndRef} />
+            
+            {/* Typing Indicator */}
+            {typingUsers.length > 0 && (
+              <div className="flex gap-3 px-4 mb-4">
+                <Avatar className="h-8 w-8 flex-shrink-0">
+                  <AvatarImage src={conversation.creator_profile?.avatar_url} />
+                  <AvatarFallback>
+                    {getInitials(conversation.creator_profile?.display_name, conversation.creator_profile?.username)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 max-w-sm">
+                  <div className="inline-block p-3 rounded-lg bg-muted">
+                    <div className="flex items-center gap-1">
+                      <div className="flex gap-1">
+                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
+                      <span className="text-xs text-muted-foreground ml-2">Typing...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -450,7 +525,10 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
         >
           <Input
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            onChange={(e) => {
+              setNewMessage(e.target.value);
+              handleInputChange();
+            }}
             onKeyDown={handleKeyPress}
             placeholder="Type your message..."
             disabled={sending}
