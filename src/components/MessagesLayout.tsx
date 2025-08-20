@@ -414,9 +414,9 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
       </div>
 
       {/* Main Chat Area - Responsive width */}
-      <div className={`flex flex-col min-w-0 h-full ${
+      <div className={`flex flex-col min-w-0 ${
         activeConversation && isCreator ? 'flex-1' : 'flex-1'
-      }`}>
+      }`} style={{ height: 'calc(100vh - var(--header-h))' }}>
         {activeConversation ? (
           <>
             {/* Chat Header - Fixed */}
@@ -451,9 +451,9 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             </div>
 
             {/* Messages Area - Takes remaining space, scrollable */}
-            <div className="flex-1 min-h-0 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-hidden" style={{ height: 'calc(100vh - var(--header-h) - 73px - 140px)' }}>
               <ScrollArea className="h-full px-6 py-4">
-                <div className="space-y-4 max-w-4xl mx-auto">
+                <div className="space-y-4 max-w-4xl mx-auto pb-4">
                   {messages.map((message) => (
                     <div
                       key={message.id}
@@ -494,7 +494,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             </div>
 
             {/* Message Input Area - Fixed at bottom */}
-            <div className="flex-none border-t border-border bg-background">
+            <div className="flex-none border-t border-border bg-background" style={{ height: '140px' }}>
               <div className="p-4">
                 {/* Action Buttons */}
                 <div className="flex items-center gap-2 mb-3 overflow-x-auto">
