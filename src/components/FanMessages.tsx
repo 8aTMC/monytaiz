@@ -360,9 +360,14 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
   }
 
   return (
-    <div className="fixed inset-0 flex bg-background">
+    <div className="h-screen w-screen overflow-hidden">
       <Navigation />
-      <main className={`flex-1 flex flex-col transition-all duration-300 ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
+      <main 
+        className="fixed overflow-hidden flex flex-col transition-all duration-300 bg-background"
+        style={{ 
+          inset: '0 0 0 var(--sidebar-w)'  // top right bottom left - account for sidebar width
+        }}
+      >
         {/* Chat Header - Fixed height */}
         <div className="flex-none h-[73px] p-4 border-b border-border bg-background z-10 flex items-center">
           <div className="flex items-center gap-3">
