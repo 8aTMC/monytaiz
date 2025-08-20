@@ -81,6 +81,7 @@ export const FileUploadButton = ({ onFilesSelected, disabled }: FileUploadButton
         variant="ghost"
         size="sm"
         disabled={disabled}
+        title="Upload Media"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className="flex items-center text-muted-foreground hover:text-primary transition-colors"
