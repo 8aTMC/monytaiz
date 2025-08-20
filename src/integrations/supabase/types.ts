@@ -146,7 +146,10 @@ export type Database = {
           id: string
           is_active: boolean
           last_message_at: string | null
+          latest_message_content: string | null
+          latest_message_sender_id: string | null
           status: string | null
+          unread_count: number | null
           updated_at: string
         }
         Insert: {
@@ -158,7 +161,10 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_message_at?: string | null
+          latest_message_content?: string | null
+          latest_message_sender_id?: string | null
           status?: string | null
+          unread_count?: number | null
           updated_at?: string
         }
         Update: {
@@ -170,7 +176,10 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_message_at?: string | null
+          latest_message_content?: string | null
+          latest_message_sender_id?: string | null
           status?: string | null
+          unread_count?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -334,11 +343,13 @@ export type Database = {
           conversation_id: string
           created_at: string
           deleted_at: string | null
+          delivered_at: string | null
           id: string
           is_system_message: boolean
           media_url: string | null
           message_type: string
           read_at: string | null
+          read_by_recipient: boolean | null
           sender_id: string
           status: string | null
         }
@@ -347,11 +358,13 @@ export type Database = {
           conversation_id: string
           created_at?: string
           deleted_at?: string | null
+          delivered_at?: string | null
           id?: string
           is_system_message?: boolean
           media_url?: string | null
           message_type?: string
           read_at?: string | null
+          read_by_recipient?: boolean | null
           sender_id: string
           status?: string | null
         }
@@ -360,11 +373,13 @@ export type Database = {
           conversation_id?: string
           created_at?: string
           deleted_at?: string | null
+          delivered_at?: string | null
           id?: string
           is_system_message?: boolean
           media_url?: string | null
           message_type?: string
           read_at?: string | null
+          read_by_recipient?: boolean | null
           sender_id?: string
           status?: string | null
         }
@@ -939,6 +954,14 @@ export type Database = {
       is_user_restricted: {
         Args: { _restricted_id: string; _restrictor_id: string }
         Returns: boolean
+      }
+      mark_conversation_as_read: {
+        Args: { conv_id: string; reader_user_id: string }
+        Returns: undefined
+      }
+      mark_message_delivered: {
+        Args: { message_id: string }
+        Returns: undefined
       }
       permanently_delete_expired_conversations: {
         Args: Record<PropertyKey, never>
