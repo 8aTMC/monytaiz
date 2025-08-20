@@ -407,26 +407,9 @@ const ContentLibrary = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-background overflow-auto">
-      <Navigation />
-      
-      <div className="flex-1 pt-[73px]">
-        <div 
-          className={`h-[calc(100vh-73px)] ${isNarrowScreen && !isCollapsed ? 'overflow-auto' : 'overflow-auto'}`}
-          style={{
-            overflowX: isNarrowScreen && !isCollapsed ? 'auto' : 'visible',
-            overflowY: isNarrowScreen && !isCollapsed ? 'auto' : 'visible'
-          }}
-          onScroll={(e) => {
-            // Prevent sidebar from closing when scrolling
-            e.stopPropagation();
-          }}
-        >
-          <div 
-            className={`flex ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+1000px)] pl-72' : 'min-w-[800px]'}`}
-          >
-          {/* Categories Sidebar */}
-          <div className="w-80 bg-card border-r border-border p-4 overflow-y-auto flex-shrink-0">
+    <div className="h-full flex overflow-hidden">
+      {/* Categories Sidebar */}
+      <div className="w-80 bg-card border-r border-border overflow-y-auto flex-shrink-0">
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-foreground mb-3">Library</h2>
             </div>
@@ -738,10 +721,7 @@ const ContentLibrary = () => {
                 </div>
               )}
             </div>
-            </div>
           </div>
-        </div>
-      </div>
     </div>
   );
 };

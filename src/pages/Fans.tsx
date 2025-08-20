@@ -542,13 +542,9 @@ const Fans = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Navigation />
-      
-      <main className={`flex-1 p-8 overflow-x-auto transition-all duration-300 pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
-        <div className="max-w-7xl mx-auto min-w-[700px]">
-          {/* Header */}
-          <div className="mb-8">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="mb-8">
             <div className="flex items-center gap-4 mb-2">
               <div className="flex items-center gap-3">
                 {categoryFilter && (
@@ -1054,11 +1050,9 @@ const Fans = () => {
                 </DialogContent>
               </Dialog>
             </>
-          )}
-        </div>
-      </main>
+           )}
 
-      {/* User Notes Dialog */}
+       {/* User Notes Dialog */}
       <UserNotesDialog
         open={userNotesDialogOpen}
         onOpenChange={setUserNotesDialogOpen}

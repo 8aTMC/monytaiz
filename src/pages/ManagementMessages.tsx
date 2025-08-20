@@ -256,7 +256,7 @@ const ManagementMessages = () => {
   const selectedConversation = conversations.find(conv => conv.id === activeConversation);
 
   return (
-    <div className="h-[calc(100vh-var(--header-h))] flex">
+    <div className="h-[calc(100vh-var(--header-h)-48px)] flex">
       {/* Conversations Sidebar */}
       <div className="w-80 border-r flex flex-col bg-muted/30">
         {/* Header */}
