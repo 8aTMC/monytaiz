@@ -109,7 +109,7 @@ const ManagementMessages = () => {
     if (!user) return;
 
     try {
-      // Management users can see all conversations, regular users see only their own
+      // Management users can see all conversations
       const { data: userRoles } = await supabase
         .from('user_roles')
         .select('role')
@@ -118,7 +118,7 @@ const ManagementMessages = () => {
       const roles = userRoles?.map(r => r.role) || [];
       const isManagement = roles.some(role => ['owner', 'superadmin', 'admin', 'manager'].includes(role));
       
-      let query = supabase
+      const { data, error } = await supabase
         .from('conversations')
         .select(`
           id,
@@ -127,15 +127,8 @@ const ManagementMessages = () => {
           last_message_at,
           fan:profiles!conversations_fan_id_fkey(id, username, display_name, fan_category)
         `)
-        .eq('is_active', true);
-      
-      // For now, let management users see all conversations
-      if (!isManagement) {
-        // Regular users see only conversations they're part of
-        query = query.eq('creator_id', user.id);
-      }
-      
-      const { data, error } = await query.order('last_message_at', { ascending: false });
+        .eq('is_active', true)
+        .order('last_message_at', { ascending: false });
 
       if (error) throw error;
 
