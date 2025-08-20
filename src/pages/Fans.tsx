@@ -467,6 +467,10 @@ const Fans = () => {
       case 'restrict':
         handleRestrictUser(fan);
         break;
+      case 'message':
+        // Navigate to messages page with fan parameter
+        navigate(`/messages?fan=${fan.id}&name=${encodeURIComponent(fan.display_name || fan.username || 'Anonymous')}`);
+        break;
       default:
         console.log(`${action} action for user:`, fan.id);
         break;
