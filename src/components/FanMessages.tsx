@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
+import { Navigation, useSidebar } from '@/components/Navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +35,7 @@ interface FanMessagesProps {
 
 export const FanMessages = ({ user }: FanMessagesProps) => {
   const { toast } = useToast();
+  const { isCollapsed, isNarrowScreen } = useSidebar();
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -105,7 +107,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
 
       const managementUserId = managementUsers[0].user_id;
 
-      // Check if conversation exists
+      // Check if conversation exists (only active ones)
       const { data: existingConv, error: convError } = await supabase
         .from('conversations')
         .select(`
@@ -116,6 +118,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
         `)
         .eq('fan_id', user.id)
         .eq('creator_id', managementUserId)
+        .eq('status', 'active')
         .single();
 
       if (convError && convError.code !== 'PGRST116') {
@@ -131,6 +134,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           .insert({
             fan_id: user.id,
             creator_id: managementUserId,
+            status: 'active',
           })
           .select(`
             id,
@@ -163,6 +167,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
         .from('messages')
         .select('*')
         .eq('conversation_id', conversation.id)
+        .eq('status', 'active')
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -188,6 +193,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           conversation_id: conversation.id,
           sender_id: user.id,
           content: newMessage.trim(),
+          status: 'active',
         });
 
       if (error) throw error;
@@ -220,35 +226,47 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
 
   if (loading) {
     return (
-      <div className="animate-pulse">
-        <div className="h-8 w-32 bg-muted/30 rounded mb-4"></div>
-        <div className="h-96 bg-muted/20 rounded-lg"></div>
+      <div className="flex min-h-screen bg-background">
+        <Navigation />
+        <main className={`flex-1 transition-all duration-300 p-6 overflow-x-auto pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
+          <div className="animate-pulse">
+            <div className="h-8 w-32 bg-muted/30 rounded mb-4"></div>
+            <div className="h-96 bg-muted/20 rounded-lg"></div>
+          </div>
+        </main>
       </div>
     );
   }
 
   if (!conversation) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium mb-2">No conversation available</h3>
-          <p className="text-muted-foreground text-center">
-            Unable to start a conversation at this time. Please try again later.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="flex min-h-screen bg-background">
+        <Navigation />
+        <main className={`flex-1 transition-all duration-300 p-6 overflow-x-auto pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">No conversation available</h3>
+              <p className="text-muted-foreground text-center">
+                Unable to start a conversation at this time. Please try again later.
+              </p>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
     );
   }
 
   return (
-    <>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Messages</h1>
-        <p className="text-muted-foreground mt-2">
-          Chat with {conversation.creator_profile?.display_name || 'Management'}
-        </p>
-      </div>
+    <div className="flex min-h-screen bg-background">
+      <Navigation />
+      <main className={`flex-1 transition-all duration-300 p-6 overflow-x-auto pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground">Messages</h1>
+          <p className="text-muted-foreground mt-2">
+            Chat with {conversation.creator_profile?.display_name || 'Management'}
+          </p>
+        </div>
 
       <Card className="h-[600px] flex flex-col">
         <CardHeader className="border-b border-border">
@@ -335,7 +353,8 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           </div>
         </div>
       </Card>
-    </>
+      </main>
+    </div>
   );
 };
 
