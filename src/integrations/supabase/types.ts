@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_conversation_settings: {
+        Row: {
+          auto_response_enabled: boolean
+          conversation_id: string
+          created_at: string
+          current_mode: Database["public"]["Enums"]["ai_conversation_mode"]
+          id: string
+          is_ai_enabled: boolean
+          typing_simulation_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          auto_response_enabled?: boolean
+          conversation_id: string
+          created_at?: string
+          current_mode?: Database["public"]["Enums"]["ai_conversation_mode"]
+          id?: string
+          is_ai_enabled?: boolean
+          typing_simulation_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          auto_response_enabled?: boolean
+          conversation_id?: string
+          created_at?: string
+          current_mode?: Database["public"]["Enums"]["ai_conversation_mode"]
+          id?: string
+          is_ai_enabled?: boolean
+          typing_simulation_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversation_settings_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: true
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -244,6 +285,61 @@ export type Database = {
         }
         Relationships: []
       }
+      fan_memories: {
+        Row: {
+          created_at: string
+          created_by: string
+          creator_id: string
+          fan_id: string
+          id: string
+          note: string
+          note_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          creator_id: string
+          fan_id: string
+          id?: string
+          note: string
+          note_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          creator_id?: string
+          fan_id?: string
+          id?: string
+          note?: string
+          note_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fan_memories_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fan_memories_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fan_memories_fan_id_fkey"
+            columns: ["fan_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       file_folders: {
         Row: {
           color: string | null
@@ -399,6 +495,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      model_persona: {
+        Row: {
+          background_info: string | null
+          created_at: string
+          creator_id: string
+          hobbies: string[] | null
+          id: string
+          life_events: string[] | null
+          persona_description: string
+          persona_name: string
+          personality_traits: string[] | null
+          tone_of_voice: string | null
+          updated_at: string
+        }
+        Insert: {
+          background_info?: string | null
+          created_at?: string
+          creator_id: string
+          hobbies?: string[] | null
+          id?: string
+          life_events?: string[] | null
+          persona_description: string
+          persona_name: string
+          personality_traits?: string[] | null
+          tone_of_voice?: string | null
+          updated_at?: string
+        }
+        Update: {
+          background_info?: string | null
+          created_at?: string
+          creator_id?: string
+          hobbies?: string[] | null
+          id?: string
+          life_events?: string[] | null
+          persona_description?: string
+          persona_name?: string
+          personality_traits?: string[] | null
+          tone_of_voice?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       negotiations: {
         Row: {
@@ -1032,6 +1170,12 @@ export type Database = {
       }
     }
     Enums: {
+      ai_conversation_mode:
+        | "friendly_chat"
+        | "supportive_nudges"
+        | "comeback_mode"
+        | "intimate_flirt"
+        | "autopilot"
       app_role:
         | "fan"
         | "creator"
@@ -1178,6 +1322,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ai_conversation_mode: [
+        "friendly_chat",
+        "supportive_nudges",
+        "comeback_mode",
+        "intimate_flirt",
+        "autopilot",
+      ],
       app_role: [
         "fan",
         "creator",
