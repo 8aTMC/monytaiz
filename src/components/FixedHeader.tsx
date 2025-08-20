@@ -17,13 +17,12 @@ export const FixedHeader = () => {
 
   return (
     <header 
-      className="fixed top-0 z-[100] bg-background border-b border-border h-[73px] transition-all duration-300 flex-shrink-0"
+      className="absolute top-0 right-0 h-[73px] bg-background border-b border-border transition-all duration-300 flex-shrink-0 z-50"
       style={{ 
-        left: isNarrowScreen ? '0' : isCollapsed ? '64px' : '256px',
-        right: '0'
+        left: isNarrowScreen ? '0' : isCollapsed ? '64px' : '256px'
       }}
     >
-      <div className="flex items-center justify-end px-4 h-full">
+      <div className="flex items-center justify-end px-4 h-full w-full">
         <ThemeToggle />
       </div>
     </header>

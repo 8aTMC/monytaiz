@@ -39,7 +39,7 @@ const App = () => (
         <PWAInstallPrompt />
         <BrowserRouter>
           <SidebarProvider>
-             <div className="min-h-screen flex w-full">
+             <div className="min-h-screen flex w-full relative">
                <FixedHeader />
                <div className="pt-[73px] flex-1">
                  <Routes>
