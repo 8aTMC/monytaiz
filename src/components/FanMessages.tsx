@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
-import { Navigation, useSidebar } from '@/components/Navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Send, MessageCircle } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/components/ui/use-toast';
+import { Navigation, useSidebar } from '@/components/Navigation';
 
 interface Message {
   id: string;
@@ -107,7 +107,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
 
       const managementUserId = managementUsers[0].user_id;
 
-      // Check if conversation exists (only active ones)
+      // Check if conversation exists (only active conversations)
       const { data: existingConv, error: convError } = await supabase
         .from('conversations')
         .select(`
@@ -119,7 +119,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
         .eq('fan_id', user.id)
         .eq('creator_id', managementUserId)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
 
       if (convError && convError.code !== 'PGRST116') {
         throw convError;
@@ -134,7 +134,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           .insert({
             fan_id: user.id,
             creator_id: managementUserId,
-            status: 'active',
+            status: 'active'
           })
           .select(`
             id,
@@ -193,7 +193,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           conversation_id: conversation.id,
           sender_id: user.id,
           content: newMessage.trim(),
-          status: 'active',
+          status: 'active'
         });
 
       if (error) throw error;
@@ -228,7 +228,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
     return (
       <div className="flex min-h-screen bg-background">
         <Navigation />
-        <main className={`flex-1 transition-all duration-300 p-6 overflow-x-auto pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
+        <main className={`flex-1 transition-all duration-300 p-6 pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
           <div className="animate-pulse">
             <div className="h-8 w-32 bg-muted/30 rounded mb-4"></div>
             <div className="h-96 bg-muted/20 rounded-lg"></div>
@@ -242,7 +242,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
     return (
       <div className="flex min-h-screen bg-background">
         <Navigation />
-        <main className={`flex-1 transition-all duration-300 p-6 overflow-x-auto pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
+        <main className={`flex-1 transition-all duration-300 p-6 pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
@@ -260,99 +260,99 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
   return (
     <div className="flex min-h-screen bg-background">
       <Navigation />
-      <main className={`flex-1 transition-all duration-300 p-6 overflow-x-auto pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
-        <div className="mb-8">
+      <main className={`flex-1 transition-all duration-300 p-6 pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
+        <div className="mb-6">
           <h1 className="text-3xl font-bold text-foreground">Messages</h1>
           <p className="text-muted-foreground mt-2">
             Chat with {conversation.creator_profile?.display_name || 'Management'}
           </p>
         </div>
 
-      <Card className="h-[600px] flex flex-col">
-        <CardHeader className="border-b border-border">
-          <CardTitle className="flex items-center gap-3">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={conversation.creator_profile?.avatar_url} />
-              <AvatarFallback>
-                {(conversation.creator_profile?.display_name || 'M').charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="font-medium">
-                {conversation.creator_profile?.display_name || 'Management'}
-              </div>
-              {conversation.creator_profile?.username && (
-                <div className="text-sm text-muted-foreground">
-                  @{conversation.creator_profile.username}
+        <Card className="h-[calc(100vh-200px)] flex flex-col">
+          <CardHeader className="border-b border-border">
+            <CardTitle className="flex items-center gap-3">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={conversation.creator_profile?.avatar_url} />
+                <AvatarFallback>
+                  {(conversation.creator_profile?.display_name || 'M').charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="font-medium">
+                  {conversation.creator_profile?.display_name || 'Management'}
                 </div>
-              )}
-            </div>
-          </CardTitle>
-        </CardHeader>
-        
-        <ScrollArea className="flex-1 p-4">
-          <div className="space-y-4">
-            {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">Start the conversation</h3>
-                <p className="text-muted-foreground">
-                  Send your first message to get started!
-                </p>
+                {conversation.creator_profile?.username && (
+                  <div className="text-sm text-muted-foreground">
+                    @{conversation.creator_profile.username}
+                  </div>
+                )}
               </div>
-            ) : (
-              messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex gap-3 ${
-                    message.sender_id === user.id ? 'justify-end' : 'justify-start'
-                  }`}
-                >
-                  {message.sender_id !== user.id && (
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={conversation.creator_profile?.avatar_url} />
-                      <AvatarFallback>
-                        {(conversation.creator_profile?.display_name || 'M').charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                  <div className={`flex-1 max-w-xs ${message.sender_id === user.id ? 'text-right' : ''}`}>
-                    <div
-                      className={`inline-block p-3 rounded-lg ${
-                        message.sender_id === user.id
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
-                      }`}
-                    >
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {formatTime(message.created_at)}
+            </CardTitle>
+          </CardHeader>
+          
+          <ScrollArea className="flex-1 p-4">
+            <div className="space-y-4">
+              {messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">Start the conversation</h3>
+                  <p className="text-muted-foreground">
+                    Send your first message to get started!
+                  </p>
+                </div>
+              ) : (
+                messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex gap-3 ${
+                      message.sender_id === user.id ? 'justify-end' : 'justify-start'
+                    }`}
+                  >
+                    {message.sender_id !== user.id && (
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={conversation.creator_profile?.avatar_url} />
+                        <AvatarFallback>
+                          {(conversation.creator_profile?.display_name || 'M').charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
+                    <div className={`flex-1 max-w-xs ${message.sender_id === user.id ? 'text-right' : ''}`}>
+                      <div
+                        className={`inline-block p-3 rounded-lg ${
+                          message.sender_id === user.id
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
+                        }`}
+                      >
+                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {formatTime(message.created_at)}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
-            )}
-            <div ref={messagesEndRef} />
+                ))
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
+          
+          <div className="p-4 border-t border-border">
+            <div className="flex gap-2">
+              <Input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Type your message..."
+                disabled={sending}
+                className="flex-1"
+              />
+              <Button onClick={sendMessage} disabled={!newMessage.trim() || sending}>
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </ScrollArea>
-        
-        <div className="p-4 border-t border-border">
-          <div className="flex gap-2">
-            <Input
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type your message..."
-              disabled={sending}
-              className="flex-1"
-            />
-            <Button onClick={sendMessage} disabled={!newMessage.trim() || sending}>
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </Card>
+        </Card>
       </main>
     </div>
   );

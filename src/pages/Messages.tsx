@@ -85,8 +85,8 @@ const Messages = () => {
   return (
     <div className="flex min-h-screen bg-background">
       <Navigation />
-      <main className={`flex-1 transition-all duration-300 p-6 overflow-x-auto pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
-        <div className="mb-8">
+      <main className={`flex-1 transition-all duration-300 p-6 pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
+        <div className="mb-6">
           <h1 className="text-3xl font-bold text-foreground">Messages</h1>
         </div>
 
@@ -134,7 +134,7 @@ const Messages = () => {
 
           {/* Chat Area */}
           <div className="lg:col-span-2">
-            <Card className="h-[600px] flex flex-col">
+            <Card className="h-[calc(100vh-200px)] flex flex-col">
               <CardHeader className="border-b border-border">
                 <CardTitle className="flex items-center gap-2">
                   <UserIcon className="h-5 w-5" />
