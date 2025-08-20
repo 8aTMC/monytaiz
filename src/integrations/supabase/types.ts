@@ -140,28 +140,37 @@ export type Database = {
         Row: {
           created_at: string
           creator_id: string
+          deleted_at: string | null
+          deletion_scheduled_for: string | null
           fan_id: string
           id: string
           is_active: boolean
           last_message_at: string | null
+          status: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           creator_id: string
+          deleted_at?: string | null
+          deletion_scheduled_for?: string | null
           fan_id: string
           id?: string
           is_active?: boolean
           last_message_at?: string | null
+          status?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           creator_id?: string
+          deleted_at?: string | null
+          deletion_scheduled_for?: string | null
           fan_id?: string
           id?: string
           is_active?: boolean
           last_message_at?: string | null
+          status?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -279,34 +288,40 @@ export type Database = {
           content: string
           conversation_id: string
           created_at: string
+          deleted_at: string | null
           id: string
           is_system_message: boolean
           media_url: string | null
           message_type: string
           read_at: string | null
           sender_id: string
+          status: string | null
         }
         Insert: {
           content: string
           conversation_id: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           is_system_message?: boolean
           media_url?: string | null
           message_type?: string
           read_at?: string | null
           sender_id: string
+          status?: string | null
         }
         Update: {
           content?: string
           conversation_id?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           is_system_message?: boolean
           media_url?: string | null
           message_type?: string
           read_at?: string | null
           sender_id?: string
+          status?: string | null
         }
         Relationships: [
           {
@@ -875,6 +890,10 @@ export type Database = {
       is_user_restricted: {
         Args: { _restricted_id: string; _restrictor_id: string }
         Returns: boolean
+      }
+      permanently_delete_expired_conversations: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       permanently_delete_expired_users: {
         Args: Record<PropertyKey, never>
