@@ -15,13 +15,13 @@ export const FixedHeader = () => {
 
   if (!user) return null;
 
-  // Calculate left offset based on sidebar state
-  const leftOffset = isNarrowScreen ? '0' : isCollapsed ? '64px' : '256px';
-
   return (
     <header 
-      className="fixed top-0 z-[100] bg-background border-b border-border h-[73px] transition-all duration-300"
-      style={{ left: leftOffset, right: '0' }}
+      className="fixed top-0 z-[100] bg-background border-b border-border h-[73px] transition-all duration-300 flex-shrink-0"
+      style={{ 
+        left: isNarrowScreen ? '0' : isCollapsed ? '64px' : '256px',
+        right: '0'
+      }}
     >
       <div className="flex items-center justify-end px-4 h-full">
         <ThemeToggle />

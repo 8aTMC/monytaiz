@@ -39,9 +39,10 @@ const App = () => (
         <PWAInstallPrompt />
         <BrowserRouter>
           <SidebarProvider>
-            <FixedHeader />
-            <div className="pt-[73px]">
-              <Routes>
+             <div className="min-h-screen flex w-full">
+               <FixedHeader />
+               <div className="pt-[73px] flex-1">
+                 <Routes>
               {/* Public route - only accessible when not authenticated */}
               <Route path="/" element={<Auth />} />
               
@@ -122,9 +123,10 @@ const App = () => (
                 </ProtectedRoute>
               } />
               
-              {/* Catch-all route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+                {/* Catch-all route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              </div>
             </div>
           </SidebarProvider>
         </BrowserRouter>
