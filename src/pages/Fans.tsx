@@ -682,51 +682,55 @@ const Fans = () => {
                                 <MoreVertical className="h-3.5 w-3.5" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuItem onClick={() => handleMenuAction('copy-link', fan)}>
-                                <Copy className="h-3.5 w-3.5 mr-1.5" />
-                                Copy link to profile
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleMenuAction('view-comments', fan)}>
-                                <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
-                                View user's comments
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => {
-                                setSelectedFanForNotes(fan);
-                                setUserNotesDialogOpen(true);
-                              }}>
-                                <FileText className="h-3.5 w-3.5 mr-1.5" />
-                                Add notes
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => {
-                                setSelectedFanForHistory(fan);
-                                setUsernameHistoryDialogOpen(true);
-                              }}>
-                                <Clock className="h-3.5 w-3.5 mr-1.5" />
-                                Past Usernames
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleRestrictUser(fan)}>
-                                <Shield className="h-3.5 w-3.5 mr-1.5" />
-                                {userRestrictions[fan.id] ? 'Unrestrict' : 'Restrict'}
-                              </DropdownMenuItem>
-                               <DropdownMenuItem onClick={() => handleBlockUser(fan)} className={userBlocks[fan.id] ? "text-green-600" : "text-destructive"}>
-                                 <UserX className="h-3.5 w-3.5 mr-1.5" />
-                                 {userBlocks[fan.id] ? 'Unblock' : 'Block'}
+                             <DropdownMenuContent align="end" className="w-48">
+                               <DropdownMenuItem onClick={() => handleMenuAction('copy-link', fan)}>
+                                 <Copy className="h-3.5 w-3.5 mr-1.5" />
+                                 Copy link to profile
                                </DropdownMenuItem>
-                               <DropdownMenuSeparator />
-                               <DropdownMenuItem 
-                                 onClick={() => {
-                                   setSelectedFanForDeletion(fan);
-                                   setDeleteDialogOpen(true);
-                                 }}
-                                 className="text-destructive"
-                               >
-                                 <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                                 Delete Account
+                               <DropdownMenuItem onClick={() => handleMenuAction('view-comments', fan)}>
+                                 <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+                                 View user's comments
                                </DropdownMenuItem>
-                             </DropdownMenuContent>
+                               <DropdownMenuItem onClick={() => handleMenuAction('message', fan)}>
+                                 <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+                                 Send Message
+                               </DropdownMenuItem>
+                               <DropdownMenuItem onClick={() => {
+                                 setSelectedFanForNotes(fan);
+                                 setUserNotesDialogOpen(true);
+                               }}>
+                                 <FileText className="h-3.5 w-3.5 mr-1.5" />
+                                 Add notes
+                               </DropdownMenuItem>
+                               <DropdownMenuSeparator className="opacity-50" />
+                               <DropdownMenuItem onClick={() => {
+                                 setSelectedFanForHistory(fan);
+                                 setUsernameHistoryDialogOpen(true);
+                               }}>
+                                 <Clock className="h-3.5 w-3.5 mr-1.5" />
+                                 Past Usernames
+                               </DropdownMenuItem>
+                               <DropdownMenuSeparator className="opacity-50" />
+                               <DropdownMenuItem onClick={() => handleRestrictUser(fan)}>
+                                 <Shield className="h-3.5 w-3.5 mr-1.5" />
+                                 {userRestrictions[fan.id] ? 'Unrestrict' : 'Restrict'}
+                               </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleBlockUser(fan)} className={userBlocks[fan.id] ? "text-green-600" : "text-destructive"}>
+                                  <UserX className="h-3.5 w-3.5 mr-1.5" />
+                                  {userBlocks[fan.id] ? 'Unblock' : 'Block'}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className="opacity-50" />
+                                <DropdownMenuItem 
+                                  onClick={() => {
+                                    setSelectedFanForDeletion(fan);
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                                  Delete Account
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
                            </DropdownMenu>
                        </div>
                      </CardHeader>
