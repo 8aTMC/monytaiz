@@ -29,7 +29,7 @@ const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDialogPro
     displayName: '',
     username: '',
     bio: '',
-    role: 'admin' as 'admin' | 'superadmin' | 'moderator' | 'chatter' | 'creator',
+    role: 'admin' as 'admin' | 'superadmin' | 'moderator' | 'chatter',
   });
 
   // Check current user's role to determine what roles they can create
@@ -170,14 +170,14 @@ const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDialogPro
   // Determine which roles the current user can create
   const getAvailableRoles = () => {
     if (currentUserRole === 'owner') {
-      // Owner can create all roles including superadmin
-      return ['superadmin', 'admin', 'moderator', 'chatter', 'creator'];
+      // Owner can create all management roles including superadmin
+      return ['superadmin', 'admin', 'moderator', 'chatter'];
     } else if (currentUserRole === 'superadmin') {
       // Superadmin can create all roles except owner and other superadmins
-      return ['admin', 'moderator', 'chatter', 'creator'];
+      return ['admin', 'moderator', 'chatter'];
     } else if (currentUserRole === 'admin') {
       // Admin can create lower level roles
-      return ['moderator', 'chatter', 'creator'];
+      return ['moderator', 'chatter'];
     } else {
       // Other roles have limited creation rights
       return ['chatter'];
@@ -337,22 +337,14 @@ const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDialogPro
                     </div>
                   </SelectItem>
                 )}
-                {getAvailableRoles().includes('chatter') && (
+                 {getAvailableRoles().includes('chatter') && (
                   <SelectItem value="chatter">
                     <div className="flex items-center gap-2">
                       {getRoleIcon('chatter')}
                       Chatter
                     </div>
                   </SelectItem>
-                )}
-                {getAvailableRoles().includes('creator') && (
-                  <SelectItem value="creator">
-                    <div className="flex items-center gap-2">
-                      {getRoleIcon('creator')}
-                      Creator
-                    </div>
-                  </SelectItem>
-                )}
+                 )}
               </SelectContent>
             </Select>
           </div>

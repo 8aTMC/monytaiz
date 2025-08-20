@@ -47,7 +47,7 @@ export const ChatDialog = ({ open, onOpenChange }: ChatDialogProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [creatorsForNewChat, setCreatorsForNewChat] = useState<any[]>([]);
+  const [managementUsers, setManagementUsers] = useState<any[]>([]);
   const [showNewChatForm, setShowNewChatForm] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -58,7 +58,7 @@ export const ChatDialog = ({ open, onOpenChange }: ChatDialogProps) => {
   useEffect(() => {
     if (open && user) {
       loadConversations();
-      loadCreators();
+      loadManagementUsers();
     }
   }, [open, user]);
 
@@ -120,33 +120,32 @@ export const ChatDialog = ({ open, onOpenChange }: ChatDialogProps) => {
     }
   };
 
-  const loadCreators = async () => {
+  const loadManagementUsers = async () => {
     try {
-      // First get creator user IDs
+      // First get management user IDs (who can receive messages)
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('user_id')
-        .in('role', ['owner', 'creator']);
+        .in('role', ['owner', 'superadmin', 'admin']);
 
       if (roleError) throw roleError;
       
-      const creatorIds = roleData?.map(r => r.user_id) || [];
+      const managementIds = roleData?.map(r => r.user_id) || [];
       
-      if (creatorIds.length === 0) {
-        setCreatorsForNewChat([]);
+      if (managementIds.length === 0) {
+        setManagementUsers([]);
         return;
       }
 
-      // Then get creator profiles
+      // Then get management user profiles
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, display_name')
-        .in('id', creatorIds);
+        .select('id, username, display_name, avatar_url')
+        .in('id', managementIds);
 
-      if (error) throw error;
-      setCreatorsForNewChat(data || []);
+      setManagementUsers(data || []);
     } catch (error) {
-      console.error('Error loading creators:', error);
+      console.error('Error loading management users:', error);
     }
   };
 
@@ -204,7 +203,7 @@ export const ChatDialog = ({ open, onOpenChange }: ChatDialogProps) => {
     }
   };
 
-  const startNewConversation = async (creatorId: string) => {
+  const startNewConversation = async (managementUserId: string) => {
     if (!user) return;
 
     try {
@@ -212,7 +211,7 @@ export const ChatDialog = ({ open, onOpenChange }: ChatDialogProps) => {
         .from('conversations')
         .insert({
           fan_id: user.id,
-          creator_id: creatorId,
+          creator_id: managementUserId,
         })
         .select(`
           id,
@@ -282,19 +281,19 @@ export const ChatDialog = ({ open, onOpenChange }: ChatDialogProps) => {
                     <CardContent className="p-4">
                       <h4 className="font-medium mb-3">Start a new conversation</h4>
                       <div className="space-y-2">
-                        {creatorsForNewChat.map((creator) => (
+                        {managementUsers.map((user) => (
                           <Button
-                            key={creator.id}
+                            key={user.id}
                             variant="ghost"
                             className="w-full justify-start"
-                            onClick={() => startNewConversation(creator.id)}
+                            onClick={() => startNewConversation(user.id)}
                           >
                             <Avatar className="h-8 w-8 mr-3">
                               <AvatarFallback>
-                                {(creator.display_name || creator.username || 'U')[0].toUpperCase()}
+                                {(user.display_name || user.username || 'U')[0].toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
-                            {creator.display_name || creator.username || 'Unknown'}
+                            {user.display_name || user.username || 'Unknown'}
                           </Button>
                         ))}
                       </div>
