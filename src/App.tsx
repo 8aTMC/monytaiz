@@ -24,6 +24,7 @@ import FanDeletions from "./pages/FanDeletions";
 import PendingSignups from "./pages/PendingSignups";
 import FanListDetail from "./pages/FanListDetail";
 import FanDashboard from "./pages/FanDashboard";
+import ManagementMessages from "./pages/ManagementMessages";
 import NotFound from "./pages/NotFound";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 
@@ -61,7 +62,7 @@ const App = () => (
               <Route path="/messages" element={
                 <ProtectedRoute>
                   <Layout>
-                    <Messages />
+                    <ManagementMessages />
                   </Layout>
                 </ProtectedRoute>
               } />

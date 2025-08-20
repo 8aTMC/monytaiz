@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -13,10 +14,70 @@ import SpendingChart from '@/components/SpendingChart';
 const FanDashboard = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
+
+  const openDirectChat = async () => {
+    if (!user) return;
+
+    try {
+      // Get the first available creator
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .in('role', ['owner', 'creator'])
+        .limit(1);
+
+      if (roleError) throw roleError;
+      
+      if (!roleData || roleData.length === 0) {
+        toast({
+          title: "No creators available",
+          description: "There are no creators to chat with at the moment",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const creatorId = roleData[0].user_id;
+
+      // Check if conversation already exists
+      const { data: existingConv, error: convError } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('fan_id', user.id)
+        .eq('creator_id', creatorId)
+        .limit(1);
+
+      if (convError) throw convError;
+
+      if (existingConv && existingConv.length > 0) {
+        // Open existing conversation
+        setChatOpen(true);
+      } else {
+        // Create new conversation
+        const { error: createError } = await supabase
+          .from('conversations')
+          .insert({
+            fan_id: user.id,
+            creator_id: creatorId,
+          });
+
+        if (createError) throw createError;
+        setChatOpen(true);
+      }
+    } catch (error) {
+      console.error('Error opening chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to open chat",
+        variant: "destructive",
+      });
+    }
+  };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -113,9 +174,9 @@ const FanDashboard = () => {
 
       {/* Quick Actions */}
       <div className="mb-8 flex gap-4">
-        <Button onClick={() => setChatOpen(true)} className="gap-2">
+        <Button onClick={openDirectChat} className="gap-2">
           <MessageCircle className="h-4 w-4" />
-          Chat
+          Chat with Creator
         </Button>
         <Button variant="outline" onClick={() => navigate('/library')}>
           Browse Content
