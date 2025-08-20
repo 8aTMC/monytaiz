@@ -360,11 +360,11 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
   }
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="fixed inset-0 flex bg-background">
       <Navigation />
-      <main className={`flex-1 flex flex-col transition-all duration-300 h-full overflow-hidden ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
-        {/* Chat Header */}
-        <div className="flex-shrink-0 p-4 border-b border-border bg-background z-10">
+      <main className={`flex-1 flex flex-col transition-all duration-300 ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
+        {/* Chat Header - Fixed height */}
+        <div className="flex-none h-[73px] p-4 border-b border-border bg-background z-10 flex items-center">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
               <AvatarImage src={conversation.creator_profile?.avatar_url} />
@@ -385,12 +385,13 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           </div>
         </div>
         
-        {/* Messages Area */}
-        <div className="flex-1 overflow-hidden">
+        {/* Messages Area - Takes remaining space */}
+        <div className="flex-1 min-h-0">
           <div 
             ref={messagesContainerRef}
             onScroll={handleScroll}
             className="h-full overflow-y-auto p-4"
+            style={{ height: 'calc(100vh - 73px - 81px)' }}
           >
             {loadingMoreMessages && (
               <div className="text-center py-4">
@@ -448,9 +449,9 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           </div>
         </div>
         
-        {/* Fixed Input Area */}
-        <div className="flex-shrink-0 p-4 border-t border-border bg-background">
-          <div className="flex gap-2">
+        {/* Fixed Input Area - Always at bottom */}
+        <div className="flex-none h-[81px] p-4 border-t border-border bg-background flex items-center">
+          <div className="flex gap-2 w-full">
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
