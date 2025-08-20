@@ -54,9 +54,14 @@ const ManagementMessages = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingMoreMessages, setLoadingMoreMessages] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [messagesOffset, setMessagesOffset] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'unread' | 'priority' | 'with_tips'>('all');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const MESSAGES_PER_PAGE = 100;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -170,10 +175,18 @@ const ManagementMessages = () => {
           sender:profiles!messages_sender_id_fkey(username, display_name)
         `)
         .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false })
+        .limit(MESSAGES_PER_PAGE);
 
       if (error) throw error;
-      setMessages(data || []);
+      
+      const reversedMessages = (data || []).reverse();
+      setMessages(reversedMessages);
+      setMessagesOffset(data?.length || 0);
+      setHasMoreMessages((data?.length || 0) === MESSAGES_PER_PAGE);
+      
+      // Scroll to bottom for initial load
+      setTimeout(() => scrollToBottom(), 100);
     } catch (error) {
       console.error('Error loading messages:', error);
       toast({
@@ -181,6 +194,59 @@ const ManagementMessages = () => {
         description: "Failed to load messages",
         variant: "destructive",
       });
+    }
+  };
+
+  const loadMoreMessages = async () => {
+    if (!activeConversation || loadingMoreMessages || !hasMoreMessages) return;
+
+    try {
+      setLoadingMoreMessages(true);
+      
+      const { data, error } = await supabase
+        .from('messages')
+        .select(`
+          id,
+          content,
+          created_at,
+          sender_id,
+          conversation_id,
+          sender:profiles!messages_sender_id_fkey(username, display_name)
+        `)
+        .eq('conversation_id', activeConversation)
+        .order('created_at', { ascending: false })
+        .range(messagesOffset, messagesOffset + MESSAGES_PER_PAGE - 1);
+
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const reversedNewMessages = data.reverse();
+        setMessages(prev => [...reversedNewMessages, ...prev]);
+        setMessagesOffset(prev => prev + data.length);
+        setHasMoreMessages(data.length === MESSAGES_PER_PAGE);
+      } else {
+        setHasMoreMessages(false);
+      }
+    } catch (error) {
+      console.error('Error loading more messages:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load more messages",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingMoreMessages(false);
+    }
+  };
+
+  const handleScroll = () => {
+    if (!messagesContainerRef.current) return;
+    
+    const { scrollTop } = messagesContainerRef.current;
+    
+    // Load more messages when scrolled to top
+    if (scrollTop === 0 && hasMoreMessages && !loadingMoreMessages) {
+      loadMoreMessages();
     }
   };
 
@@ -213,6 +279,9 @@ const ManagementMessages = () => {
 
   const selectConversation = (conversationId: string) => {
     setActiveConversation(conversationId);
+    setMessages([]); // Clear messages when switching
+    setMessagesOffset(0);
+    setHasMoreMessages(true);
     loadMessages(conversationId);
   };
 
@@ -256,11 +325,11 @@ const ManagementMessages = () => {
   const selectedConversation = conversations.find(conv => conv.id === activeConversation);
 
   return (
-    <div className="h-[calc(100vh-var(--header-h))] flex min-h-0">
+    <div className="h-screen flex bg-background">
       {/* Conversations Sidebar */}
-      <div className="w-80 border-r flex flex-col bg-muted/30 min-h-0">
+      <div className="w-80 border-r flex flex-col bg-muted/30">
         {/* Header */}
-        <div className="p-4 border-b border-border/60">
+        <div className="flex-shrink-0 p-4 border-b border-border/60">
           <div className="flex items-center gap-2 mb-4">
             <MessageCircle className="h-5 w-5" />
             <h2 className="font-semibold">Messages</h2>
@@ -317,78 +386,80 @@ const ManagementMessages = () => {
         </div>
 
         {/* Conversations List */}
-        <ScrollArea className="flex-1 min-h-0">
-          <div className="p-2">
-            {filteredConversations.map((conversation) => (
-              <div
-                key={conversation.id}
-                onClick={() => selectConversation(conversation.id)}
-                className={`p-3 rounded-lg mb-2 cursor-pointer transition-colors ${
-                  activeConversation === conversation.id 
-                    ? 'bg-primary/20 border border-primary/30' 
-                    : 'hover:bg-muted/50'
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback>
-                      {(conversation.fan.display_name || conversation.fan.username || 'F')[0].toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="font-medium text-sm truncate">
-                        {conversation.fan.display_name || conversation.fan.username || 'Unknown Fan'}
-                      </p>
-                      <span className="text-xs text-muted-foreground">
-                        {formatTime(conversation.last_message_at)}
-                      </span>
-                    </div>
+        <div className="flex-1 min-h-0">
+          <ScrollArea className="h-full">
+            <div className="p-2">
+              {filteredConversations.map((conversation) => (
+                <div
+                  key={conversation.id}
+                  onClick={() => selectConversation(conversation.id)}
+                  className={`p-3 rounded-lg mb-2 cursor-pointer transition-colors ${
+                    activeConversation === conversation.id 
+                      ? 'bg-primary/20 border border-primary/30' 
+                      : 'hover:bg-muted/50'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback>
+                        {(conversation.fan.display_name || conversation.fan.username || 'F')[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
                     
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge className={`text-xs ${getFanCategoryColor(conversation.fan.fan_category)}`}>
-                        {conversation.fan.fan_category || 'fan'}
-                      </Badge>
-                      <span className="text-xs text-green-600 font-medium">
-                        ${conversation.total_spent}
-                      </span>
-                      {conversation.unread_count && conversation.unread_count > 0 && (
-                        <Badge className="bg-red-500 text-white text-xs">
-                          {conversation.unread_count}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="font-medium text-sm truncate">
+                          {conversation.fan.display_name || conversation.fan.username || 'Unknown Fan'}
+                        </p>
+                        <span className="text-xs text-muted-foreground">
+                          {formatTime(conversation.last_message_at)}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge className={`text-xs ${getFanCategoryColor(conversation.fan.fan_category)}`}>
+                          {conversation.fan.fan_category || 'fan'}
                         </Badge>
+                        <span className="text-xs text-green-600 font-medium">
+                          ${conversation.total_spent}
+                        </span>
+                        {conversation.unread_count && conversation.unread_count > 0 && (
+                          <Badge className="bg-red-500 text-white text-xs">
+                            {conversation.unread_count}
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      {conversation.last_message && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          {conversation.last_message.sender_id === user?.id ? 'You: ' : ''}
+                          {conversation.last_message.content}
+                        </p>
                       )}
                     </div>
-                    
-                    {conversation.last_message && (
-                      <p className="text-xs text-muted-foreground truncate">
-                        {conversation.last_message.sender_id === user?.id ? 'You: ' : ''}
-                        {conversation.last_message.content}
-                      </p>
-                    )}
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
 
-            {filteredConversations.length === 0 && (
-              <div className="text-center py-8">
-                <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground text-sm">
-                  {searchQuery ? 'No conversations match your search' : 'No conversations yet'}
-                </p>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
+              {filteredConversations.length === 0 && (
+                <div className="text-center py-8">
+                  <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground text-sm">
+                    {searchQuery ? 'No conversations match your search' : 'No conversations yet'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </div>
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex min-h-0 flex-col">
+      <div className="flex-1 flex flex-col">
         {activeConversation && selectedConversation ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 border-b border-border/60 bg-background">
+            <div className="flex-shrink-0 p-4 border-b border-border/60 bg-background">
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10">
                   <AvatarFallback>
@@ -411,56 +482,69 @@ const ManagementMessages = () => {
               </div>
             </div>
 
-            {/* Messages */}
-            <ScrollArea className="flex-1 min-h-0 p-4">
-              <div className="space-y-4">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex gap-3 ${
-                      message.sender_id === user?.id ? 'justify-end' : 'justify-start'
-                    }`}
-                  >
-                    {message.sender_id !== user?.id && (
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>
-                          {(message.sender?.display_name || message.sender?.username || 'F')[0].toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
+            {/* Messages Area */}
+            <div className="flex-1 min-h-0 relative">
+              <div 
+                ref={messagesContainerRef}
+                onScroll={handleScroll}
+                className="absolute inset-0 overflow-y-auto p-4"
+              >
+                {loadingMoreMessages && (
+                  <div className="text-center py-4">
+                    <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                      Loading more messages...
+                    </div>
+                  </div>
+                )}
+                
+                <div className="space-y-4">
+                  {messages.map((message) => (
                     <div
-                      className={`max-w-[70%] rounded-lg px-3 py-2 ${
-                        message.sender_id === user?.id
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
+                      key={message.id}
+                      className={`flex gap-3 ${
+                        message.sender_id === user?.id ? 'justify-end' : 'justify-start'
                       }`}
                     >
-                      <p className="text-sm">{message.content}</p>
-                      <div className={`text-xs mt-1 ${
-                        message.sender_id === user?.id
-                          ? 'text-primary-foreground/70'
-                          : 'text-muted-foreground'
-                      }`}>
-                        {formatTime(message.created_at)}
+                      {message.sender_id !== user?.id && (
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback>
+                            {(message.sender?.display_name || message.sender?.username || 'F')[0].toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+                      <div
+                        className={`max-w-[70%] rounded-lg px-3 py-2 ${
+                          message.sender_id === user?.id
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
+                        }`}
+                      >
+                        <p className="text-sm">{message.content}</p>
+                        <div className={`text-xs mt-1 ${
+                          message.sender_id === user?.id
+                            ? 'text-primary-foreground/70'
+                            : 'text-muted-foreground'
+                        }`}>
+                          {formatTime(message.created_at)}
+                        </div>
                       </div>
+                      {message.sender_id === user?.id && (
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback>
+                            <UserIcon className="h-4 w-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
                     </div>
-                    {message.sender_id === user?.id && (
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>
-                          <UserIcon className="h-4 w-4" />
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
-                  </div>
-                ))}
-                <div ref={messagesEndRef} />
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
               </div>
-            </ScrollArea>
+            </div>
 
-            <Separator />
-
-            {/* Message Input */}
-            <div className="p-4 bg-background">
+            {/* Fixed Message Input */}
+            <div className="flex-shrink-0 p-4 border-t border-border bg-background">
               <div className="flex gap-2">
                 <Input
                   placeholder="Type your message..."
@@ -468,6 +552,7 @@ const ManagementMessages = () => {
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                   disabled={loading}
+                  className="flex-1"
                 />
                 <Button onClick={sendMessage} disabled={loading || !newMessage.trim()}>
                   <Send className="h-4 w-4" />

@@ -42,7 +42,12 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [loadingMoreMessages, setLoadingMoreMessages] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [messagesOffset, setMessagesOffset] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const MESSAGES_PER_PAGE = 100;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -210,10 +215,18 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
         .select('*')
         .eq('conversation_id', conversation.id)
         .eq('status', 'active')
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false })
+        .limit(MESSAGES_PER_PAGE);
 
       if (error) throw error;
-      setMessages(data || []);
+      
+      const reversedMessages = (data || []).reverse();
+      setMessages(reversedMessages);
+      setMessagesOffset(data?.length || 0);
+      setHasMoreMessages((data?.length || 0) === MESSAGES_PER_PAGE);
+      
+      // Scroll to bottom for initial load
+      setTimeout(() => scrollToBottom(), 100);
     } catch (error) {
       console.error('Error loading messages:', error);
       toast({
@@ -221,6 +234,53 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
         description: "Failed to load messages",
         variant: "destructive",
       });
+    }
+  };
+
+  const loadMoreMessages = async () => {
+    if (!conversation || loadingMoreMessages || !hasMoreMessages) return;
+
+    try {
+      setLoadingMoreMessages(true);
+      
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversation.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .range(messagesOffset, messagesOffset + MESSAGES_PER_PAGE - 1);
+
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const reversedNewMessages = data.reverse();
+        setMessages(prev => [...reversedNewMessages, ...prev]);
+        setMessagesOffset(prev => prev + data.length);
+        setHasMoreMessages(data.length === MESSAGES_PER_PAGE);
+      } else {
+        setHasMoreMessages(false);
+      }
+    } catch (error) {
+      console.error('Error loading more messages:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load more messages",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingMoreMessages(false);
+    }
+  };
+
+  const handleScroll = () => {
+    if (!messagesContainerRef.current) return;
+    
+    const { scrollTop } = messagesContainerRef.current;
+    
+    // Load more messages when scrolled to top
+    if (scrollTop === 0 && hasMoreMessages && !loadingMoreMessages) {
+      loadMoreMessages();
     }
   };
 
@@ -300,41 +360,57 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-screen bg-background">
       <Navigation />
-      <main className={`flex-1 transition-all duration-300 p-6 pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Messages</h1>
-          <p className="text-muted-foreground mt-2">
+      <main className={`flex-1 flex flex-col transition-all duration-300 ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
+        {/* Header */}
+        <div className="flex-shrink-0 p-4 border-b border-border bg-background">
+          <h1 className="text-2xl font-bold text-foreground">Messages</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             Chat with {conversation.creator_profile?.display_name || 'Management'}
           </p>
         </div>
 
-        <Card className="h-[calc(100vh-200px)] flex flex-col">
-          <CardHeader className="border-b border-border">
-            <CardTitle className="flex items-center gap-3">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={conversation.creator_profile?.avatar_url} />
-                <AvatarFallback>
-                  {getInitials(conversation.creator_profile?.display_name, conversation.creator_profile?.username)}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="font-medium">
-                  {conversation.creator_profile?.display_name || 'Management'}
-                </div>
-                {conversation.creator_profile?.username && (
-                  <div className="text-sm text-muted-foreground">
-                    @{conversation.creator_profile.username}
-                  </div>
-                )}
+        {/* Chat Header */}
+        <div className="flex-shrink-0 p-4 border-b border-border bg-background">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={conversation.creator_profile?.avatar_url} />
+              <AvatarFallback>
+                {getInitials(conversation.creator_profile?.display_name, conversation.creator_profile?.username)}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="font-medium">
+                {conversation.creator_profile?.display_name || 'Management'}
               </div>
-            </CardTitle>
-          </CardHeader>
-          
-          <ScrollArea className="flex-1 p-4">
+              {conversation.creator_profile?.username && (
+                <div className="text-sm text-muted-foreground">
+                  @{conversation.creator_profile.username}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {/* Messages Area */}
+        <div className="flex-1 min-h-0 relative">
+          <div 
+            ref={messagesContainerRef}
+            onScroll={handleScroll}
+            className="absolute inset-0 overflow-y-auto p-4"
+          >
+            {loadingMoreMessages && (
+              <div className="text-center py-4">
+                <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  Loading more messages...
+                </div>
+              </div>
+            )}
+            
             <div className="space-y-4">
-              {messages.length === 0 ? (
+              {messages.length === 0 && !loadingMoreMessages ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-medium mb-2">Start the conversation</h3>
@@ -377,24 +453,25 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
               )}
               <div ref={messagesEndRef} />
             </div>
-          </ScrollArea>
-          
-          <div className="p-4 border-t border-border">
-            <div className="flex gap-2">
-              <Input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type your message..."
-                disabled={sending}
-                className="flex-1"
-              />
-              <Button onClick={sendMessage} disabled={!newMessage.trim() || sending}>
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
           </div>
-        </Card>
+        </div>
+        
+        {/* Fixed Input Area */}
+        <div className="flex-shrink-0 p-4 border-t border-border bg-background">
+          <div className="flex gap-2">
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Type your message..."
+              disabled={sending}
+              className="flex-1"
+            />
+            <Button onClick={sendMessage} disabled={!newMessage.trim() || sending}>
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </main>
     </div>
   );
