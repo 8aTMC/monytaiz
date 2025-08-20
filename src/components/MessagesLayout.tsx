@@ -11,6 +11,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { getInitials } from '@/lib/initials';
 import { useToast } from '@/hooks/use-toast';
 import { useSidebar } from '@/components/Navigation';
+import { FileUploadButton } from '@/components/FileUploadButton';
+import { UploadProgressBar } from '@/components/UploadProgressBar';
+import { MessageFilesPack } from '@/components/MessageFilesPack';
+import { PaymentConfirmationDialog } from '@/components/PaymentConfirmationDialog';
+import { AddCardDialog } from '@/components/AddCardDialog';
+import { useMessageFileUpload } from '@/hooks/useMessageFileUpload';
+import { toast as sonnerToast } from 'sonner';
 import { 
   Send, 
   Search, 
@@ -80,7 +87,20 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showAddCardDialog, setShowAddCardDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const {
+    uploadingFiles,
+    isUploading,
+    addFiles,
+    removeFile,
+    uploadFiles,
+    clearFiles,
+    allFilesUploaded,
+    hasFiles
+  } = useMessageFileUpload();
 
   // Auto-collapse sidebar to give more space for chat
   useEffect(() => {
@@ -652,18 +672,34 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
               </ScrollArea>
             </div>
 
+            {/* File Upload Progress Bar */}
+            {hasFiles && (
+              <UploadProgressBar 
+                files={uploadingFiles} 
+                onRemoveFile={removeFile}
+              />
+            )}
+
             {/* Message Input Area - Fixed at bottom */}
             <div className="flex-none border-t border-border bg-background" style={{ height: '140px' }}>
               <div className="p-4">
                 {/* Action Buttons */}
                 <div className="flex items-center gap-2 mb-3 overflow-x-auto">
-                  {actionButtons.map((button, index) => (
+                  <FileUploadButton 
+                    onFilesSelected={(files, type) => {
+                      addFiles(files, type);
+                      if (!isUploading) {
+                        uploadFiles();
+                      }
+                    }}
+                    disabled={isUploading}
+                  />
+                  {actionButtons.slice(1).map((button, index) => (
                     <button
-                      key={index}
+                      key={index + 1}
                       type="button"
                       className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 px-3 flex-shrink-0"
                       title={button.label}
-                      onClick={(e) => e.preventDefault()}
                     >
                       <button.icon className={`h-4 w-4 ${button.color}`} />
                     </button>
@@ -683,18 +719,43 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={handleKeyPress}
                     placeholder="Type a message..."
-                    disabled={sending}
+                    disabled={sending || (hasFiles && !allFilesUploaded)}
                     className="flex-1"
                   />
                   <Button 
                     type="submit"
-                    disabled={!newMessage.trim() || sending}
+                    disabled={!newMessage.trim() || sending || (hasFiles && !allFilesUploaded)}
                   >
                     <Send className="h-4 w-4" />
                   </Button>
                 </form>
               </div>
             </div>
+
+            {/* Payment Dialog */}
+            <PaymentConfirmationDialog
+              open={showPaymentDialog}
+              onClose={() => setShowPaymentDialog(false)}
+              amount={29.91}
+              onConfirm={() => {
+                setShowPaymentDialog(false);
+                sonnerToast.success('Purchase confirmed!');
+              }}
+              onAddCard={() => {
+                setShowPaymentDialog(false);
+                setShowAddCardDialog(true);
+              }}
+            />
+
+            {/* Add Card Dialog */}
+            <AddCardDialog
+              open={showAddCardDialog}
+              onClose={() => setShowAddCardDialog(false)}
+              onSave={() => {
+                setShowAddCardDialog(false);
+                sonnerToast.success('Card added successfully!');
+              }}
+            />
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center">
