@@ -67,21 +67,14 @@ const Messages = () => {
     <div className="flex min-h-screen bg-background">
       <Navigation />
       
-      <main className="flex-1 pt-[73px]">
-        <div 
-          className={`h-[calc(100vh-73px)] ${isNarrowScreen && !isCollapsed ? 'overflow-auto' : 'overflow-auto'}`}
-          style={{
-            overflowX: isNarrowScreen && !isCollapsed ? 'auto' : 'visible',
-            overflowY: isNarrowScreen && !isCollapsed ? 'auto' : 'visible'
-          }}
-          onScroll={(e) => {
-            // Prevent sidebar from closing when scrolling
-            e.stopPropagation();
-          }}
-        >
-          <div 
-            className={`p-6 ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+200px)] pl-72' : 'max-w-6xl mx-auto min-w-[600px]'}`}
-          >
+      <main 
+        className="fixed top-[73px] h-[calc(100vh-73px)] overflow-auto"
+        style={{
+          left: isNarrowScreen ? '0' : isCollapsed ? '64px' : '256px',
+          right: '0'
+        }}
+      >
+        <div className="p-6 max-w-6xl mx-auto min-w-[600px]">
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-foreground">Messages</h1>
             </div>
@@ -135,7 +128,6 @@ const Messages = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </div>
             </div>
           </div>
         </div>

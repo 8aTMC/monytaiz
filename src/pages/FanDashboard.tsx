@@ -114,21 +114,14 @@ const FanDashboard = () => {
     <div className="flex min-h-screen bg-background">
       <Navigation />
       
-      <main className="flex-1 pt-[73px]">
-        <div 
-          className={`h-[calc(100vh-73px)] ${isNarrowScreen && !isCollapsed ? 'overflow-auto' : 'overflow-auto'}`}
-          style={{
-            overflowX: isNarrowScreen && !isCollapsed ? 'auto' : 'visible',
-            overflowY: isNarrowScreen && !isCollapsed ? 'auto' : 'visible'
-          }}
-          onScroll={(e) => {
-            // Prevent sidebar from closing when scrolling
-            e.stopPropagation();
-          }}
-        >
-          <div 
-            className={`p-8 ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+200px)] pl-72' : 'max-w-7xl mx-auto min-w-[700px]'}`}
-          >
+      <main 
+        className="fixed top-[73px] h-[calc(100vh-73px)] overflow-auto"
+        style={{
+          left: isNarrowScreen ? '0' : isCollapsed ? '64px' : '256px',
+          right: '0'
+        }}
+      >
+        <div className="p-8 max-w-7xl mx-auto min-w-[700px]">
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold">
@@ -247,10 +240,9 @@ const FanDashboard = () => {
             </Card>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
 
-    <ChatDialog open={chatOpen} onOpenChange={setChatOpen} />
+      <ChatDialog open={chatOpen} onOpenChange={setChatOpen} />
     </div>
   );
 };
