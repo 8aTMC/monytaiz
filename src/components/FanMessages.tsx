@@ -386,11 +386,11 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
         </div>
         
         {/* Messages Area */}
-        <div className="flex-1 min-h-0 relative">
+        <div className="flex-1 overflow-hidden">
           <div 
             ref={messagesContainerRef}
             onScroll={handleScroll}
-            className="absolute inset-0 overflow-y-auto p-4"
+            className="h-full overflow-y-auto p-4"
           >
             {loadingMoreMessages && (
               <div className="text-center py-4">
@@ -401,7 +401,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
               </div>
             )}
             
-            <div className="space-y-4">
+            <div className="space-y-4 pb-4">
               {messages.length === 0 && !loadingMoreMessages ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
