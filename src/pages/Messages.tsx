@@ -70,11 +70,11 @@ const Messages = () => {
       <main 
         className="fixed top-[73px] h-[calc(100vh-73px)] overflow-auto"
         style={{
-          left: isNarrowScreen ? '0' : isCollapsed ? '64px' : '256px',
-          right: '0'
+          left: isNarrowScreen ? '15px' : isCollapsed ? '79px' : '271px',
+          right: '15px'
         }}
       >
-        <div className="p-6 max-w-6xl mx-auto min-w-[600px]">
+        <div className="p-6 max-w-6xl mx-auto">
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-foreground">Messages</h1>
             </div>

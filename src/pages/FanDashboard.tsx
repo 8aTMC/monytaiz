@@ -117,11 +117,11 @@ const FanDashboard = () => {
       <main 
         className="fixed top-[73px] h-[calc(100vh-73px)] overflow-auto"
         style={{
-          left: isNarrowScreen ? '0' : isCollapsed ? '64px' : '256px',
-          right: '0'
+          left: isNarrowScreen ? '15px' : isCollapsed ? '79px' : '271px',
+          right: '15px'
         }}
       >
-        <div className="p-8 max-w-7xl mx-auto min-w-[700px]">
+        <div className="p-8 max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold">
