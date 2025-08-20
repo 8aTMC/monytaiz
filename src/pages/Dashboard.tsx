@@ -71,42 +71,41 @@ const Platform = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background w-full">
+      <div className="flex min-h-screen bg-background">
         <div className="animate-pulse">
           {/* Skeleton Navigation */}
-          <div className="fixed left-0 top-0 h-full w-52 bg-card border-r border-border"></div>
-          
-          {/* Skeleton Main Content */}
-          <div className={`transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-52'} overflow-x-auto`}>
-            <div className="max-w-7xl mx-auto min-w-[700px]">
-              {/* Header Skeleton */}
-              <div className="mb-8">
-                <div className="h-8 w-64 bg-muted rounded mb-2"></div>
-                <div className="h-4 w-96 bg-muted/60 rounded"></div>
-              </div>
-              
-              {/* Quick Actions Skeleton */}
-              <div className="mb-8 flex gap-4">
-                <div className="h-12 w-32 bg-muted rounded"></div>
-                <div className="h-12 w-28 bg-muted/60 rounded"></div>
-                <div className="h-12 w-24 bg-muted/60 rounded"></div>
-              </div>
-              
-              {/* Stats Grid Skeleton */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-24 bg-card border border-border rounded-lg"></div>
-                ))}
-              </div>
-              
-              {/* Content Grid Skeleton */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="h-64 bg-card border border-border rounded-lg"></div>
-                <div className="h-64 bg-card border border-border rounded-lg"></div>
-              </div>
+          <div className="w-64 h-full bg-card border-r border-border"></div>
+        </div>
+        
+        <main className="flex-1 p-8 overflow-x-auto">
+          <div className="max-w-7xl mx-auto min-w-[700px] animate-pulse">
+            {/* Header Skeleton */}
+            <div className="mb-8">
+              <div className="h-8 w-64 bg-muted rounded mb-2"></div>
+              <div className="h-4 w-96 bg-muted/60 rounded"></div>
+            </div>
+            
+            {/* Quick Actions Skeleton */}
+            <div className="mb-8 flex gap-4">
+              <div className="h-12 w-32 bg-muted rounded"></div>
+              <div className="h-12 w-28 bg-muted/60 rounded"></div>
+              <div className="h-12 w-24 bg-muted/60 rounded"></div>
+            </div>
+            
+            {/* Stats Grid Skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-24 bg-card border border-border rounded-lg"></div>
+              ))}
+            </div>
+            
+            {/* Content Grid Skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="h-64 bg-card border border-border rounded-lg"></div>
+              <div className="h-64 bg-card border border-border rounded-lg"></div>
             </div>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -145,10 +144,10 @@ const Platform = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background w-full">
+    <div className="flex min-h-screen bg-background">
       <Navigation />
       
-      <main className={`transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-52'} overflow-x-auto`}>
+      <main className={`flex-1 p-8 overflow-x-auto transition-all duration-300 ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
         <div className="max-w-7xl mx-auto min-w-[700px]">
           {/* Header */}
           <div className="mb-8">
