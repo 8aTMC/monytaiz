@@ -168,19 +168,16 @@ const FanDashboard = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Navigation />
-      <main className={`flex-1 transition-all duration-300 p-6 overflow-x-auto pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
-        <div className="max-w-7xl mx-auto min-w-[700px]">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold">
-              {t('fan.dashboard.title', 'Fan Dashboard')}
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              Welcome back! Discover and connect with your favorite creators.
-            </p>
-          </div>
+    <div className="p-6 pt-6">
+      <div className="max-w-7xl mx-auto min-w-[700px]">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground">
+            {t('fan.dashboard.title', 'Dashboard')}
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Welcome back! Discover and connect with your favorite creators.
+          </p>
+        </div>
 
           {/* Quick Actions */}
           <div className="mb-8 flex gap-4">
@@ -305,9 +302,8 @@ const FanDashboard = () => {
             </Card>
           </div>
 
-          <ChatDialog open={chatOpen} onOpenChange={setChatOpen} />
-        </div>
-      </main>
+        <ChatDialog open={chatOpen} onOpenChange={setChatOpen} />
+      </div>
     </div>
   );
 };
