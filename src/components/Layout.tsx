@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { Navigation, useSidebar } from '@/components/Navigation';
 import { FixedHeader } from '@/components/FixedHeader';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { isCollapsed, isNarrowScreen } = useSidebar();
+  const mainRef = useRef<HTMLDivElement>(null);
 
   // Prevent window scroll; only main content scrolls
   useEffect(() => {
@@ -14,23 +15,23 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Calculate layout dimensions
-  const sidebarWidth = isNarrowScreen 
-    ? (isCollapsed ? '0px' : '256px')  // On narrow screens, sidebar overlays or is hidden
-    : (isCollapsed ? '64px' : '256px'); // On desktop, sidebar is always visible
-  
-  const headerHeight = '73px';
+  const headerH = '73px';
+  const expandedW = '256px';   // expanded sidebar width
+  const collapsedW = '64px';   // collapsed sidebar width
+
+  // Set CSS vars + reset horizontal scroll on toggle
+  useLayoutEffect(() => {
+    const w = isCollapsed ? collapsedW : expandedW;
+    document.documentElement.style.setProperty('--header-h', headerH);
+    document.documentElement.style.setProperty('--sidebar-w', w);
+    document.documentElement.style.setProperty('--sidebar-w-collapsed', collapsedW);
+
+    // Reset horizontal scroll so the left edge is visible after the width change
+    if (mainRef.current) mainRef.current.scrollLeft = 0;
+  }, [isCollapsed]);
 
   return (
-    <div
-      className="h-screen w-screen overflow-hidden"
-      style={{ 
-        // Expose CSS variables for layout calculations
-        ['--sidebar-w' as any]: sidebarWidth,
-        ['--sidebar-w-collapsed' as any]: '64px',
-        ['--header-h' as any]: headerHeight,
-      }}
-    >
+    <div className="h-screen w-screen overflow-hidden">
       {/* Fixed header */}
       <FixedHeader />
 
@@ -39,13 +40,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Main content area: only this scrolls */}
       <main
-        className="fixed top-[var(--header-h)] right-0 bottom-0 overflow-auto z-10"
+        ref={mainRef}
+        className="fixed overflow-auto z-10"
         style={{ 
-          left: 'var(--sidebar-w)'  // Always offset by sidebar width
+          inset: 'var(--header-h) 0 0 var(--sidebar-w)'  // top right bottom left
         }}
       >
         {/* Inner container enforces minimum width for horizontal scroll within main */}
-        <div className="min-w-[1024px] min-h-[calc(100vh-var(--header-h))] p-6">
+        <div className="min-w-[1024px] min-h-[calc(100vh-var(--header-h))] box-border p-6">
           {children}
         </div>
       </main>
