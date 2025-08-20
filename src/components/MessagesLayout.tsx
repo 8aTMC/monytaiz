@@ -401,9 +401,9 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   }
 
   return (
-    <div className="h-full flex bg-background">
+    <div className="h-screen flex bg-background">
       {/* Conversations Sidebar */}
-      <div className="w-80 border-r border-border bg-background flex flex-col flex-shrink-0">
+      <div className="w-80 border-r border-border bg-background flex flex-col flex-shrink-0 h-screen">
         {/* Header */}
         <div className="flex-none p-4 border-b border-border">
           <div className="flex items-center justify-between mb-4">
@@ -499,7 +499,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
       {/* Main Chat Area - Responsive width */}
       <div className={`flex flex-col min-w-0 ${
         activeConversation && isCreator ? 'flex-1' : 'flex-1'
-      }`} style={{ height: 'calc(100vh - var(--header-h))' }}>
+      }`} style={{ height: '100vh' }}>
         {activeConversation ? (
           <>
             {/* Chat Header - Fixed */}
@@ -534,7 +534,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             </div>
 
             {/* Messages Area - Takes remaining space, scrollable */}
-            <div className="flex-1 min-h-0 overflow-hidden" style={{ height: 'calc(100vh - var(--header-h) - 73px - 140px)' }}>
+            <div className="flex-1 min-h-0 overflow-hidden" style={{ height: 'calc(100vh - 73px - 140px)' }}>
               <ScrollArea className="h-full px-6 py-4">
                 <div className="space-y-4 max-w-4xl mx-auto pb-4">
                   {messages.map((message) => (
@@ -640,7 +640,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
       {/* Fan Insights Sidebar */}
       {activeConversation && isCreator && (
-        <div className="w-80 border-l border-border bg-background flex-shrink-0 h-full">
+        <div className="w-80 border-l border-border bg-background flex-shrink-0 h-screen">
           <div className="p-4 h-full flex flex-col">
             <h3 className="font-semibold mb-4">Fan Insights</h3>
             
