@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { Navigation, useSidebar } from '@/components/Navigation';
-import { FixedHeader } from '@/components/FixedHeader';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { isCollapsed, isNarrowScreen } = useSidebar();
@@ -15,14 +14,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const headerH = '73px';
   const expandedW = '256px';   // expanded sidebar width
   const collapsedW = '64px';   // collapsed sidebar width
 
   // Set CSS vars + reset horizontal scroll on toggle
   useLayoutEffect(() => {
     const w = isCollapsed ? collapsedW : expandedW;
-    document.documentElement.style.setProperty('--header-h', headerH);
     document.documentElement.style.setProperty('--sidebar-w', w);
     document.documentElement.style.setProperty('--sidebar-w-collapsed', collapsedW);
 
@@ -32,9 +29,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="h-screen w-screen overflow-hidden">
-      {/* Fixed header */}
-      <FixedHeader />
-
       {/* Fixed sidebar */}
       <Navigation />
 
@@ -43,11 +37,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         ref={mainRef}
         className="fixed overflow-auto z-10"
         style={{ 
-          inset: 'var(--header-h) 0 0 var(--sidebar-w)'  // top right bottom left
+          inset: '0 0 0 var(--sidebar-w)'  // top right bottom left
         }}
       >
         {/* Inner container enforces minimum width for horizontal scroll within main */}
-        <div className="min-w-[1024px] min-h-[calc(100vh-var(--header-h))] box-border">
+        <div className="min-w-[1024px] min-h-screen box-border">
           {children}
         </div>
       </main>
