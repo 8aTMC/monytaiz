@@ -109,8 +109,16 @@ const ManagementMessages = () => {
     if (!user) return;
 
     try {
-      // Get conversations where the current user is the creator
-      const { data, error } = await supabase
+      // Management users can see all conversations, regular users see only their own
+      const { data: userRoles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+      
+      const roles = userRoles?.map(r => r.role) || [];
+      const isManagement = roles.some(role => ['owner', 'superadmin', 'admin', 'manager'].includes(role));
+      
+      let query = supabase
         .from('conversations')
         .select(`
           id,
@@ -118,9 +126,17 @@ const ManagementMessages = () => {
           creator_id,
           last_message_at,
           fan:profiles!conversations_fan_id_fkey(id, username, display_name, fan_category)
-        `)
-        .eq('creator_id', user.id)
-        .order('last_message_at', { ascending: false });
+        `);
+      
+      if (isManagement) {
+        // Management users see all active conversations
+        query = query.eq('status', 'active');
+      } else {
+        // Regular users see only conversations they're part of
+        query = query.eq('creator_id', user.id).eq('status', 'active');
+      }
+      
+      const { data, error } = await query.order('last_message_at', { ascending: false });
 
       if (error) throw error;
 
@@ -132,6 +148,7 @@ const ManagementMessages = () => {
             .from('messages')
             .select('content, sender_id')
             .eq('conversation_id', conv.id)
+            .eq('status', 'active')
             .order('created_at', { ascending: false })
             .limit(1)
             .single();
