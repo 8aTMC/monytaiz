@@ -325,11 +325,11 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="h-screen w-screen overflow-hidden flex bg-background">
       {/* Conversations Sidebar */}
       <div className="w-80 border-r border-border bg-background flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-border">
+        <div className="flex-none p-4 border-b border-border">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Messages</h2>
             <Button variant="ghost" size="icon">
@@ -348,137 +348,142 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
         </div>
 
         {/* Conversations List */}
-        <ScrollArea className="flex-1">
-          <div className="p-2">
-            {filteredConversations.map((conversation) => {
-              const profile = getProfileForConversation(conversation);
-              const isActive = activeConversation?.id === conversation.id;
-              
-              return (
-                <div
-                  key={conversation.id}
-                  className={`p-3 rounded-lg cursor-pointer transition-colors mb-1 ${
-                    isActive ? 'bg-primary/10' : 'hover:bg-muted/50'
-                  }`}
-                  onClick={() => setActiveConversation(conversation)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={profile?.avatar_url} />
-                        <AvatarFallback>
-                          {getInitials(profile?.display_name, profile?.username)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-background"></div>
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-sm truncate">
-                          {profile?.display_name || profile?.username || 'Unknown User'}
-                        </h4>
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs font-medium text-primary">
-                            ${conversation.total_spent || 0}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatDate(conversation.last_message_at)}
-                          </span>
-                        </div>
+        <div className="flex-1 min-h-0">
+          <ScrollArea className="h-full">
+            <div className="p-2">
+              {filteredConversations.map((conversation) => {
+                const profile = getProfileForConversation(conversation);
+                const isActive = activeConversation?.id === conversation.id;
+                
+                return (
+                  <div
+                    key={conversation.id}
+                    className={`p-3 rounded-lg cursor-pointer transition-colors mb-1 ${
+                      isActive ? 'bg-primary/10' : 'hover:bg-muted/50'
+                    }`}
+                    onClick={() => setActiveConversation(conversation)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src={profile?.avatar_url} />
+                          <AvatarFallback>
+                            {getInitials(profile?.display_name, profile?.username)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-background"></div>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate mt-1">
-                        {conversation.latest_message}
-                      </p>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium text-sm truncate">
+                            {profile?.display_name || profile?.username || 'Unknown User'}
+                          </h4>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs font-medium text-primary">
+                              ${conversation.total_spent || 0}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {formatDate(conversation.last_message_at)}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate mt-1">
+                          {conversation.latest_message}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        </ScrollArea>
+                );
+              })}
+            </div>
+          </ScrollArea>
+        </div>
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col">
         {activeConversation ? (
           <>
-            {/* Chat Header */}
-            <div className="p-4 border-b border-border bg-background">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={getProfileForConversation(activeConversation)?.avatar_url} />
-                    <AvatarFallback>
-                      {getInitials(
-                        getProfileForConversation(activeConversation)?.display_name,
-                        getProfileForConversation(activeConversation)?.username
-                      )}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-semibold">
-                      {getProfileForConversation(activeConversation)?.display_name || 'Unknown User'}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      @{getProfileForConversation(activeConversation)?.username || 'unknown'}
-                    </p>
-                  </div>
+            {/* Chat Header - Fixed */}
+            <div className="flex-none h-[73px] p-4 border-b border-border bg-background flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={getProfileForConversation(activeConversation)?.avatar_url} />
+                  <AvatarFallback>
+                    {getInitials(
+                      getProfileForConversation(activeConversation)?.display_name,
+                      getProfileForConversation(activeConversation)?.username
+                    )}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="font-semibold">
+                    {getProfileForConversation(activeConversation)?.display_name || 'Unknown User'}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    @{getProfileForConversation(activeConversation)?.username || 'unknown'}
+                  </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs">
-                    VIP
-                  </Badge>
-                  <Button variant="ghost" size="icon">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">
+                  VIP
+                </Badge>
+                <Button variant="ghost" size="icon">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Messages Area - Takes remaining space between header and input */}
+            <div className="flex-1 min-h-0">
+              <div 
+                className="h-full overflow-y-auto px-6 py-4"
+                style={{ height: 'calc(100vh - 73px - 140px)' }}
+              >
+                <div className="space-y-4 pb-4 max-w-4xl mx-auto">
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex gap-3 px-4 ${
+                        message.sender_id === user.id ? 'justify-end' : 'justify-start'
+                      }`}
+                    >
+                      {message.sender_id !== user.id && (
+                        <Avatar className="h-8 w-8 flex-shrink-0">
+                          <AvatarImage src={getProfileForConversation(activeConversation)?.avatar_url} />
+                          <AvatarFallback>
+                            {getInitials(
+                              getProfileForConversation(activeConversation)?.display_name,
+                              getProfileForConversation(activeConversation)?.username
+                            )}
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+                      <div className={`flex-1 max-w-sm ${message.sender_id === user.id ? 'text-right' : ''}`}>
+                        <div
+                          className={`inline-block p-3 rounded-lg ${
+                            message.sender_id === user.id
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted'
+                          }`}
+                        >
+                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {formatTime(message.created_at)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
                 </div>
               </div>
             </div>
 
-            {/* Messages Area */}
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex gap-3 ${
-                      message.sender_id === user.id ? 'justify-end' : 'justify-start'
-                    }`}
-                  >
-                    {message.sender_id !== user.id && (
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={getProfileForConversation(activeConversation)?.avatar_url} />
-                        <AvatarFallback>
-                          {getInitials(
-                            getProfileForConversation(activeConversation)?.display_name,
-                            getProfileForConversation(activeConversation)?.username
-                          )}
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
-                    <div className={`max-w-xs ${message.sender_id === user.id ? 'text-right' : ''}`}>
-                      <div
-                        className={`inline-block p-3 rounded-lg ${
-                          message.sender_id === user.id
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
-                        }`}
-                      >
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {formatTime(message.created_at)}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                <div ref={messagesEndRef} />
-              </div>
-            </ScrollArea>
-
-            {/* Message Input Area */}
-            <div className="p-4 border-t border-border bg-background">
+            {/* Message Input Area - Fixed at bottom */}
+            <div className="flex-none h-[140px] p-4 border-t border-border bg-background">
               {/* Action Buttons */}
               <div className="flex items-center gap-2 mb-3 overflow-x-auto">
                 {actionButtons.map((button, index) => (
