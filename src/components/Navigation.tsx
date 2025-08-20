@@ -33,13 +33,15 @@ import {
   ThumbsUp,
   Star,
   Grid,
-  List
+  List,
+  Settings
 } from 'lucide-react';
 import { ContentIcon } from './icons/ContentIcon';
 import { CreatorProfileDialog } from '@/components/CreatorProfileDialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 // Create a context for sidebar state
 const SidebarContext = createContext<{
@@ -739,11 +741,21 @@ export const Navigation = () => {
               <UserIcon className="h-4 w-4" />
               {t('platform.account.myAccount', 'My Account')}
             </Button>
+            <div className="px-3 py-2 border-b border-border mb-1 mt-1">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                <Settings className="h-4 w-4" />
+                Settings
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Theme</span>
+                <ThemeToggle />
+              </div>
+            </div>
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={handleSignOut}
-              className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground hover:bg-destructive/10 hover:text-destructive"
+              className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground hover:bg-destructive/10 hover:text-destructive mt-1"
             >
               <LogOut className="h-4 w-4" />
               {t('platform.auth.signOut', 'Sign Out')}
