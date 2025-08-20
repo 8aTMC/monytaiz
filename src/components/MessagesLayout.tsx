@@ -337,7 +337,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex bg-background">
+    <div className="fixed inset-0 flex bg-background">
       {/* Conversations Sidebar */}
       <div className="w-80 border-r border-border bg-background flex flex-col flex-shrink-0">
         {/* Header */}
@@ -414,7 +414,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
       </div>
 
       {/* Main Chat Area - Responsive width */}
-      <div className={`flex flex-col min-w-0 ${
+      <div className={`flex flex-col min-w-0 h-full ${
         activeConversation && isCreator ? 'flex-1' : 'flex-1'
       }`}>
         {activeConversation ? (
@@ -450,10 +450,10 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
               </div>
             </div>
 
-            {/* Messages Area - Takes remaining space */}
-            <div className="flex-1 min-h-0">
-              <div className="h-full overflow-y-auto px-6 py-4">
-                <div className="space-y-4 pb-4 max-w-4xl mx-auto">
+            {/* Messages Area - Takes remaining space, scrollable */}
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <ScrollArea className="h-full px-6 py-4">
+                <div className="space-y-4 max-w-4xl mx-auto">
                   {messages.map((message) => (
                     <div
                       key={message.id}
@@ -490,7 +490,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                   ))}
                   <div ref={messagesEndRef} />
                 </div>
-              </div>
+              </ScrollArea>
             </div>
 
             {/* Message Input Area - Fixed at bottom */}
@@ -554,7 +554,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
       {/* Fan Insights Sidebar */}
       {activeConversation && isCreator && (
-        <div className="w-80 border-l border-border bg-background flex-shrink-0">
+        <div className="w-80 border-l border-border bg-background flex-shrink-0 h-full">
           <div className="p-4 h-full flex flex-col">
             <h3 className="font-semibold mb-4">Fan Insights</h3>
             
