@@ -276,7 +276,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             latest_message: latestMessage?.content || conv.latest_message_content || '',
             latest_message_content: latestMessage?.content || conv.latest_message_content || '',
             latest_message_sender_id: latestMessage?.sender_id || conv.latest_message_sender_id || '',
-            total_spent: Math.floor(Math.random() * 500), // Mock data for now
+            total_spent: 0, // Real data - will be updated when purchases are implemented
             unread_count: conv.unread_count || 0,
           };
         })

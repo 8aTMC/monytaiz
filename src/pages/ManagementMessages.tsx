@@ -145,8 +145,8 @@ const ManagementMessages = () => {
             .limit(1)
             .single();
 
-          // Get total spending (mock for now)
-          const totalSpent = Math.floor(Math.random() * 1000) + 50;
+          // Get total spending - will be calculated from real purchase data when implemented
+          const totalSpent = 0;
 
           // Get unread count (mock for now)
           const unreadCount = Math.floor(Math.random() * 5);
