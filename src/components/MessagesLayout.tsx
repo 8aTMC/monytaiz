@@ -718,7 +718,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             <h3 className="font-semibold mb-4">Fan Insights</h3>
             
             <ScrollArea className="flex-1">
-              <div className="space-y-4 pr-3">
+              <div className="space-y-4 px-3">
                 {/* Subscription Status */}
                 <Card>
                   <CardContent className="p-3">
