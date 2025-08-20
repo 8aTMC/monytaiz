@@ -95,27 +95,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
     try {
       setLoading(true);
       
-      // First, get the management user (owner/creator)
-      const { data: managementUsers, error: mgmtError } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .in('role', ['owner', 'superadmin', 'admin'])
-        .limit(1);
-
-      if (mgmtError) throw mgmtError;
-
-      if (!managementUsers || managementUsers.length === 0) {
-        toast({
-          title: "No management available",
-          description: "There are no management users to chat with at the moment",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const managementUserId = managementUsers[0].user_id;
-
-      // Check if conversation exists (only active conversations)
+      // First, check if fan already has an active conversation with ANY management user
       const { data: existingConv, error: convError } = await supabase
         .from('conversations')
         .select(`
@@ -125,7 +105,6 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           creator_profile:profiles!conversations_creator_id_fkey(display_name, username, avatar_url)
         `)
         .eq('fan_id', user.id)
-        .eq('creator_id', managementUserId)
         .eq('status', 'active')
         .maybeSingle();
 
@@ -134,29 +113,57 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
       }
 
       if (existingConv) {
+        console.log('✅ Found existing conversation for fan:', existingConv.id);
         setConversation(existingConv);
-      } else {
-        // Create new conversation
-        const { data: newConv, error: createError } = await supabase
-          .from('conversations')
-          .insert({
-            fan_id: user.id,
-            creator_id: managementUserId,
-            status: 'active'
-          })
-          .select(`
-            id,
-            creator_id,
-            fan_id,
-            creator_profile:profiles!conversations_creator_id_fkey(display_name, username, avatar_url)
-          `)
-          .single();
-
-        if (createError) throw createError;
-        setConversation(newConv);
+        return;
       }
+
+      // No existing conversation found, create new one with a management user
+      const { data: managementUsers, error: mgmtError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .in('role', ['owner', 'superadmin', 'admin', 'manager'])
+        .order('role_level', { ascending: true })
+        .limit(1);
+
+      if (mgmtError) throw mgmtError;
+
+      if (!managementUsers || managementUsers.length === 0) {
+        console.log('❌ No management users found');
+        toast({
+          title: "No management available",
+          description: "There are no management users to chat with at the moment",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const managementUserId = managementUsers[0].user_id;
+      console.log('🎯 Creating new conversation with management user:', managementUserId);
+
+      // Create new conversation
+      const { data: newConv, error: createError } = await supabase
+        .from('conversations')
+        .insert({
+          fan_id: user.id,
+          creator_id: managementUserId,
+          status: 'active'
+        })
+        .select(`
+          id,
+          creator_id,
+          fan_id,
+          creator_profile:profiles!conversations_creator_id_fkey(display_name, username, avatar_url)
+        `)
+        .single();
+
+      if (createError) throw createError;
+      
+      console.log('✨ Created new conversation for fan:', newConv.id);
+      setConversation(newConv);
+      
     } catch (error) {
-      console.error('Error loading conversation:', error);
+      console.error('❌ Error loading conversation:', error);
       toast({
         title: "Error",
         description: "Failed to load conversation",

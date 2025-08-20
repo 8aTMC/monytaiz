@@ -126,7 +126,7 @@ export const ChatDialog = ({ open, onOpenChange }: ChatDialogProps) => {
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('user_id')
-        .in('role', ['owner', 'superadmin', 'admin']);
+        .in('role', ['owner', 'superadmin', 'admin', 'manager']);
 
       if (roleError) throw roleError;
       
