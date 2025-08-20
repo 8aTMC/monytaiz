@@ -122,9 +122,9 @@ const App = () => (
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-            
-            <ThemeToggle />
           </SidebarProvider>
+          
+          <ThemeToggle />
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
