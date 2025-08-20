@@ -205,7 +205,7 @@ export const Navigation = () => {
 
   return (
     <nav 
-      className={`${isNarrowScreen && !isCollapsed ? 'fixed left-0 top-16 z-50' : 'relative'} bg-card border-r border-border h-[calc(100vh-4rem)] flex flex-col transition-all duration-300 ${
+      className={`${isNarrowScreen && !isCollapsed ? 'fixed left-0 top-[73px] z-50' : 'relative'} bg-card border-r border-border h-[calc(100vh-73px)] flex flex-col transition-all duration-300 ${
         isCollapsed ? 'w-16' : 'w-64'
       } ${isNarrowScreen && !isCollapsed ? 'shadow-2xl' : ''}`}
       data-auto-collapse

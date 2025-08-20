@@ -14,8 +14,8 @@ export const FixedHeader = () => {
   if (!user) return null;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-[100] bg-background/95 backdrop-blur-sm border-b border-border">
-      <div className="flex items-center justify-end px-4 py-3">
+    <header className="fixed top-0 left-0 right-0 z-[100] bg-background border-b border-border">
+      <div className="flex items-center justify-end px-4 py-4 h-[73px]">
         <ThemeToggle />
       </div>
     </header>

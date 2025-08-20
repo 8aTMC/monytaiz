@@ -40,7 +40,7 @@ const App = () => (
         <BrowserRouter>
           <SidebarProvider>
             <FixedHeader />
-            <div className="pt-16">
+            <div className="pt-[73px]">
               <Routes>
               {/* Public route - only accessible when not authenticated */}
               <Route path="/" element={<Auth />} />
@@ -127,8 +127,6 @@ const App = () => (
               </Routes>
             </div>
           </SidebarProvider>
-          
-          <ThemeToggle />
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
