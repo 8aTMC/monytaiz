@@ -161,6 +161,24 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             loadConversations();
           }
         )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'messages',
+            filter: `conversation_id=eq.${activeConversation.id}`,
+          },
+          (payload) => {
+            console.log('Message updated:', payload);
+            const updatedMessage = payload.new as Message;
+            setMessages((current) => 
+              current.map(msg => 
+                msg.id === updatedMessage.id ? updatedMessage : msg
+              )
+            );
+          }
+        )
         .subscribe();
 
       return () => {
@@ -211,15 +229,29 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
       if (error) throw error;
       
-      // Process conversations to add fallback data
-      const processedConversations = data?.map(conv => ({
-        ...conv,
-        latest_message: conv.latest_message_content || 'No messages yet',
-        total_spent: Math.floor(Math.random() * 500), // Mock data for now
-        unread_count: conv.unread_count || 0,
-        latest_message_content: conv.latest_message_content || '',
-        latest_message_sender_id: conv.latest_message_sender_id || ''
-      })) || [];
+      // Process conversations to add fallback data and get actual latest message
+      const processedConversations = await Promise.all(
+        (data || []).map(async (conv) => {
+          // Get the actual latest message for this conversation
+          const { data: latestMessage } = await supabase
+            .from('messages')
+            .select('content, sender_id, created_at')
+            .eq('conversation_id', conv.id)
+            .eq('status', 'active')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          return {
+            ...conv,
+            latest_message: latestMessage?.content || conv.latest_message_content || '',
+            latest_message_content: latestMessage?.content || conv.latest_message_content || '',
+            latest_message_sender_id: latestMessage?.sender_id || conv.latest_message_sender_id || '',
+            total_spent: Math.floor(Math.random() * 500), // Mock data for now
+            unread_count: conv.unread_count || 0,
+          };
+        })
+      );
 
       setConversations(processedConversations);
       
@@ -262,16 +294,26 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
     try {
       setSending(true);
-      const { error } = await supabase
+      const { data: messageData, error } = await supabase
         .from('messages')
         .insert({
           conversation_id: activeConversation.id,
           sender_id: user.id,
           content: newMessage.trim(),
           status: 'active'
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+      
+      // Mark message as delivered immediately since it was sent successfully
+      if (messageData) {
+        await supabase.rpc('mark_message_delivered', { 
+          message_id: messageData.id 
+        });
+      }
+      
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
@@ -326,7 +368,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     return isCreator ? conv.fan_profile : conv.creator_profile;
   };
 
-  // Mark messages as read when conversation is opened
+  // Mark messages as read when conversation is opened and auto-mark when messages are viewed
   const markConversationAsRead = async (conversationId: string) => {
     try {
       await supabase.rpc('mark_conversation_as_read', {
@@ -340,10 +382,30 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
           ? { ...conv, unread_count: 0 }
           : conv
       ));
+
+      // Update messages in the active conversation to show as read
+      if (activeConversation?.id === conversationId) {
+        setMessages(prev => prev.map(msg => 
+          msg.sender_id !== user.id 
+            ? { ...msg, read_by_recipient: true, read_at: new Date().toISOString() }
+            : msg
+        ));
+      }
     } catch (error) {
       console.error('Error marking conversation as read:', error);
     }
   };
+
+  // Auto-mark messages as read when user views them
+  useEffect(() => {
+    if (activeConversation && messages.length > 0) {
+      const timer = setTimeout(() => {
+        markConversationAsRead(activeConversation.id);
+      }, 1000); // Mark as read after 1 second of viewing
+
+      return () => clearTimeout(timer);
+    }
+  }, [activeConversation, messages]);
 
   // Get delivery status icon for messages
   const getDeliveryStatusIcon = (message: Message) => {
