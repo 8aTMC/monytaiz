@@ -17,7 +17,7 @@ export const FixedHeader = () => {
 
   return (
     <header 
-      className="absolute top-0 right-0 h-[73px] bg-background border-b border-border transition-all duration-300 flex-shrink-0 z-40"
+      className="fixed top-0 right-0 h-[73px] bg-background border-b border-border transition-all duration-300 flex-shrink-0 z-40"
       style={{ 
         left: isNarrowScreen ? '0' : isCollapsed ? '64px' : '256px'
       }}

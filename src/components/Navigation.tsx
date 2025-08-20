@@ -220,12 +220,9 @@ export const Navigation = () => {
 
   return (
     <nav 
-      className={`${isNarrowScreen && !isCollapsed ? 'fixed left-0 top-0 z-50' : 'relative z-[60]'} bg-card border-r border-border flex flex-col transition-all duration-300 ${
+      className={`fixed left-0 top-0 ${isNarrowScreen && !isCollapsed ? 'z-50' : 'z-[60]'} bg-card border-r border-border flex flex-col transition-all duration-300 ${
         isCollapsed ? 'w-16' : 'w-64'
-      } ${isNarrowScreen && !isCollapsed ? 'shadow-2xl' : ''}`}
-      style={{
-        height: isNarrowScreen && !isCollapsed ? 'max(100vh, calc(100vh + 100px))' : '100vh'
-      }}
+      } ${isNarrowScreen && !isCollapsed ? 'shadow-2xl' : ''} h-screen`}
       data-auto-collapse
       {...(isNarrowScreen && !isCollapsed ? { 'data-manually-opened': 'true' } : {})}
     >
