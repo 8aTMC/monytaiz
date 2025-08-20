@@ -1,0 +1,598 @@
+import { useState, useEffect, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { User } from '@supabase/supabase-js';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { getInitials } from '@/lib/initials';
+import { useToast } from '@/components/ui/use-toast';
+import { 
+  Send, 
+  Search, 
+  Settings, 
+  MoreHorizontal,
+  Smile,
+  Paperclip,
+  Gift,
+  Heart,
+  DollarSign,
+  Camera,
+  Mic,
+  Image as ImageIcon,
+  FileText,
+  Star,
+  Calendar
+} from 'lucide-react';
+
+interface Message {
+  id: string;
+  content: string;
+  sender_id: string;
+  created_at: string;
+  conversation_id: string;
+  message_type: string;
+}
+
+interface Conversation {
+  id: string;
+  fan_id: string;
+  creator_id: string;
+  last_message_at: string;
+  fan_profile?: {
+    display_name: string;
+    username: string;
+    avatar_url?: string;
+  };
+  creator_profile?: {
+    display_name: string;
+    username: string;
+    avatar_url?: string;
+  };
+  latest_message?: string;
+  total_spent?: number;
+}
+
+interface MessagesLayoutProps {
+  user: User;
+  isCreator: boolean;
+}
+
+export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
+  const { toast } = useToast();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  useEffect(() => {
+    loadConversations();
+  }, [user]);
+
+  useEffect(() => {
+    if (activeConversation) {
+      loadMessages();
+      
+      // Set up real-time subscription
+      const channel = supabase
+        .channel(`conversation-${activeConversation.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `conversation_id=eq.${activeConversation.id}`,
+          },
+          (payload) => {
+            const newMessage = payload.new as Message;
+            setMessages((current) => [...current, newMessage]);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [activeConversation]);
+
+  const loadConversations = async () => {
+    try {
+      setLoading(true);
+      
+      const query = supabase
+        .from('conversations')
+        .select(`
+          id,
+          fan_id,
+          creator_id,
+          last_message_at,
+          fan_profile:profiles!conversations_fan_id_fkey(display_name, username, avatar_url),
+          creator_profile:profiles!conversations_creator_id_fkey(display_name, username, avatar_url),
+          messages(content, created_at)
+        `)
+        .eq('status', 'active')
+        .order('last_message_at', { ascending: false });
+
+      if (isCreator) {
+        query.eq('creator_id', user.id);
+      } else {
+        query.eq('fan_id', user.id);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      
+      // Process conversations to add latest message and mock spending data
+      const processedConversations = data?.map(conv => ({
+        ...conv,
+        latest_message: conv.messages?.[0]?.content || 'No messages yet',
+        total_spent: Math.floor(Math.random() * 500) // Mock data for now
+      })) || [];
+
+      setConversations(processedConversations);
+      
+      // Auto-select first conversation if none selected
+      if (processedConversations.length > 0 && !activeConversation) {
+        setActiveConversation(processedConversations[0]);
+      }
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load conversations",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadMessages = async () => {
+    if (!activeConversation) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', activeConversation.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setMessages(data || []);
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!activeConversation || !newMessage.trim() || sending) return;
+
+    try {
+      setSending(true);
+      const { error } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: activeConversation.id,
+          sender_id: user.id,
+          content: newMessage.trim(),
+          status: 'active'
+        });
+
+      if (error) throw error;
+      setNewMessage('');
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  const formatTime = (timestamp: string) => {
+    return new Date(timestamp).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatDate = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return formatTime(timestamp);
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday';
+    } else if (date.getFullYear() === today.getFullYear()) {
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    } else {
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+  };
+
+  const filteredConversations = conversations.filter(conv => {
+    const profile = isCreator ? conv.fan_profile : conv.creator_profile;
+    const name = profile?.display_name || profile?.username || '';
+    return name.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
+  const getProfileForConversation = (conv: Conversation) => {
+    return isCreator ? conv.fan_profile : conv.creator_profile;
+  };
+
+  const actionButtons = [
+    { icon: Paperclip, label: 'Attach', color: 'text-muted-foreground' },
+    { icon: ImageIcon, label: 'Photo', color: 'text-blue-500' },
+    { icon: Camera, label: 'Camera', color: 'text-green-500' },
+    { icon: Mic, label: 'Voice', color: 'text-purple-500' },
+    { icon: Gift, label: 'Tip', color: 'text-yellow-500' },
+    { icon: Heart, label: 'Like', color: 'text-red-500' },
+    { icon: DollarSign, label: 'Price', color: 'text-emerald-500' },
+    { icon: FileText, label: 'Note', color: 'text-orange-500' },
+    { icon: Smile, label: 'Emoji', color: 'text-amber-500' },
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex h-screen">
+        <div className="w-80 border-r border-border bg-background">
+          <div className="animate-pulse p-4 space-y-4">
+            <div className="h-10 bg-muted rounded"></div>
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="flex items-center space-x-3">
+                  <div className="h-12 w-12 bg-muted rounded-full"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-muted rounded"></div>
+                    <div className="h-3 bg-muted/60 rounded"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading messages...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen bg-background">
+      {/* Conversations Sidebar */}
+      <div className="w-80 border-r border-border bg-background flex flex-col">
+        {/* Header */}
+        <div className="p-4 border-b border-border">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Messages</h2>
+            <Button variant="ghost" size="icon">
+              <Settings className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search conversations..."
+              className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Conversations List */}
+        <ScrollArea className="flex-1">
+          <div className="p-2">
+            {filteredConversations.map((conversation) => {
+              const profile = getProfileForConversation(conversation);
+              const isActive = activeConversation?.id === conversation.id;
+              
+              return (
+                <div
+                  key={conversation.id}
+                  className={`p-3 rounded-lg cursor-pointer transition-colors mb-1 ${
+                    isActive ? 'bg-primary/10' : 'hover:bg-muted/50'
+                  }`}
+                  onClick={() => setActiveConversation(conversation)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={profile?.avatar_url} />
+                        <AvatarFallback>
+                          {getInitials(profile?.display_name, profile?.username)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-background"></div>
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-sm truncate">
+                          {profile?.display_name || profile?.username || 'Unknown User'}
+                        </h4>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-medium text-primary">
+                            ${conversation.total_spent || 0}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDate(conversation.last_message_at)}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate mt-1">
+                        {conversation.latest_message}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </ScrollArea>
+      </div>
+
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col">
+        {activeConversation ? (
+          <>
+            {/* Chat Header */}
+            <div className="p-4 border-b border-border bg-background">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={getProfileForConversation(activeConversation)?.avatar_url} />
+                    <AvatarFallback>
+                      {getInitials(
+                        getProfileForConversation(activeConversation)?.display_name,
+                        getProfileForConversation(activeConversation)?.username
+                      )}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-semibold">
+                      {getProfileForConversation(activeConversation)?.display_name || 'Unknown User'}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      @{getProfileForConversation(activeConversation)?.username || 'unknown'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs">
+                    VIP
+                  </Badge>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Messages Area */}
+            <ScrollArea className="flex-1 p-4">
+              <div className="space-y-4">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex gap-3 ${
+                      message.sender_id === user.id ? 'justify-end' : 'justify-start'
+                    }`}
+                  >
+                    {message.sender_id !== user.id && (
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={getProfileForConversation(activeConversation)?.avatar_url} />
+                        <AvatarFallback>
+                          {getInitials(
+                            getProfileForConversation(activeConversation)?.display_name,
+                            getProfileForConversation(activeConversation)?.username
+                          )}
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
+                    <div className={`max-w-xs ${message.sender_id === user.id ? 'text-right' : ''}`}>
+                      <div
+                        className={`inline-block p-3 rounded-lg ${
+                          message.sender_id === user.id
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
+                        }`}
+                      >
+                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {formatTime(message.created_at)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
+
+            {/* Message Input Area */}
+            <div className="p-4 border-t border-border bg-background">
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 mb-3 overflow-x-auto">
+                {actionButtons.map((button, index) => (
+                  <Button
+                    key={index}
+                    variant="ghost"
+                    size="sm"
+                    className="flex-shrink-0"
+                    title={button.label}
+                  >
+                    <button.icon className={`h-4 w-4 ${button.color}`} />
+                  </Button>
+                ))}
+              </div>
+
+              {/* Message Input */}
+              <div className="flex gap-2">
+                <Input
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Type a message..."
+                  disabled={sending}
+                  className="flex-1"
+                />
+                <Button onClick={sendMessage} disabled={!newMessage.trim() || sending}>
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <Send className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">No conversation selected</h3>
+              <p className="text-muted-foreground">
+                Choose a conversation from the sidebar to start messaging
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Fan Insights Sidebar */}
+      {activeConversation && isCreator && (
+        <div className="w-80 border-l border-border bg-background">
+          <div className="p-4">
+            <h3 className="font-semibold mb-4">Fan Insights</h3>
+            
+            <div className="space-y-4">
+              {/* Subscription Status */}
+              <Card>
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-muted-foreground">Subscription</span>
+                    <Badge variant="secondary">2 months</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-lg font-semibold">$111.97</span>
+                    <span className="text-sm text-muted-foreground">Tips ($)</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Last Paid */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Last paid:</span>
+                  <span>Jul 9, 2025 at 8:43 PM</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Highest purchase:</span>
+                  <span>$80.99</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Subscription status:</span>
+                  <Badge variant="secondary">Paying: $11.99/mo</Badge>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Renew:</span>
+                  <span>On</span>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Fan Info */}
+              <div className="space-y-2">
+                <h4 className="font-medium">Fan info:</h4>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Local time:</span>
+                    <span>Unknown</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Source:</span>
+                    <span>Unknown</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Nickname:</span>
+                    <span>baby</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Birthday:</span>
+                    <Button variant="ghost" size="sm" className="h-auto p-0 text-sm">
+                      Select date
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Fan Lists */}
+              <div className="space-y-2">
+                <h4 className="font-medium">Fan lists:</h4>
+                <div className="flex gap-2">
+                  <Badge variant="outline">Following</Badge>
+                  <Badge variant="outline">Fans</Badge>
+                  <Badge variant="outline">Renew On</Badge>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Fan Notes */}
+              <div className="space-y-2">
+                <h4 className="font-medium">Fan notes:</h4>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <div>- Age:</div>
+                  <div>- Job:</div>
+                  <div>- Hobbies:</div>
+                  <div>- Preferences:</div>
+                  <div>- GF:</div>
+                  <div>- Pay day:</div>
+                  <div>- Notes:</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
