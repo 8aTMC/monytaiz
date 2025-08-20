@@ -725,6 +725,38 @@ export type Database = {
           },
         ]
       }
+      typing_indicators: {
+        Row: {
+          conversation_id: string
+          id: string
+          is_typing: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          id?: string
+          is_typing?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          id?: string
+          is_typing?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "typing_indicators_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       upload_sessions: {
         Row: {
           created_at: string
@@ -978,6 +1010,10 @@ export type Database = {
       sync_user_emails: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      update_typing_status: {
+        Args: { p_conversation_id: string; p_is_typing: boolean }
+        Returns: undefined
       }
       user_can_manage_role: {
         Args: {
