@@ -251,7 +251,7 @@ const Users = () => {
     }
   };
 
-  const roleOrder = ['owner', 'superadmin', 'admin', 'moderator', 'chatter', 'creator'];
+  const roleOrder = ['owner', 'superadmin', 'admin', 'moderator', 'chatter'];
 
   const usersByRole = users.reduce((acc, user) => {
     user.roles.forEach(role => {
