@@ -109,7 +109,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   useEffect(() => {
     loadConversations();
     
-    // Set up real-time subscription for conversation updates
+    // Set up real-time subscription for conversation updates (less frequent)
     const conversationsChannel = supabase
       .channel('conversations-updates')
       .on(
@@ -121,8 +121,11 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
         },
         (payload) => {
           console.log('Conversation updated:', payload);
-          // Reload conversations to get latest message info
-          loadConversations();
+          // Only reload if it's a significant change (not just read status)
+          const updatedConv = payload.new as any;
+          if (updatedConv.latest_message_content || updatedConv.last_message_at) {
+            loadConversations();
+          }
         }
       )
       .subscribe();
@@ -130,7 +133,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     return () => {
       supabase.removeChannel(conversationsChannel);
     };
-  }, [user]);
+  }, [user.id]); // Only depend on user ID
 
   useEffect(() => {
     if (activeConversation) {
@@ -157,8 +160,10 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
               }
               return [...current, newMessage];
             });
-            // Update conversations list to reflect new message
-            loadConversations();
+            // Only update conversations if this is from another user to avoid loops
+            if (newMessage.sender_id !== user.id) {
+              loadConversations();
+            }
           }
         )
         .on(
@@ -185,7 +190,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
         supabase.removeChannel(messagesChannel);
       };
     }
-  }, [activeConversation]);
+  }, [activeConversation?.id]); // Only depend on conversation ID, not the whole object
 
   const loadConversations = async () => {
     try {
@@ -396,16 +401,22 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     }
   };
 
-  // Auto-mark messages as read when user views them
+  // Auto-mark messages as read when user views them (only once per conversation)
   useEffect(() => {
     if (activeConversation && messages.length > 0) {
-      const timer = setTimeout(() => {
-        markConversationAsRead(activeConversation.id);
-      }, 1000); // Mark as read after 1 second of viewing
+      const unreadMessages = messages.filter(msg => 
+        msg.sender_id !== user.id && !msg.read_by_recipient
+      );
+      
+      if (unreadMessages.length > 0) {
+        const timer = setTimeout(() => {
+          markConversationAsRead(activeConversation.id);
+        }, 1000); // Mark as read after 1 second of viewing
 
-      return () => clearTimeout(timer);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [activeConversation, messages]);
+  }, [activeConversation?.id]); // Only trigger when conversation changes, not on every message
 
   // Get delivery status icon for messages
   const getDeliveryStatusIcon = (message: Message) => {
