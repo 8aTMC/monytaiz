@@ -80,12 +80,23 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   }, [setIsCollapsed]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Scroll to bottom when conversation changes
+  useEffect(() => {
+    if (activeConversation) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      }, 200);
+    }
+  }, [activeConversation]);
 
   useEffect(() => {
     loadConversations();
