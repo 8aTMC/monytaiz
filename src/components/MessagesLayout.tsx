@@ -465,17 +465,17 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                         <div className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-background"></div>
                       </div>
                       
-                      <div className="flex-1 min-w-0 pr-16">
-                        <div className="flex items-center justify-between mb-1">
-                          <h4 className="font-medium text-sm truncate">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between mb-1">
+                          <h4 className="font-medium text-sm truncate pr-2">
                             {profile?.display_name || profile?.username || 'Unknown User'}
                           </h4>
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs font-medium text-primary">
-                              ${conversation.total_spent || 0}
-                            </span>
+                          <div className="flex flex-col items-end text-right flex-shrink-0 ml-auto">
                             <span className="text-xs text-muted-foreground">
                               {formatDate(conversation.last_message_at)}
+                            </span>
+                            <span className="text-xs font-medium text-primary">
+                              ${conversation.total_spent || 0}
                             </span>
                           </div>
                         </div>
