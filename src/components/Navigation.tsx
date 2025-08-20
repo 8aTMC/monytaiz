@@ -147,6 +147,8 @@ export const Navigation = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [isFan, setIsFan] = useState(false);
   const [openSection, setOpenSection] = useState<'fans' | 'content' | 'management' | null>(null);
   const { isCollapsed, setIsCollapsed, isNarrowScreen = false } = useSidebar();
 
@@ -181,6 +183,20 @@ export const Navigation = () => {
 
       if (error) throw error;
       setUserProfile(data);
+
+      // Fetch user roles
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+
+      if (rolesError) throw rolesError;
+      
+      const roles = rolesData?.map(r => r.role) || [];
+      setUserRoles(roles);
+      
+      // Check if user is a fan (has only fan role)
+      setIsFan(roles.length === 1 && roles.includes('fan'));
     } catch (error) {
       console.error('Error fetching user profile:', error);
     }
@@ -224,11 +240,19 @@ export const Navigation = () => {
     }
   };
 
-  const navItems = [
+  // Different nav items for fans vs management users
+  const fanNavItems = [
+    { icon: Home, label: 'Home', href: '/dashboard' },
+    { icon: MessageSquare, label: 'Messages', href: '/messages' },
+  ];
+
+  const managementNavItems = [
     { icon: Home, label: t('platform.nav.dashboard', 'Dashboard'), href: '/dashboard' },
     { icon: MessageSquare, label: t('platform.nav.messages', 'Messages'), href: '/messages' },
     { icon: BarChart3, label: t('platform.nav.analytics', 'Analytics'), href: '/analytics' },
   ];
+
+  const navItems = isFan ? fanNavItems : managementNavItems;
 
 
   return (
@@ -309,8 +333,11 @@ export const Navigation = () => {
             );
           })}
           
-          {/* Fans Menu */}
-          <li>
+          {/* Show expanded menus only for management users */}
+          {!isFan && (
+            <>
+              {/* Fans Menu */}
+              <li>
             {isCollapsed ? (
               <HoverCard openDelay={150} closeDelay={150}>
                 <HoverCardTrigger asChild>
@@ -604,7 +631,9 @@ export const Navigation = () => {
                 </CollapsibleContent>
               </Collapsible>
             )}
-          </li>
+           </li>
+            </>
+          )}
         </ul>
       </div>
       

@@ -178,8 +178,8 @@ const FanDashboard = () => {
           <MessageCircle className="h-4 w-4" />
           Chat with Creator
         </Button>
-        <Button variant="outline" onClick={() => navigate('/library')}>
-          Browse Content
+        <Button variant="outline" disabled>
+          Browse Content (Coming Soon)
         </Button>
       </div>
 

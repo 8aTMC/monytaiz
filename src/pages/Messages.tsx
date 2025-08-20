@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { MessageCircle, Send, Search, User as UserIcon } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTranslation } from '@/hooks/useTranslation';
+import FanMessages from '@/components/FanMessages';
 
 const Messages = () => {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ const Messages = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isFan, setIsFan] = useState(false);
   const { isCollapsed, isNarrowScreen } = useSidebar();
 
   useEffect(() => {
@@ -38,6 +40,18 @@ const Messages = () => {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        // Check if user is a fan
+        const { data: rolesData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id);
+        
+        const roles = rolesData?.map(r => r.role) || [];
+        setIsFan(roles.length === 1 && roles.includes('fan'));
+      }
+      
       setLoading(false);
       
       if (!session?.user) {
@@ -61,6 +75,11 @@ const Messages = () => {
 
   if (!user) {
     return null;
+  }
+
+  // Fans see a direct chat interface, management users see the full messages page
+  if (isFan) {
+    return <FanMessages user={user} />;
   }
 
   return (
@@ -90,20 +109,20 @@ const Messages = () => {
               <div className="space-y-2">
                 <div className="p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors">
                   <div className="flex items-center justify-between">
-                    <div className="font-medium">Creator Name</div>
+                    <div className="font-medium">Fan User</div>
                     <div className="text-xs text-muted-foreground">2:30 PM</div>
                   </div>
                   <div className="text-sm text-muted-foreground truncate">
-                    Hey! Thanks for subscribing...
+                    Hey! Thanks for the content...
                   </div>
                 </div>
                 <div className="p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors">
                   <div className="flex items-center justify-between">
-                    <div className="font-medium">Another Creator</div>
+                    <div className="font-medium">Another Fan</div>
                     <div className="text-xs text-muted-foreground">1:15 PM</div>
                   </div>
                   <div className="text-sm text-muted-foreground truncate">
-                    New content is available...
+                    Question about subscription...
                   </div>
                 </div>
               </div>
@@ -117,7 +136,7 @@ const Messages = () => {
             <CardHeader className="border-b border-border">
               <CardTitle className="flex items-center gap-2">
                 <UserIcon className="h-5 w-5" />
-                Creator Name
+                Fan User
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 p-4 overflow-y-auto">
@@ -128,7 +147,7 @@ const Messages = () => {
                   </div>
                   <div className="flex-1">
                     <div className="bg-muted p-3 rounded-lg">
-                      <p className="text-sm">Hey! Thanks for subscribing. I have some exclusive content coming up this week!</p>
+                      <p className="text-sm">Hey! Thanks for the content. I have a question about the upcoming releases!</p>
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">2:30 PM</div>
                   </div>
@@ -137,7 +156,7 @@ const Messages = () => {
                 <div className="flex gap-3 justify-end">
                   <div className="flex-1 text-right">
                     <div className="bg-primary/10 p-3 rounded-lg inline-block">
-                      <p className="text-sm">That sounds great! Looking forward to it.</p>
+                      <p className="text-sm">Thanks for reaching out! What would you like to know?</p>
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">2:32 PM</div>
                   </div>
