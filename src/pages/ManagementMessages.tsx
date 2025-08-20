@@ -256,11 +256,11 @@ const ManagementMessages = () => {
   const selectedConversation = conversations.find(conv => conv.id === activeConversation);
 
   return (
-    <div className="h-[calc(100vh-var(--header-h)-48px)] flex">
+    <div className="h-[calc(100vh-var(--header-h))] flex">
       {/* Conversations Sidebar */}
       <div className="w-80 border-r flex flex-col bg-muted/30">
         {/* Header */}
-        <div className="p-4 border-b">
+        <div className="p-4 border-b border-border/60">
           <div className="flex items-center gap-2 mb-4">
             <MessageCircle className="h-5 w-5" />
             <h2 className="font-semibold">Messages</h2>
@@ -388,7 +388,7 @@ const ManagementMessages = () => {
         {activeConversation && selectedConversation ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 border-b bg-background">
+            <div className="p-4 border-b border-border/60 bg-background">
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10">
                   <AvatarFallback>
