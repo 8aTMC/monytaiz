@@ -57,9 +57,14 @@ All colors MUST be HSL.
     --shadow-glow: 0 0 40px hsla(200, 95%, 50%, 0.2);
     --shadow-card: 0 8px 32px hsla(220, 9%, 14%, 0.1);
 
-    /* Animations */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  /* Animations */
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  /* Layout variables */
+  --header-h: 73px;
+  --sidebar-w: 256px;
+  --sidebar-w-collapsed: 64px;
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 220 9% 14%;
@@ -128,10 +133,9 @@ All colors MUST be HSL.
     @apply bg-background text-foreground antialiased;
   }
   
-  /* Allow overflow-x on narrow screens when content overflows */
+  /* Prevent body scroll - only main content scrolls */
   body {
-    overflow-x: auto; /* Allow horizontal scroll by default */
-    overflow-y: auto; /* Allow vertical scroll */
+    overflow: hidden;
   }
 }
 

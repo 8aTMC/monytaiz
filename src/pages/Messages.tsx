@@ -6,7 +6,7 @@ import { Navigation, useSidebar } from '@/components/Navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessageCircle, Send, Search } from 'lucide-react';
+import { MessageCircle, Send, Search, User as UserIcon } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTranslation } from '@/hooks/useTranslation';
 
@@ -64,75 +64,102 @@ const Messages = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Navigation />
-      
-      <main 
-        className="fixed top-[73px] h-[calc(100vh-73px)] overflow-auto"
-        style={{
-          left: isNarrowScreen ? '15px' : isCollapsed ? '110px' : '320px',
-          right: '15px'
-        }}
-      >
-        <div className="p-6 max-w-6xl mx-auto">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-foreground">Messages</h1>
-            </div>
+    <>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-foreground">Messages</h1>
+      </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Conversations List */}
-              <div className="lg:col-span-1">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <MessageCircle className="h-5 w-5" />
-                      Conversations
-                    </CardTitle>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                      <Input
-                        placeholder="Search conversations..."
-                        className="pl-10"
-                      />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground text-center py-8">
-                        No conversations yet
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Conversations List */}
+        <div className="lg:col-span-1">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageCircle className="h-5 w-5" />
+                Conversations
+              </CardTitle>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search conversations..."
+                  className="pl-10"
+                />
               </div>
-
-              {/* Chat Area */}
-              <div className="lg:col-span-2">
-                <Card className="h-[600px] flex flex-col">
-                  <CardHeader>
-                    <CardTitle>Select a conversation</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex-1 flex flex-col">
-                    <div className="flex-1 flex items-center justify-center">
-                      <p className="text-muted-foreground">Choose a conversation to start messaging</p>
-                    </div>
-                    <div className="flex gap-2 pt-4 border-t">
-                      <Input
-                        placeholder="Type a message..."
-                        disabled
-                        className="flex-1"
-                      />
-                      <Button disabled>
-                        <Send className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-            </div>
-          </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">Creator Name</div>
+                    <div className="text-xs text-muted-foreground">2:30 PM</div>
+                  </div>
+                  <div className="text-sm text-muted-foreground truncate">
+                    Hey! Thanks for subscribing...
+                  </div>
+                </div>
+                <div className="p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">Another Creator</div>
+                    <div className="text-xs text-muted-foreground">1:15 PM</div>
+                  </div>
+                  <div className="text-sm text-muted-foreground truncate">
+                    New content is available...
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </main>
-    </div>
+
+        {/* Chat Area */}
+        <div className="lg:col-span-2">
+          <Card className="h-[600px] flex flex-col">
+            <CardHeader className="border-b border-border">
+              <CardTitle className="flex items-center gap-2">
+                <UserIcon className="h-5 w-5" />
+                Creator Name
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 p-4 overflow-y-auto">
+              <div className="space-y-4">
+                <div className="flex gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <UserIcon className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="bg-muted p-3 rounded-lg">
+                      <p className="text-sm">Hey! Thanks for subscribing. I have some exclusive content coming up this week!</p>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">2:30 PM</div>
+                  </div>
+                </div>
+                
+                <div className="flex gap-3 justify-end">
+                  <div className="flex-1 text-right">
+                    <div className="bg-primary/10 p-3 rounded-lg inline-block">
+                      <p className="text-sm">That sounds great! Looking forward to it.</p>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">2:32 PM</div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+            <div className="p-4 border-t border-border">
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  placeholder="Type a message..." 
+                  className="flex-1 px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <Button>
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </>
   );
 };
 

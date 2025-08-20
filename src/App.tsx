@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SidebarProvider } from "@/components/Navigation";
 import { AuthProvider } from "@/components/AuthProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import Layout from "@/components/Layout";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
@@ -24,8 +25,6 @@ import PendingSignups from "./pages/PendingSignups";
 import FanListDetail from "./pages/FanListDetail";
 import NotFound from "./pages/NotFound";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
-import { ThemeToggle } from "./components/ThemeToggle";
-import { FixedHeader } from "./components/FixedHeader";
 
 
 const queryClient = new QueryClient();
@@ -39,93 +38,120 @@ const App = () => (
         <PWAInstallPrompt />
         <BrowserRouter>
           <SidebarProvider>
-             <div className="min-h-screen flex w-full relative">
-               <FixedHeader />
-               <Routes>
-              {/* Public route - only accessible when not authenticated */}
+            <Routes>
+              {/* Public routes - no layout */}
               <Route path="/" element={<Auth />} />
               
-              {/* Protected routes - require authentication */}
+              {/* Protected routes with layout */}
               <Route path="/onboarding" element={
                 <ProtectedRoute>
-                  <Onboarding />
+                  <Layout>
+                    <Onboarding />
+                  </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/dashboard" element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <Layout>
+                    <Dashboard />
+                  </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/messages" element={
                 <ProtectedRoute>
-                  <Messages />
+                  <Layout>
+                    <Messages />
+                  </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/fans" element={
                 <ProtectedRoute>
-                  <Fans />
+                  <Layout>
+                    <Fans />
+                  </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/fans/categories" element={
                 <ProtectedRoute>
-                  <FansCategories />
+                  <Layout>
+                    <FansCategories />
+                  </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/fans/lists" element={
                 <ProtectedRoute>
-                  <FansLists />
+                  <Layout>
+                    <FansLists />
+                  </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/fans/lists/:listId" element={
                 <ProtectedRoute>
-                  <FanListDetail />
+                  <Layout>
+                    <FanListDetail />
+                  </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/pending-signups" element={
                 <ProtectedRoute>
-                  <PendingSignups />
+                  <Layout>
+                    <PendingSignups />
+                  </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/library" element={
                 <ProtectedRoute>
-                  <ContentLibrary />
+                  <Layout>
+                    <ContentLibrary />
+                  </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/upload" element={
                 <ProtectedRoute>
-                  <Upload />
+                  <Layout>
+                    <Upload />
+                  </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/admin" element={
                 <ProtectedRoute>
-                  <AdminDashboard />
+                  <Layout>
+                    <AdminDashboard />
+                  </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/management/users" element={
                 <ProtectedRoute>
-                  <Users />
+                  <Layout>
+                    <Users />
+                  </Layout>
                 </ProtectedRoute>
               } />
             <Route path="/management/pending-deletions" element={
               <ProtectedRoute>
-                <PendingDeletions />
+                <Layout>
+                  <PendingDeletions />
+                </Layout>
               </ProtectedRoute>
             } />
             <Route path="/fan-deletions" element={
               <ProtectedRoute>
-                <FanDeletions />
+                <Layout>
+                  <FanDeletions />
+                </Layout>
               </ProtectedRoute>
             } />
               <Route path="/profile" element={
                 <ProtectedRoute>
-                  <Profile />
+                  <Layout>
+                    <Profile />
+                  </Layout>
                 </ProtectedRoute>
               } />
               
                 {/* Catch-all route */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </div>
           </SidebarProvider>
         </BrowserRouter>
       </AuthProvider>
