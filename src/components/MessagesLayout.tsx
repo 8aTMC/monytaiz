@@ -450,12 +450,9 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
               </div>
             </div>
 
-            {/* Messages Area - Takes remaining space between header and input */}
+            {/* Messages Area - Takes remaining space */}
             <div className="flex-1 min-h-0">
-              <div 
-                className="h-full overflow-y-auto px-6 py-4"
-                style={{ height: 'calc(100vh - 73px - 140px)' }}
-              >
+              <div className="h-full overflow-y-auto px-6 py-4">
                 <div className="space-y-4 pb-4 max-w-4xl mx-auto">
                   {messages.map((message) => (
                     <div
@@ -497,45 +494,47 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             </div>
 
             {/* Message Input Area - Fixed at bottom */}
-            <div className="flex-none h-[140px] p-4 border-t border-border bg-background">
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 mb-3 overflow-x-auto">
-                {actionButtons.map((button, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 px-3 flex-shrink-0"
-                    title={button.label}
-                    onClick={(e) => e.preventDefault()}
-                  >
-                    <button.icon className={`h-4 w-4 ${button.color}`} />
-                  </button>
-                ))}
-              </div>
+            <div className="flex-none border-t border-border bg-background">
+              <div className="p-4">
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2 mb-3 overflow-x-auto">
+                  {actionButtons.map((button, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 px-3 flex-shrink-0"
+                      title={button.label}
+                      onClick={(e) => e.preventDefault()}
+                    >
+                      <button.icon className={`h-4 w-4 ${button.color}`} />
+                    </button>
+                  ))}
+                </div>
 
-              {/* Message Input */}
-              <form 
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  sendMessage();
-                }}
-                className="flex gap-2"
-              >
-                <Input
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyDown={handleKeyPress}
-                  placeholder="Type a message..."
-                  disabled={sending}
-                  className="flex-1"
-                />
-                <Button 
-                  type="submit"
-                  disabled={!newMessage.trim() || sending}
+                {/* Message Input */}
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    sendMessage();
+                  }}
+                  className="flex gap-2"
                 >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </form>
+                  <Input
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    placeholder="Type a message..."
+                    disabled={sending}
+                    className="flex-1"
+                  />
+                  <Button 
+                    type="submit"
+                    disabled={!newMessage.trim() || sending}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </form>
+              </div>
             </div>
           </>
         ) : (
