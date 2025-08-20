@@ -410,9 +410,8 @@ const ContentLibrary = () => {
     <div className="flex min-h-screen bg-background overflow-auto">
       <Navigation />
       
-      <div className={`flex-1 transition-all duration-300 min-w-[800px] pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
-        <ScrollArea className="h-[calc(100vh-73px)] w-full">
-          <div className="flex min-h-[calc(100vh-73px)] min-w-[800px]">
+      <div className={`flex-1 transition-all duration-300 pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0 overflow-x-auto overflow-y-auto' : ''}`}>
+        <div className={`flex ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+1056px)] pl-64' : 'min-w-[800px] h-[calc(100vh-73px)]'}`}>
           {/* Categories Sidebar */}
           <div className="w-80 bg-card border-r border-border p-4 overflow-y-auto flex-shrink-0">
             <div className="mb-4">
@@ -726,9 +725,8 @@ const ContentLibrary = () => {
                 </div>
               )}
             </div>
-            </div>
           </div>
-        </ScrollArea>
+        </div>
       </div>
     </div>
   );
