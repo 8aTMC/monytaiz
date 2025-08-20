@@ -555,99 +555,94 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
       {/* Fan Insights Sidebar */}
       {activeConversation && isCreator && (
         <div className="w-80 border-l border-border bg-background flex-shrink-0">
-          <div className="p-4">
+          <div className="p-4 h-full flex flex-col">
             <h3 className="font-semibold mb-4">Fan Insights</h3>
             
-            <div className="space-y-4">
-              {/* Subscription Status */}
-              <Card>
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">Subscription</span>
-                    <Badge variant="secondary">2 months</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg font-semibold">$111.97</span>
-                    <span className="text-sm text-muted-foreground">Tips ($)</span>
-                  </div>
-                </CardContent>
-              </Card>
+            <ScrollArea className="flex-1">
+              <div className="space-y-4 pr-3">
+                {/* Subscription Status */}
+                <Card>
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-muted-foreground">Subscription</span>
+                      <Badge variant="outline">0 months</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-lg font-semibold">$0.00</span>
+                      <span className="text-sm text-muted-foreground">Total spent</span>
+                    </div>
+                  </CardContent>
+                </Card>
 
-              {/* Last Paid */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Last paid:</span>
-                  <span>Jul 9, 2025 at 8:43 PM</span>
+                {/* Purchase History */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Last purchase:</span>
+                    <span>Never</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Highest purchase:</span>
+                    <span>$0.00</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Subscription status:</span>
+                    <Badge variant="outline">Free</Badge>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Auto-renew:</span>
+                    <span>Off</span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Highest purchase:</span>
-                  <span>$80.99</span>
+
+                <Separator />
+
+                {/* Fan Info */}
+                <div className="space-y-2">
+                  <h4 className="font-medium">Fan info:</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Join date:</span>
+                      <span>{new Date().toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Last active:</span>
+                      <span>Today</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Messages sent:</span>
+                      <span>{messages.filter(m => m.sender_id !== user.id).length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Device:</span>
+                      <span>Web</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subscription status:</span>
-                  <Badge variant="secondary">Paying: $11.99/mo</Badge>
+
+                <Separator />
+
+                {/* Fan Lists */}
+                <div className="space-y-2">
+                  <h4 className="font-medium">Fan lists:</h4>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary">New Fans</Badge>
+                    <Badge variant="outline">Free Users</Badge>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Renew:</span>
-                  <span>On</span>
+
+                <Separator />
+
+                {/* Fan Notes */}
+                <div className="space-y-2">
+                  <h4 className="font-medium">Fan notes:</h4>
+                  <textarea
+                    placeholder="Add notes about this fan..."
+                    className="w-full h-32 p-2 text-sm border border-input rounded-md resize-none bg-background"
+                    defaultValue=""
+                  />
                 </div>
               </div>
-
-              <Separator />
-
-              {/* Fan Info */}
-              <div className="space-y-2">
-                <h4 className="font-medium">Fan info:</h4>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Local time:</span>
-                    <span>Unknown</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Source:</span>
-                    <span>Unknown</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Nickname:</span>
-                    <span>baby</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Birthday:</span>
-                    <Button variant="ghost" size="sm" className="h-auto p-0 text-sm">
-                      Select date
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Fan Lists */}
-              <div className="space-y-2">
-                <h4 className="font-medium">Fan lists:</h4>
-                <div className="flex gap-2">
-                  <Badge variant="outline">Following</Badge>
-                  <Badge variant="outline">Fans</Badge>
-                  <Badge variant="outline">Renew On</Badge>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Fan Notes */}
-              <div className="space-y-2">
-                <h4 className="font-medium">Fan notes:</h4>
-                <div className="text-sm text-muted-foreground space-y-1">
-                  <div>- Age:</div>
-                  <div>- Job:</div>
-                  <div>- Hobbies:</div>
-                  <div>- Preferences:</div>
-                  <div>- GF:</div>
-                  <div>- Pay day:</div>
-                  <div>- Notes:</div>
-                </div>
-              </div>
-            </div>
+            </ScrollArea>
           </div>
         </div>
       )}
