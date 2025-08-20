@@ -100,10 +100,6 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     hasFiles
   } = useMessageFileUpload();
 
-  // Auto-collapse sidebar to give more space for chat
-  useEffect(() => {
-    setIsCollapsed(true);
-  }, [setIsCollapsed]);
 
   const scrollToBottom = () => {
     setTimeout(() => {

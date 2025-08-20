@@ -5,6 +5,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { useTranslation } from '@/hooks/useTranslation';
 import FanMessages from '@/components/FanMessages';
 import { MessagesLayout } from '@/components/MessagesLayout';
+import Layout from '@/components/Layout';
 
 const Messages = () => {
   const navigate = useNavigate();
@@ -75,11 +76,19 @@ const Messages = () => {
 
   // Fans see a direct chat interface, management users see the full messages page
   if (isFan) {
-    return <FanMessages user={user} />;
+    return (
+      <Layout>
+        <FanMessages user={user} />
+      </Layout>
+    );
   }
 
   // Creators and management see the full messages layout
-  return <MessagesLayout user={user} isCreator={isCreator} />;
+  return (
+    <Layout>
+      <MessagesLayout user={user} isCreator={isCreator} />
+    </Layout>
+  );
 };
 
 export default Messages;
