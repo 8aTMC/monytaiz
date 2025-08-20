@@ -524,9 +524,6 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           <Button variant="ghost" size="sm" className="h-8 px-3" title="Emoji">
             <Smile className="h-4 w-4 text-amber-500" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-8 px-3" title="Attach">
-            <Paperclip className="h-4 w-4 text-muted-foreground" />
-          </Button>
           <Button variant="ghost" size="sm" className="h-8 px-3" title="Library">
             <Library className="h-4 w-4 text-blue-500" />
           </Button>

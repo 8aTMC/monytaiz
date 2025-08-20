@@ -459,7 +459,6 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   const actionButtons = [
     { icon: Bot, label: 'AI Assistant', color: 'text-purple-500' },
     { icon: Smile, label: 'Emoji', color: 'text-amber-500' },
-    { icon: Paperclip, label: 'Attach', color: 'text-muted-foreground' },
     { icon: Library, label: 'Library', color: 'text-blue-500' },
     { icon: Mic, label: 'Voice', color: 'text-purple-500' },
     // Only show tip button for fans, not for creators/admin
