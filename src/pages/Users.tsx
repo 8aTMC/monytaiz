@@ -265,7 +265,7 @@ const Users = () => {
     return (
       <div className="flex min-h-screen bg-background">
         <Navigation />
-        <main className={`flex-1 transition-all duration-300 p-6 overflow-x-auto ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
+        <main className={`flex-1 transition-all duration-300 p-6 overflow-x-auto pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
           <div className="space-y-6 min-w-[600px]">
             <div className="space-y-2">
               <Skeleton className="h-8 w-48" />
@@ -302,7 +302,7 @@ const Users = () => {
   return (
     <div className="flex min-h-screen bg-background">
       <Navigation />
-      <main className={`flex-1 transition-all duration-300 p-6 overflow-x-auto ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
+      <main className={`flex-1 transition-all duration-300 p-6 overflow-x-auto pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
         <div className="space-y-6 min-w-[600px]">
           <div className="flex items-center gap-4 mb-6">
             <div className="flex items-center gap-3">
