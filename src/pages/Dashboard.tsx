@@ -150,23 +150,21 @@ const Platform = () => {
     <div className="flex min-h-screen bg-background">
       <Navigation />
       
-      <main 
-        className={`flex-1 transition-all duration-300 pt-[73px]`}
-        style={{
-          overflowX: isNarrowScreen && !isCollapsed ? 'scroll' : 'visible',
-          overflowY: isNarrowScreen && !isCollapsed ? 'scroll' : 'visible'
-        }}
-        onScroll={(e) => {
-          // Prevent sidebar from closing when scrolling
-          e.stopPropagation();
-        }}
-      >
+      <main className="flex-1 pt-[73px]">
         <div 
-          className={`p-8 ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+200px)] pl-72' : 'max-w-7xl mx-auto min-w-[700px]'}`}
+          className={`h-[calc(100vh-73px)] ${isNarrowScreen && !isCollapsed ? 'overflow-auto' : 'overflow-auto'}`}
           style={{
-            minHeight: isNarrowScreen && !isCollapsed ? 'calc(100vh + 100px)' : 'auto'
+            overflowX: isNarrowScreen && !isCollapsed ? 'auto' : 'visible',
+            overflowY: isNarrowScreen && !isCollapsed ? 'auto' : 'visible'
+          }}
+          onScroll={(e) => {
+            // Prevent sidebar from closing when scrolling
+            e.stopPropagation();
           }}
         >
+          <div 
+            className={`p-8 ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+200px)] pl-72' : 'max-w-7xl mx-auto min-w-[700px]'}`}
+          >
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">
@@ -280,12 +278,13 @@ const Platform = () => {
                   <Button variant="outline" className="w-full" onClick={() => navigate('/analytics')}>
                     View Detailed Analytics
                   </Button>
-                </div>
-              </CardContent>
+                 </div>
+               </CardContent>
             </Card>
           </div>
         </div>
-      </main>
+      </div>
+    </main>
     </div>
   );
 };

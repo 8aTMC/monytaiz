@@ -410,23 +410,21 @@ const ContentLibrary = () => {
     <div className="flex min-h-screen bg-background overflow-auto">
       <Navigation />
       
-      <div 
-        className={`flex-1 transition-all duration-300 pt-[73px]`}
-        style={{
-          overflowX: isNarrowScreen && !isCollapsed ? 'scroll' : 'visible',
-          overflowY: isNarrowScreen && !isCollapsed ? 'scroll' : 'visible'
-        }}
-        onScroll={(e) => {
-          // Prevent sidebar from closing when scrolling
-          e.stopPropagation();
-        }}
-      >
+      <div className="flex-1 pt-[73px]">
         <div 
-          className={`flex ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+1000px)] pl-72' : 'min-w-[800px] h-[calc(100vh-73px)]'}`}
+          className={`h-[calc(100vh-73px)] ${isNarrowScreen && !isCollapsed ? 'overflow-auto' : 'overflow-auto'}`}
           style={{
-            minHeight: isNarrowScreen && !isCollapsed ? 'calc(100vh + 100px)' : 'calc(100vh - 73px)'
+            overflowX: isNarrowScreen && !isCollapsed ? 'auto' : 'visible',
+            overflowY: isNarrowScreen && !isCollapsed ? 'auto' : 'visible'
+          }}
+          onScroll={(e) => {
+            // Prevent sidebar from closing when scrolling
+            e.stopPropagation();
           }}
         >
+          <div 
+            className={`flex ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+1000px)] pl-72' : 'min-w-[800px]'}`}
+          >
           {/* Categories Sidebar */}
           <div className="w-80 bg-card border-r border-border p-4 overflow-y-auto flex-shrink-0">
             <div className="mb-4">
@@ -739,6 +737,7 @@ const ContentLibrary = () => {
                   ))}
                 </div>
               )}
+            </div>
             </div>
           </div>
         </div>

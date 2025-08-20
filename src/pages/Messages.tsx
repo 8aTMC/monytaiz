@@ -33,8 +33,9 @@ const Messages = () => {
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Check current session on component mount
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -42,18 +43,18 @@ const Messages = () => {
       if (!session?.user) {
         navigate('/');
       }
-    });
+    };
 
+    checkSession();
+
+    // Cleanup subscription on unmount
     return () => subscription.unsubscribe();
   }, [navigate]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading...</p>
-        </div>
+      <div className="flex min-h-screen bg-background">
+        <div className="animate-pulse">Loading...</div>
       </div>
     );
   }
@@ -65,87 +66,76 @@ const Messages = () => {
   return (
     <div className="flex min-h-screen bg-background">
       <Navigation />
-      <main 
-        className={`flex-1 transition-all duration-300 pt-[73px]`}
-        style={{
-          overflowX: isNarrowScreen && !isCollapsed ? 'scroll' : 'visible',
-          overflowY: isNarrowScreen && !isCollapsed ? 'scroll' : 'visible'
-        }}
-        onScroll={(e) => {
-          // Prevent sidebar from closing when scrolling
-          e.stopPropagation();
-        }}
-      >
+      
+      <main className="flex-1 pt-[73px]">
         <div 
-          className={`p-6 ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+200px)] pl-72' : 'max-w-6xl mx-auto min-w-[600px]'}`}
+          className={`h-[calc(100vh-73px)] ${isNarrowScreen && !isCollapsed ? 'overflow-auto' : 'overflow-auto'}`}
           style={{
-            minHeight: isNarrowScreen && !isCollapsed ? 'calc(100vh + 100px)' : 'auto'
+            overflowX: isNarrowScreen && !isCollapsed ? 'auto' : 'visible',
+            overflowY: isNarrowScreen && !isCollapsed ? 'auto' : 'visible'
+          }}
+          onScroll={(e) => {
+            // Prevent sidebar from closing when scrolling
+            e.stopPropagation();
           }}
         >
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground">Messages</h1>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Conversations List */}
-            <div className="lg:col-span-1">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageCircle className="h-5 w-5" />
-                    Conversations
-                  </CardTitle>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Search conversations..." className="pl-10" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="text-center py-8">
-                      <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">No conversations yet</p>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Start connecting with others to see your messages here
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+          <div 
+            className={`p-6 ${isNarrowScreen && !isCollapsed ? 'min-w-[calc(100vw+200px)] pl-72' : 'max-w-6xl mx-auto min-w-[600px]'}`}
+          >
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-foreground">Messages</h1>
             </div>
 
-            {/* Chat Area */}
-            <div className="lg:col-span-2">
-              <Card className="h-[600px] flex flex-col">
-                <CardHeader className="border-b">
-                  <CardTitle>Select a conversation</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col p-0">
-                  <div className="flex-1 p-4 flex items-center justify-center">
-                    <div className="text-center">
-                      <MessageCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">No conversation selected</h3>
-                      <p className="text-muted-foreground">
-                        Choose a conversation from the sidebar to start messaging
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Conversations List */}
+              <div className="lg:col-span-1">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageCircle className="h-5 w-5" />
+                      Conversations
+                    </CardTitle>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <Input
+                        placeholder="Search conversations..."
+                        className="pl-10"
+                      />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        No conversations yet
                       </p>
                     </div>
-                  </div>
-                  
-                  {/* Message Input */}
-                  <div className="border-t p-4">
-                    <div className="flex gap-2">
-                      <Input 
-                        placeholder="Type a message..." 
-                        className="flex-1"
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Chat Area */}
+              <div className="lg:col-span-2">
+                <Card className="h-[600px] flex flex-col">
+                  <CardHeader>
+                    <CardTitle>Select a conversation</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex-1 flex flex-col">
+                    <div className="flex-1 flex items-center justify-center">
+                      <p className="text-muted-foreground">Choose a conversation to start messaging</p>
+                    </div>
+                    <div className="flex gap-2 pt-4 border-t">
+                      <Input
+                        placeholder="Type a message..."
                         disabled
+                        className="flex-1"
                       />
                       <Button disabled>
                         <Send className="h-4 w-4" />
                       </Button>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         </div>
