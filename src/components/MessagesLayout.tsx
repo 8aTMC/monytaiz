@@ -309,7 +309,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
   if (loading) {
     return (
-      <div className="flex h-screen">
+      <div className="flex h-full">
         <div className="w-80 border-r border-border bg-background">
           <div className="animate-pulse p-4 space-y-4">
             <div className="h-10 bg-muted rounded"></div>
@@ -337,7 +337,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   }
 
   return (
-    <div className="fixed inset-0 flex bg-background">
+    <div className="h-full flex bg-background">
       {/* Conversations Sidebar */}
       <div className="w-80 border-r border-border bg-background flex flex-col flex-shrink-0">
         {/* Header */}
