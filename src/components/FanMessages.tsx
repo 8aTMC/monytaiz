@@ -392,10 +392,10 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
         
         {/* Messages Area - Takes remaining space */}
         <div className="flex-1 min-h-0">
-          <div 
+            <div 
             ref={messagesContainerRef}
             onScroll={handleScroll}
-            className="h-full overflow-y-auto p-4"
+            className="h-full overflow-y-auto px-6 py-4"
             style={{ height: 'calc(100vh - 73px - 81px)' }}
           >
             {loadingMoreMessages && (
@@ -407,7 +407,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
               </div>
             )}
             
-            <div className="space-y-4 pb-4">
+            <div className="space-y-4 pb-4 max-w-4xl mx-auto">
               {messages.length === 0 && !loadingMoreMessages ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
@@ -420,19 +420,19 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
                 messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex gap-3 ${
+                    className={`flex gap-3 px-4 ${
                       message.sender_id === user.id ? 'justify-end' : 'justify-start'
                     }`}
                   >
                     {message.sender_id !== user.id && (
-                      <Avatar className="h-8 w-8">
+                      <Avatar className="h-8 w-8 flex-shrink-0">
                         <AvatarImage src={conversation.creator_profile?.avatar_url} />
                         <AvatarFallback>
                           {getInitials(conversation.creator_profile?.display_name, conversation.creator_profile?.username)}
                         </AvatarFallback>
                       </Avatar>
                     )}
-                    <div className={`flex-1 max-w-xs ${message.sender_id === user.id ? 'text-right' : ''}`}>
+                    <div className={`flex-1 max-w-sm ${message.sender_id === user.id ? 'text-right' : ''}`}>
                       <div
                         className={`inline-block p-3 rounded-lg ${
                           message.sender_id === user.id
