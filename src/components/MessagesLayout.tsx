@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getInitials } from '@/lib/initials';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useSidebar } from '@/components/Navigation';
 import { 
   Send, 
@@ -26,7 +26,9 @@ import {
   Image as ImageIcon,
   FileText,
   Star,
-  Calendar
+  Calendar,
+  Check,
+  CheckCheck
 } from 'lucide-react';
 
 interface Message {
@@ -36,6 +38,9 @@ interface Message {
   created_at: string;
   conversation_id: string;
   message_type: string;
+  delivered_at?: string;
+  read_by_recipient: boolean;
+  read_at?: string;
 }
 
 interface Conversation {
@@ -43,6 +48,9 @@ interface Conversation {
   fan_id: string;
   creator_id: string;
   last_message_at: string;
+  unread_count: number;
+  latest_message_content: string;
+  latest_message_sender_id: string;
   fan_profile?: {
     display_name: string;
     username: string;
@@ -181,9 +189,11 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
           fan_id,
           creator_id,
           last_message_at,
+          unread_count,
+          latest_message_content,
+          latest_message_sender_id,
           fan_profile:profiles!conversations_fan_id_fkey(display_name, username, avatar_url),
-          creator_profile:profiles!conversations_creator_id_fkey(display_name, username, avatar_url),
-          messages(content, created_at)
+          creator_profile:profiles!conversations_creator_id_fkey(display_name, username, avatar_url)
         `)
         .eq('status', 'active')
         .order('last_message_at', { ascending: false });
@@ -201,11 +211,14 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
       if (error) throw error;
       
-      // Process conversations to add latest message and mock spending data
+      // Process conversations to add fallback data
       const processedConversations = data?.map(conv => ({
         ...conv,
-        latest_message: conv.messages?.[0]?.content || 'No messages yet',
-        total_spent: Math.floor(Math.random() * 500) // Mock data for now
+        latest_message: conv.latest_message_content || 'No messages yet',
+        total_spent: Math.floor(Math.random() * 500), // Mock data for now
+        unread_count: conv.unread_count || 0,
+        latest_message_content: conv.latest_message_content || '',
+        latest_message_sender_id: conv.latest_message_sender_id || ''
       })) || [];
 
       setConversations(processedConversations);
@@ -313,6 +326,38 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     return isCreator ? conv.fan_profile : conv.creator_profile;
   };
 
+  // Mark messages as read when conversation is opened
+  const markConversationAsRead = async (conversationId: string) => {
+    try {
+      await supabase.rpc('mark_conversation_as_read', {
+        conv_id: conversationId,
+        reader_user_id: user.id
+      });
+      
+      // Update local state
+      setConversations(prev => prev.map(conv => 
+        conv.id === conversationId 
+          ? { ...conv, unread_count: 0 }
+          : conv
+      ));
+    } catch (error) {
+      console.error('Error marking conversation as read:', error);
+    }
+  };
+
+  // Get delivery status icon for messages
+  const getDeliveryStatusIcon = (message: Message) => {
+    if (message.sender_id !== user.id) return null;
+    
+    if (message.read_by_recipient) {
+      return <CheckCheck className="h-3 w-3 text-blue-500" />;
+    } else if (message.delivered_at) {
+      return <CheckCheck className="h-3 w-3 text-muted-foreground" />;
+    } else {
+      return <Check className="h-3 w-3 text-muted-foreground" />;
+    }
+  };
+
   const actionButtons = [
     { icon: Paperclip, label: 'Attach', color: 'text-muted-foreground' },
     { icon: ImageIcon, label: 'Photo', color: 'text-blue-500' },
@@ -389,11 +434,26 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                 return (
                   <div
                     key={conversation.id}
-                    className={`p-3 rounded-lg cursor-pointer transition-colors mb-1 ${
+                    className={`relative p-3 rounded-lg cursor-pointer transition-colors mb-1 ${
                       isActive ? 'bg-primary/10' : 'hover:bg-muted/50'
                     }`}
-                    onClick={() => setActiveConversation(conversation)}
+                    onClick={() => {
+                      setActiveConversation(conversation);
+                      if (conversation.unread_count > 0) {
+                        markConversationAsRead(conversation.id);
+                      }
+                    }}
                   >
+                    {/* Unread Badge */}
+                    {conversation.unread_count > 0 && (
+                      <Badge 
+                        variant="destructive" 
+                        className="absolute top-2 right-2 h-5 px-2 text-xs font-medium"
+                      >
+                        Unread
+                      </Badge>
+                    )}
+                    
                     <div className="flex items-center gap-3">
                       <div className="relative">
                         <Avatar className="h-12 w-12">
@@ -405,8 +465,8 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                         <div className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-background"></div>
                       </div>
                       
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0 pr-16">
+                        <div className="flex items-center justify-between mb-1">
                           <h4 className="font-medium text-sm truncate">
                             {profile?.display_name || profile?.username || 'Unknown User'}
                           </h4>
@@ -419,8 +479,12 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                             </span>
                           </div>
                         </div>
-                        <p className="text-xs text-muted-foreground truncate mt-1">
-                          {conversation.latest_message}
+                        <p className={`text-xs truncate mt-1 ${
+                          conversation.unread_count > 0 
+                            ? 'text-foreground font-semibold' 
+                            : 'text-muted-foreground'
+                        }`}>
+                          {conversation.latest_message_content || 'No messages yet'}
                         </p>
                       </div>
                     </div>
@@ -502,7 +566,10 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                           <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          {formatTime(message.created_at)}
+                          <div className="flex items-center justify-end gap-1">
+                            <span>{formatTime(message.created_at)}</span>
+                            {getDeliveryStatusIcon(message)}
+                          </div>
                         </div>
                       </div>
                     </div>
