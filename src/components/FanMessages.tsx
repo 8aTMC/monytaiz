@@ -360,11 +360,11 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       <Navigation />
-      <main className={`flex-1 flex flex-col transition-all duration-300 ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
+      <main className={`flex-1 flex flex-col transition-all duration-300 h-full overflow-hidden ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
         {/* Chat Header */}
-        <div className="flex-shrink-0 p-4 border-b border-border bg-background">
+        <div className="flex-shrink-0 p-4 border-b border-border bg-background z-10">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
               <AvatarImage src={conversation.creator_profile?.avatar_url} />
