@@ -83,10 +83,9 @@ export const FileUploadButton = ({ onFilesSelected, disabled }: FileUploadButton
         disabled={disabled}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+        className="flex items-center text-muted-foreground hover:text-primary transition-colors"
       >
         <Upload className="h-4 w-4" />
-        <span>Upload from Storage</span>
       </Button>
 
       {/* Hover Menu */}
