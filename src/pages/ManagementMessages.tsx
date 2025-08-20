@@ -126,14 +126,13 @@ const ManagementMessages = () => {
           creator_id,
           last_message_at,
           fan:profiles!conversations_fan_id_fkey(id, username, display_name, fan_category)
-        `);
+        `)
+        .eq('is_active', true);
       
-      if (isManagement) {
-        // Management users see all active conversations
-        query = query.eq('status', 'active');
-      } else {
+      // For now, let management users see all conversations
+      if (!isManagement) {
         // Regular users see only conversations they're part of
-        query = query.eq('creator_id', user.id).eq('status', 'active');
+        query = query.eq('creator_id', user.id);
       }
       
       const { data, error } = await query.order('last_message_at', { ascending: false });
