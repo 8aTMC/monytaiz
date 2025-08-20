@@ -14,7 +14,7 @@ const Profile = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteSection, setShowDeleteSection] = useState(false);
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, isNarrowScreen } = useSidebar();
 
   useEffect(() => {
     // Set up auth state listener
@@ -61,9 +61,9 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background">
       <Navigation />
-      <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-52'} overflow-x-auto`}>
+      <main className={`flex-1 transition-all duration-300 p-6 overflow-x-auto ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
         <div className="max-w-4xl mx-auto min-w-[600px]">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">My Account</h1>

@@ -66,7 +66,7 @@ const ContentLibrary = () => {
   
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, isNarrowScreen } = useSidebar();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -406,11 +406,11 @@ const ContentLibrary = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background overflow-auto">
+    <div className="flex min-h-screen bg-background overflow-auto">
       <Navigation />
       <ThemeToggle />
       
-      <div className={`transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-52'} min-w-[800px]`}>
+      <div className={`flex-1 transition-all duration-300 min-w-[800px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
         <div className="flex h-screen min-w-[800px]">
           {/* Categories Sidebar */}
           <div className="w-80 bg-card border-r border-border p-4 overflow-y-auto flex-shrink-0">

@@ -12,7 +12,7 @@ const Upload = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, isNarrowScreen } = useSidebar();
 
   useEffect(() => {
     // Set up auth state listener
@@ -59,9 +59,9 @@ const Upload = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background">
       <Navigation />
-      <main className={`transition-all duration-300 p-6 ${isCollapsed ? 'ml-16' : 'ml-52'} overflow-x-auto`}>
+      <main className={`flex-1 transition-all duration-300 p-6 overflow-x-auto ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
         <div className="max-w-6xl mx-auto min-w-[600px]">
           <div className="mb-8">
             <div>

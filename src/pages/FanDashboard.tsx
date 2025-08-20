@@ -16,7 +16,7 @@ const FanDashboard = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, isNarrowScreen } = useSidebar();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -110,10 +110,10 @@ const FanDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background">
       <Navigation />
       
-      <main className={`transition-all duration-300 p-8 ${isCollapsed ? 'ml-16' : 'ml-52'} overflow-x-auto`}>
+      <main className={`flex-1 transition-all duration-300 p-8 overflow-x-auto ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
         <div className="max-w-7xl mx-auto min-w-[700px]">
           {/* Header */}
           <div className="mb-8">
