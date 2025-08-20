@@ -25,6 +25,7 @@ import PendingSignups from "./pages/PendingSignups";
 import FanListDetail from "./pages/FanListDetail";
 import FanDashboard from "./pages/FanDashboard";
 import ManagementMessages from "./pages/ManagementMessages";
+import { AIManagement } from "./pages/AIManagement";
 import NotFound from "./pages/NotFound";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 
@@ -147,6 +148,13 @@ const App = () => (
               <ProtectedRoute>
                 <Layout>
                   <FanDeletions />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/ai-management" element={
+              <ProtectedRoute>
+                <Layout>
+                  <AIManagement />
                 </Layout>
               </ProtectedRoute>
             } />

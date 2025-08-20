@@ -17,8 +17,12 @@ import { UploadProgressBar } from '@/components/UploadProgressBar';
 import { MessageFilesPack } from '@/components/MessageFilesPack';
 import { PaymentConfirmationDialog } from '@/components/PaymentConfirmationDialog';
 import { AddCardDialog } from '@/components/AddCardDialog';
+import { AIPersonaDialog } from '@/components/AIPersonaDialog';
+import { AISettingsDialog } from '@/components/AISettingsDialog';
+import { FanNotesManager } from '@/components/FanNotesManager';
 import { useMessageFileUpload } from '@/hooks/useMessageFileUpload';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
+import { useAIChat } from '@/hooks/useAIChat';
 import { toast as sonnerToast } from 'sonner';
 import { 
   Send, 
@@ -91,6 +95,10 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showAddCardDialog, setShowAddCardDialog] = useState(false);
+  const [showAIPersonaDialog, setShowAIPersonaDialog] = useState(false);
+  const [showAISettingsDialog, setShowAISettingsDialog] = useState(false);
+  const [showFanNotesDialog, setShowFanNotesDialog] = useState(false);
+  const [aiSettings, setAiSettings] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -109,6 +117,9 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     activeConversation?.id || null, 
     user.id
   );
+
+  // Initialize AI chat hook
+  const { generateAIResponseWithTyping, sendAIMessage, isProcessing, isTyping } = useAIChat();
 
 
   const scrollToBottom = () => {
@@ -719,13 +730,17 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                 {/* Action Buttons */}
                 <div className="flex items-center gap-2 mb-3 overflow-x-auto">
                   {/* AI Assistant Button - First/Leftmost */}
-                  <button
-                    type="button"
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 px-3 flex-shrink-0"
-                    title="AI Assistant"
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAISettingsDialog(true)}
+                    className="flex items-center gap-1 px-2 py-1 h-8 text-xs bg-gradient-to-r from-primary/10 to-secondary/10 hover:from-primary/20 hover:to-secondary/20 rounded-full border border-primary/20"
+                    title={`AI Assistant${aiSettings?.is_ai_enabled ? ' (ON)' : ' (OFF)'}`}
                   >
-                    <Bot className="h-4 w-4 text-purple-500" />
-                  </button>
+                    <Bot className={`w-3 h-3 ${aiSettings?.is_ai_enabled ? 'text-green-500' : 'text-purple-500'}`} />
+                    <span>AI Assistant</span>
+                    {isProcessing && <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse ml-1" />}
+                  </Button>
                   
                   <FileUploadButton 
                     onFilesSelected={(files, type) => {
@@ -899,17 +914,46 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
                 {/* Fan Notes */}
                 <div className="space-y-2">
-                  <h4 className="font-medium">Fan notes:</h4>
-                  <textarea
-                    placeholder="Add notes about this fan..."
-                    className="w-full h-32 p-2 text-sm border border-input rounded-md resize-none bg-background"
-                    defaultValue=""
-                  />
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Fan notes:</h4>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowFanNotesDialog(true)}
+                    >
+                      Manage Notes
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Click "Manage Notes" to add AI memory about this fan
+                  </p>
                 </div>
               </div>
             </ScrollArea>
           </div>
         </div>
+      )}
+
+      {/* Dialog Components */}
+      <AIPersonaDialog 
+        open={showAIPersonaDialog} 
+        onOpenChange={setShowAIPersonaDialog} 
+      />
+      
+      <AISettingsDialog 
+        open={showAISettingsDialog} 
+        onOpenChange={setShowAISettingsDialog}
+        conversationId={activeConversation?.id || ''}
+        onSettingsUpdate={setAiSettings}
+      />
+      
+      {activeConversation && (
+        <FanNotesManager
+          open={showFanNotesDialog}
+          onOpenChange={setShowFanNotesDialog}
+          fanId={isCreator ? activeConversation.fan_id : activeConversation.creator_id}
+          fanName={getProfileForConversation(activeConversation)?.display_name || 'Unknown User'}
+        />
       )}
     </div>
   );
