@@ -844,6 +844,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_conversations_for_existing_fans: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       generate_temp_username: {
         Args: Record<PropertyKey, never>
         Returns: string
