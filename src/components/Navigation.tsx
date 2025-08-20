@@ -214,7 +214,7 @@ export const Navigation = () => {
       {isCollapsed ? (
         /* Collapsed state - logo centered with arrow on right edge */
         <>
-          <div className="p-4 flex items-center justify-center border-b border-border">
+          <div className="h-[73px] flex items-center justify-center border-b border-border">
             <img 
               src="/lovable-uploads/1bcee6fa-937a-4164-aecf-ef7d77f74bb8.png" 
               alt="Monytaiz Logo" 
@@ -234,7 +234,7 @@ export const Navigation = () => {
       ) : (
         /* Extended state - logo left, name center, close arrow on edge */
         <>
-          <div className="p-4 flex items-center justify-between border-b border-border">
+          <div className="h-[73px] flex items-center justify-between px-4 border-b border-border">
             <img 
               src="/lovable-uploads/1bcee6fa-937a-4164-aecf-ef7d77f74bb8.png" 
               alt="Monytaiz Logo" 
