@@ -307,7 +307,8 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     { icon: ImageIcon, label: 'Photo', color: 'text-blue-500' },
     { icon: Camera, label: 'Camera', color: 'text-green-500' },
     { icon: Mic, label: 'Voice', color: 'text-purple-500' },
-    { icon: Gift, label: 'Tip', color: 'text-yellow-500' },
+    // Only show tip button for fans, not for creators/admin
+    ...(!isCreator ? [{ icon: Gift, label: 'Tip', color: 'text-yellow-500' }] : []),
     { icon: Heart, label: 'Like', color: 'text-red-500' },
     { icon: DollarSign, label: 'Price', color: 'text-emerald-500' },
     { icon: FileText, label: 'Note', color: 'text-orange-500' },
