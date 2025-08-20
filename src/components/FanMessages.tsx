@@ -118,7 +118,26 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
         return;
       }
 
-      // No existing conversation found, create new one with a management user
+      // No existing conversation found, get creator profile and create conversation
+      const { data: creatorProfile, error: creatorError } = await supabase
+        .from('creator_profile')
+        .select('*')
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (creatorError) throw creatorError;
+
+      if (!creatorProfile) {
+        console.log('❌ No creator profile found');
+        toast({
+          title: "Creator profile needed",
+          description: "Please ask management to set up the creator profile first",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Find a management user to represent the creator
       const { data: managementUsers, error: mgmtError } = await supabase
         .from('user_roles')
         .select('user_id')
@@ -139,7 +158,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
       }
 
       const managementUserId = managementUsers[0].user_id;
-      console.log('🎯 Creating new conversation with management user:', managementUserId);
+      console.log('🎯 Creating new conversation with management user:', managementUserId, 'as creator:', creatorProfile.display_name);
 
       // Create new conversation
       const { data: newConv, error: createError } = await supabase
@@ -160,7 +179,15 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
       if (createError) throw createError;
       
       console.log('✨ Created new conversation for fan:', newConv.id);
-      setConversation(newConv);
+      setConversation({
+        ...newConv,
+        // Override profile data with creator profile for display
+        creator_profile: {
+          display_name: creatorProfile.display_name,
+          username: creatorProfile.username || null,
+          avatar_url: creatorProfile.avatar_url || null
+        }
+      });
       
     } catch (error) {
       console.error('❌ Error loading conversation:', error);

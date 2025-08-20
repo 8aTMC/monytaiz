@@ -36,6 +36,7 @@ import {
   List
 } from 'lucide-react';
 import { ContentIcon } from './icons/ContentIcon';
+import { CreatorProfileDialog } from '@/components/CreatorProfileDialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
@@ -582,6 +583,23 @@ export const Navigation = () => {
                     <div className="px-2 py-1 text-sm font-medium text-foreground border-b border-border mb-2">
                       Management
                     </div>
+                    <CreatorProfileDialog>
+                      <button className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth w-full text-left text-muted-foreground hover:text-foreground hover:bg-secondary/50">
+                        <UserIcon className="h-4 w-4" />
+                        <span>Creator Profile</span>
+                      </button>
+                    </CreatorProfileDialog>
+                    <Link
+                      to="/management/messages"
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
+                        location.pathname === '/management/messages'
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                      }`}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      <span>Messages</span>
+                    </Link>
                     <Link
                       to="/management/users"
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
@@ -617,6 +635,23 @@ export const Navigation = () => {
                 </CollapsibleTrigger>
                 
                 <CollapsibleContent className="mt-1 space-y-1">
+                  <CreatorProfileDialog>
+                    <button className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth w-full text-left text-muted-foreground hover:text-foreground hover:bg-secondary/50">
+                      <UserIcon className="h-4 w-4" />
+                      <span>Creator Profile</span>
+                    </button>
+                  </CreatorProfileDialog>
+                  <Link
+                    to="/management/messages"
+                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
+                      location.pathname === '/management/messages'
+                        ? 'bg-primary/3 text-primary/90'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                    }`}
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    <span>Messages</span>
+                  </Link>
                   <Link
                     to="/management/users"
                     className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
