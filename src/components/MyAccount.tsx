@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getInitials } from '@/lib/initials';
 import { Badge } from '@/components/ui/badge';
 import { User, Settings, Upload, Edit, Mail, Camera, X, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -486,16 +487,7 @@ export const MyAccount = () => {
   };
 
   const getProfileInitials = () => {
-    const name = profile?.display_name || profile?.username || 'User';
-    const words = name.trim().split(/\s+/);
-    
-    if (words.length >= 2) {
-      // First letter of first two words
-      return (words[0][0] + words[1][0]).toUpperCase();
-    } else {
-      // First two letters of single word
-      return name.slice(0, 2).toUpperCase();
-    }
+    return getInitials(profile?.display_name, profile?.username);
   };
 
   if (!isEditing) {

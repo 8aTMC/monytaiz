@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getInitials } from '@/lib/initials';
 import { Send, MessageCircle } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/components/ui/use-toast';
@@ -274,7 +275,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
               <Avatar className="h-8 w-8">
                 <AvatarImage src={conversation.creator_profile?.avatar_url} />
                 <AvatarFallback>
-                  {(conversation.creator_profile?.display_name || 'M').charAt(0).toUpperCase()}
+                  {getInitials(conversation.creator_profile?.display_name, conversation.creator_profile?.username)}
                 </AvatarFallback>
               </Avatar>
               <div>
@@ -312,7 +313,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={conversation.creator_profile?.avatar_url} />
                         <AvatarFallback>
-                          {(conversation.creator_profile?.display_name || 'M').charAt(0).toUpperCase()}
+                          {getInitials(conversation.creator_profile?.display_name, conversation.creator_profile?.username)}
                         </AvatarFallback>
                       </Avatar>
                     )}

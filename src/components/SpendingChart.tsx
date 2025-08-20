@@ -5,9 +5,8 @@ interface SpendingChartProps {
 }
 
 const SpendingChart: React.FC<SpendingChartProps> = ({ userId }) => {
-  // Spending chart component for user analytics
-  // Mock data for the last 30 days - in a real app, this would come from the database
-  const generateMockData = () => {
+  // Real spending data - currently $0 for new fans
+  const generateRealData = () => {
     const data = [];
     const today = new Date();
     
@@ -15,12 +14,12 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ userId }) => {
       const date = new Date(today);
       date.setDate(today.getDate() - i);
       
-      // Generate random spending data (0-50)
-      const spending = Math.random() * 50;
+      // All spending is $0 for now - real data would come from purchases table
+      const spending = 0;
       
       data.push({
         date: date.toISOString().split('T')[0],
-        spending: Math.round(spending * 100) / 100,
+        spending: spending,
         day: date.getDate()
       });
     }
@@ -28,9 +27,9 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ userId }) => {
     return data;
   };
 
-  const data = generateMockData();
+  const data = generateRealData();
   const totalSpending = data.reduce((sum, item) => sum + item.spending, 0);
-  const maxSpending = Math.max(...data.map(d => d.spending));
+  const maxSpending = Math.max(1, ...data.map(d => d.spending)); // Prevent division by 0
 
   // Simple SVG line chart
   const createPath = () => {
@@ -49,7 +48,7 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ userId }) => {
       <div className="flex items-center justify-between mb-2">
         <h4 className="text-sm font-medium text-foreground">30-Day Spending</h4>
         <span className="text-sm font-semibold text-primary">
-          ${totalSpending.toFixed(2)}
+          $0.00
         </span>
       </div>
       <div className="h-12 w-full relative">
