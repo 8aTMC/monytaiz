@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
+import { Navigation, useSidebar } from '@/components/Navigation';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ const FanDashboard = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
+  const { isCollapsed, isNarrowScreen } = useSidebar();
 
   const openDirectChat = async () => {
     if (!user) return;
@@ -109,25 +111,30 @@ const FanDashboard = () => {
 
   if (loading) {
     return (
-      <div className="animate-pulse">
-        {/* Header Skeleton */}
-        <div className="mb-8">
-          <div className="h-8 w-64 bg-muted/30 rounded mb-2"></div>
-          <div className="h-4 w-96 bg-muted/20 rounded"></div>
-        </div>
-        
-        {/* Quick Actions Skeleton */}
-        <div className="mb-8 flex gap-4">
-          <div className="h-12 w-32 bg-muted/30 rounded"></div>
-          <div className="h-12 w-28 bg-muted/20 rounded"></div>
-        </div>
-        
-        {/* Stats Grid Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-24 bg-muted/20 rounded-lg"></div>
-          ))}
-        </div>
+      <div className="flex min-h-screen bg-background">
+        <Navigation />
+        <main className={`flex-1 transition-all duration-300 p-6 overflow-x-auto pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
+          <div className="max-w-7xl mx-auto min-w-[700px] animate-pulse">
+            {/* Header Skeleton */}
+            <div className="mb-8">
+              <div className="h-8 w-64 bg-muted/30 rounded mb-2"></div>
+              <div className="h-4 w-96 bg-muted/20 rounded"></div>
+            </div>
+            
+            {/* Quick Actions Skeleton */}
+            <div className="mb-8 flex gap-4">
+              <div className="h-12 w-32 bg-muted/30 rounded"></div>
+              <div className="h-12 w-28 bg-muted/20 rounded"></div>
+            </div>
+            
+            {/* Stats Grid Skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-24 bg-muted/20 rounded-lg"></div>
+              ))}
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
@@ -161,142 +168,147 @@ const FanDashboard = () => {
   ];
 
   return (
-    <>
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">
-          {t('fan.dashboard.title', 'Fan Dashboard')}
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Welcome back! Discover and connect with your favorite creators.
-        </p>
-      </div>
+    <div className="flex min-h-screen bg-background">
+      <Navigation />
+      <main className={`flex-1 transition-all duration-300 p-6 overflow-x-auto pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
+        <div className="max-w-7xl mx-auto min-w-[700px]">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold">
+              {t('fan.dashboard.title', 'Fan Dashboard')}
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Welcome back! Discover and connect with your favorite creators.
+            </p>
+          </div>
 
-      {/* Quick Actions */}
-      <div className="mb-8 flex gap-4">
-        <Button onClick={openDirectChat} className="gap-2">
-          <MessageCircle className="h-4 w-4" />
-          Chat with Creator
-        </Button>
-        <Button variant="outline" disabled>
-          Browse Content (Coming Soon)
-        </Button>
-      </div>
+          {/* Quick Actions */}
+          <div className="mb-8 flex gap-4">
+            <Button onClick={openDirectChat} className="gap-2">
+              <MessageCircle className="h-4 w-4" />
+              Chat with Creator
+            </Button>
+            <Button variant="outline" disabled>
+              Browse Content (Coming Soon)
+            </Button>
+          </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className={`text-xs ${
-                stat.changeType === 'positive' 
-                  ? 'text-primary' 
-                  : stat.changeType === 'negative' 
-                  ? 'text-destructive' 
-                  : 'text-muted-foreground'
-              }`}>
-                {stat.change} from last month
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {stats.map((stat) => (
+              <Card key={stat.title}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    {stat.title}
+                  </CardTitle>
+                  <stat.icon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stat.value}</div>
+                  <p className={`text-xs ${
+                    stat.changeType === 'positive' 
+                      ? 'text-primary' 
+                      : stat.changeType === 'negative' 
+                      ? 'text-destructive' 
+                      : 'text-muted-foreground'
+                  }`}>
+                    {stat.change} from last month
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-      {/* Content Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Heart className="h-5 w-5 text-primary" />
+          {/* Content Overview */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Recent Activity */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Heart className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">New favorites available</p>
+                      <p className="text-xs text-muted-foreground">Check out the latest content from creators you follow</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <MessageCircle className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Start chatting</p>
+                      <p className="text-xs text-muted-foreground">Connect with your favorite creators through chat</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Star className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Discover new content</p>
+                      <p className="text-xs text-muted-foreground">Explore trending content and new creators</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">New favorites available</p>
-                  <p className="text-xs text-muted-foreground">Check out the latest content from creators you follow</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <MessageCircle className="h-5 w-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Start chatting</p>
-                  <p className="text-xs text-muted-foreground">Connect with your favorite creators through chat</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Star className="h-5 w-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Discover new content</p>
-                  <p className="text-xs text-muted-foreground">Explore trending content and new creators</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
 
-        {/* Quick Stats */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Messages Sent</span>
-                <span className="font-medium">0</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Content Viewed</span>
-                <span className="font-medium">0</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Tips Given</span>
-                <span className="font-medium">$0.00</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Following</span>
-                <span className="font-medium">0 creators</span>
-              </div>
-              <Button variant="outline" className="w-full" onClick={() => navigate('/profile')}>
-                View Profile Settings
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            {/* Quick Stats */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Your Activity</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Messages Sent</span>
+                    <span className="font-medium">0</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Content Viewed</span>
+                    <span className="font-medium">0</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Tips Given</span>
+                    <span className="font-medium">$0.00</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Following</span>
+                    <span className="font-medium">0 creators</span>
+                  </div>
+                  <Button variant="outline" className="w-full" onClick={() => navigate('/profile')}>
+                    View Profile Settings
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-      {/* Spending Chart */}
-      <div className="mt-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Spending Overview</CardTitle>
-            <CardDescription>
-              Track your spending patterns over the last 30 days
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <SpendingChart userId={user.id} />
-          </CardContent>
-        </Card>
-      </div>
+          {/* Spending Chart */}
+          <div className="mt-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>Your Spending Overview</CardTitle>
+                <CardDescription>
+                  Track your spending patterns over the last 30 days
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <SpendingChart userId={user.id} />
+              </CardContent>
+            </Card>
+          </div>
 
-      <ChatDialog open={chatOpen} onOpenChange={setChatOpen} />
-    </>
+          <ChatDialog open={chatOpen} onOpenChange={setChatOpen} />
+        </div>
+      </main>
+    </div>
   );
 };
 
