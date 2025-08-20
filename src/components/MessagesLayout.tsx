@@ -718,6 +718,15 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
               <div className="p-4">
                 {/* Action Buttons */}
                 <div className="flex items-center gap-2 mb-3 overflow-x-auto">
+                  {/* AI Assistant Button - First/Leftmost */}
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 px-3 flex-shrink-0"
+                    title="AI Assistant"
+                  >
+                    <Bot className="h-4 w-4 text-purple-500" />
+                  </button>
+                  
                   <FileUploadButton 
                     onFilesSelected={(files, type) => {
                       addFiles(files, type);
@@ -727,7 +736,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                     }}
                     disabled={isUploading}
                   />
-                  {actionButtons.map((button, index) => (
+                  {actionButtons.slice(1).map((button, index) => (
                     <button
                       key={index}
                       type="button"
