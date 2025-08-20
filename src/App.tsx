@@ -25,6 +25,7 @@ import FanListDetail from "./pages/FanListDetail";
 import NotFound from "./pages/NotFound";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import { ThemeToggle } from "./components/ThemeToggle";
+import { FixedHeader } from "./components/FixedHeader";
 
 
 const queryClient = new QueryClient();
@@ -38,7 +39,9 @@ const App = () => (
         <PWAInstallPrompt />
         <BrowserRouter>
           <SidebarProvider>
-            <Routes>
+            <FixedHeader />
+            <div className="pt-16">
+              <Routes>
               {/* Public route - only accessible when not authenticated */}
               <Route path="/" element={<Auth />} />
               
@@ -121,7 +124,8 @@ const App = () => (
               
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />
-            </Routes>
+              </Routes>
+            </div>
           </SidebarProvider>
           
           <ThemeToggle />
