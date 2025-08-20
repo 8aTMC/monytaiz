@@ -32,11 +32,14 @@ export const PWAInstallPrompt = () => {
       if (canInstall && !isInstalled && !isDismissed) {
         setShowPrompt(true);
         console.log('✨ PWA: Showing install prompt');
+      } else if (showPrompt && (isInstalled || isDismissed || !canInstall)) {
+        setShowPrompt(false);
+        console.log('🚫 PWA: Hiding prompt due to state change');
       }
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [canInstall, isInstalled, isDismissed, deferredPrompt, platform]);
+  }, [canInstall, isInstalled, isDismissed, deferredPrompt, platform, showPrompt]);
 
   const handleInstall = async () => {
     console.log('📱 PWA: Install button clicked');

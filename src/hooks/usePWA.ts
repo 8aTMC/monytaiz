@@ -117,14 +117,34 @@ export const usePWA = () => {
     // Handle beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
       const event = e as BeforeInstallPromptEvent;
-      e.preventDefault();
+      const currentlyDismissed = isDismissed();
+      const currentlyInstalled = checkInstallation();
       
-      setPwaState(prev => ({
-        ...prev,
-        isInstallable: true,
-        deferredPrompt: event,
-        canInstall: !prev.isInstalled && !isDismissed(),
-      }));
+      // Only prevent default if we plan to show our custom prompt
+      if (!currentlyInstalled && !currentlyDismissed) {
+        e.preventDefault();
+        console.log('🎯 PWA: Prevented default, will show custom prompt');
+        
+        setPwaState(prev => ({
+          ...prev,
+          isInstallable: true,
+          deferredPrompt: event,
+          canInstall: true,
+        }));
+      } else {
+        // Let the browser handle it if we won't show custom prompt
+        console.log('🌐 PWA: Allowing browser default prompt', { 
+          currentlyInstalled, 
+          currentlyDismissed 
+        });
+        
+        setPwaState(prev => ({
+          ...prev,
+          isInstallable: true,
+          deferredPrompt: event,
+          canInstall: false,
+        }));
+      }
     };
 
     // Handle app installed event
@@ -153,6 +173,7 @@ export const usePWA = () => {
     // Force installability for desktop browsers after delay
     const timer = setTimeout(() => {
       if (platform === 'desktop' && !isInstalled && !dismissed) {
+        console.log('🖥️ PWA: Enabling desktop install prompt');
         setPwaState(prev => ({
           ...prev,
           isInstallable: true,
