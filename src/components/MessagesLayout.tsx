@@ -113,7 +113,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   } = useMessageFileUpload();
 
   // Initialize typing indicator hook
-  const { typingUsers, handleInputChange, stopTyping } = useTypingIndicator(
+  const { typingUsers, handleKeyPress, stopTyping } = useTypingIndicator(
     activeConversation?.id || null, 
     user.id
   );
@@ -368,7 +368,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleEnterKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
@@ -785,11 +785,9 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={(e) => {
-                      // Only trigger typing indicator for actual character input
-                      if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete') {
-                        handleInputChange();
-                      }
-                      handleKeyPress(e);
+                      // Handle typing indicator for actual character input only
+                      handleKeyPress(e.key);
+                      handleEnterKey(e);
                     }}
                     placeholder="Type a message..."
                     disabled={sending || (hasFiles && !allFilesUploaded)}

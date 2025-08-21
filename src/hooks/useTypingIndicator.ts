@@ -11,12 +11,20 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const lastUpdateRef = useRef<number>(0);
 
-  // Update typing status
+  // Update typing status with throttling
   const updateTypingStatus = useCallback(async (typing: boolean) => {
     if (!conversationId) return;
 
+    const now = Date.now();
+    // Throttle updates to max once every 500ms
+    if (now - lastUpdateRef.current < 500 && typing) return;
+    
+    lastUpdateRef.current = now;
+
     try {
+      console.log(`Updating typing status: ${typing} for conversation ${conversationId}`);
       await supabase.rpc('update_typing_status', {
         p_conversation_id: conversationId,
         p_is_typing: typing
@@ -26,18 +34,20 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
     }
   }, [conversationId]);
 
-  // Start typing with debounce protection
+  // Start typing with proper checks
   const startTyping = useCallback(() => {
     if (isTyping || !conversationId) return;
     
+    console.log('Starting typing indicator');
     setIsTyping(true);
     updateTypingStatus(true);
   }, [isTyping, conversationId, updateTypingStatus]);
 
   // Stop typing with cleanup
   const stopTyping = useCallback(() => {
-    if (!isTyping || !conversationId) return;
+    if (!conversationId) return;
     
+    console.log('Stopping typing indicator');
     setIsTyping(false);
     updateTypingStatus(false);
     
@@ -45,24 +55,29 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = undefined;
     }
-  }, [isTyping, conversationId, updateTypingStatus]);
+  }, [conversationId, updateTypingStatus]);
 
-  // Handle input change (for debounced typing detection)
-  const handleInputChange = useCallback(() => {
-    // Don't trigger if already typing to prevent spam
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
+  // Handle key press events only
+  const handleKeyPress = useCallback((key: string) => {
+    // Only handle actual character input keys
+    if (key.length === 1 || key === 'Backspace' || key === 'Delete') {
+      console.log('Key press detected:', key);
+      
+      // Clear existing timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
+      // Start typing if not already typing
+      if (!isTyping) {
+        startTyping();
+      }
+      
+      // Set timeout to stop typing after inactivity
+      typingTimeoutRef.current = setTimeout(() => {
+        stopTyping();
+      }, 2000);
     }
-    
-    // Only start typing if not already typing
-    if (!isTyping) {
-      startTyping();
-    }
-    
-    // Reset the timeout with longer delay to reduce frequency
-    typingTimeoutRef.current = setTimeout(() => {
-      stopTyping();
-    }, 2000);
   }, [isTyping, startTyping, stopTyping]);
 
   // Set up realtime subscription for typing indicators
@@ -71,6 +86,8 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
       setTypingUsers([]);
       return;
     }
+
+    console.log('Setting up typing indicator subscription for:', conversationId);
 
     const channel = supabase
       .channel(`typing-${conversationId}`)
@@ -83,6 +100,7 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
+          console.log('Typing indicator INSERT:', payload);
           const newIndicator = payload.new as TypingIndicator;
           if (newIndicator.user_id !== userId && newIndicator.is_typing) {
             setTypingUsers((current) => {
@@ -103,6 +121,7 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
+          console.log('Typing indicator UPDATE:', payload);
           const updatedIndicator = payload.new as TypingIndicator;
           if (updatedIndicator.user_id !== userId) {
             setTypingUsers((current) => {
@@ -126,6 +145,7 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
+          console.log('Typing indicator DELETE:', payload);
           const deletedIndicator = payload.old as TypingIndicator;
           if (deletedIndicator.user_id !== userId) {
             setTypingUsers((current) => 
@@ -137,27 +157,38 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
       .subscribe();
 
     return () => {
+      console.log('Cleaning up typing indicator subscription');
       supabase.removeChannel(channel);
     };
   }, [conversationId, userId]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount or conversation change
   useEffect(() => {
     return () => {
+      console.log('Cleaning up typing indicator on unmount');
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      if (isTyping) {
+      if (isTyping && conversationId) {
         updateTypingStatus(false);
       }
     };
-  }, [isTyping, updateTypingStatus]);
+  }, [conversationId]);
+
+  // Force cleanup when conversation changes
+  useEffect(() => {
+    if (isTyping) {
+      console.log('Conversation changed, stopping typing');
+      stopTyping();
+    }
+    setTypingUsers([]);
+  }, [conversationId]);
 
   return {
     typingUsers,
     isTyping,
     startTyping,
     stopTyping,
-    handleInputChange
+    handleKeyPress
   };
 };

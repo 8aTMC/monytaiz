@@ -55,7 +55,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
   const MESSAGES_PER_PAGE = 100;
 
   // Initialize typing indicator hook
-  const { typingUsers, handleInputChange, stopTyping } = useTypingIndicator(
+  const { typingUsers, handleKeyPress, stopTyping } = useTypingIndicator(
     conversation?.id || null, 
     user.id
   );
@@ -367,7 +367,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleEnterKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
@@ -573,11 +573,9 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={(e) => {
-              // Only trigger typing indicator for actual character input
-              if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete') {
-                handleInputChange();
-              }
-              handleKeyPress(e);
+              // Handle typing indicator for actual character input only
+              handleKeyPress(e.key);
+              handleEnterKey(e);
             }}
             placeholder="Type your message..."
             disabled={sending}
