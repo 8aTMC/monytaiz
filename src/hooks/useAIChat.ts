@@ -155,11 +155,8 @@ export function useAIChat() {
     } catch (error) {
       console.error('AI response with typing error:', error);
       
-      toast({
-        title: "AI Unavailable",
-        description: "AI assistant is temporarily unavailable",
-        variant: "destructive",
-      });
+      // Silently fail - don't show errors to users for AI issues
+      // The conversation continues normally without AI responses
     } finally {
       setIsProcessing(false);
       setIsTyping(false);
