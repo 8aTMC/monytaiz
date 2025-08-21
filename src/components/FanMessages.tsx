@@ -454,7 +454,6 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           ref={messagesContainerRef}
           onScroll={handleScroll}
           className="h-full overflow-y-auto px-6 py-4"
-          style={{ height: 'calc(100vh - 73px - 81px)' }}
         >
           {loadingMoreMessages && (
             <div className="text-center py-4">
