@@ -258,11 +258,22 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('💥 Error in xai-chat-assistant function:', error);
+    
+    // Provide a fallback response instead of throwing an error
+    const fallbackResponse = [
+      "hey there! 😊",
+      "something went wrong on my end...", 
+      "let me try again in a sec!"
+    ];
+    
+    console.log('🔄 Using fallback response due to error');
+    
     return new Response(JSON.stringify({ 
-      error: error.message || 'Internal server error',
-      provider: 'xai'
+      response: fallbackResponse,
+      model: 'fallback',
+      provider: 'xai',
+      error: 'Using fallback response due to API error'
     }), {
-      status: 500,
       headers: { 
         ...corsHeaders, 
         'Content-Type': 'application/json' 

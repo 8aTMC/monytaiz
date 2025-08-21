@@ -154,10 +154,15 @@ export function useAIChat() {
       }
     } catch (error) {
       console.error('AI response with typing error:', error);
+      
+      // If there's an error, send a fallback message
+      console.log('🔄 Using fallback response due to error');
+      await sendAIMessage(conversationId, "Hey! Something went wrong on my end, let me try that again...");
+      
       toast({
-        title: "AI Error",
-        description: "Failed to generate AI response",
-        variant: "destructive",
+        title: "Connection Issue",
+        description: "Had a small hiccup, but I'm still here! 😊",
+        variant: "default",
       });
     } finally {
       setIsProcessing(false);
