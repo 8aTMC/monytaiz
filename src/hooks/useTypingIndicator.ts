@@ -99,7 +99,11 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
     // Clean up stale typing indicators on load
     const cleanupStaleIndicators = async () => {
       try {
-        await supabase.rpc('cleanup_stale_typing_indicators');
+        // Delete typing indicators older than 30 seconds or not typing
+        await supabase
+          .from('typing_indicators')
+          .delete()
+          .or(`updated_at.lt.${new Date(Date.now() - 30000).toISOString()},is_typing.eq.false`);
       } catch (error) {
         console.error('Error cleaning up stale typing indicators:', error);
       }
@@ -131,10 +135,11 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
             // Auto-cleanup this typing indicator after 15 seconds
             setTimeout(async () => {
               try {
-                await supabase.rpc('cleanup_user_typing_status', {
-                  p_user_id: newIndicator.user_id,
-                  p_conversation_id: conversationId
-                });
+                await supabase
+                  .from('typing_indicators')
+                  .delete()
+                  .eq('user_id', newIndicator.user_id)
+                  .eq('conversation_id', conversationId);
               } catch (error) {
                 console.error('Error auto-cleaning typing indicator:', error);
               }
@@ -163,10 +168,11 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
                 // Auto-cleanup this typing indicator after 15 seconds
                 setTimeout(async () => {
                   try {
-                    await supabase.rpc('cleanup_user_typing_status', {
-                      p_user_id: updatedIndicator.user_id,
-                      p_conversation_id: conversationId
-                    });
+                    await supabase
+                      .from('typing_indicators')
+                      .delete()
+                      .eq('user_id', updatedIndicator.user_id)
+                      .eq('conversation_id', conversationId);
                   } catch (error) {
                     console.error('Error auto-cleaning typing indicator:', error);
                   }
@@ -203,7 +209,11 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
     // Set up interval to periodically clean up stale indicators
     const cleanupInterval = setInterval(async () => {
       try {
-        await supabase.rpc('cleanup_stale_typing_indicators');
+        // Delete typing indicators older than 30 seconds or not typing
+        await supabase
+          .from('typing_indicators')
+          .delete()
+          .or(`updated_at.lt.${new Date(Date.now() - 30000).toISOString()},is_typing.eq.false`);
       } catch (error) {
         console.error('Error in periodic cleanup:', error);
       }

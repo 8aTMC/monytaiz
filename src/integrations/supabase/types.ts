@@ -1170,6 +1170,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_stale_typing_indicators: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_user_typing_status: {
+        Args: { p_conversation_id: string; p_user_id: string }
+        Returns: undefined
+      }
       create_conversations_for_existing_fans: {
         Args: Record<PropertyKey, never>
         Returns: Json
