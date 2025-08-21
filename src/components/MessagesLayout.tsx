@@ -137,7 +137,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
         .from('ai_conversation_settings')
         .select('*')
         .eq('conversation_id', conversationId)
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.log('⚠️ No AI settings found, will use defaults:', error.message);
@@ -273,7 +273,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                       .from('ai_conversation_settings')
                       .select('*')
                       .eq('conversation_id', activeConversation.id)
-                      .single();
+                      .maybeSingle();
                     currentAISettings = data;
                     setAiSettings(data); // Update state for future use
                   } catch (error) {
@@ -423,7 +423,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             .from('ai_conversation_settings')
             .select('is_ai_enabled')
             .eq('conversation_id', conv.id)
-            .single();
+            .maybeSingle();
 
           return {
             ...conv,

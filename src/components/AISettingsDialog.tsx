@@ -77,7 +77,7 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
         .from('ai_conversation_settings')
         .select('*')
         .eq('conversation_id', conversationId)
-        .single();
+        .maybeSingle();
       
       if (data) {
         setSettings({
@@ -103,7 +103,7 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
         .from('ai_conversation_settings')
         .select('id')
         .eq('conversation_id', conversationId)
-        .single();
+        .maybeSingle();
 
       let result;
       if (existing) {

@@ -90,7 +90,7 @@ IMPORTANT: Always keep your responses SHORT and send them as MULTIPLE separate m
         .from('ai_conversation_settings')
         .select('*')
         .eq('conversation_id', conversationId)
-        .single();
+        .maybeSingle();
 
       // Create messages array for the AI
       const messages = [
