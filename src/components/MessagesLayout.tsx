@@ -124,15 +124,22 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   // Load AI settings when conversation changes
   const loadAISettings = async (conversationId: string) => {
     try {
-      const { data } = await supabase
+      console.log('🔄 Loading AI settings for conversation:', conversationId);
+      const { data, error } = await supabase
         .from('ai_conversation_settings')
         .select('*')
         .eq('conversation_id', conversationId)
         .single();
       
-      setAiSettings(data);
+      if (error) {
+        console.log('⚠️ No AI settings found, will use defaults:', error.message);
+        setAiSettings(null);
+      } else {
+        console.log('✅ AI settings loaded:', data);
+        setAiSettings(data);
+      }
     } catch (error) {
-      console.error('Error loading AI settings:', error);
+      console.error('❌ Error loading AI settings:', error);
       setAiSettings(null);
     }
   };
@@ -220,16 +227,35 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             
             // Only update conversations if this is from another user to avoid loops
             if (newMessage.sender_id !== user.id) {
+              console.log('📨 Message from another user:', {
+                currentUserId: user.id,
+                messageFromId: newMessage.sender_id,
+                isCreator,
+                userRole: 'checking...'
+              });
+              
               loadConversations();
               // Auto-mark as read after a short delay
               setTimeout(() => {
                 markConversationAsRead(activeConversation.id);
               }, 1000);
               
-              // Check if AI should respond to this fan message (only for creators)
+             // Check if AI should respond to this fan message (only for creators)
+              console.log('🤖 AI Response Check:', {
+                isCreator,
+                aiSettingsExists: !!aiSettings,
+                aiEnabled: aiSettings?.is_ai_enabled,
+                autoResponse: aiSettings?.auto_response_enabled,
+                isFanMessage: activeConversation.fan_id === newMessage.sender_id,
+                fanId: activeConversation.fan_id,
+                senderId: newMessage.sender_id,
+                messageContent: newMessage.content
+              });
+              
               if (isCreator && aiSettings?.is_ai_enabled && aiSettings?.auto_response_enabled) {
                 // Only respond to fan messages (when creator receives a message from fan)
                 if (activeConversation.fan_id === newMessage.sender_id) {
+                  console.log('🚀 Triggering AI response...');
                   setTimeout(async () => {
                     try {
                       const model = aiSettings.model || 'grok-4';
@@ -245,7 +271,11 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                       console.error('AI response error:', aiError);
                     }
                   }, 1000 + Math.random() * 2000); // Random delay between 1-3 seconds
+                } else {
+                  console.log('❌ Message not from fan, skipping AI response');
                 }
+              } else {
+                console.log('❌ AI response conditions not met');
               }
             }
           }
