@@ -717,9 +717,9 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   }
 
   return (
-    <div className="h-full flex bg-background">
+    <div className="h-full flex bg-background -m-6 -mt-4">
       {/* Conversations Sidebar */}
-      <div className="w-80 border-r border-border bg-background flex flex-col flex-shrink-0 h-screen">
+      <div className="w-80 border-r border-border bg-background flex flex-col flex-shrink-0 h-full">
         {/* Header */}
         <div className="flex-none p-4 border-b border-border">
           <div className="flex items-center justify-between mb-4">
@@ -1083,7 +1083,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
       {/* Fan Insights Sidebar */}
       {activeConversation && isCreator && (
-        <div className="w-80 border-l border-border bg-background flex-shrink-0 h-screen">
+        <div className="w-80 border-l border-border bg-background flex-shrink-0 h-full">
           <div className="p-4 h-full flex flex-col">
             <h3 className="font-semibold mb-4">Fan Insights</h3>
             
