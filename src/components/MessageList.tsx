@@ -412,7 +412,7 @@ export const MessageList = ({
         {loadingOlder && <LoadingShimmer />}
         
         {/* Messages */}
-        <div className="space-y-4">
+        <div className="space-y-1">
           {messagesList.map((message) => (
             <MessageBubble
               key={message.id}
