@@ -129,29 +129,35 @@ serve(async (req) => {
 
     console.log('🧠 System prompt length:', systemPrompt.length);
 
-    // Call xAI API
+    // Call xAI API - ensure we're using the correct endpoint and format
     console.log('🔥 Calling xAI API with model:', model);
+    console.log('🔑 Using API key prefix:', xaiApiKey.substring(0, 7) + '...');
+    
+    const requestBody = {
+      model: model,
+      messages: [
+        {
+          role: 'system',
+          content: systemPrompt
+        },
+        {
+          role: 'user',
+          content: message
+        }
+      ],
+      stream: false,
+      temperature: 0.7
+    };
+    
+    console.log('📦 Request body:', JSON.stringify(requestBody, null, 2));
+    
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${xaiApiKey}`,
       },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: message
-          }
-        ],
-        stream: false,
-        temperature: 0.7
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {

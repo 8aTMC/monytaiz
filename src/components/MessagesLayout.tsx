@@ -217,6 +217,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
               }
               return [...current, newMessage];
             });
+            
             // Only update conversations if this is from another user to avoid loops
             if (newMessage.sender_id !== user.id) {
               loadConversations();
@@ -224,6 +225,28 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
               setTimeout(() => {
                 markConversationAsRead(activeConversation.id);
               }, 1000);
+              
+              // Check if AI should respond to this fan message (only for creators)
+              if (isCreator && aiSettings?.is_ai_enabled && aiSettings?.auto_response_enabled) {
+                // Only respond to fan messages (when creator receives a message from fan)
+                if (activeConversation.fan_id === newMessage.sender_id) {
+                  setTimeout(async () => {
+                    try {
+                      const model = aiSettings.model || 'grok-4';
+                      
+                      await generateAIResponseWithTyping(
+                        activeConversation.fan_id,
+                        activeConversation.id,
+                        newMessage.content,
+                        aiSettings.current_mode || 'friendly_chat',
+                        model
+                      );
+                    } catch (aiError) {
+                      console.error('AI response error:', aiError);
+                    }
+                  }, 1000 + Math.random() * 2000); // Random delay between 1-3 seconds
+                }
+              }
             }
           }
         )
@@ -380,26 +403,8 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
       
       setNewMessage('');
       
-      // Check if AI is enabled and should respond automatically
-      if (aiSettings?.is_ai_enabled && aiSettings?.auto_response_enabled) {
-        // Delay AI response slightly to feel more natural
-        setTimeout(async () => {
-          try {
-            const fanId = isCreator ? activeConversation.fan_id : activeConversation.creator_id;
-            const model = aiSettings.model || 'grok-2';
-            
-            await generateAIResponseWithTyping(
-              fanId,
-              activeConversation.id,
-              messageContent,
-              aiSettings.current_mode || 'friendly_chat',
-              model
-            );
-          } catch (aiError) {
-            console.error('AI response error:', aiError);
-          }
-        }, 1000 + Math.random() * 2000); // Random delay between 1-3 seconds
-      }
+      // AI responses are now handled in the real-time message subscription
+      // This prevents the AI from responding to its own messages
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
