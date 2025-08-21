@@ -61,6 +61,48 @@ export type Database = {
           },
         ]
       }
+      ai_jobs: {
+        Row: {
+          conversation_id: string
+          created_at: string | null
+          creator_id: string
+          fan_id: string
+          id: string
+          last_error: string | null
+          message_id: string
+          result_text: string | null
+          status: string
+          tries: number
+          updated_at: string | null
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string | null
+          creator_id: string
+          fan_id: string
+          id?: string
+          last_error?: string | null
+          message_id: string
+          result_text?: string | null
+          status?: string
+          tries?: number
+          updated_at?: string | null
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string | null
+          creator_id?: string
+          fan_id?: string
+          id?: string
+          last_error?: string | null
+          message_id?: string
+          result_text?: string | null
+          status?: string
+          tries?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -1167,7 +1209,48 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      ai_jobs_ready: {
+        Row: {
+          conversation_id: string | null
+          created_at: string | null
+          creator_id: string | null
+          fan_id: string | null
+          id: string | null
+          last_error: string | null
+          message_id: string | null
+          result_text: string | null
+          status: string | null
+          tries: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string | null
+          creator_id?: string | null
+          fan_id?: string | null
+          id?: string | null
+          last_error?: string | null
+          message_id?: string | null
+          result_text?: string | null
+          status?: string | null
+          tries?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string | null
+          creator_id?: string | null
+          fan_id?: string | null
+          id?: string | null
+          last_error?: string | null
+          message_id?: string | null
+          result_text?: string | null
+          status?: string | null
+          tries?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       cleanup_stale_typing_indicators: {
