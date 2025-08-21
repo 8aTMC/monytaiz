@@ -234,7 +234,19 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                 userRole: 'checking...'
               });
               
-              loadConversations();
+              // Update just this conversation's latest message info instead of reloading all
+              setConversations(prev => prev.map(conv => 
+                conv.id === activeConversation.id 
+                  ? {
+                      ...conv,
+                      latest_message_content: newMessage.content,
+                      latest_message_sender_id: newMessage.sender_id,
+                      last_message_at: newMessage.created_at,
+                      unread_count: conv.unread_count + 1
+                    }
+                  : conv
+              ));
+              
               // Auto-mark as read after a short delay
               setTimeout(() => {
                 markConversationAsRead(activeConversation.id);
