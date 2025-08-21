@@ -243,10 +243,6 @@ export async function handleIncomingMessage({
     });
 
     if (!ok) {
-      // Only log in development
-      if (process.env.NODE_ENV !== 'production') {
-        console.debug('AI blocked:', reason);
-      }
       return { skipped: true, reason: reason || 'unknown' };
     }
 
