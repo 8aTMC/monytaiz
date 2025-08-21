@@ -21,6 +21,8 @@ serve(async (req) => {
       });
     }
 
+    console.log('🚀 xAI Chat Assistant function called');
+    
     const apiKey = Deno.env.get('XAI_API_KEY');
     if (!apiKey) {
       console.error('❌ Missing XAI_API_KEY in environment');
@@ -30,8 +32,6 @@ serve(async (req) => {
       });
     }
 
-    console.log('🚀 xAI Chat Assistant function called');
-    
     const body = await req.json();
     const { 
       fanId,
@@ -112,10 +112,7 @@ serve(async (req) => {
     if (!xaiResponse.ok) {
       const errorText = await xaiResponse.text();
       console.error('❌ xAI API error:', xaiResponse.status, errorText);
-      return new Response(JSON.stringify({ 
-        error: `xAI API error: ${xaiResponse.status}`,
-        details: errorText 
-      }), {
+      return new Response(errorText, {
         status: xaiResponse.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -144,10 +141,10 @@ serve(async (req) => {
     // Split the response into multiple messages
     let messages;
     if (content.includes('---')) {
-      messages = content.split('---').map(msg => msg.trim()).filter(msg => msg.length > 0);
+      messages = content.split('---').map((msg: string) => msg.trim()).filter((msg: string) => msg.length > 0);
     } else {
       // Fallback: split by sentences and group into smaller messages
-      const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0);
+      const sentences = content.split(/[.!?]+/).filter((s: string) => s.trim().length > 0);
       messages = [];
       let currentMsg = '';
       
