@@ -1,10 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Folder, Check } from 'lucide-react';
+import { Plus, Folder, Check, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from './AuthProvider';
+
+interface Folder {
+  id: string;
+  name: string;
+  isDefault?: boolean;
+}
 
 interface FolderSelectDialogProps {
   open: boolean;
@@ -21,27 +30,99 @@ export const FolderSelectDialog = ({
 }: FolderSelectDialogProps) => {
   const [newFolderName, setNewFolderName] = useState('');
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
-  
-  // Mock existing folders for demonstration
-  const [folders, setFolders] = useState([
-    { id: 'all-files', name: 'All Files', isDefault: true },
-    { id: 'photos', name: 'Photos', isDefault: false },
-    { id: 'videos', name: 'Videos', isDefault: false },
-    { id: 'workout', name: 'Workout Content', isDefault: false },
-    { id: 'lifestyle', name: 'Lifestyle', isDefault: false },
-  ]);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
 
-  const createNewFolder = () => {
-    if (newFolderName.trim()) {
-      const newFolder = {
-        id: Date.now().toString(),
-        name: newFolderName.trim(),
+  // Fetch folders from database
+  const fetchFolders = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('file_folders')
+        .select('*')
+        .order('name');
+
+      if (error) {
+        throw error;
+      }
+
+      // Always include "All Files" as the first option
+      const allFolders: Folder[] = [
+        { id: 'all-files', name: 'All Files', isDefault: true },
+        ...data.map(folder => ({
+          id: folder.id,
+          name: folder.name,
+          isDefault: false
+        }))
+      ];
+
+      setFolders(allFolders);
+    } catch (error: any) {
+      console.error('Error fetching folders:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load folders. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch folders when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchFolders();
+    }
+  }, [open]);
+
+  const createNewFolder = async () => {
+    if (!newFolderName.trim() || !user?.id) return;
+
+    setCreating(true);
+    try {
+      const { data, error } = await supabase
+        .from('file_folders')
+        .insert({
+          name: newFolderName.trim(),
+          description: null,
+          creator_id: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      // Add the new folder to the list
+      const newFolder: Folder = {
+        id: data.id,
+        name: data.name,
         isDefault: false,
       };
-      setFolders([...folders, newFolder]);
+
+      setFolders(prev => [...prev, newFolder]);
       onFolderChange(newFolder.id);
       setNewFolderName('');
       setIsCreatingFolder(false);
+
+      toast({
+        title: "Success",
+        description: "Folder created successfully!",
+      });
+    } catch (error: any) {
+      console.error('Error creating folder:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to create folder. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -63,6 +144,7 @@ export const FolderSelectDialog = ({
               variant="outline"
               onClick={() => setIsCreatingFolder(true)}
               className="w-full justify-start"
+              disabled={loading}
             >
               <Plus className="w-4 h-4 mr-2" />
               Create New Folder
@@ -83,13 +165,18 @@ export const FolderSelectDialog = ({
                     }
                   }}
                   autoFocus
+                  disabled={creating}
                 />
                 <Button
                   onClick={createNewFolder}
-                  disabled={!newFolderName.trim()}
+                  disabled={!newFolderName.trim() || creating}
                   size="sm"
                 >
-                  <Plus className="w-4 h-4" />
+                  {creating ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4" />
+                  )}
                 </Button>
               </div>
               <Button
@@ -100,6 +187,7 @@ export const FolderSelectDialog = ({
                   setNewFolderName('');
                 }}
                 className="w-full"
+                disabled={creating}
               >
                 Cancel
               </Button>
@@ -108,26 +196,40 @@ export const FolderSelectDialog = ({
 
           {/* Existing Folders */}
           <div>
-            <Label className="text-sm font-medium">Existing Folders</Label>
+            <Label className="text-sm font-medium">
+              {folders.length > 1 ? 'Existing Folders' : 'Folders'}
+            </Label>
             <ScrollArea className="h-64 mt-2">
-              <div className="space-y-1">
-                {folders.map((folder) => (
-                  <Button
-                    key={folder.id}
-                    variant={selectedFolder === folder.id ? "default" : "ghost"}
-                    onClick={() => selectFolder(folder.id)}
-                    className="w-full justify-between"
-                  >
-                    <div className="flex items-center">
-                      <Folder className="w-4 h-4 mr-2" />
-                      {folder.name}
-                    </div>
-                    {selectedFolder === folder.id && (
-                      <Check className="w-4 h-4" />
-                    )}
-                  </Button>
-                ))}
-              </div>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                  <span className="ml-2 text-sm text-muted-foreground">Loading folders...</span>
+                </div>
+              ) : folders.length === 1 ? (
+                <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                  No custom folders created yet. Create your first folder above.
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {folders.map((folder) => (
+                    <Button
+                      key={folder.id}
+                      variant={selectedFolder === folder.id ? "default" : "ghost"}
+                      onClick={() => selectFolder(folder.id)}
+                      className="w-full justify-between"
+                      disabled={loading}
+                    >
+                      <div className="flex items-center">
+                        <Folder className="w-4 h-4 mr-2" />
+                        {folder.name}
+                      </div>
+                      {selectedFolder === folder.id && (
+                        <Check className="w-4 h-4" />
+                      )}
+                    </Button>
+                  ))}
+                </div>
+              )}
             </ScrollArea>
           </div>
         </div>
