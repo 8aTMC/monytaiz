@@ -43,7 +43,7 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
     updateTypingStatus(true);
   }, [isTyping, conversationId, updateTypingStatus]);
 
-  // Stop typing with cleanup
+  // Stop typing with cleanup and force clear
   const stopTyping = useCallback(() => {
     if (!conversationId) return;
     
@@ -51,6 +51,7 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
     setIsTyping(false);
     updateTypingStatus(false);
     
+    // Clear timeout immediately
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = undefined;

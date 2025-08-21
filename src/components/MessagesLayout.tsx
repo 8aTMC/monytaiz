@@ -363,12 +363,13 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
       setSending(true);
       stopTyping(); // Stop typing indicator when sending
       
+      const messageContent = newMessage.trim();
       const { data: messageData, error } = await supabase
         .from('messages')
         .insert({
           conversation_id: activeConversation.id,
           sender_id: user.id,
-          content: newMessage.trim(),
+          content: messageContent,
           status: 'active',
           delivered_at: new Date().toISOString() // Mark as delivered immediately
         })
@@ -378,6 +379,29 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
       if (error) throw error;
       
       setNewMessage('');
+      
+      // Check if AI is enabled and should respond automatically
+      if (aiSettings?.is_ai_enabled && aiSettings?.auto_response_enabled) {
+        // Delay AI response slightly to feel more natural
+        setTimeout(async () => {
+          try {
+            const fanId = isCreator ? activeConversation.fan_id : activeConversation.creator_id;
+            const provider = aiSettings.provider || 'openai';
+            const model = aiSettings.model || (provider === 'xai' ? 'grok-2' : 'gpt-4o-mini');
+            
+            await generateAIResponseWithTyping(
+              fanId,
+              activeConversation.id,
+              messageContent,
+              aiSettings.current_mode || 'friendly_chat',
+              provider,
+              model
+            );
+          } catch (aiError) {
+            console.error('AI response error:', aiError);
+          }
+        }, 1000 + Math.random() * 2000); // Random delay between 1-3 seconds
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
