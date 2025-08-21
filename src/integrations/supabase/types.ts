@@ -1265,6 +1265,22 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      dequeue_ai_job: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          conversation_id: string
+          created_at: string
+          creator_id: string
+          fan_id: string
+          id: string
+          last_error: string
+          message_id: string
+          result_text: string
+          status: string
+          tries: number
+          updated_at: string
+        }[]
+      }
       generate_temp_username: {
         Args: Record<PropertyKey, never>
         Returns: string
