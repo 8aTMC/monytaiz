@@ -11,20 +11,12 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
-  const lastUpdateRef = useRef<number>(0);
 
-  // Update typing status with throttling
+  // Simple typing status update
   const updateTypingStatus = useCallback(async (typing: boolean) => {
     if (!conversationId) return;
 
-    const now = Date.now();
-    // Throttle updates to max once every 500ms
-    if (now - lastUpdateRef.current < 500 && typing) return;
-    
-    lastUpdateRef.current = now;
-
     try {
-      console.log(`Updating typing status: ${typing} for conversation ${conversationId}`);
       await supabase.rpc('update_typing_status', {
         p_conversation_id: conversationId,
         p_is_typing: typing
@@ -34,58 +26,55 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
     }
   }, [conversationId]);
 
-  // Start typing with proper checks
+  // Start typing
   const startTyping = useCallback(() => {
     if (isTyping || !conversationId) return;
     
-    console.log('Starting typing indicator');
     setIsTyping(true);
     updateTypingStatus(true);
   }, [isTyping, conversationId, updateTypingStatus]);
 
-  // Stop typing with cleanup and force clear
+  // Stop typing with immediate cleanup
   const stopTyping = useCallback(() => {
     if (!conversationId) return;
     
-    console.log('Stopping typing indicator');
     setIsTyping(false);
     updateTypingStatus(false);
     
-    // Clear timeout immediately
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = undefined;
     }
   }, [conversationId, updateTypingStatus]);
 
-  // Handle key press events only
+  // Handle key press events with debounce
   const handleKeyPress = useCallback((key: string) => {
-    // Stop typing immediately if Enter is pressed
+    if (!conversationId) return;
+
+    // Stop typing immediately if Enter is pressed (message sent)
     if (key === 'Enter') {
       stopTyping();
       return;
     }
     
-    // Only handle actual character input keys (exclude Enter)
+    // Only handle actual input keys
     if (key.length === 1 || key === 'Backspace' || key === 'Delete') {
-      console.log('Key press detected:', key);
-      
       // Clear existing timeout
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
       
-      // Start typing if not already typing
+      // Start typing if not already
       if (!isTyping) {
         startTyping();
       }
       
-      // Set timeout to stop typing after inactivity
+      // Set new timeout to stop after 2 seconds of inactivity
       typingTimeoutRef.current = setTimeout(() => {
         stopTyping();
       }, 2000);
     }
-  }, [isTyping, startTyping, stopTyping]);
+  }, [conversationId, isTyping, startTyping, stopTyping]);
 
   // Set up realtime subscription for typing indicators
   useEffect(() => {
@@ -94,22 +83,20 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
       return;
     }
 
-    console.log('Setting up typing indicator subscription for:', conversationId);
-
-    // Clean up stale typing indicators on load
-    const cleanupStaleIndicators = async () => {
+    // Clean up any existing indicators for this user first
+    const cleanupOwnIndicators = async () => {
       try {
-        // Delete typing indicators older than 30 seconds or not typing
         await supabase
           .from('typing_indicators')
           .delete()
-          .or(`updated_at.lt.${new Date(Date.now() - 30000).toISOString()},is_typing.eq.false`);
+          .eq('user_id', userId)
+          .eq('conversation_id', conversationId);
       } catch (error) {
-        console.error('Error cleaning up stale typing indicators:', error);
+        console.error('Error cleaning up own indicators:', error);
       }
     };
 
-    cleanupStaleIndicators();
+    cleanupOwnIndicators();
 
     const channel = supabase
       .channel(`typing-${conversationId}`)
@@ -122,28 +109,14 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          console.log('Typing indicator INSERT:', payload);
           const newIndicator = payload.new as TypingIndicator;
           if (newIndicator.user_id !== userId && newIndicator.is_typing) {
             setTypingUsers((current) => {
-              if (current.includes(newIndicator.user_id)) {
-                return current;
+              if (!current.includes(newIndicator.user_id)) {
+                return [...current, newIndicator.user_id];
               }
-              return [...current, newIndicator.user_id];
+              return current;
             });
-            
-            // Auto-cleanup this typing indicator after 15 seconds
-            setTimeout(async () => {
-              try {
-                await supabase
-                  .from('typing_indicators')
-                  .delete()
-                  .eq('user_id', newIndicator.user_id)
-                  .eq('conversation_id', conversationId);
-              } catch (error) {
-                console.error('Error auto-cleaning typing indicator:', error);
-              }
-            }, 15000);
           }
         }
       )
@@ -156,29 +129,13 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          console.log('Typing indicator UPDATE:', payload);
           const updatedIndicator = payload.new as TypingIndicator;
           if (updatedIndicator.user_id !== userId) {
             setTypingUsers((current) => {
               if (updatedIndicator.is_typing) {
-                const newUsers = current.includes(updatedIndicator.user_id) 
+                return current.includes(updatedIndicator.user_id) 
                   ? current 
                   : [...current, updatedIndicator.user_id];
-                
-                // Auto-cleanup this typing indicator after 15 seconds
-                setTimeout(async () => {
-                  try {
-                    await supabase
-                      .from('typing_indicators')
-                      .delete()
-                      .eq('user_id', updatedIndicator.user_id)
-                      .eq('conversation_id', conversationId);
-                  } catch (error) {
-                    console.error('Error auto-cleaning typing indicator:', error);
-                  }
-                }, 15000);
-                
-                return newUsers;
               } else {
                 return current.filter(id => id !== updatedIndicator.user_id);
               }
@@ -195,7 +152,6 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          console.log('Typing indicator DELETE:', payload);
           const deletedIndicator = payload.old as TypingIndicator;
           if (deletedIndicator.user_id !== userId) {
             setTypingUsers((current) => 
@@ -206,47 +162,60 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
       )
       .subscribe();
 
-    // Set up interval to periodically clean up stale indicators
+    // Clean up stale indicators periodically (every 30 seconds)
     const cleanupInterval = setInterval(async () => {
       try {
-        // Delete typing indicators older than 30 seconds or not typing
         await supabase
           .from('typing_indicators')
           .delete()
-          .or(`updated_at.lt.${new Date(Date.now() - 30000).toISOString()},is_typing.eq.false`);
+          .lt('updated_at', new Date(Date.now() - 30000).toISOString());
       } catch (error) {
         console.error('Error in periodic cleanup:', error);
       }
-    }, 30000); // Every 30 seconds
+    }, 30000);
 
     return () => {
-      console.log('Cleaning up typing indicator subscription');
       clearInterval(cleanupInterval);
       supabase.removeChannel(channel);
     };
   }, [conversationId, userId]);
 
-  // Cleanup on unmount or conversation change
+  // Cleanup on component unmount or route change
   useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (isTyping && conversationId) {
+        // Use synchronous cleanup for page unload
+        supabase.rpc('update_typing_status', {
+          p_conversation_id: conversationId,
+          p_is_typing: false
+        });
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
-      console.log('Cleaning up typing indicator on unmount');
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      
+      // Clear timeout
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
+      
+      // Stop typing on unmount
       if (isTyping && conversationId) {
         updateTypingStatus(false);
       }
     };
-  }, [conversationId]);
+  }, [conversationId, isTyping, userId, updateTypingStatus]);
 
   // Force cleanup when conversation changes
   useEffect(() => {
     if (isTyping) {
-      console.log('Conversation changed, stopping typing');
       stopTyping();
     }
     setTypingUsers([]);
-  }, [conversationId]);
+  }, [conversationId, stopTyping]);
 
   return {
     typingUsers,
