@@ -134,11 +134,8 @@ IMPORTANT: Always keep your responses SHORT and send them as MULTIPLE separate m
         if (currentMsg) responses.push(currentMsg.trim());
       }
       
-      console.log(`💬 Received ${responses.length} message parts:`, responses);
-
       // Validate responses array
       if (!responses || responses.length === 0) {
-        console.error('❌ Empty response from AI');
         throw new Error('No valid response received from AI');
       }
 
@@ -146,18 +143,13 @@ IMPORTANT: Always keep your responses SHORT and send them as MULTIPLE separate m
       for (let i = 0; i < responses.length; i++) {
         const messagePart = responses[i];
         
-        if (!messagePart || typeof messagePart !== 'string') {
-          console.warn(`⚠️ Skipping invalid message part ${i + 1}:`, messagePart);
-          continue;
-        }
+        if (!messagePart || typeof messagePart !== 'string') continue;
         
         // Calculate realistic typing delay for this message part
         const wordCount = messagePart.split(' ').length;
-        const baseTypingDelay = Math.max(wordCount / 0.8, 1.5); // Slightly faster for short messages
-        const typingDelay = baseTypingDelay + (Math.random() * 2); // Add 0-2 seconds variation
+        const baseTypingDelay = Math.max(wordCount / 0.8, 1.5);
+        const typingDelay = baseTypingDelay + (Math.random() * 2);
         
-        console.log(`📝 Message ${i + 1}/${responses.length}: "${messagePart}" (${wordCount} words, ${typingDelay.toFixed(1)}s delay)`);
-
         // Show typing indicator
         if (aiSettings?.typing_simulation_enabled) {
           setIsTyping(true);
@@ -175,7 +167,7 @@ IMPORTANT: Always keep your responses SHORT and send them as MULTIPLE separate m
         // Short pause between messages (except for the last one)
         if (i < responses.length - 1) {
           await new Promise(resolve => {
-            setTimeout(resolve, 500 + Math.random() * 1000); // 0.5-1.5 second pause
+            setTimeout(resolve, 500 + Math.random() * 1000);
           });
         }
       }

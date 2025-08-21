@@ -122,6 +122,10 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
 
       if (result.error) throw result.error;
 
+      // Invalidate AI cache after settings update
+      const { invalidateConversationOverride } = await import('@/ai/service');
+      invalidateConversationOverride(conversationId);
+
       toast({
         title: "Success",
         description: "AI settings updated successfully!",
@@ -172,9 +176,14 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
               </div>
               <Switch
                 checked={settings.is_ai_enabled}
-                onCheckedChange={(checked) => 
-                  setSettings(prev => ({ ...prev, is_ai_enabled: checked }))
-                }
+                onCheckedChange={(checked) => {
+                  setSettings(prev => ({ 
+                    ...prev, 
+                    is_ai_enabled: checked,
+                    // If disabling AI, also disable auto response
+                    auto_response_enabled: checked ? prev.auto_response_enabled : false
+                  }));
+                }}
               />
             </div>
 
@@ -247,9 +256,14 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
                   </div>
                   <Switch
                     checked={settings.auto_response_enabled}
-                    onCheckedChange={(checked) => 
-                      setSettings(prev => ({ ...prev, auto_response_enabled: checked }))
-                    }
+                    onCheckedChange={(checked) => {
+                      setSettings(prev => ({ 
+                        ...prev, 
+                        auto_response_enabled: checked,
+                        // If enabling auto response, also enable AI
+                        is_ai_enabled: checked ? true : prev.is_ai_enabled
+                      }));
+                    }}
                   />
                 </div>
 

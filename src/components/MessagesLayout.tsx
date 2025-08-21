@@ -129,6 +129,61 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   // Initialize AI chat hook
   const { generateAIResponseWithTyping, sendAIMessage, isProcessing, isTyping } = useAIChat();
 
+  // Process AI reply into multiple messages
+  const processAIReply = async (reply: string, conversationId: string) => {
+    try {
+      // Split response into multiple messages
+      let responses: string[];
+      if (reply.includes('---')) {
+        responses = reply.split('---').map((msg: string) => msg.trim()).filter((msg: string) => msg.length > 0);
+      } else {
+        // Fallback: split by sentences and group into smaller messages
+        const sentences = reply.split(/[.!?]+/).filter((s: string) => s.trim().length > 0);
+        responses = [];
+        let currentMsg = '';
+        
+        for (const sentence of sentences) {
+          if ((currentMsg + sentence).length > 80) {
+            if (currentMsg) responses.push(currentMsg.trim());
+            currentMsg = sentence.trim();
+          } else {
+            currentMsg += (currentMsg ? '. ' : '') + sentence.trim();
+          }
+        }
+        if (currentMsg) responses.push(currentMsg.trim());
+      }
+
+      // Send each message part with realistic delays
+      for (let i = 0; i < responses.length; i++) {
+        const messagePart = responses[i];
+        
+        if (!messagePart || typeof messagePart !== 'string') continue;
+        
+        // Calculate realistic typing delay for this message part
+        const wordCount = messagePart.split(' ').length;
+        const baseTypingDelay = Math.max(wordCount / 0.8, 1.5);
+        const typingDelay = baseTypingDelay + (Math.random() * 2);
+        
+        // Add delay between messages
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, typingDelay * 1000));
+        }
+        
+        // Send this message part
+        await sendAIMessage(conversationId, messagePart);
+        
+        // Short pause between messages (except for the last one)
+        if (i < responses.length - 1) {
+          await new Promise(resolve => {
+            setTimeout(resolve, 500 + Math.random() * 1000);
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error processing AI reply:', error);
+    }
+  };
+
   // Load AI settings when conversation changes
   const loadAISettings = async (conversationId: string) => {
     try {
@@ -271,74 +326,33 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
               }, 1000);
               
               // Check if AI should respond to this fan message (only for creators)
-              // First ensure we have current AI settings
-              const checkAIResponse = async () => {
-                let currentAISettings = aiSettings;
-                
-                // If we don't have AI settings or they're stale, reload them
-                if (!currentAISettings) {
-                  console.log('🔄 AI settings not loaded, fetching...');
-                  try {
-                    const { data } = await supabase
-                      .from('ai_conversation_settings')
-                      .select('*')
-                      .eq('conversation_id', activeConversation.id)
-                      .maybeSingle();
-                    currentAISettings = data;
-                    setAiSettings(data); // Update state for future use
-                  } catch (error) {
-                    console.log('⚠️ No AI settings found in real-time check');
-                    return; // Exit early if no settings
-                  }
-                }
-                
-                console.log('🤖 AI Response Check:', {
-                  messageId: newMessage.id,
-                  isCreator,
-                  aiSettingsExists: !!currentAISettings,
-                  aiEnabled: currentAISettings?.is_ai_enabled,
-                  autoResponse: currentAISettings?.auto_response_enabled,
-                  isFanMessage: activeConversation.fan_id === newMessage.sender_id,
-                  fanId: activeConversation.fan_id,
-                  senderId: newMessage.sender_id,
-                  conversationId: activeConversation.id,
-                  messageContent: newMessage.content?.substring(0, 50) + '...'
-                });
-                
-                if (isCreator && currentAISettings?.is_ai_enabled && currentAISettings?.auto_response_enabled) {
-                  // Only respond to fan messages (when creator receives a message from fan)
-                  if (activeConversation.fan_id === newMessage.sender_id) {
-                    console.log('✅ All AI conditions met - triggering response for message:', newMessage.id);
-                    setTimeout(async () => {
-                      try {
-                        const model = currentAISettings.model || 'grok-4';
-                        
-                        await generateAIResponseWithTyping(
-                          activeConversation.fan_id,
-                          activeConversation.id,
-                          newMessage.content,
-                          currentAISettings.current_mode || 'friendly_chat',
-                          model
-                        );
-                      } catch (aiError) {
-                        console.error('AI response error:', aiError);
+              if (isCreator && activeConversation.fan_id === newMessage.sender_id) {
+                // Import and use the centralized AI service
+                import('@/ai/service').then(({ handleIncomingMessage }) => {
+                  setTimeout(async () => {
+                    try {
+                      const result = await handleIncomingMessage({
+                        creatorId: user.id, // Current user is the creator
+                        conversationId: activeConversation.id,
+                        isCreator: true,
+                        fanId: activeConversation.fan_id,
+                        text: newMessage.content
+                      });
+
+                      if (result.skipped) {
+                        // AI was blocked or failed
+                        return;
                       }
-                    }, 1000 + Math.random() * 2000); // Random delay between 1-3 seconds
-                  } else {
-                    console.log('❌ Message not from fan, skipping AI response. Expected fan:', activeConversation.fan_id, 'Got:', newMessage.sender_id);
-                  }
-                } else {
-                  console.log('❌ AI response conditions not met:', {
-                    isCreator,
-                    aiEnabled: currentAISettings?.is_ai_enabled,
-                    autoResponse: currentAISettings?.auto_response_enabled,
-                    hasAiSettings: !!currentAISettings
-                  });
-                }
-              };
-              
-              // Call the AI check function
-              checkAIResponse();
+                      
+                      // TypeScript now knows result is { skipped: false; reply: string }
+                      const aiResult = result as { skipped: false; reply: string };
+                      await processAIReply(aiResult.reply, activeConversation.id);
+                    } catch (error) {
+                      console.error('AI processing error:', error);
+                    }
+                  }, 1000 + Math.random() * 2000); // Random delay between 1-3 seconds
+                });
+              }
             }
           }
         )
