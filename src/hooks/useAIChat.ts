@@ -48,11 +48,22 @@ export function useAIChat() {
       // Handle both array and string responses for backward compatibility
       const responses = Array.isArray(data.response) ? data.response : [data.response];
       return responses.join(' '); // Join for single response
-    } catch (error) {
+    } catch (error: any) {
       console.error('AI response error:', error);
+      
+      // Check if it's a proper error response with details
+      let errorMessage = "AI assistant is temporarily unavailable";
+      if (error?.message) {
+        if (error.message.includes('Missing XAI_API_KEY')) {
+          errorMessage = "AI service not configured";
+        } else if (error.message.includes('xAI API error')) {
+          errorMessage = "AI service temporarily down";
+        }
+      }
+      
       toast({
-        title: "AI Error",
-        description: "Failed to generate AI response",
+        title: "AI Error", 
+        description: errorMessage,
         variant: "destructive",
       });
       return null;
