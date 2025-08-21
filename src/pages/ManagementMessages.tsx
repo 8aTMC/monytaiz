@@ -94,8 +94,16 @@ const ManagementMessages = () => {
         (payload) => {
           const newMessage = payload.new as Message;
           setMessages(prev => [...prev, newMessage]);
-          // Update conversation last message time
-          loadConversations();
+          // Update conversation locally instead of reloading all
+          setConversations(prev => prev.map(conv => 
+            conv.id === activeConversation 
+              ? {
+                  ...conv,
+                  last_message: { content: newMessage.content, sender_id: newMessage.sender_id },
+                  last_message_at: newMessage.created_at
+                }
+              : conv
+          ));
         }
       )
       .subscribe();

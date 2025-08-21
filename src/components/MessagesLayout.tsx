@@ -193,10 +193,20 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
         },
         (payload) => {
           console.log('Conversation updated:', payload);
-          // Only reload if it's a significant change (not just read status)
+          // Update conversation locally instead of reloading all
           const updatedConv = payload.new as any;
           if (updatedConv.latest_message_content || updatedConv.last_message_at) {
-            loadConversations();
+            setConversations(prev => prev.map(conv =>
+              conv.id === updatedConv.id
+                ? {
+                    ...conv,
+                    latest_message_content: updatedConv.latest_message_content,
+                    latest_message_sender_id: updatedConv.latest_message_sender_id,
+                    last_message_at: updatedConv.last_message_at,
+                    unread_count: updatedConv.unread_count
+                  }
+                : conv
+            ));
           }
         }
       )
