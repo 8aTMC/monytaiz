@@ -147,7 +147,7 @@ const Platform = () => {
   ];
 
   return (
-    <div className="p-6 pt-2">
+    <div>
       <div className="max-w-7xl mx-auto min-w-[700px]">
         {/* Header */}
         <div className="mb-8">

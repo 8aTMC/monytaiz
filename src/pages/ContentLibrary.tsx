@@ -407,9 +407,9 @@ const ContentLibrary = () => {
   };
 
   return (
-    <div className="h-full flex overflow-hidden">
+    <div className="h-full flex overflow-hidden -m-6 -mt-4">
       {/* Categories Sidebar */}
-      <div className="w-80 bg-card border-r border-border overflow-y-auto flex-shrink-0">
+      <div className="w-80 bg-card border-r border-border overflow-y-auto flex-shrink-0 p-6">
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-foreground mb-3">Library</h2>
             </div>
@@ -575,8 +575,8 @@ const ContentLibrary = () => {
 
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col">
-            {/* Header */}
-            <div className="bg-card border-b border-border p-6 pb-4">
+        {/* Header */}
+        <div className="bg-card border-b border-border p-6 pb-4">
               <div className="flex items-center justify-between mb-4">
                 <h1 className="text-lg font-semibold text-foreground">
                   {defaultCategories.find(c => c.id === selectedCategory)?.label || 
@@ -637,7 +637,7 @@ const ContentLibrary = () => {
             </div>
 
             {/* Content Grid */}
-            <div className="flex-1 p-6 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto p-6">
               {loadingContent ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 animate-pulse">
                   {Array.from({ length: 8 }).map((_, i) => (

@@ -113,7 +113,7 @@ const FanDashboard = () => {
     return (
       <div className="flex min-h-screen bg-background">
         <Navigation />
-        <main className={`flex-1 transition-all duration-300 p-6 overflow-x-auto pt-[73px] ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
+        <main className={`flex-1 transition-all duration-300 overflow-x-auto p-6 pt-4 ${isNarrowScreen && !isCollapsed ? 'ml-0' : ''}`}>
           <div className="max-w-7xl mx-auto min-w-[700px] animate-pulse">
             {/* Header Skeleton */}
             <div className="mb-8">
@@ -168,7 +168,7 @@ const FanDashboard = () => {
   ];
 
   return (
-    <div className="p-6 pt-2">
+    <div>
       <div className="max-w-7xl mx-auto min-w-[700px]">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">
