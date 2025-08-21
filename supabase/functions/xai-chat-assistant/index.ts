@@ -188,7 +188,7 @@ serve(async (req) => {
       ],
       stream: false,
       temperature: 0.8,
-      max_completion_tokens: 150
+      max_completion_tokens: 500
     };
 
     console.log('📦 Request body:', JSON.stringify(xaiPayload, null, 2));
