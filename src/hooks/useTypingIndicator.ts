@@ -26,27 +26,17 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
     }
   }, [conversationId]);
 
-  // Start typing
+  // Start typing with debounce protection
   const startTyping = useCallback(() => {
-    if (isTyping) return;
+    if (isTyping || !conversationId) return;
     
     setIsTyping(true);
     updateTypingStatus(true);
-    
-    // Clear any existing timeout
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-    
-    // Set timeout to stop typing after 3 seconds of inactivity
-    typingTimeoutRef.current = setTimeout(() => {
-      stopTyping();
-    }, 3000);
-  }, [isTyping, updateTypingStatus]);
+  }, [isTyping, conversationId, updateTypingStatus]);
 
-  // Stop typing
+  // Stop typing with cleanup
   const stopTyping = useCallback(() => {
-    if (!isTyping) return;
+    if (!isTyping || !conversationId) return;
     
     setIsTyping(false);
     updateTypingStatus(false);
@@ -55,21 +45,25 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = undefined;
     }
-  }, [isTyping, updateTypingStatus]);
+  }, [isTyping, conversationId, updateTypingStatus]);
 
   // Handle input change (for debounced typing detection)
   const handleInputChange = useCallback(() => {
-    startTyping();
-    
-    // Reset the timeout
+    // Don't trigger if already typing to prevent spam
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
     
+    // Only start typing if not already typing
+    if (!isTyping) {
+      startTyping();
+    }
+    
+    // Reset the timeout with longer delay to reduce frequency
     typingTimeoutRef.current = setTimeout(() => {
       stopTyping();
-    }, 1000);
-  }, [startTyping, stopTyping]);
+    }, 2000);
+  }, [isTyping, startTyping, stopTyping]);
 
   // Set up realtime subscription for typing indicators
   useEffect(() => {
