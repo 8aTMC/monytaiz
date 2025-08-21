@@ -42,7 +42,7 @@ import { CreatorProfileDialog } from '@/components/CreatorProfileDialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { SettingsDialog } from '@/components/SettingsDialog';
 
 // Create a context for sidebar state
 const SidebarContext = createContext<{
@@ -724,7 +724,7 @@ export const Navigation = () => {
                )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-56 p-2" side="right" align="end">
+          <PopoverContent className="w-56 p-2 z-[100] bg-background border border-border shadow-lg" side="right" align="end">
             <div className="px-3 py-2 border-b border-border mb-2">
               <p className="text-sm font-medium text-foreground">
                 {userProfile?.display_name || userProfile?.username || 'Anonymous'}
@@ -742,24 +742,16 @@ export const Navigation = () => {
               <UserIcon className="h-4 w-4" />
               {t('platform.account.myAccount', 'My Account')}
             </Button>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground hover:bg-accent mb-1"
-                >
-                  <Settings className="h-4 w-4" />
-                  Settings
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-56 p-3 z-50" side="right" align="start">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">Theme</span>
-                  <ThemeToggle />
-                </div>
-              </PopoverContent>
-            </Popover>
+            <SettingsDialog>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground hover:bg-accent mb-1"
+              >
+                <Settings className="h-4 w-4" />
+                Settings
+              </Button>
+            </SettingsDialog>
             <Button 
               variant="ghost" 
               size="sm" 
