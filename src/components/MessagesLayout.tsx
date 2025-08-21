@@ -240,8 +240,9 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                 markConversationAsRead(activeConversation.id);
               }, 1000);
               
-             // Check if AI should respond to this fan message (only for creators)
+              // Check if AI should respond to this fan message (only for creators)
               console.log('🤖 AI Response Check:', {
+                messageId: newMessage.id,
                 isCreator,
                 aiSettingsExists: !!aiSettings,
                 aiEnabled: aiSettings?.is_ai_enabled,
@@ -249,13 +250,14 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                 isFanMessage: activeConversation.fan_id === newMessage.sender_id,
                 fanId: activeConversation.fan_id,
                 senderId: newMessage.sender_id,
-                messageContent: newMessage.content
+                conversationId: activeConversation.id,
+                messageContent: newMessage.content?.substring(0, 50) + '...'
               });
               
               if (isCreator && aiSettings?.is_ai_enabled && aiSettings?.auto_response_enabled) {
                 // Only respond to fan messages (when creator receives a message from fan)
                 if (activeConversation.fan_id === newMessage.sender_id) {
-                  console.log('🚀 Triggering AI response...');
+                  console.log('✅ All AI conditions met - triggering response for message:', newMessage.id);
                   setTimeout(async () => {
                     try {
                       const model = aiSettings.model || 'grok-4';
@@ -272,10 +274,15 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                     }
                   }, 1000 + Math.random() * 2000); // Random delay between 1-3 seconds
                 } else {
-                  console.log('❌ Message not from fan, skipping AI response');
+                  console.log('❌ Message not from fan, skipping AI response. Expected fan:', activeConversation.fan_id, 'Got:', newMessage.sender_id);
                 }
               } else {
-                console.log('❌ AI response conditions not met');
+                console.log('❌ AI response conditions not met:', {
+                  isCreator,
+                  aiEnabled: aiSettings?.is_ai_enabled,
+                  autoResponse: aiSettings?.auto_response_enabled,
+                  hasAiSettings: !!aiSettings
+                });
               }
             }
           }
