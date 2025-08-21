@@ -59,7 +59,13 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
 
   // Handle key press events only
   const handleKeyPress = useCallback((key: string) => {
-    // Only handle actual character input keys
+    // Stop typing immediately if Enter is pressed
+    if (key === 'Enter') {
+      stopTyping();
+      return;
+    }
+    
+    // Only handle actual character input keys (exclude Enter)
     if (key.length === 1 || key === 'Backspace' || key === 'Delete') {
       console.log('Key press detected:', key);
       

@@ -581,7 +581,11 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
             disabled={sending}
             className="flex-1"
           />
-          <Button type="submit" disabled={!newMessage.trim() || sending}>
+          <Button 
+            type="submit" 
+            disabled={!newMessage.trim() || sending}
+            onClick={stopTyping} // Stop typing when send button is clicked
+          >
             <Send className="h-4 w-4" />
           </Button>
         </form>
