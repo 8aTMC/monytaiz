@@ -425,7 +425,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
   }
 
   return (
-    <div className="h-full overflow-hidden flex flex-col bg-background">
+    <div className="h-screen overflow-hidden flex flex-col bg-background">
       {/* Chat Header - Fixed height */}
       <div className="flex-none h-[73px] p-4 border-b border-border bg-background z-10 flex items-center">
         <div className="flex items-center gap-3">
