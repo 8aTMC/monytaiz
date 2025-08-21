@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -146,12 +146,15 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Bot className="h-5 w-5" />
-            xAI Assistant Settings
-          </DialogTitle>
-        </DialogHeader>
+         <DialogHeader>
+           <DialogTitle className="flex items-center gap-2">
+             <Bot className="h-5 w-5" />
+             xAI Assistant Settings
+           </DialogTitle>
+           <DialogDescription>
+             Configure AI assistant settings for this conversation.
+           </DialogDescription>
+         </DialogHeader>
         
         {loadingSettings ? (
           <div className="py-8 text-center text-muted-foreground">

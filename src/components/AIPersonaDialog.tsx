@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -169,6 +169,9 @@ export function AIPersonaDialog({ open, onOpenChange }: AIPersonaDialogProps) {
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>AI Persona Configuration</DialogTitle>
+          <DialogDescription>
+            Configure your AI assistant's personality, behavior, and conversation style.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6">

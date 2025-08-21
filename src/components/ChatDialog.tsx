@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -253,12 +253,15 @@ export const ChatDialog = ({ open, onOpenChange }: ChatDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0">
-        <DialogHeader className="p-6 pb-4">
-          <DialogTitle className="flex items-center gap-2">
-            <MessageCircle className="h-5 w-5" />
-            Chat
-          </DialogTitle>
-        </DialogHeader>
+         <DialogHeader className="p-6 pb-4">
+           <DialogTitle className="flex items-center gap-2">
+             <MessageCircle className="h-5 w-5" />
+             Chat
+           </DialogTitle>
+           <DialogDescription className="sr-only">
+             Chat interface for messaging
+           </DialogDescription>
+         </DialogHeader>
 
         <div className="flex-1 flex min-h-0">
           {/* Conversations Sidebar */}
