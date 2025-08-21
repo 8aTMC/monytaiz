@@ -1,213 +1,221 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-interface TypingIndicator {
-  user_id: string;
-  conversation_id: string;
-  is_typing: boolean;
+interface TypingPresence {
+  userId: string;
+  typingUntil?: number;
+}
+
+interface PresencePayload {
+  [key: string]: any;
+  userId?: string;
+  typingUntil?: number;
 }
 
 export const useTypingIndicator = (conversationId: string | null, userId: string) => {
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  
+  const channelRef = useRef<any>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const lastBroadcastRef = useRef<number>(0);
+  const refreshIntervalRef = useRef<NodeJS.Timeout>();
 
-  // Simple typing status update
-  const updateTypingStatus = useCallback(async (typing: boolean) => {
-    if (!conversationId) return;
+  // Throttled presence update - max once every 1500ms
+  const broadcastTyping = useCallback((typingUntil?: number) => {
+    if (!channelRef.current) return;
+    
+    const now = Date.now();
+    if (now - lastBroadcastRef.current < 1500) return;
+    
+    lastBroadcastRef.current = now;
+    
+    const presence = typingUntil ? { userId, typingUntil } : { userId };
+    channelRef.current.track(presence);
+  }, [userId]);
 
-    try {
-      await supabase.rpc('update_typing_status', {
-        p_conversation_id: conversationId,
-        p_is_typing: typing
-      });
-    } catch (error) {
-      console.error('Error updating typing status:', error);
-    }
-  }, [conversationId]);
-
-  // Start typing
+  // Start typing - set 3 second timeout
   const startTyping = useCallback(() => {
-    if (isTyping || !conversationId) return;
+    if (!conversationId || isTyping) return;
     
     setIsTyping(true);
-    updateTypingStatus(true);
-  }, [isTyping, conversationId, updateTypingStatus]);
+    
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // Broadcast typing with 3s timeout
+    const typingUntil = Date.now() + 3000;
+    broadcastTyping(typingUntil);
+    
+    // Auto-stop after 3s of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      stopTyping();
+    }, 3000);
+  }, [conversationId, isTyping, broadcastTyping]);
 
-  // Stop typing with immediate cleanup
+  // Stop typing - remove presence
   const stopTyping = useCallback(() => {
-    if (!conversationId) return;
+    if (!isTyping) return;
     
     setIsTyping(false);
-    updateTypingStatus(false);
     
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = undefined;
     }
-  }, [conversationId, updateTypingStatus]);
+    
+    // Remove typing from presence
+    broadcastTyping();
+  }, [isTyping, broadcastTyping]);
 
-  // Handle key press events with debounce
-  const handleKeyPress = useCallback((key: string) => {
+  // Debounced typing handler for input changes
+  const handleTyping = useCallback(() => {
     if (!conversationId) return;
-
-    // Stop typing immediately if Enter is pressed (message sent)
-    if (key === 'Enter') {
-      stopTyping();
-      return;
+    
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
     }
     
-    // Only handle actual input keys
-    if (key.length === 1 || key === 'Backspace' || key === 'Delete') {
-      // Clear existing timeout
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
+    // Start typing if not already
+    if (!isTyping) {
+      startTyping();
+    } else {
+      // Extend typing timeout
+      const typingUntil = Date.now() + 3000;
+      broadcastTyping(typingUntil);
       
-      // Start typing if not already
-      if (!isTyping) {
-        startTyping();
-      }
-      
-      // Set new timeout to stop after 2 seconds of inactivity
       typingTimeoutRef.current = setTimeout(() => {
         stopTyping();
-      }, 2000);
+      }, 3000);
     }
-  }, [conversationId, isTyping, startTyping, stopTyping]);
+  }, [conversationId, isTyping, startTyping, stopTyping, broadcastTyping]);
 
-  // Set up realtime subscription for typing indicators
+  // Set up realtime presence channel
   useEffect(() => {
     if (!conversationId) {
       setTypingUsers([]);
       return;
     }
 
-    // Clean up any existing indicators for this user first
-    const cleanupOwnIndicators = async () => {
-      try {
-        await supabase
-          .from('typing_indicators')
-          .delete()
-          .eq('user_id', userId)
-          .eq('conversation_id', conversationId);
-      } catch (error) {
-        console.error('Error cleaning up own indicators:', error);
-      }
-    };
+    // Create channel for this conversation
+    const channel = supabase.channel(`realtime.conversation.${conversationId}`);
+    channelRef.current = channel;
 
-    cleanupOwnIndicators();
-
-    const channel = supabase
-      .channel(`typing-${conversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'typing_indicators',
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          const newIndicator = payload.new as TypingIndicator;
-          if (newIndicator.user_id !== userId && newIndicator.is_typing) {
-            setTypingUsers((current) => {
-              if (!current.includes(newIndicator.user_id)) {
-                return [...current, newIndicator.user_id];
-              }
-              return current;
-            });
+    // Handle presence sync
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const currentTypingUsers: string[] = [];
+        
+        const now = Date.now();
+        Object.keys(state).forEach(presenceUserId => {
+          const presences = state[presenceUserId] as PresencePayload[];
+          const presence = presences[0];
+          
+          // User is typing if typingUntil exists and is in the future
+          if (presence?.typingUntil && presence.typingUntil > now && presence.userId !== userId) {
+            currentTypingUsers.push(presence.userId);
           }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'typing_indicators',
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          const updatedIndicator = payload.new as TypingIndicator;
-          if (updatedIndicator.user_id !== userId) {
-            setTypingUsers((current) => {
-              if (updatedIndicator.is_typing) {
-                return current.includes(updatedIndicator.user_id) 
-                  ? current 
-                  : [...current, updatedIndicator.user_id];
-              } else {
-                return current.filter(id => id !== updatedIndicator.user_id);
-              }
-            });
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'typing_indicators',
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          const deletedIndicator = payload.old as TypingIndicator;
-          if (deletedIndicator.user_id !== userId) {
-            setTypingUsers((current) => 
-              current.filter(id => id !== deletedIndicator.user_id)
+        });
+        
+        setTypingUsers(currentTypingUsers);
+      })
+      .on('presence', { event: 'join' }, ({ newPresences }) => {
+        // Handle when someone joins and starts typing
+        const now = Date.now();
+        newPresences.forEach((presence: PresencePayload) => {
+          if (presence.typingUntil && presence.typingUntil > now && presence.userId !== userId) {
+            setTypingUsers(current => 
+              current.includes(presence.userId) ? current : [...current, presence.userId]
             );
           }
-        }
-      )
+        });
+      })
+      .on('presence', { event: 'leave' }, ({ leftPresences }) => {
+        // Handle when someone leaves
+        leftPresences.forEach((presence: PresencePayload) => {
+          if (presence.userId) {
+            setTypingUsers(current => current.filter(id => id !== presence.userId));
+          }
+        });
+      })
       .subscribe();
 
-    // Clean up stale indicators periodically (every 30 seconds)
-    const cleanupInterval = setInterval(async () => {
-      try {
-        await supabase
-          .from('typing_indicators')
-          .delete()
-          .lt('updated_at', new Date(Date.now() - 30000).toISOString());
-      } catch (error) {
-        console.error('Error in periodic cleanup:', error);
-      }
-    }, 30000);
-
     return () => {
-      clearInterval(cleanupInterval);
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
+      channelRef.current = null;
     };
   }, [conversationId, userId]);
 
-  // Cleanup on component unmount or route change
+  // Refresh typing users every second to clear stale states
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (isTyping && conversationId) {
-        // Use synchronous cleanup for page unload
-        supabase.rpc('update_typing_status', {
-          p_conversation_id: conversationId,
-          p_is_typing: false
-        });
+    if (!conversationId) return;
+    
+    refreshIntervalRef.current = setInterval(() => {
+      if (!channelRef.current) return;
+      
+      const state = channelRef.current.presenceState();
+      const currentTypingUsers: string[] = [];
+      
+      const now = Date.now();
+      Object.keys(state).forEach(presenceUserId => {
+        const presences = state[presenceUserId] as PresencePayload[];
+        const presence = presences[0];
+        
+        // Only include users whose typing hasn't expired
+        if (presence?.typingUntil && presence.typingUntil > now && presence.userId !== userId) {
+          currentTypingUsers.push(presence.userId);
+        }
+      });
+      
+      setTypingUsers(currentTypingUsers);
+    }, 1000);
+
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+    };
+  }, [conversationId, userId]);
+
+  // Cleanup on unmount, blur, or visibility change
+  useEffect(() => {
+    const handleCleanup = () => {
+      if (isTyping) {
+        stopTyping();
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        handleCleanup();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleCleanup);
+    window.addEventListener('blur', handleCleanup);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('beforeunload', handleCleanup);
+      window.removeEventListener('blur', handleCleanup);
+      document.removeEventListener('visibilitychange', handleCleanup);
       
-      // Clear timeout
+      // Final cleanup
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      
-      // Stop typing on unmount
-      if (isTyping && conversationId) {
-        updateTypingStatus(false);
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+      if (isTyping) {
+        stopTyping();
       }
     };
-  }, [conversationId, isTyping, userId, updateTypingStatus]);
+  }, [isTyping, stopTyping]);
 
   // Force cleanup when conversation changes
   useEffect(() => {
@@ -220,8 +228,7 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
   return {
     typingUsers,
     isTyping,
-    startTyping,
-    stopTyping,
-    handleKeyPress
+    startTyping: handleTyping,
+    stopTyping
   };
 };

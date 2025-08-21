@@ -121,7 +121,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   } = useMessageFileUpload();
 
   // Initialize typing indicator hook
-  const { typingUsers, handleKeyPress, stopTyping } = useTypingIndicator(
+  const { typingUsers, startTyping, stopTyping } = useTypingIndicator(
     activeConversation?.id || null, 
     user.id
   );
@@ -991,10 +991,13 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                 >
                   <Input
                     value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
+                    onChange={(e) => {
+                      setNewMessage(e.target.value);
+                      if (e.target.value.trim()) {
+                        startTyping();
+                      }
+                    }}
                     onKeyDown={(e) => {
-                      // Handle typing indicator for actual character input only
-                      handleKeyPress(e.key);
                       handleEnterKey(e);
                     }}
                     placeholder="Type a message..."
