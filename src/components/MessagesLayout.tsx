@@ -198,6 +198,10 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             // Only update conversations if this is from another user to avoid loops
             if (newMessage.sender_id !== user.id) {
               loadConversations();
+              // Auto-mark as read after a short delay
+              setTimeout(() => {
+                markConversationAsRead(activeConversation.id);
+              }, 1000);
             }
           }
         )
@@ -209,17 +213,18 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             table: 'messages',
             filter: `conversation_id=eq.${activeConversation.id}`,
           },
-          (payload) => {
-            console.log('Message updated:', payload);
-            const updatedMessage = payload.new as Message;
-            setMessages((current) => 
-              current.map(msg => 
-                msg.id === updatedMessage.id ? updatedMessage : msg
-              )
-            );
-          }
-        )
-        .subscribe();
+           (payload) => {
+             const updatedMessage = payload.new as Message;
+             setMessages((current) => 
+               current.map(msg => 
+                 msg.id === updatedMessage.id 
+                   ? { ...msg, read_by_recipient: updatedMessage.read_by_recipient, read_at: updatedMessage.read_at, delivered_at: updatedMessage.delivered_at }
+                   : msg
+               )
+             );
+           }
+         )
+         .subscribe();
 
       return () => {
         supabase.removeChannel(messagesChannel);
@@ -342,19 +347,13 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
           conversation_id: activeConversation.id,
           sender_id: user.id,
           content: newMessage.trim(),
-          status: 'active'
+          status: 'active',
+          delivered_at: new Date().toISOString() // Mark as delivered immediately
         })
         .select()
         .single();
 
       if (error) throw error;
-      
-      // Mark message as delivered immediately since it was sent successfully
-      if (messageData) {
-        await supabase.rpc('mark_message_delivered', { 
-          message_id: messageData.id 
-        });
-      }
       
       setNewMessage('');
     } catch (error) {
@@ -413,10 +412,21 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   // Mark messages as read when conversation is opened and auto-mark when messages are viewed
   const markConversationAsRead = async (conversationId: string) => {
     try {
-      await supabase.rpc('mark_conversation_as_read', {
-        conv_id: conversationId,
-        reader_user_id: user.id
-      });
+      // Update messages directly instead of using RPC
+      const { error } = await supabase
+        .from('messages')
+        .update({ 
+          read_by_recipient: true, 
+          read_at: new Date().toISOString() 
+        })
+        .eq('conversation_id', conversationId)
+        .eq('read_by_recipient', false)
+        .neq('sender_id', user.id);
+
+      if (error) {
+        console.error('Error updating read status:', error);
+        return;
+      }
       
       // Update local state
       setConversations(prev => prev.map(conv => 

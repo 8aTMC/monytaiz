@@ -102,15 +102,39 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
             if (newMessage.sender_id !== user.id) {
               setTimeout(async () => {
                 try {
-                  await supabase.rpc('mark_conversation_as_read', {
-                    conv_id: conversation.id,
-                    reader_user_id: user.id
-                  });
+                  await supabase
+                    .from('messages')
+                    .update({ 
+                      read_by_recipient: true, 
+                      read_at: new Date().toISOString() 
+                    })
+                    .eq('conversation_id', conversation.id)
+                    .eq('read_by_recipient', false)
+                    .neq('sender_id', user.id);
                 } catch (error) {
                   console.error('Error marking message as read:', error);
                 }
               }, 1000);
             }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'messages',
+            filter: `conversation_id=eq.${conversation.id}`,
+          },
+          (payload) => {
+            const updatedMessage = payload.new as Message;
+            setMessages((current) => 
+              current.map(msg => 
+                msg.id === updatedMessage.id 
+                  ? { ...msg, read_by_recipient: updatedMessage.read_by_recipient, read_at: updatedMessage.read_at, delivered_at: updatedMessage.delivered_at }
+                  : msg
+              )
+            );
           }
         )
         .subscribe();
@@ -322,19 +346,13 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           conversation_id: conversation.id,
           sender_id: user.id,
           content: newMessage.trim(),
-          status: 'active'
+          status: 'active',
+          delivered_at: new Date().toISOString() // Mark as delivered immediately
         })
         .select()
         .single();
 
       if (error) throw error;
-      
-      // Mark message as delivered immediately since it was sent successfully
-      if (messageData) {
-        await supabase.rpc('mark_message_delivered', { 
-          message_id: messageData.id 
-        });
-      }
       
       setNewMessage('');
     } catch (error) {
