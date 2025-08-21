@@ -22,7 +22,7 @@ import { AISettingsDialog } from '@/components/AISettingsDialog';
 import { FanNotesManager } from '@/components/FanNotesManager';
 import { GlobalAIControl } from '@/components/GlobalAIControl';
 import { ConversationPinButton } from '@/components/ConversationPinButton';
-import { MessageFilters, FilterType } from '@/components/MessageFilters';
+import { MessageFilters, ExtendedFilterType } from '@/components/MessageFilters';
 import { useMessageFileUpload } from '@/hooks/useMessageFileUpload';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useAIChat } from '@/hooks/useAIChat';
@@ -99,7 +99,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [activeFilter, setActiveFilter] = useState<ExtendedFilterType>('all');
   const [globalAIActive, setGlobalAIActive] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showAddCardDialog, setShowAddCardDialog] = useState(false);
@@ -723,6 +723,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
               aiChatCount={conversations.filter(c => c.has_ai_active).length}
               pinnedCount={conversations.filter(c => c.is_pinned).length}
               unreadCount={conversations.filter(c => c.unread_count > 0).length}
+              userId={user.id}
             />
           </div>
         </div>
