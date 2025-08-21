@@ -171,8 +171,9 @@ export const useFileUpload = () => {
     const filePath = `${storageFolder}/${fileName}`;
 
     let progressInterval: NodeJS.Timeout | null = null;
+    let uploadAbortController: AbortController | null = null;
     let simulatedUploadedBytes = 0;
-    const chunkSize = Math.max(1024 * 1024, file.size / 100); // 1MB or 1% of file size
+    const chunkSize = Math.max(1024 * 1024, file.size / 100);
 
     try {
       // Check if paused
@@ -185,14 +186,14 @@ export const useFileUpload = () => {
         f.id === item.id ? { ...f, status: 'uploading' as const } : f
       ));
 
-      // More realistic progress tracking
+      // Progress tracking - don't stop at 90%, continue to 95%
       progressInterval = setInterval(() => {
         if (pausedUploads.has(item.id)) {
           if (progressInterval) clearInterval(progressInterval);
           return;
         }
 
-        simulatedUploadedBytes = Math.min(simulatedUploadedBytes + chunkSize, file.size * 0.9);
+        simulatedUploadedBytes = Math.min(simulatedUploadedBytes + chunkSize, file.size * 0.95);
         const progress = Math.round((simulatedUploadedBytes / file.size) * 100);
         
         setUploadQueue(prev => prev.map(f => 
@@ -203,10 +204,10 @@ export const useFileUpload = () => {
           } : f
         ));
 
-        if (simulatedUploadedBytes >= file.size * 0.9) {
+        if (simulatedUploadedBytes >= file.size * 0.95) {
           if (progressInterval) clearInterval(progressInterval);
         }
-      }, 150);
+      }, 100);
 
       // Get current user first to ensure we have the ID
       const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -214,13 +215,39 @@ export const useFileUpload = () => {
         throw new Error('User not authenticated');
       }
 
-      const { data, error } = await supabase.storage
-        .from('content')
-        .upload(filePath, file);
+      // Create abort controller for timeout handling
+      uploadAbortController = new AbortController();
+      const timeoutId = setTimeout(() => {
+        uploadAbortController?.abort();
+      }, 300000); // 5 minute timeout
 
+      // Upload to Supabase Storage
+      let { data, error } = await supabase.storage
+        .from('content')
+        .upload(filePath, file, {
+          upsert: false // Don't overwrite if file exists
+        });
+
+      clearTimeout(timeoutId);
       if (progressInterval) clearInterval(progressInterval);
       
-      if (error) throw error;
+      if (error) {
+        // Handle specific upload errors
+        if (error.message.includes('already exists')) {
+          // Retry with different filename
+          const retryFileName = `${Date.now()}_${Math.random()}.${fileExt}`;
+          const retryFilePath = `${storageFolder}/${retryFileName}`;
+          
+          const { data: retryData, error: retryError } = await supabase.storage
+            .from('content')
+            .upload(retryFilePath, file);
+          
+          if (retryError) throw retryError;
+          data = retryData;
+        } else {
+          throw error;
+        }
+      }
 
       // Save to database with proper user ID
       const { error: dbError } = await supabase
@@ -228,7 +255,7 @@ export const useFileUpload = () => {
         .insert({
           title: file.name.replace(/\.[^/.]+$/, ""), // Remove extension
           original_filename: file.name,
-          file_path: data.path,
+          file_path: data!.path,
           content_type: fileType as any,
           mime_type: file.type,
           file_size: file.size,
@@ -250,19 +277,39 @@ export const useFileUpload = () => {
       // Remove from queue after a short delay
       setTimeout(() => {
         setUploadQueue(prev => prev.filter(f => f.id !== item.id));
-      }, 1000);
+      }, 2000);
+
+      return { success: true, data };
 
     } catch (error) {
       if (progressInterval) clearInterval(progressInterval);
+      
+      let errorMessage = 'Upload failed';
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Upload timeout - file too large or connection slow';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       setUploadQueue(prev => prev.map(f => 
         f.id === item.id ? { 
           ...f, 
           status: 'error' as const, 
-          error: error instanceof Error ? error.message : 'Upload failed' 
+          error: errorMessage
         } : f
       ));
+
+      toast({
+        title: "Upload failed",
+        description: `${file.name}: ${errorMessage}`,
+        variant: "destructive",
+      });
+
+      return { success: false, error: errorMessage };
     }
-  }, [pausedUploads]);
+  }, [pausedUploads, toast]);
 
   const startUpload = useCallback(async () => {
     if (uploadQueue.length === 0 || isUploading) return;
@@ -270,22 +317,37 @@ export const useFileUpload = () => {
     setIsUploading(true);
     setCurrentUploadIndex(0);
 
+    let successCount = 0;
+    let errorCount = 0;
+    const pendingItems = uploadQueue.filter(item => item.status === 'pending');
+
     // Process files one by one
-    for (let i = 0; i < uploadQueue.length; i++) {
-      const item = uploadQueue[i];
-      if (item.status === 'pending' && !pausedUploads.has(item.id)) {
+    for (let i = 0; i < pendingItems.length; i++) {
+      const item = pendingItems[i];
+      if (!pausedUploads.has(item.id)) {
         setCurrentUploadIndex(i);
-        await uploadFile(item);
+        const result = await uploadFile(item);
+        
+        if (result?.success) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
       }
     }
 
     setIsUploading(false);
-    toast({
-      title: "Upload complete",
-      description: "All files have been processed",
-      variant: "success",
-    });
-  }, [uploadQueue, isUploading, uploadFile, toast]);
+    
+    // Show completion toast with results
+    const totalProcessed = successCount + errorCount;
+    if (successCount > 0) {
+      toast({
+        title: "Upload complete",
+        description: `${successCount} file${successCount !== 1 ? 's' : ''} uploaded successfully${errorCount > 0 ? `. ${errorCount} failed.` : ''}`,
+        variant: successCount > errorCount ? "success" : "destructive",
+      });
+    }
+  }, [uploadQueue, isUploading, uploadFile, pausedUploads, toast]);
 
   const clearQueue = useCallback(() => {
     setUploadQueue([]);

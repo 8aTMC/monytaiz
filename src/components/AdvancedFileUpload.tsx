@@ -123,7 +123,7 @@ export const AdvancedFileUpload = () => {
 
         {/* Upload Status */}
         {isUploading && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <div className="bg-muted/20 border border-border rounded-lg p-4 mb-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">Uploading files...</span>
               <span className="text-sm text-muted-foreground">
