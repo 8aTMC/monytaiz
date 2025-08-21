@@ -28,14 +28,6 @@ export const CreatorTagDialog = ({
 }: CreatorTagDialogProps) => {
   const [newCreatorName, setNewCreatorName] = useState('');
   const [newCreatorUrl, setNewCreatorUrl] = useState('');
-  
-  // Mock recent creators for demonstration
-  const recentCreators = [
-    { id: '1', name: 'Sarah Johnson', url: 'https://example.com/sarah' },
-    { id: '2', name: 'Mike Chen', url: 'https://example.com/mike' },
-    { id: '3', name: 'Emma Wilson', url: 'https://example.com/emma' },
-    { id: '4', name: 'Alex Rodriguez', url: 'https://example.com/alex' },
-  ];
 
   const addCreator = () => {
     if (newCreatorName.trim() && newCreatorUrl.trim() && creators.length < 10) {
@@ -52,12 +44,6 @@ export const CreatorTagDialog = ({
 
   const removeCreator = (id: string) => {
     onCreatorsChange(creators.filter(c => c.id !== id));
-  };
-
-  const addRecentCreator = (creator: Creator) => {
-    if (creators.length < 10 && !creators.find(c => c.id === creator.id)) {
-      onCreatorsChange([...creators, creator]);
-    }
   };
 
   return (
@@ -87,37 +73,6 @@ export const CreatorTagDialog = ({
                   </Badge>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* Recent Creators */}
-          {recentCreators.length > 0 && (
-            <div>
-              <Label className="text-sm font-medium">Recent Creators</Label>
-              <ScrollArea className="h-24 mt-2">
-                <div className="space-y-1">
-                  {recentCreators.slice(0, 5).map((creator) => {
-                    const isAlreadyAdded = creators.find(c => c.id === creator.id);
-                    return (
-                      <div 
-                        key={creator.id}
-                        className="flex items-center justify-between p-2 rounded border hover:bg-muted/50"
-                      >
-                        <span className="text-sm">{creator.name}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => addRecentCreator(creator)}
-                          disabled={!!isAlreadyAdded || creators.length >= 10}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </ScrollArea>
             </div>
           )}
 
