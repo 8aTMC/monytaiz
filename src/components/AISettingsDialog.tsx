@@ -26,7 +26,7 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
     auto_response_enabled: false,
     typing_simulation_enabled: true,
     provider: 'xai' as 'xai',
-    model: 'grok-2' as string
+    model: 'grok-4' as string
   });
 
   const modes = [
@@ -62,7 +62,7 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
     }
   ];
 
-  const availableModels = ['grok-2', 'grok-4', 'grok-beta'];
+  const availableModels = ['grok-4', 'grok-2', 'grok-beta'];
 
   useEffect(() => {
     if (open && conversationId) {
@@ -86,7 +86,7 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
           auto_response_enabled: data.auto_response_enabled,
           typing_simulation_enabled: data.typing_simulation_enabled,
           provider: 'xai' as 'xai',
-          model: data.model || 'grok-2'
+          model: data.model || 'grok-4'
         });
       }
     } catch (error) {
