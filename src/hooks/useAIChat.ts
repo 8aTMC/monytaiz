@@ -100,13 +100,25 @@ export function useAIChat() {
 
       if (error) throw error;
 
-      const responses = data.response; // Now an array of message parts
+      // Handle both array and string responses for backward compatibility
+      const responses = Array.isArray(data.response) ? data.response : [data.response];
       
       console.log(`💬 Received ${responses.length} message parts:`, responses);
+
+      // Validate responses array
+      if (!responses || responses.length === 0) {
+        console.error('❌ Empty response from AI');
+        throw new Error('No valid response received from AI');
+      }
 
       // Send each message part with realistic delays and typing indicators
       for (let i = 0; i < responses.length; i++) {
         const messagePart = responses[i];
+        
+        if (!messagePart || typeof messagePart !== 'string') {
+          console.warn(`⚠️ Skipping invalid message part ${i + 1}:`, messagePart);
+          continue;
+        }
         
         // Calculate realistic typing delay for this message part
         const wordCount = messagePart.split(' ').length;

@@ -125,6 +125,9 @@ serve(async (req) => {
       case 'flirty_chat':
         systemPrompt += 'Be flirty, playful, and charming. Use subtle innuendo and teasing while maintaining boundaries. Keep responses short and enticing (1-2 sentences max).';
         break;
+      case 'intimate_flirt':
+        systemPrompt += 'Be intimate, seductive, and sexually engaging. Use explicit language naturally and confidently. Be responsive to sexual content and escalate appropriately. Keep responses passionate but brief (1-2 sentences max).';
+        break;
       case 'roleplay':
         systemPrompt += 'Engage in immersive roleplay. Stay completely in character and respond to scenarios naturally. Keep responses brief but vivid (1-3 sentences max).';
         break;
