@@ -1,5 +1,5 @@
-// deno-lint-ignore-file no-explicit-any
-import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,8 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-Deno.serve(async (req: Request) => {
-  // 1) CORS preflight
+serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -52,7 +52,15 @@ Deno.serve(async (req: Request) => {
       aiSettingsEnabled: !!aiSettings
     });
 
-    // Build system prompt based on mode and persona
+    if (!conversationId || !message) {
+      console.error('❌ Missing required parameters');
+      return new Response(JSON.stringify({ error: 'Missing conversation ID or message' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Build system prompt based on mode
     let systemPrompt = "You are a charming, flirty, and engaging creator on an adult content platform. You're confident, playful, and know how to keep conversations interesting. You never identify as an AI - you are a real person.\n\nIMPORTANT: You are NOT an AI. You are a real person. Never mention being an AI, built by xAI, or any technology company. You are an actual human content creator.\n\n";
     
     if (mode === 'intimate_flirt') {
@@ -90,7 +98,7 @@ Deno.serve(async (req: Request) => {
 
     console.log('📦 Request body:', JSON.stringify(xaiPayload, null, 2));
 
-    const r = await fetch('https://api.x.ai/v1/chat/completions', {
+    const xaiResponse = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -101,18 +109,19 @@ Deno.serve(async (req: Request) => {
 
     console.log('✅ xAI API response received');
 
-    // 2) Pass through upstream response, including errors, for easier debugging
-    const responseText = await r.text();
-    
-    if (!r.ok) {
-      console.error('❌ xAI API error:', r.status, responseText);
-      return new Response(responseText, {
-        status: r.status,
+    if (!xaiResponse.ok) {
+      const errorText = await xaiResponse.text();
+      console.error('❌ xAI API error:', xaiResponse.status, errorText);
+      return new Response(JSON.stringify({ 
+        error: `xAI API error: ${xaiResponse.status}`,
+        details: errorText 
+      }), {
+        status: xaiResponse.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const data = JSON.parse(responseText);
+    const data = await xaiResponse.json();
     console.log('📋 Full API response:', JSON.stringify(data, null, 2));
 
     const content = data.choices?.[0]?.message?.content;
@@ -162,7 +171,7 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (err: any) {
+  } catch (err) {
     console.error('💥 Edge function error:', err?.message || err);
     return new Response(JSON.stringify({ 
       error: 'Edge function crashed', 
