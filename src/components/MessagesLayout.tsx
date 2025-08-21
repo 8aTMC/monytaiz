@@ -42,8 +42,6 @@ import {
   FileText,
   Star,
   Calendar,
-  Check,
-  CheckCheck,
   Bot,
   AtSign,
   Pin
@@ -436,10 +434,6 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     }
   };
 
-  const loadMessages = async () => {
-    // Messages are now handled by MessageList component
-    return;
-  };
 
   const sendMessage = async () => {
     if (!activeConversation || !newMessage.trim() || sending) return;
@@ -587,18 +581,6 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     }
   }, [activeConversation?.id]);
 
-  // Get delivery status icon for messages
-  const getDeliveryStatusIcon = (message: Message) => {
-    if (message.sender_id !== user.id) return null;
-    
-    if (message.read_by_recipient) {
-      return <CheckCheck className="h-3 w-3 text-blue-500" />;
-    } else if (message.delivered_at) {
-      return <CheckCheck className="h-3 w-3 text-muted-foreground" />;
-    } else {
-      return <Check className="h-3 w-3 text-muted-foreground" />;
-    }
-  };
 
   const actionButtons = [
     { icon: Bot, label: 'AI', color: 'text-purple-500' },

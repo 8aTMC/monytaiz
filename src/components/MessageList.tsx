@@ -130,7 +130,7 @@ export const MessageList = ({
   className 
 }: MessageListProps) => {
   // State
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messagesList, setMessagesList] = useState<Message[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [unseenCount, setUnseenCount] = useState(0);
@@ -183,7 +183,7 @@ export const MessageList = ({
 
   // Load older messages with stable anchoring
   const loadOlderMessages = useCallback(async () => {
-    if (!hasMore || loadingOlder || messages.length === 0) return;
+    if (!hasMore || loadingOlder || messagesList.length === 0) return;
 
     setLoadingOlder(true);
     const container = containerRef.current;
@@ -196,7 +196,7 @@ export const MessageList = ({
     lastScrollTopRef.current = prevTop;
 
     try {
-      const oldestMessage = messages[0];
+      const oldestMessage = messagesList[0];
       const { data, error } = await supabase
         .from('messages')
         .select('*')
@@ -212,7 +212,7 @@ export const MessageList = ({
       setHasMore(olderMessages.length === PAGE_SIZE);
       
       if (olderMessages.length > 0) {
-        setMessages(prev => [...olderMessages, ...prev]);
+        setMessagesList(prev => [...olderMessages, ...prev]);
         
         // Preserve scroll position after DOM update
         requestAnimationFrame(() => {
@@ -227,7 +227,7 @@ export const MessageList = ({
       console.error('Error loading older messages:', error);
       setLoadingOlder(false);
     }
-  }, [conversationId, hasMore, loadingOlder, messages]);
+  }, [conversationId, hasMore, loadingOlder, messagesList]);
 
   // Initial load effect
   useLayoutEffect(() => {
@@ -250,7 +250,7 @@ export const MessageList = ({
         if (!mounted) return;
 
         const reversedMessages = (data || []).reverse();
-        setMessages(reversedMessages);
+        setMessagesList(reversedMessages);
         setHasMore((data || []).length === PAGE_SIZE);
         
         // Scroll to bottom after first paint
@@ -309,7 +309,7 @@ export const MessageList = ({
         intersectionObserverRef.current.disconnect();
       }
     };
-  }, [hasMore, loadingOlder, loadOlderMessages, messages.length]);
+  }, [hasMore, loadingOlder, loadOlderMessages, messagesList.length]);
 
   // Real-time message subscription
   useEffect(() => {
@@ -328,7 +328,7 @@ export const MessageList = ({
         (payload) => {
           const newMessage = payload.new as Message;
           
-          setMessages(current => {
+          setMessagesList(current => {
             // Avoid duplicates
             if (current.find(msg => msg.id === newMessage.id)) {
               return current;
@@ -361,7 +361,7 @@ export const MessageList = ({
         },
         (payload) => {
           const updatedMessage = payload.new as Message;
-          setMessages(current =>
+          setMessagesList(current =>
             current.map(msg =>
               msg.id === updatedMessage.id
                 ? { ...msg, ...updatedMessage }
@@ -413,7 +413,7 @@ export const MessageList = ({
         
         {/* Messages */}
         <div className="space-y-4">
-          {messages.map((message) => (
+          {messagesList.map((message) => (
             <MessageBubble
               key={message.id}
               message={message}
