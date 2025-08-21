@@ -212,7 +212,37 @@ export const useFileUpload = () => {
       // Get current user first to ensure we have the ID
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData.user) {
-        throw new Error('User not authenticated');
+        throw new Error('User not authenticated - please log in again');
+      }
+
+      // Verify user has required role for content upload
+      const { data: userRoles, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userData.user.id);
+
+      if (roleError) {
+        console.error('Error checking user roles:', roleError);
+        throw new Error('Unable to verify user permissions');
+      }
+
+      if (!userRoles || userRoles.length === 0) {
+        throw new Error('User does not have required permissions to upload content');
+      }
+
+      // Check if user profile exists and is active
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, deletion_status')
+        .eq('id', userData.user.id)
+        .single();
+
+      if (profileError || !profile) {
+        throw new Error('User profile not found - please complete your profile setup');
+      }
+
+      if (profile.deletion_status !== 'active') {
+        throw new Error('User account is not active');
       }
 
       // Create abort controller for timeout handling
@@ -249,7 +279,14 @@ export const useFileUpload = () => {
         }
       }
 
-      // Save to database with proper user ID
+      // Save to database with proper user ID and additional debugging
+      console.log('Inserting content file:', {
+        creator_id: userData.user.id,
+        auth_uid: userData.user.id,
+        file_path: data!.path,
+        content_type: fileType
+      });
+
       const { error: dbError } = await supabase
         .from('content_files')
         .insert({
@@ -262,7 +299,10 @@ export const useFileUpload = () => {
           creator_id: userData.user.id,
         });
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Database insert error:', dbError);
+        throw new Error(`Failed to save file metadata: ${dbError.message}`);
+      }
 
       // Mark as completed
       setUploadQueue(prev => prev.map(f => 
