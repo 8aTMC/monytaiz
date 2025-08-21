@@ -142,7 +142,8 @@ export const FileUploadRow = ({
                 </>
               )}
               
-              {item.status === 'pending' && !isUploading && (
+              {/* Delete button for all other statuses */}
+              {(item.status === 'pending' || item.status === 'completed' || item.status === 'error' || item.status === 'cancelled') && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -150,10 +151,10 @@ export const FileUploadRow = ({
                     e.stopPropagation();
                     onRemove(item.id);
                   }}
-                  className="h-6 w-6 p-0"
-                  title="Remove from queue"
+                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                  title={item.status === 'pending' ? "Remove from queue" : "Delete file"}
                 >
-                  ×
+                  <Trash2 className="h-3 w-3" />
                 </Button>
               )}
             </div>

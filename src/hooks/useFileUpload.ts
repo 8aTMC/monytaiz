@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -55,6 +55,13 @@ export const useFileUpload = () => {
   const [currentUploadIndex, setCurrentUploadIndex] = useState(0);
   const [pausedUploads, setPausedUploads] = useState<Set<string>>(new Set());
   const { toast } = useToast();
+  
+  // Use ref to get current queue state in async operations
+  const queueRef = useRef<FileUploadItem[]>([]);
+  
+  useEffect(() => {
+    queueRef.current = uploadQueue;
+  }, [uploadQueue]);
 
   const validateFile = useCallback((file: File) => {
     try {
@@ -190,6 +197,7 @@ export const useFileUpload = () => {
       progressInterval = setInterval(() => {
         if (pausedUploads.has(item.id)) {
           if (progressInterval) clearInterval(progressInterval);
+          progressInterval = null;
           return;
         }
 
@@ -205,7 +213,10 @@ export const useFileUpload = () => {
         ));
 
         if (simulatedUploadedBytes >= file.size * 0.95) {
-          if (progressInterval) clearInterval(progressInterval);
+          if (progressInterval) {
+            clearInterval(progressInterval);
+            progressInterval = null;
+          }
         }
       }, 100);
 
@@ -259,7 +270,10 @@ export const useFileUpload = () => {
         });
 
       clearTimeout(timeoutId);
-      if (progressInterval) clearInterval(progressInterval);
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
       
       if (error) {
         // Handle specific upload errors
@@ -322,7 +336,10 @@ export const useFileUpload = () => {
       return { success: true, data };
 
     } catch (error) {
-      if (progressInterval) clearInterval(progressInterval);
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
       
       let errorMessage = 'Upload failed';
       if (error instanceof Error) {
@@ -352,21 +369,36 @@ export const useFileUpload = () => {
   }, [pausedUploads, toast]);
 
   const startUpload = useCallback(async () => {
-    if (uploadQueue.length === 0 || isUploading) return;
+    if (queueRef.current.length === 0 || isUploading) return;
 
     setIsUploading(true);
     setCurrentUploadIndex(0);
 
     let successCount = 0;
     let errorCount = 0;
-    const pendingItems = uploadQueue.filter(item => item.status === 'pending');
 
-    // Process files one by one
-    for (let i = 0; i < pendingItems.length; i++) {
-      const item = pendingItems[i];
-      if (!pausedUploads.has(item.id)) {
-        setCurrentUploadIndex(i);
-        const result = await uploadFile(item);
+    // Keep processing files until none are left
+    while (true) {
+      // Always get fresh queue state to handle removed files
+      const currentQueue = queueRef.current.filter(item => item.status === 'pending');
+      
+      if (currentQueue.length === 0) {
+        break; // No more pending files
+      }
+
+      const nextFile = currentQueue[0];
+      if (!nextFile) {
+        break;
+      }
+
+      // Check if this file still exists in the queue (wasn't removed)
+      const fileStillExists = queueRef.current.some(item => item.id === nextFile.id);
+      if (!fileStillExists) {
+        continue; // File was removed, check for next one
+      }
+
+      if (!pausedUploads.has(nextFile.id)) {
+        const result = await uploadFile(nextFile);
         
         if (result?.success) {
           successCount++;
@@ -374,20 +406,22 @@ export const useFileUpload = () => {
           errorCount++;
         }
       }
+      
+      // Small delay to allow UI updates and queue changes
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     setIsUploading(false);
     
     // Show completion toast with results
-    const totalProcessed = successCount + errorCount;
-    if (successCount > 0) {
+    if (successCount > 0 || errorCount > 0) {
       toast({
         title: "Upload complete",
         description: `${successCount} file${successCount !== 1 ? 's' : ''} uploaded successfully${errorCount > 0 ? `. ${errorCount} failed.` : ''}`,
         variant: successCount > errorCount ? "success" : "destructive",
       });
     }
-  }, [uploadQueue, isUploading, uploadFile, pausedUploads, toast]);
+  }, [isUploading, uploadFile, pausedUploads, toast]);
 
   const clearQueue = useCallback(() => {
     setUploadQueue([]);
