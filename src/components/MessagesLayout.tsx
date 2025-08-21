@@ -27,6 +27,7 @@ import { useMessageFileUpload } from '@/hooks/useMessageFileUpload';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useAIChat } from '@/hooks/useAIChat';
 import { toast as sonnerToast } from 'sonner';
+import { MessageList } from '@/components/MessageList';
 import { 
   Send, 
   Search, 
@@ -94,7 +95,6 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   const { setIsCollapsed } = useSidebar();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -107,7 +107,6 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   const [showAISettingsDialog, setShowAISettingsDialog] = useState(false);
   const [showFanNotesDialog, setShowFanNotesDialog] = useState(false);
   const [aiSettings, setAiSettings] = useState<any>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const {
     uploadingFiles,
@@ -214,24 +213,6 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   }, [activeConversation?.id]);
 
 
-  const scrollToBottom = () => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  // Scroll to bottom when conversation changes
-  useEffect(() => {
-    if (activeConversation) {
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-      }, 200);
-    }
-  }, [activeConversation]);
 
   useEffect(() => {
     loadConversations();
@@ -274,8 +255,6 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
   useEffect(() => {
     if (activeConversation) {
-      loadMessages();
-      
       // Set up real-time subscription for messages
       const messagesChannel = supabase
         .channel(`conversation-messages-${activeConversation.id}`)
@@ -290,13 +269,6 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
           (payload) => {
             console.log('New message received:', payload);
             const newMessage = payload.new as Message;
-            setMessages((current) => {
-              // Avoid duplicates
-              if (current.find(msg => msg.id === newMessage.id)) {
-                return current;
-              }
-              return [...current, newMessage];
-            });
             
             // Only update conversations if this is from another user to avoid loops
             if (newMessage.sender_id !== user.id) {
@@ -359,32 +331,13 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             }
           }
         )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'messages',
-            filter: `conversation_id=eq.${activeConversation.id}`,
-          },
-           (payload) => {
-             const updatedMessage = payload.new as Message;
-             setMessages((current) => 
-               current.map(msg => 
-                 msg.id === updatedMessage.id 
-                   ? { ...msg, read_by_recipient: updatedMessage.read_by_recipient, read_at: updatedMessage.read_at, delivered_at: updatedMessage.delivered_at }
-                   : msg
-               )
-             );
-           }
-         )
-         .subscribe();
+        .subscribe();
 
       return () => {
         supabase.removeChannel(messagesChannel);
       };
     }
-  }, [activeConversation?.id]); // Only depend on conversation ID, not the whole object
+  }, [activeConversation?.id]);
 
   // Load conversations with pin status and AI status
   const loadConversations = async () => {
@@ -484,21 +437,8 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   };
 
   const loadMessages = async () => {
-    if (!activeConversation) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', activeConversation.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      setMessages(data || []);
-    } catch (error) {
-      console.error('Error loading messages:', error);
-    }
+    // Messages are now handled by MessageList component
+    return;
   };
 
   const sendMessage = async () => {
@@ -631,36 +571,21 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
           ? { ...conv, unread_count: 0 }
           : conv
       ));
-
-      // Update messages in the active conversation to show as read
-      if (activeConversation?.id === conversationId) {
-        setMessages(prev => prev.map(msg => 
-          msg.sender_id !== user.id 
-            ? { ...msg, read_by_recipient: true, read_at: new Date().toISOString() }
-            : msg
-        ));
-      }
     } catch (error) {
       console.error('Error marking conversation as read:', error);
     }
   };
 
-  // Auto-mark messages as read when user views them (only once per conversation)
+  // Auto-mark messages as read when conversation changes
   useEffect(() => {
-    if (activeConversation && messages.length > 0) {
-      const unreadMessages = messages.filter(msg => 
-        msg.sender_id !== user.id && !msg.read_by_recipient
-      );
-      
-      if (unreadMessages.length > 0) {
-        const timer = setTimeout(() => {
-          markConversationAsRead(activeConversation.id);
-        }, 1000); // Mark as read after 1 second of viewing
+    if (activeConversation) {
+      const timer = setTimeout(() => {
+        markConversationAsRead(activeConversation.id);
+      }, 1000); // Mark as read after 1 second of viewing
 
-        return () => clearTimeout(timer);
-      }
+      return () => clearTimeout(timer);
     }
-  }, [activeConversation?.id]); // Only trigger when conversation changes, not on every message
+  }, [activeConversation?.id]);
 
   // Get delivery status icon for messages
   const getDeliveryStatusIcon = (message: Message) => {
@@ -885,83 +810,14 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
             {/* Messages Area - Takes remaining space, scrollable */}
             <div className="flex-1 min-h-0 overflow-hidden" style={{ height: 'calc(100vh - 73px - 140px)' }}>
-              <ScrollArea className="h-full px-6 py-4">
-                <div className="space-y-4 max-w-4xl mx-auto pb-4">
-                   {messages.map((message) => (
-                     <div
-                       key={message.id}
-                       className={`flex gap-3 px-4 ${
-                         message.sender_id === user.id ? 'justify-end' : 'justify-start'
-                       }`}
-                     >
-                       {message.sender_id !== user.id && (
-                         <Avatar className="h-8 w-8 flex-shrink-0">
-                           <AvatarImage src={getProfileForConversation(activeConversation)?.avatar_url} />
-                           <AvatarFallback>
-                             {getInitials(
-                               getProfileForConversation(activeConversation)?.display_name,
-                               getProfileForConversation(activeConversation)?.username
-                             )}
-                           </AvatarFallback>
-                         </Avatar>
-                       )}
-                       <div className={`flex flex-col max-w-sm ${message.sender_id === user.id ? 'items-end' : 'items-start'}`}>
-                         <div
-                           className={`inline-block p-3 rounded-lg ${
-                             message.sender_id === user.id
-                               ? 'bg-primary text-primary-foreground'
-                               : 'bg-muted'
-                           }`}
-                         >
-                           <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                         </div>
-                         {/* Only show read receipt for sent messages */}
-                         {message.sender_id === user.id && (
-                           <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                             <span>{formatTime(message.created_at)}</span>
-                             {getDeliveryStatusIcon(message)}
-                           </div>
-                         )}
-                         {/* Show just timestamp for received messages */}
-                         {message.sender_id !== user.id && (
-                           <div className="text-xs text-muted-foreground mt-1">
-                             <span>{formatTime(message.created_at)}</span>
-                           </div>
-                         )}
-                       </div>
-                     </div>
-                    ))}
-                   
-                   {/* Typing Indicator */}
-                   {typingUsers.length > 0 && (
-                     <div className="flex gap-3 px-4 mb-4">
-                       <Avatar className="h-8 w-8 flex-shrink-0">
-                         <AvatarImage src={getProfileForConversation(activeConversation)?.avatar_url} />
-                         <AvatarFallback>
-                           {getInitials(
-                             getProfileForConversation(activeConversation)?.display_name,
-                             getProfileForConversation(activeConversation)?.username
-                           )}
-                         </AvatarFallback>
-                       </Avatar>
-                       <div className="flex-1 max-w-sm">
-                         <div className="inline-block p-3 rounded-lg bg-muted">
-                           <div className="flex items-center gap-1">
-                             <div className="flex gap-1">
-                               <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                               <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                               <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                             </div>
-                             <span className="text-xs text-muted-foreground ml-2">Typing...</span>
-                           </div>
-                         </div>
-                       </div>
-                     </div>
-                   )}
-                   
-                   <div ref={messagesEndRef} />
-                </div>
-              </ScrollArea>
+              {activeConversation && (
+                <MessageList
+                  conversationId={activeConversation.id}
+                  currentUserId={user.id}
+                  partnerProfile={getProfileForConversation(activeConversation)}
+                  className="h-full"
+                />
+              )}
             </div>
 
             {/* File Upload Progress Bar */}
@@ -1140,10 +996,10 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                       <span className="text-muted-foreground">Last active:</span>
                       <span>Today</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Messages sent:</span>
-                      <span>{messages.filter(m => m.sender_id !== user.id).length}</span>
-                    </div>
+                     <div className="flex justify-between">
+                       <span className="text-muted-foreground">Messages sent:</span>
+                       <span>0</span>
+                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Device:</span>
                       <span>Web</span>

@@ -1,16 +1,16 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/initials';
-import { Send, MessageCircle, Check, CheckCheck, Bot, Smile, Paperclip, Library, Mic, FileText, Gift, DollarSign, AtSign } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Send, MessageCircle, Bot, Smile, Library, Mic, FileText, Gift, DollarSign, AtSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Navigation, useSidebar } from '@/components/Navigation';
+import { useSidebar } from '@/components/Navigation';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
+import { MessageList } from '@/components/MessageList';
 
 interface Message {
   id: string;
@@ -43,30 +43,15 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
   const { toast } = useToast();
   const { isCollapsed, isNarrowScreen } = useSidebar();
   const [conversation, setConversation] = useState<Conversation | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [loadingMoreMessages, setLoadingMoreMessages] = useState(false);
-  const [hasMoreMessages, setHasMoreMessages] = useState(true);
-  const [messagesOffset, setMessagesOffset] = useState(0);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const MESSAGES_PER_PAGE = 100;
 
   // Initialize typing indicator hook
   const { typingUsers, startTyping, stopTyping } = useTypingIndicator(
     conversation?.id || null, 
     user.id
   );
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
 
   // Load conversation only once when component mounts
   useEffect(() => {
@@ -75,78 +60,49 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
     }
   }, [user]);
 
+  // Auto-mark messages as read when received (separate effect)
   useEffect(() => {
-    if (conversation) {
-      loadMessages();
-      
-      // Set up real-time subscription for messages
-      const messagesChannel = supabase
-        .channel(`fan-messages-${conversation.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages',
-            filter: `conversation_id=eq.${conversation.id}`,
-          },
-          (payload) => {
-            console.log('New message received:', payload);
-            const newMessage = payload.new as Message;
-            setMessages((current) => {
-              // Avoid duplicates
-              if (current.find(msg => msg.id === newMessage.id)) {
-                return current;
-              }
-              return [...current, newMessage];
-            });
-            
-            // Auto-mark messages as read when received
-            if (newMessage.sender_id !== user.id) {
-              setTimeout(async () => {
-                try {
-                  await supabase
-                    .from('messages')
-                    .update({ 
-                      read_by_recipient: true, 
-                      read_at: new Date().toISOString() 
-                    })
-                    .eq('conversation_id', conversation.id)
-                    .eq('read_by_recipient', false)
-                    .neq('sender_id', user.id);
-                } catch (error) {
-                  console.error('Error marking message as read:', error);
-                }
-              }, 1000);
-            }
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'messages',
-            filter: `conversation_id=eq.${conversation.id}`,
-          },
-          (payload) => {
-            const updatedMessage = payload.new as Message;
-            setMessages((current) => 
-              current.map(msg => 
-                msg.id === updatedMessage.id 
-                  ? { ...msg, read_by_recipient: updatedMessage.read_by_recipient, read_at: updatedMessage.read_at, delivered_at: updatedMessage.delivered_at }
-                  : msg
-              )
-            );
-          }
-        )
-        .subscribe();
+    if (!conversation) return;
 
-      return () => {
-        supabase.removeChannel(messagesChannel);
-      };
-    }
-  }, [conversation]);
+    const markAsReadChannel = supabase
+      .channel(`fan-mark-read-${conversation.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversation.id}`,
+        },
+        (payload) => {
+          const newMessage = payload.new as Message;
+          
+          // Auto-mark messages as read when received from other users
+          if (newMessage.sender_id !== user.id) {
+            setTimeout(async () => {
+              try {
+                await supabase
+                  .from('messages')
+                  .update({ 
+                    read_by_recipient: true, 
+                    read_at: new Date().toISOString() 
+                  })
+                  .eq('conversation_id', conversation.id)
+                  .eq('read_by_recipient', false)
+                  .neq('sender_id', user.id);
+              } catch (error) {
+                console.error('Error marking message as read:', error);
+              }
+            }, 1000);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(markAsReadChannel);
+    };
+  }, [conversation?.id, user.id]);
 
   const loadConversation = async () => {
     try {
@@ -258,86 +214,6 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
     }
   };
 
-  const loadMessages = async () => {
-    if (!conversation) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversation.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(MESSAGES_PER_PAGE);
-
-      if (error) throw error;
-      
-      const reversedMessages = (data || []).reverse();
-      setMessages(reversedMessages);
-      setMessagesOffset(data?.length || 0);
-      setHasMoreMessages((data?.length || 0) === MESSAGES_PER_PAGE);
-      
-      // Only scroll to bottom on initial load, not when returning from tab switch
-      if (messages.length === 0) {
-        setTimeout(() => scrollToBottom(), 100);
-      }
-    } catch (error) {
-      console.error('Error loading messages:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load messages",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const loadMoreMessages = async () => {
-    if (!conversation || loadingMoreMessages || !hasMoreMessages) return;
-
-    try {
-      setLoadingMoreMessages(true);
-      
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversation.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .range(messagesOffset, messagesOffset + MESSAGES_PER_PAGE - 1);
-
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        const reversedNewMessages = data.reverse();
-        setMessages(prev => [...reversedNewMessages, ...prev]);
-        setMessagesOffset(prev => prev + data.length);
-        setHasMoreMessages(data.length === MESSAGES_PER_PAGE);
-      } else {
-        setHasMoreMessages(false);
-      }
-    } catch (error) {
-      console.error('Error loading more messages:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load more messages",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingMoreMessages(false);
-    }
-  };
-
-  const handleScroll = () => {
-    if (!messagesContainerRef.current) return;
-    
-    const { scrollTop } = messagesContainerRef.current;
-    
-    // Load more messages when scrolled to top
-    if (scrollTop === 0 && hasMoreMessages && !loadingMoreMessages) {
-      loadMoreMessages();
-    }
-  };
-
   const sendMessage = async () => {
     if (!conversation || !newMessage.trim() || sending) return;
 
@@ -377,26 +253,6 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
       e.preventDefault();
       sendMessage();
     }
-  };
-
-  // Get delivery status icon for messages
-  const getDeliveryStatusIcon = (message: Message) => {
-    if (message.sender_id !== user.id) return null;
-    
-    if (message.read_by_recipient) {
-      return <CheckCheck className="h-3 w-3 text-blue-500" />;
-    } else if (message.delivered_at) {
-      return <CheckCheck className="h-3 w-3 text-muted-foreground" />;
-    } else {
-      return <Check className="h-3 w-3 text-muted-foreground" />;
-    }
-  };
-
-  const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   };
 
   if (loading) {
@@ -450,91 +306,51 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
       
       {/* Messages Area - Takes remaining space */}
       <div className="flex-1 min-h-0">
-        <div 
-          ref={messagesContainerRef}
-          onScroll={handleScroll}
-          className="h-full overflow-y-auto px-6 py-4"
-        >
-          {loadingMoreMessages && (
-            <div className="text-center py-4">
-              <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                Loading more messages...
+        {conversation ? (
+          <MessageList
+            conversationId={conversation.id}
+            currentUserId={user.id}
+            partnerProfile={conversation.creator_profile}
+            className="h-full"
+          />
+        ) : (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center">
+              <MessageCircle className="h-12 w-12 text-muted-foreground mb-4 mx-auto" />
+              <h3 className="text-lg font-medium mb-2">Start the conversation</h3>
+              <p className="text-muted-foreground">
+                Send your first message to get started!
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Typing Indicator - Positioned above input */}
+      {typingUsers.length > 0 && (
+        <div className="flex-none px-4 pb-2">
+          <div className="flex gap-3">
+            <Avatar className="h-8 w-8 flex-shrink-0">
+              <AvatarImage src={conversation.creator_profile?.avatar_url} />
+              <AvatarFallback>
+                {getInitials(conversation.creator_profile?.display_name, conversation.creator_profile?.username)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 max-w-sm">
+              <div className="inline-block p-3 rounded-lg bg-muted">
+                <div className="flex items-center gap-1">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  </div>
+                  <span className="text-xs text-muted-foreground ml-2">Typing...</span>
+                </div>
               </div>
             </div>
-          )}
-          
-          <div className="space-y-4 pb-4 max-w-4xl mx-auto">
-            {messages.length === 0 && !loadingMoreMessages ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">Start the conversation</h3>
-                <p className="text-muted-foreground">
-                  Send your first message to get started!
-                </p>
-              </div>
-            ) : (
-              messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex gap-3 px-4 ${
-                    message.sender_id === user.id ? 'justify-end' : 'justify-start'
-                  }`}
-                >
-                  {message.sender_id !== user.id && (
-                    <Avatar className="h-8 w-8 flex-shrink-0">
-                      <AvatarImage src={conversation.creator_profile?.avatar_url} />
-                      <AvatarFallback>
-                        {getInitials(conversation.creator_profile?.display_name, conversation.creator_profile?.username)}
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                  <div className={`flex-1 max-w-sm ${message.sender_id === user.id ? 'text-right' : ''}`}>
-                    <div
-                      className={`inline-block p-3 rounded-lg ${
-                        message.sender_id === user.id
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
-                      }`}
-                     >
-                       <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                     </div>
-                     <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                       <span>{formatTime(message.created_at)}</span>
-                       {getDeliveryStatusIcon(message)}
-                     </div>
-                  </div>
-                </div>
-              ))
-            )}
-            <div ref={messagesEndRef} />
-            
-            {/* Typing Indicator */}
-            {typingUsers.length > 0 && (
-              <div className="flex gap-3 px-4 mb-4">
-                <Avatar className="h-8 w-8 flex-shrink-0">
-                  <AvatarImage src={conversation.creator_profile?.avatar_url} />
-                  <AvatarFallback>
-                    {getInitials(conversation.creator_profile?.display_name, conversation.creator_profile?.username)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 max-w-sm">
-                  <div className="inline-block p-3 rounded-lg bg-muted">
-                    <div className="flex items-center gap-1">
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                      </div>
-                      <span className="text-xs text-muted-foreground ml-2">Typing...</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
-      </div>
+      )}
       
       {/* Fixed Input Area - Always at bottom */}
       <div className="flex-none h-[81px] p-4 border-t border-border bg-background">
