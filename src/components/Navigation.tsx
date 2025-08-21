@@ -34,7 +34,8 @@ import {
   Star,
   Grid,
   List,
-  Settings
+  Settings,
+  Brain
 } from 'lucide-react';
 import { ContentIcon } from './icons/ContentIcon';
 import { CreatorProfileDialog } from '@/components/CreatorProfileDialog';
@@ -159,7 +160,7 @@ export const Navigation = () => {
   const getCurrentSection = (): 'fans' | 'content' | 'management' | null => {
     if (location.pathname.startsWith('/fans')) return 'fans';
     if (location.pathname === '/library' || location.pathname === '/upload') return 'content';
-    if (location.pathname.startsWith('/management') || location.pathname === '/ai-management') return 'management';
+    if (location.pathname.startsWith('/management')) return 'management';
     return null;
   };
 
@@ -237,7 +238,7 @@ export const Navigation = () => {
       case 'content':
         return location.pathname === '/library' || location.pathname === '/upload';
       case 'management':
-        return location.pathname.startsWith('/management') || location.pathname === '/ai-management';
+        return location.pathname.startsWith('/management');
       default:
         return false;
     }
@@ -335,6 +336,28 @@ export const Navigation = () => {
               </li>
             );
           })}
+          
+          {/* AI Management - standalone button for non-fan users */}
+          {!isFan && (
+            <li>
+              <Link
+                to="/ai-management"
+                className={`flex items-center rounded-lg transition-smooth ${
+                  isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
+                } ${
+                  isActive('/ai-management') 
+                    ? isCollapsed 
+                      ? 'bg-primary/20 text-primary' 
+                      : 'bg-primary/10 text-primary border border-primary/20'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                }`}
+                title={isCollapsed ? 'AI Management' : undefined}
+              >
+                <Brain className="h-5 w-5 flex-shrink-0" />
+                {!isCollapsed && <span>AI Management</span>}
+              </Link>
+            </li>
+          )}
           
           {/* Show expanded menus only for management users */}
           {!isFan && (
@@ -580,41 +603,30 @@ export const Navigation = () => {
                     <UserIcon className="h-5 w-5 flex-shrink-0" />
                   </Link>
                 </HoverCardTrigger>
-                <HoverCardContent side="right" className="w-48 p-2 ml-2" sideOffset={8}>
-                  <div className="space-y-1">
-                    <div className="px-2 py-1 text-sm font-medium text-foreground border-b border-border mb-2">
-                      Management
-                    </div>
-                    <CreatorProfileDialog>
-                      <button className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth w-full text-left text-muted-foreground hover:text-foreground hover:bg-secondary/50">
-                        <UserIcon className="h-4 w-4" />
-                        <span>Creator Profile</span>
-                      </button>
-                    </CreatorProfileDialog>
-                    <Link
-                      to="/ai-management"
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
-                        location.pathname === '/ai-management'
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                      }`}
-                    >
-                      <Settings className="h-4 w-4" />
-                      <span>AI Management</span>
-                    </Link>
-                    <Link
-                      to="/management/users"
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
-                        location.pathname === '/management/users'
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                      }`}
-                    >
-                      <Users className="h-4 w-4" />
-                      <span>Users</span>
-                    </Link>
-                  </div>
-                </HoverCardContent>
+                 <HoverCardContent side="right" className="w-48 p-2 ml-2" sideOffset={8}>
+                   <div className="space-y-1">
+                     <div className="px-2 py-1 text-sm font-medium text-foreground border-b border-border mb-2">
+                       Management
+                     </div>
+                     <CreatorProfileDialog>
+                       <button className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth w-full text-left text-muted-foreground hover:text-foreground hover:bg-secondary/50">
+                         <UserIcon className="h-4 w-4" />
+                         <span>Creator Profile</span>
+                       </button>
+                     </CreatorProfileDialog>
+                     <Link
+                       to="/management/users"
+                       className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
+                         location.pathname === '/management/users'
+                           ? 'bg-primary/10 text-primary'
+                           : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                       }`}
+                     >
+                       <Users className="h-4 w-4" />
+                       <span>Users</span>
+                     </Link>
+                   </div>
+                 </HoverCardContent>
               </HoverCard>
             ) : (
               <Collapsible open={openSection === 'management'} onOpenChange={() => handleSectionToggle('management')}>
@@ -636,36 +648,25 @@ export const Navigation = () => {
                   </div>
                 </CollapsibleTrigger>
                 
-                <CollapsibleContent className="mt-1 space-y-1">
-                  <CreatorProfileDialog>
-                    <button className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth w-full text-left text-muted-foreground hover:text-foreground hover:bg-secondary/50">
-                      <UserIcon className="h-4 w-4" />
-                      <span>Creator Profile</span>
-                    </button>
-                  </CreatorProfileDialog>
-                  <Link
-                    to="/ai-management"
-                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
-                      location.pathname === '/ai-management'
-                        ? 'bg-primary/3 text-primary/90'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                    }`}
-                  >
-                    <Settings className="h-4 w-4" />
-                    <span>AI Management</span>
-                  </Link>
-                  <Link
-                    to="/management/users"
-                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
-                      location.pathname === '/management/users'
-                        ? 'bg-primary/3 text-primary/90'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                    }`}
-                  >
-                    <Users className="h-4 w-4" />
-                    <span>Users</span>
-                  </Link>
-                </CollapsibleContent>
+                 <CollapsibleContent className="mt-1 space-y-1">
+                   <CreatorProfileDialog>
+                     <button className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth w-full text-left text-muted-foreground hover:text-foreground hover:bg-secondary/50">
+                       <UserIcon className="h-4 w-4" />
+                       <span>Creator Profile</span>
+                     </button>
+                   </CreatorProfileDialog>
+                   <Link
+                     to="/management/users"
+                     className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
+                       location.pathname === '/management/users'
+                         ? 'bg-primary/3 text-primary/90'
+                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                     }`}
+                   >
+                     <Users className="h-4 w-4" />
+                     <span>Users</span>
+                   </Link>
+                 </CollapsibleContent>
               </Collapsible>
             )}
            </li>
