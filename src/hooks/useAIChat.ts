@@ -12,8 +12,7 @@ export function useAIChat() {
     conversationId: string,
     message: string,
     mode: string = 'friendly_chat',
-    provider: string = 'openai',
-    model: string = 'gpt-4o-mini'
+    model: string = 'grok-2'
   ): Promise<string | null> => {
     setIsProcessing(true);
     
@@ -31,9 +30,8 @@ export function useAIChat() {
         .eq('conversation_id', conversationId)
         .single();
 
-      const functionName = provider === 'xai' ? 'xai-chat-assistant' : 'ai-chat-assistant';
-      
-      const { data, error } = await supabase.functions.invoke(functionName, {
+      // Always use xAI
+      const { data, error } = await supabase.functions.invoke('xai-chat-assistant', {
         body: {
           fanId,
           conversationId,
@@ -46,20 +44,12 @@ export function useAIChat() {
       });
 
       if (error) throw error;
-
-      if (provider === 'xai') {
-        return data.response;
-      } else {
-        if (!data.success) {
-          throw new Error(data.error || 'AI response generation failed');
-        }
-        return data.reply;
-      }
+      return data.response;
     } catch (error) {
-      console.error('Error generating AI response:', error);
+      console.error('AI response error:', error);
       toast({
         title: "AI Error",
-        description: "Failed to generate AI response. Please try again.",
+        description: "Failed to generate AI response",
         variant: "destructive",
       });
       return null;
@@ -73,10 +63,7 @@ export function useAIChat() {
     conversationId: string,
     message: string,
     mode: string = 'friendly_chat',
-    provider: string = 'openai',
-    model: string = 'gpt-4o-mini',
-    onTypingStart?: () => void,
-    onTypingEnd?: () => void,
+    model: string = 'grok-2',
     onResponse?: (response: string) => void
   ): Promise<void> => {
     setIsProcessing(true);
@@ -95,9 +82,8 @@ export function useAIChat() {
         .eq('conversation_id', conversationId)
         .single();
 
-      const functionName = provider === 'xai' ? 'xai-chat-assistant' : 'ai-chat-assistant';
-      
-      const { data, error } = await supabase.functions.invoke(functionName, {
+      // Always use xAI
+      const { data, error } = await supabase.functions.invoke('xai-chat-assistant', {
         body: {
           fanId,
           conversationId,
@@ -111,71 +97,67 @@ export function useAIChat() {
 
       if (error) throw error;
 
-      let reply;
-      let typingDelay = 2; // Default typing delay
+      const reply = data.response;
+      const typingDelay = Math.min(Math.max(reply.length / 50, 1), 5);
 
-      if (provider === 'xai') {
-        reply = data.response;
-        // Calculate typing delay based on response length for xAI
-        typingDelay = Math.min(Math.max(reply.length / 50, 1), 5);
-      } else {
-        if (!data.success) {
-          throw new Error(data.error || 'AI response generation failed');
-        }
-        reply = data.reply;
-        typingDelay = data.typingDelay;
-      }
-
-      // Start typing simulation if enabled
+      // Simulate typing if enabled in settings
       if (aiSettings?.typing_simulation_enabled) {
         setIsTyping(true);
-        onTypingStart?.();
-
-        // Wait for typing delay
-        await new Promise(resolve => setTimeout(resolve, typingDelay * 1000));
-
-        // Stop typing and send response
+        
+        await new Promise(resolve => {
+          setTimeout(resolve, typingDelay * 1000);
+        });
+        
         setIsTyping(false);
-        onTypingEnd?.();
       }
-      
-      onResponse?.(reply);
 
+      // Send AI response
+      await sendAIMessage(conversationId, reply);
+      
+      if (onResponse) {
+        onResponse(reply);
+      }
     } catch (error) {
-      console.error('Error generating AI response:', error);
-      setIsTyping(false);
-      onTypingEnd?.();
+      console.error('AI response with typing error:', error);
       toast({
         title: "AI Error",
-        description: "Failed to generate AI response. Please try again.",
+        description: "Failed to generate AI response",
         variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
+      setIsTyping(false);
     }
   };
 
-  const sendAIMessage = async (
-    conversationId: string,
-    content: string,
-    senderId: string
-  ): Promise<boolean> => {
+  const sendAIMessage = async (conversationId: string, content: string): Promise<void> => {
     try {
+      // Get the conversation to find the management user (sender)
+      const { data: conversation } = await supabase
+        .from('conversations')
+        .select('creator_id')
+        .eq('id', conversationId)
+        .single();
+
+      if (!conversation) {
+        throw new Error('Conversation not found');
+      }
+
+      // Insert AI message
       const { error } = await supabase
         .from('messages')
-        .insert([{
+        .insert({
           conversation_id: conversationId,
-          content,
-          sender_id: senderId,
-          message_type: 'text',
-          status: 'active'
-        }]);
+          sender_id: conversation.creator_id, // Management user sends AI responses
+          content: content,
+          status: 'active',
+          delivered_at: new Date().toISOString()
+        });
 
       if (error) throw error;
-      return true;
     } catch (error) {
       console.error('Error sending AI message:', error);
-      return false;
+      throw error;
     }
   };
 

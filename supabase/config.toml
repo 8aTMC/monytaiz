@@ -1,8 +1,5 @@
 project_id = "alzyzfjzwvofmjccirjq"
 
-[functions.ai-chat-assistant]
-verify_jwt = true
-
 [functions.xai-chat-assistant]
 verify_jwt = true
 

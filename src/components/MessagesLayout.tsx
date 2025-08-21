@@ -386,15 +386,13 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
         setTimeout(async () => {
           try {
             const fanId = isCreator ? activeConversation.fan_id : activeConversation.creator_id;
-            const provider = aiSettings.provider || 'openai';
-            const model = aiSettings.model || (provider === 'xai' ? 'grok-2' : 'gpt-4o-mini');
+            const model = aiSettings.model || 'grok-2';
             
             await generateAIResponseWithTyping(
               fanId,
               activeConversation.id,
               messageContent,
               aiSettings.current_mode || 'friendly_chat',
-              provider,
               model
             );
           } catch (aiError) {
