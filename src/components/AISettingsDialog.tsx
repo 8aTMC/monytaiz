@@ -25,8 +25,8 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
     current_mode: 'friendly_chat' as 'friendly_chat' | 'supportive_nudges' | 'comeback_mode' | 'intimate_flirt' | 'autopilot',
     auto_response_enabled: false,
     typing_simulation_enabled: true,
-    provider: 'openai' as 'openai',
-    model: 'gpt-4o' as string
+    provider: 'xai' as 'xai',
+    model: 'grok-2-1212' as string
   });
 
   const modes = [
@@ -83,8 +83,8 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
           current_mode: data.current_mode,
           auto_response_enabled: data.auto_response_enabled,
           typing_simulation_enabled: data.typing_simulation_enabled,
-          provider: 'openai' as 'openai',
-          model: 'gpt-4o'
+          provider: 'xai' as 'xai',
+          model: data.model || 'grok-2-1212'
         });
       }
     } catch (error) {
