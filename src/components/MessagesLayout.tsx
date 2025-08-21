@@ -649,7 +649,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   };
 
   const actionButtons = [
-    { icon: Bot, label: 'AI Assistant', color: 'text-purple-500' },
+    { icon: Bot, label: 'AI', color: 'text-purple-500' },
     { icon: Smile, label: 'Emoji', color: 'text-amber-500' },
     { icon: Library, label: 'Library', color: 'text-blue-500' },
     { icon: Mic, label: 'Voice', color: 'text-purple-500' },
@@ -953,10 +953,10 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                     size="sm"
                     onClick={() => setShowAISettingsDialog(true)}
                     className="flex items-center gap-1 px-2 py-1 h-8 text-xs bg-gradient-to-r from-primary/10 to-secondary/10 hover:from-primary/20 hover:to-secondary/20 rounded-full border border-primary/20"
-                    title={`AI Assistant${aiSettings?.is_ai_enabled ? ' (ON)' : ' (OFF)'}`}
+                    title={`AI${aiSettings?.is_ai_enabled ? ' (ON)' : ' (OFF)'}`}
                   >
                     <Bot className={`w-3 h-3 ${aiSettings?.is_ai_enabled ? 'text-green-500' : 'text-purple-500'}`} />
-                    <span>AI Assistant</span>
+                    <span>AI</span>
                     {isProcessing && <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse ml-1" />}
                   </Button>
                   
