@@ -150,7 +150,7 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
     };
   }, [conversationId, userId]);
 
-  // Refresh typing users every second to clear stale states
+  // Refresh typing users every 500ms to clear stale states more frequently
   useEffect(() => {
     if (!conversationId) return;
     
@@ -165,14 +165,20 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
         const presences = state[presenceUserId] as PresencePayload[];
         const presence = presences[0];
         
-        // Only include users whose typing hasn't expired
-        if (presence?.typingUntil && presence.typingUntil > now && presence.userId !== userId) {
+        // Only include users whose typing hasn't expired and is not the current user
+        if (presence?.typingUntil && presence.typingUntil > now && presence.userId && presence.userId !== userId) {
           currentTypingUsers.push(presence.userId);
         }
       });
       
-      setTypingUsers(currentTypingUsers);
-    }, 1000);
+      // Only update if there's a change to prevent unnecessary re-renders
+      setTypingUsers(prev => {
+        if (prev.length === currentTypingUsers.length && prev.every(id => currentTypingUsers.includes(id))) {
+          return prev;
+        }
+        return currentTypingUsers;
+      });
+    }, 500);
 
     return () => {
       if (refreshIntervalRef.current) {
@@ -181,28 +187,26 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
     };
   }, [conversationId, userId]);
 
-  // Cleanup on unmount, blur, or visibility change
+  // Cleanup on unmount and visibility change (but don't clean on blur to avoid interrupting typing)
   useEffect(() => {
-    const handleCleanup = () => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && isTyping) {
+        stopTyping();
+      }
+    };
+
+    const handleBeforeUnload = () => {
       if (isTyping) {
         stopTyping();
       }
     };
 
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        handleCleanup();
-      }
-    };
-
-    window.addEventListener('beforeunload', handleCleanup);
-    window.addEventListener('blur', handleCleanup);
+    window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      window.removeEventListener('beforeunload', handleCleanup);
-      window.removeEventListener('blur', handleCleanup);
-      document.removeEventListener('visibilitychange', handleCleanup);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       
       // Final cleanup
       if (typingTimeoutRef.current) {

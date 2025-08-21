@@ -68,8 +68,11 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
     scrollToBottom();
   }, [messages]);
 
+  // Load conversation only once when component mounts
   useEffect(() => {
-    loadConversation();
+    if (user && !conversation) {
+      loadConversation();
+    }
   }, [user]);
 
   useEffect(() => {
@@ -274,8 +277,10 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
       setMessagesOffset(data?.length || 0);
       setHasMoreMessages((data?.length || 0) === MESSAGES_PER_PAGE);
       
-      // Scroll to bottom for initial load
-      setTimeout(() => scrollToBottom(), 100);
+      // Only scroll to bottom on initial load, not when returning from tab switch
+      if (messages.length === 0) {
+        setTimeout(() => scrollToBottom(), 100);
+      }
     } catch (error) {
       console.error('Error loading messages:', error);
       toast({
