@@ -42,7 +42,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { messages, temperature = 0.7, model = 'grok-4' } = requestBody;
+    const { messages, temperature = 0.7, model = 'grok-2-1212' } = requestBody;
     
     if (!messages || !Array.isArray(messages)) {
       console.error('grok-chat: Invalid messages format:', messages);
