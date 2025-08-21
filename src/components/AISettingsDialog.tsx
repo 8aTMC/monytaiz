@@ -25,8 +25,8 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
     current_mode: 'friendly_chat' as 'friendly_chat' | 'supportive_nudges' | 'comeback_mode' | 'intimate_flirt' | 'autopilot',
     auto_response_enabled: false,
     typing_simulation_enabled: true,
-    provider: 'monytaiz' as 'monytaiz',
-    model: 'monytaiz-pro' as string
+    provider: 'openai' as 'openai',
+    model: 'gpt-4o' as string
   });
 
   const modes = [
@@ -62,8 +62,6 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
     }
   ];
 
-  const availableModels = ['monytaiz-pro', 'monytaiz-standard', 'monytaiz-lite'];
-
   useEffect(() => {
     if (open && conversationId) {
       loadSettings();
@@ -85,8 +83,8 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
           current_mode: data.current_mode,
           auto_response_enabled: data.auto_response_enabled,
           typing_simulation_enabled: data.typing_simulation_enabled,
-          provider: 'monytaiz' as 'monytaiz',
-          model: data.model || 'monytaiz-pro'
+          provider: 'openai' as 'openai',
+          model: 'gpt-4o'
         });
       }
     } catch (error) {
@@ -189,31 +187,6 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
 
             {settings.is_ai_enabled && (
               <>
-                {/* Model Selection */}
-                <div className="space-y-3">
-                  <Label>AI Model</Label>
-                  <Select 
-                    value={settings.model} 
-                    onValueChange={(value) => 
-                      setSettings(prev => ({ ...prev, model: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableModels.map((model) => (
-                        <SelectItem key={model} value={model}>
-                          {model}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Advanced AI models optimized for NSFW content and engaging conversations
-                  </p>
-                </div>
-
                 {/* Mode Selection */}
                 <div className="space-y-3">
                   <Label>Conversation Mode</Label>
