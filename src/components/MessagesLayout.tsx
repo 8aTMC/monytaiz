@@ -20,6 +20,8 @@ import { AddCardDialog } from '@/components/AddCardDialog';
 import { AIPersonaDialog } from '@/components/AIPersonaDialog';
 import { AISettingsDialog } from '@/components/AISettingsDialog';
 import { FanNotesManager } from '@/components/FanNotesManager';
+import { GlobalAIControl } from '@/components/GlobalAIControl';
+import { MessageFilters, FilterType } from '@/components/MessageFilters';
 import { useMessageFileUpload } from '@/hooks/useMessageFileUpload';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useAIChat } from '@/hooks/useAIChat';
@@ -41,7 +43,8 @@ import {
   Check,
   CheckCheck,
   Bot,
-  AtSign
+  AtSign,
+  Pin
 } from 'lucide-react';
 
 interface Message {
@@ -76,6 +79,8 @@ interface Conversation {
   };
   latest_message?: string;
   total_spent?: number;
+  is_pinned?: boolean;
+  has_ai_active?: boolean;
 }
 
 interface MessagesLayoutProps {
@@ -93,6 +98,8 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [globalAIActive, setGlobalAIActive] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showAddCardDialog, setShowAddCardDialog] = useState(false);
   const [showAIPersonaDialog, setShowAIPersonaDialog] = useState(false);
@@ -654,17 +661,32 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
         <div className="flex-none p-4 border-b border-border">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Messages</h2>
-            <Button variant="ghost" size="icon">
-              <Settings className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <GlobalAIControl 
+                isActive={globalAIActive}
+                onToggle={setGlobalAIActive}
+              />
+              <Button variant="ghost" size="icon">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search conversations..."
-              className="pl-10"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search conversations..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <MessageFilters
+              activeFilter={activeFilter}
+              onFilterChange={setActiveFilter}
+              aiChatCount={conversations.filter(c => c.has_ai_active).length}
+              pinnedCount={conversations.filter(c => c.is_pinned).length}
+              unreadCount={conversations.filter(c => c.unread_count > 0).length}
             />
           </div>
         </div>
