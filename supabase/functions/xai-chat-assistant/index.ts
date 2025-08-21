@@ -260,20 +260,34 @@ serve(async (req) => {
     if (isServerSideCall && creatorId) {
       console.log('📨 Sending AI messages to database...');
       
-      // Send each message part with realistic delays
+      // Send each message part with realistic delays and typing indicators
       for (let i = 0; i < messages.length; i++) {
         const messagePart = messages[i];
         
         if (!messagePart || typeof messagePart !== 'string') continue;
         
-        // Calculate realistic typing delay for this message part
+        // Calculate realistic typing delay for this message part (slower speed)
         const wordCount = messagePart.split(' ').length;
-        const baseTypingDelay = Math.max(wordCount / 0.8, 1.5);
-        const typingDelay = baseTypingDelay + (Math.random() * 2);
+        const baseTypingDelay = Math.max(wordCount / 0.4, 2.5); // Slower: 0.4 words per second
+        const typingDelay = baseTypingDelay + (Math.random() * 3); // More random variation
         
-        // Add delay between messages (except for the first one)
-        if (i > 0) {
+        console.log(`⌨️ Simulating typing for ${typingDelay.toFixed(1)}s for message: "${messagePart}"`);
+        
+        // Simulate typing indicator by broadcasting presence
+        try {
+          const channel = supabase.channel(`realtime.conversation.${conversationId}`);
+          const typingUntil = Date.now() + (typingDelay * 1000);
+          await channel.track({ userId: creatorId, typingUntil });
+          await channel.subscribe();
+          
+          // Wait for typing delay to simulate realistic typing
           await new Promise(resolve => setTimeout(resolve, typingDelay * 1000));
+          
+          // Stop typing indicator by removing typingUntil
+          await channel.track({ userId: creatorId });
+          await channel.unsubscribe();
+        } catch (presenceError) {
+          console.log('⚠️ Could not simulate typing indicator:', presenceError);
         }
         
         // Insert AI message into database
@@ -294,9 +308,9 @@ serve(async (req) => {
 
         console.log('✅ Sent AI message part', i + 1, 'of', messages.length);
         
-        // Short pause between messages (except for the last one)
+        // Longer pause between messages for more natural feel
         if (i < messages.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+          await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000)); // 1-3 second pause
         }
       }
 
