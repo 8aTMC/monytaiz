@@ -158,7 +158,17 @@ body::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
 
-/* Hide scrollbars for chat areas */
+/* Hide scrollbars for specific components */
+.scrollarea-viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollarea-viewport {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Hide scrollbars for chat messages only */
 div[aria-label="Chat messages"]::-webkit-scrollbar {
   display: none;
 }

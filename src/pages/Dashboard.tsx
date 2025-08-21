@@ -72,43 +72,32 @@ const Platform = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-background">
-        <div className="animate-pulse">
-          {/* Skeleton Navigation */}
-          <div className="w-64 h-full bg-card border-r border-border"></div>
+      <div className="max-w-7xl mx-auto min-w-[700px] p-8 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="mb-8">
+          <div className="h-8 w-64 bg-muted rounded mb-2"></div>
+          <div className="h-4 w-96 bg-muted/60 rounded"></div>
         </div>
         
-        <main className="flex-1 pt-[73px]">
-          <ScrollArea className="h-[calc(100vh-73px)] w-full">
-            <div className="max-w-7xl mx-auto min-w-[700px] p-8 animate-pulse">
-            {/* Header Skeleton */}
-            <div className="mb-8">
-              <div className="h-8 w-64 bg-muted rounded mb-2"></div>
-              <div className="h-4 w-96 bg-muted/60 rounded"></div>
-            </div>
-            
-            {/* Quick Actions Skeleton */}
-            <div className="mb-8 flex gap-4">
-              <div className="h-12 w-32 bg-muted rounded"></div>
-              <div className="h-12 w-28 bg-muted/60 rounded"></div>
-              <div className="h-12 w-24 bg-muted/60 rounded"></div>
-            </div>
-            
-            {/* Stats Grid Skeleton */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-24 bg-card border border-border rounded-lg"></div>
-              ))}
-            </div>
-            
-            {/* Content Grid Skeleton */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="h-64 bg-card border border-border rounded-lg"></div>
-              <div className="h-64 bg-card border border-border rounded-lg"></div>
-              </div>
-            </div>
-          </ScrollArea>
-        </main>
+        {/* Quick Actions Skeleton */}
+        <div className="mb-8 flex gap-4">
+          <div className="h-12 w-32 bg-muted rounded"></div>
+          <div className="h-12 w-28 bg-muted/60 rounded"></div>
+          <div className="h-12 w-24 bg-muted/60 rounded"></div>
+        </div>
+        
+        {/* Stats Grid Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-24 bg-card border border-border rounded-lg"></div>
+          ))}
+        </div>
+        
+        {/* Content Grid Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="h-64 bg-card border border-border rounded-lg"></div>
+          <div className="h-64 bg-card border border-border rounded-lg"></div>
+        </div>
       </div>
     );
   }

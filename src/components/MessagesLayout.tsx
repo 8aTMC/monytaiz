@@ -624,9 +624,9 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen bg-background">
       {/* Conversation Sidebar */}
-      <div className="w-80 border-r border-border bg-background flex-shrink-0 h-screen overflow-hidden">
+      <div className="w-80 border-r border-border bg-background flex-shrink-0">
         <div className="h-full flex flex-col">
           {/* Header */}
           <div className="flex-none p-4 border-b border-border">
@@ -665,8 +665,8 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
           </div>
 
           {/* Conversations List */}
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <ScrollArea className="h-full">
+          <div className="flex-1 min-h-0">
+            <ScrollArea className="h-full scrollarea-viewport">
               <div className="p-2">
                 {filteredConversations.map((conversation) => {
                   const profile = getProfileForConversation(conversation);
@@ -924,11 +924,11 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
       {/* Fan Insights Sidebar */}
       {activeConversation && isCreator && (
-        <div className="w-80 border-l border-border bg-background flex-shrink-0 h-screen overflow-hidden">
-          <div className="p-4 h-full flex flex-col overflow-hidden">
+        <div className="w-80 border-l border-border bg-background flex-shrink-0">
+          <div className="p-4 h-full flex flex-col">
             <h3 className="font-semibold mb-4">Fan Insights</h3>
             
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1 scrollarea-viewport">
               <div className="space-y-4 px-3">
                 {/* Subscription Status */}
                 <Card>
