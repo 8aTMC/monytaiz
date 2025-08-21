@@ -1,11 +1,17 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.55.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Initialize Supabase client with service role key for full access
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -34,30 +40,118 @@ serve(async (req) => {
 
     const body = await req.json();
     const { 
+      creatorId,
       fanId,
       conversationId, 
+      messageText,
       message, 
       fanMemories, 
       aiSettings, 
       mode = 'friendly_chat', 
-      model = 'grok-2' 
+      model = 'grok-4' 
     } = body;
+
+    // Use messageText if provided (new format), otherwise fall back to message (old format)
+    const userMessage = messageText || message;
 
     console.log('📝 Request params:', {
       conversationId,
-      messageLength: message?.length || 0,
+      messageLength: userMessage?.length || 0,
       mode,
       model,
       hasMemories: fanMemories?.length > 0,
-      aiSettingsEnabled: !!aiSettings
+      aiSettingsEnabled: !!aiSettings,
+      creatorId,
+      fanId
     });
 
-    if (!conversationId || !message) {
+    if (!conversationId || !userMessage) {
       console.error('❌ Missing required parameters');
       return new Response(JSON.stringify({ error: 'Missing conversation ID or message' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
+    }
+
+    // If this is a server-side call with creatorId, check AI settings and send messages automatically
+    const isServerSideCall = !!creatorId;
+    
+    if (isServerSideCall) {
+      console.log('🤖 Server-side AI processing mode');
+      
+      // Get global AI settings first (master switch)
+      const { data: globalSettings, error: globalError } = await supabase
+        .from('global_ai_settings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (globalError) {
+        console.log('⚠️ Global AI settings error:', globalError.message);
+      }
+
+      console.log('🌍 Global AI Settings:', globalSettings);
+
+      // Check if global AI is disabled
+      if (!globalSettings?.enabled) {
+        console.log('❌ Global AI is disabled, skipping response');
+        return new Response(
+          JSON.stringify({ skipped: true, reason: 'global-ai-disabled' }), 
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Check if global timer has expired
+      if (globalSettings?.end_time) {
+        const now = new Date();
+        const endTime = new Date(globalSettings.end_time);
+        if (now >= endTime) {
+          console.log('⏰ Global timer expired, skipping response');
+          return new Response(
+            JSON.stringify({ skipped: true, reason: 'global-timer-expired' }), 
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+
+      // Get conversation-specific AI settings
+      const { data: conversationSettings, error: convError } = await supabase
+        .from('ai_conversation_settings')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .maybeSingle();
+
+      if (convError) {
+        console.log('⚠️ Conversation AI settings error:', convError.message);
+      }
+
+      console.log('💬 Conversation AI Settings:', conversationSettings);
+
+      // Check conversation-level settings
+      if (conversationSettings && !conversationSettings.is_ai_enabled) {
+        console.log('❌ Conversation AI is disabled, skipping response');
+        return new Response(
+          JSON.stringify({ skipped: true, reason: 'conversation-ai-disabled' }), 
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (conversationSettings && !conversationSettings.auto_response_enabled) {
+        console.log('❌ Auto-response is disabled for this conversation, skipping response');
+        return new Response(
+          JSON.stringify({ skipped: true, reason: 'auto-response-disabled' }), 
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Override mode and model from conversation settings
+      if (conversationSettings?.current_mode) {
+        mode = conversationSettings.current_mode;
+      }
+      if (conversationSettings?.model) {
+        model = conversationSettings.model;
+      }
     }
 
     // Build system prompt based on mode
@@ -89,7 +183,7 @@ serve(async (req) => {
       model: model === 'grok-4' ? 'grok-4' : model,
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: message }
+        { role: 'user', content: userMessage }
       ],
       stream: false,
       temperature: 0.8,
@@ -161,12 +255,68 @@ serve(async (req) => {
 
     console.log('💬 Split into messages:', messages);
 
-    return new Response(JSON.stringify({ 
-      response: messages.length > 0 ? messages : [content]
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    // If this is a server-side call, send the messages to the database automatically
+    if (isServerSideCall && creatorId) {
+      console.log('📨 Sending AI messages to database...');
+      
+      // Send each message part with realistic delays
+      for (let i = 0; i < messages.length; i++) {
+        const messagePart = messages[i];
+        
+        if (!messagePart || typeof messagePart !== 'string') continue;
+        
+        // Calculate realistic typing delay for this message part
+        const wordCount = messagePart.split(' ').length;
+        const baseTypingDelay = Math.max(wordCount / 0.8, 1.5);
+        const typingDelay = baseTypingDelay + (Math.random() * 2);
+        
+        // Add delay between messages (except for the first one)
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, typingDelay * 1000));
+        }
+        
+        // Insert AI message into database
+        const { error: insertError } = await supabase
+          .from('messages')
+          .insert({
+            conversation_id: conversationId,
+            sender_id: creatorId, // Creator sends AI responses
+            content: messagePart,
+            status: 'active',
+            delivered_at: new Date().toISOString()
+          });
+
+        if (insertError) {
+          console.error('❌ Error inserting AI message:', insertError);
+          throw insertError;
+        }
+
+        console.log('✅ Sent AI message part', i + 1, 'of', messages.length);
+        
+        // Short pause between messages (except for the last one)
+        if (i < messages.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+        }
+      }
+
+      console.log('🎉 AI processing complete - messages sent to database');
+      return new Response(JSON.stringify({ 
+        success: true, 
+        messagesCount: messages.length,
+        originalReply: content 
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } else {
+      // Client-side call - return messages for UI to handle
+      return new Response(JSON.stringify({ 
+        response: messages.length > 0 ? messages : [content]
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
   } catch (err) {
     console.error('💥 Edge function error:', err?.message || err);

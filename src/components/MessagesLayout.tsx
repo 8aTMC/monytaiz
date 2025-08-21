@@ -327,31 +327,34 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
               
               // Check if AI should respond to this fan message (only for creators)
               if (isCreator && activeConversation.fan_id === newMessage.sender_id) {
-                // Import and use the centralized AI service
-                import('@/ai/service').then(({ handleIncomingMessage }) => {
-                  setTimeout(async () => {
-                    try {
-                      const result = await handleIncomingMessage({
+                // Call the server-side edge function for AI processing
+                setTimeout(async () => {
+                  try {
+                    console.log('🤖 Calling server-side AI processing...');
+                    const { data, error } = await supabase.functions.invoke('xai-chat-assistant', {
+                      body: {
                         creatorId: user.id, // Current user is the creator
                         conversationId: activeConversation.id,
-                        isCreator: true,
                         fanId: activeConversation.fan_id,
-                        text: newMessage.content
-                      });
+                        messageText: newMessage.content
+                      },
+                    });
 
-                      if (result.skipped) {
-                        // AI was blocked or failed
-                        return;
-                      }
-                      
-                      // TypeScript now knows result is { skipped: false; reply: string }
-                      const aiResult = result as { skipped: false; reply: string };
-                      await processAIReply(aiResult.reply, activeConversation.id);
-                    } catch (error) {
-                      console.error('AI processing error:', error);
+                    if (error) {
+                      console.error('❌ AI processing error:', error);
+                      return;
                     }
-                  }, 1000 + Math.random() * 2000); // Random delay between 1-3 seconds
-                });
+
+                    if (data?.skipped) {
+                      console.log('ℹ️ AI response skipped:', data.reason);
+                      return;
+                    }
+
+                    console.log('✅ AI processing completed:', data);
+                  } catch (error) {
+                    console.error('💥 AI edge function error:', error);
+                  }
+                }, 1000 + Math.random() * 2000); // Random delay between 1-3 seconds
               }
             }
           }
