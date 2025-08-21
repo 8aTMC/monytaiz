@@ -98,7 +98,7 @@ export const FileUploadRow = ({
               {getStatusIcon(item.status)}
               
               {/* Upload control buttons */}
-              {item.status === 'uploading' && (
+              {(item.status === 'uploading' || item.status === 'paused') && (
                 <>
                   {item.isPaused ? (
                     <Button
