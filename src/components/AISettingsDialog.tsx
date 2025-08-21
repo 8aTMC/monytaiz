@@ -25,8 +25,8 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
     current_mode: 'friendly_chat' as 'friendly_chat' | 'supportive_nudges' | 'comeback_mode' | 'intimate_flirt' | 'autopilot',
     auto_response_enabled: false,
     typing_simulation_enabled: true,
-    provider: 'xai' as 'xai',
-    model: 'grok-4' as string
+    provider: 'monytaiz' as 'monytaiz',
+    model: 'monytaiz-pro' as string
   });
 
   const modes = [
@@ -62,7 +62,7 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
     }
   ];
 
-  const availableModels = ['grok-4', 'grok-2', 'grok-beta'];
+  const availableModels = ['monytaiz-pro', 'monytaiz-standard', 'monytaiz-lite'];
 
   useEffect(() => {
     if (open && conversationId) {
@@ -85,8 +85,8 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
           current_mode: data.current_mode,
           auto_response_enabled: data.auto_response_enabled,
           typing_simulation_enabled: data.typing_simulation_enabled,
-          provider: 'xai' as 'xai',
-          model: data.model || 'grok-4'
+          provider: 'monytaiz' as 'monytaiz',
+          model: data.model || 'monytaiz-pro'
         });
       }
     } catch (error) {
@@ -153,7 +153,7 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
          <DialogHeader>
            <DialogTitle className="flex items-center gap-2">
              <Bot className="h-5 w-5" />
-             xAI Assistant Settings
+             Monytaiz AI Assistant Settings
            </DialogTitle>
            <DialogDescription>
              Configure AI assistant settings for this conversation.
@@ -169,9 +169,9 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
             {/* AI Enable Toggle */}
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <Label>xAI Assistant (Grok)</Label>
+                <Label>Monytaiz AI Assistant</Label>
                 <p className="text-sm text-muted-foreground">
-                  Enable NSFW-friendly AI responses powered by Grok
+                  Enable NSFW-friendly AI responses powered by advanced AI
                 </p>
               </div>
               <Switch
@@ -191,7 +191,7 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
               <>
                 {/* Model Selection */}
                 <div className="space-y-3">
-                  <Label>Grok Model</Label>
+                  <Label>AI Model</Label>
                   <Select 
                     value={settings.model} 
                     onValueChange={(value) => 
@@ -210,7 +210,7 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Grok models are NSFW-friendly and known for wit and real-time knowledge
+                    Advanced AI models optimized for NSFW content and engaging conversations
                   </p>
                 </div>
 

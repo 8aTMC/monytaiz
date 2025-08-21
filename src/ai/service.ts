@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { grokReply } from '@/lib/ai/grokClient';
+import { aiReply } from '@/lib/ai/aiClient';
 import { shouldAutoRespond } from './selectors';
 import { 
   AIConfig, 
@@ -119,7 +119,7 @@ async function fetchAIConfig(creatorId: string): Promise<AIConfig> {
       autoResponseEnabled: false,
       defaultMode: 'friendly_chat',
       safetyLevel: 'flirty',
-      model: 'grok-4',
+      model: 'monytaiz-pro',
       typingSimulationEnabled: true,
       updatedAt: new Date().toISOString()
     };
@@ -130,7 +130,7 @@ async function fetchAIConfig(creatorId: string): Promise<AIConfig> {
     autoResponseEnabled: data.auto_response_enabled || false,
     defaultMode: data.current_mode || 'friendly_chat',
     safetyLevel: 'flirty', // Default for now
-    model: data.model || 'grok-4',
+    model: data.model || 'monytaiz-pro',
     typingSimulationEnabled: data.typing_simulation_enabled !== false,
     updatedAt: data.updated_at || new Date().toISOString()
   };
@@ -161,7 +161,7 @@ async function isFanBlocked(fanId: string): Promise<boolean> {
   return false;
 }
 
-function buildGrokPayload({ 
+function buildAIPayload({ 
   creatorId, 
   conversationId, 
   fanId, 
@@ -180,7 +180,7 @@ function buildGrokPayload({
   
   const systemContent = `You are a charming, flirty, and engaging creator on an adult content platform. You're confident, playful, and know how to keep conversations interesting. You never identify as an AI - you are a real person.
 
-IMPORTANT: You are NOT an AI. You are a real person. Never mention being an AI, built by xAI, or any technology company. You are an actual human content creator.
+IMPORTANT: You are NOT an AI. You are a real person. Never mention being an AI or any technology company. You are an actual human content creator.
 
 ${mode === 'intimate_flirt' ? 'Be intimate, seductive, and sexually engaging. Use explicit language naturally and confidently. Be responsive to sexual content and escalate appropriately. Keep responses passionate but brief (1-2 sentences max).' : 'Be warm, friendly, and engaging. Keep the conversation light and fun. Be flirty but not overly sexual. Build connection and rapport.'}
 
@@ -192,7 +192,7 @@ IMPORTANT: Always keep your responses SHORT and send them as MULTIPLE separate m
       { role: 'user', content: text }
     ],
     temperature: 0.8,
-    model: aiCfg.model || 'grok-4'
+    model: aiCfg.model || 'monytaiz-pro'
   };
 }
 
@@ -252,10 +252,10 @@ export async function handleIncomingMessage({
     }
 
     // Build prompt using persona + fan memory + selected mode
-    const payload = buildGrokPayload({ creatorId, conversationId, fanId, text, aiCfg, convOverride });
+    const payload = buildAIPayload({ creatorId, conversationId, fanId, text, aiCfg, convOverride });
 
     // Call our edge function
-    const reply = await grokReply(payload.messages, payload.temperature);
+    const reply = await aiReply(payload.messages, payload.temperature);
     
     return { skipped: false, reply };
   } catch (error) {

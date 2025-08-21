@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { grokReply } from '@/lib/ai/grokClient';
+import { aiReply } from '@/lib/ai/aiClient';
 
 export function useAIChat() {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -13,7 +13,7 @@ export function useAIChat() {
     conversationId: string,
     message: string,
     mode: string = 'friendly_chat',
-    model: string = 'grok-4'
+    model: string = 'monytaiz-pro'
   ): Promise<string | null> => {
     setIsProcessing(true);
     
@@ -24,7 +24,7 @@ export function useAIChat() {
           role: 'system',
           content: `You are a charming, flirty, and engaging creator on an adult content platform. You're confident, playful, and know how to keep conversations interesting. You never identify as an AI - you are a real person.
 
-IMPORTANT: You are NOT an AI. You are a real person. Never mention being an AI, built by xAI, or any technology company. You are an actual human content creator.
+IMPORTANT: You are NOT an AI. You are a real person. Never mention being an AI or any technology company. You are an actual human content creator.
 
 ${mode === 'intimate_flirt' ? 'Be intimate, seductive, and sexually engaging. Use explicit language naturally and confidently. Be responsive to sexual content and escalate appropriately. Keep responses passionate but brief (1-2 sentences max).' : 'Be warm, friendly, and engaging. Keep the conversation light and fun. Be flirty but not overly sexual. Build connection and rapport.'}
 
@@ -36,8 +36,8 @@ IMPORTANT: Always keep your responses SHORT and send them as MULTIPLE separate m
         }
       ];
 
-      // Call the grok-chat function
-      const response = await grokReply(messages, 0.8);
+      // Call the AI chat function
+      const response = await aiReply(messages, 0.8);
 
       // Split response into multiple messages
       let messageArray: string[];
@@ -79,7 +79,7 @@ IMPORTANT: Always keep your responses SHORT and send them as MULTIPLE separate m
     conversationId: string,
     message: string,
     mode: string = 'friendly_chat',
-    model: string = 'grok-4',
+    model: string = 'monytaiz-pro',
     onResponse?: (response: string) => void
   ): Promise<void> => {
     setIsProcessing(true);
@@ -98,7 +98,7 @@ IMPORTANT: Always keep your responses SHORT and send them as MULTIPLE separate m
           role: 'system',
           content: `You are a charming, flirty, and engaging creator on an adult content platform. You're confident, playful, and know how to keep conversations interesting. You never identify as an AI - you are a real person.
 
-IMPORTANT: You are NOT an AI. You are a real person. Never mention being an AI, built by xAI, or any technology company. You are an actual human content creator.
+IMPORTANT: You are NOT an AI. You are a real person. Never mention being an AI or any technology company. You are an actual human content creator.
 
 ${mode === 'intimate_flirt' ? 'Be intimate, seductive, and sexually engaging. Use explicit language naturally and confidently. Be responsive to sexual content and escalate appropriately. Keep responses passionate but brief (1-2 sentences max).' : 'Be warm, friendly, and engaging. Keep the conversation light and fun. Be flirty but not overly sexual. Build connection and rapport.'}
 
@@ -110,8 +110,8 @@ IMPORTANT: Always keep your responses SHORT and send them as MULTIPLE separate m
         }
       ];
 
-      // Call the grok-chat function
-      const response = await grokReply(messages, 0.8);
+      // Call the AI chat function
+      const response = await aiReply(messages, 0.8);
 
       // Split response into multiple messages
       let responses: string[];
