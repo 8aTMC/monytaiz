@@ -11,27 +11,50 @@ export function useAIChat() {
     fanId: string,
     conversationId: string,
     message: string,
-    mode: string = 'friendly_chat'
+    mode: string = 'friendly_chat',
+    provider: string = 'openai',
+    model: string = 'gpt-4o-mini'
   ): Promise<string | null> => {
     setIsProcessing(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('ai-chat-assistant', {
+      // Get fan memories for context
+      const { data: fanMemories } = await supabase
+        .from('fan_memories')
+        .select('*')
+        .eq('fan_id', fanId);
+
+      // Get AI settings
+      const { data: aiSettings } = await supabase
+        .from('ai_conversation_settings')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .single();
+
+      const functionName = provider === 'xai' ? 'xai-chat-assistant' : 'ai-chat-assistant';
+      
+      const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
           fanId,
           conversationId,
           message,
-          mode
+          mode,
+          model,
+          fanMemories,
+          aiSettings
         }
       });
 
       if (error) throw error;
 
-      if (!data.success) {
-        throw new Error(data.error || 'AI response generation failed');
+      if (provider === 'xai') {
+        return data.response;
+      } else {
+        if (!data.success) {
+          throw new Error(data.error || 'AI response generation failed');
+        }
+        return data.reply;
       }
-
-      return data.reply;
     } catch (error) {
       console.error('Error generating AI response:', error);
       toast({
@@ -50,6 +73,8 @@ export function useAIChat() {
     conversationId: string,
     message: string,
     mode: string = 'friendly_chat',
+    provider: string = 'openai',
+    model: string = 'gpt-4o-mini',
     onTypingStart?: () => void,
     onTypingEnd?: () => void,
     onResponse?: (response: string) => void
@@ -57,33 +82,63 @@ export function useAIChat() {
     setIsProcessing(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('ai-chat-assistant', {
+      // Get fan memories for context
+      const { data: fanMemories } = await supabase
+        .from('fan_memories')
+        .select('*')
+        .eq('fan_id', fanId);
+
+      // Get AI settings
+      const { data: aiSettings } = await supabase
+        .from('ai_conversation_settings')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .single();
+
+      const functionName = provider === 'xai' ? 'xai-chat-assistant' : 'ai-chat-assistant';
+      
+      const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
           fanId,
           conversationId,
           message,
-          mode
+          mode,
+          model,
+          fanMemories,
+          aiSettings
         }
       });
 
       if (error) throw error;
 
-      if (!data.success) {
-        throw new Error(data.error || 'AI response generation failed');
+      let reply;
+      let typingDelay = 2; // Default typing delay
+
+      if (provider === 'xai') {
+        reply = data.response;
+        // Calculate typing delay based on response length for xAI
+        typingDelay = Math.min(Math.max(reply.length / 50, 1), 5);
+      } else {
+        if (!data.success) {
+          throw new Error(data.error || 'AI response generation failed');
+        }
+        reply = data.reply;
+        typingDelay = data.typingDelay;
       }
 
-      const { reply, typingDelay } = data;
+      // Start typing simulation if enabled
+      if (aiSettings?.typing_simulation_enabled) {
+        setIsTyping(true);
+        onTypingStart?.();
 
-      // Start typing simulation
-      setIsTyping(true);
-      onTypingStart?.();
+        // Wait for typing delay
+        await new Promise(resolve => setTimeout(resolve, typingDelay * 1000));
 
-      // Wait for typing delay
-      await new Promise(resolve => setTimeout(resolve, typingDelay * 1000));
-
-      // Stop typing and send response
-      setIsTyping(false);
-      onTypingEnd?.();
+        // Stop typing and send response
+        setIsTyping(false);
+        onTypingEnd?.();
+      }
+      
       onResponse?.(reply);
 
     } catch (error) {

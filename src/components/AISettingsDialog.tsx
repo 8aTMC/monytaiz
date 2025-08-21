@@ -21,7 +21,9 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
     is_ai_enabled: false,
     current_mode: 'friendly_chat' as 'friendly_chat' | 'supportive_nudges' | 'comeback_mode' | 'intimate_flirt' | 'autopilot',
     auto_response_enabled: false,
-    typing_simulation_enabled: true
+    typing_simulation_enabled: true,
+    provider: 'openai' as 'openai' | 'xai',
+    model: 'gpt-4o-mini' as string
   });
   const [loading, setLoading] = useState(false);
   const [loadingSettings, setLoadingSettings] = useState(true);
@@ -35,28 +37,43 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
       color: "bg-blue-100 text-blue-800"
     },
     { 
-      value: "supportive_nudges", 
-      label: "Supportive Nudges", 
-      description: "Encouraging with gentle suggestions for tips/purchases",
-      color: "bg-green-100 text-green-800"
-    },
-    { 
-      value: "comeback_mode", 
-      label: "Comeback Mode", 
-      description: "Re-engage inactive fans with playful energy",
-      color: "bg-purple-100 text-purple-800"
-    },
-    { 
-      value: "intimate_flirt", 
-      label: "Intimate Flirt", 
-      description: "Seductive, playful interactions with romantic tension",
+      value: "flirty_chat", 
+      label: "Flirty Chat", 
+      description: "Playful, flirtatious interactions with charm and wit",
       color: "bg-pink-100 text-pink-800"
     },
     { 
-      value: "autopilot", 
-      label: "AutoPilot", 
-      description: "AI automatically chooses the best strategy",
-      color: "bg-orange-100 text-orange-800"
+      value: "roleplay", 
+      label: "Roleplay", 
+      description: "Immersive roleplay scenarios and character interactions",
+      color: "bg-purple-100 text-purple-800"
+    },
+    { 
+      value: "girlfriend_experience", 
+      label: "Girlfriend Experience", 
+      description: "Caring, loving interactions like a real girlfriend",
+      color: "bg-red-100 text-red-800"
+    },
+    { 
+      value: "professional", 
+      label: "Professional", 
+      description: "Helpful and knowledgeable while maintaining boundaries",
+      color: "bg-green-100 text-green-800"
+    }
+  ];
+
+  const providers = [
+    { 
+      value: "openai", 
+      label: "OpenAI", 
+      description: "GPT models - great for general conversation",
+      models: ["gpt-4o-mini", "gpt-4o", "gpt-4"]
+    },
+    { 
+      value: "xai", 
+      label: "xAI (Grok)", 
+      description: "Grok models - witty, real-time aware responses",
+      models: ["grok-4", "grok-3", "grok-2"]  
     }
   ];
 
@@ -80,7 +97,9 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
           is_ai_enabled: data.is_ai_enabled,
           current_mode: data.current_mode,
           auto_response_enabled: data.auto_response_enabled,
-          typing_simulation_enabled: data.typing_simulation_enabled
+          typing_simulation_enabled: data.typing_simulation_enabled,
+          provider: data.provider || 'openai',
+          model: data.model || 'gpt-4o-mini'
         });
       }
     } catch (error) {
@@ -136,6 +155,8 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
   };
 
   const selectedMode = modes.find(m => m.value === settings.current_mode);
+  const selectedProvider = providers.find(p => p.value === settings.provider);
+  const availableModels = selectedProvider?.models || [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -171,6 +192,65 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
 
             {settings.is_ai_enabled && (
               <>
+                {/* Provider Selection */}
+                <div className="space-y-3">
+                  <Label>AI Provider</Label>
+                  <Select 
+                    value={settings.provider} 
+                    onValueChange={(value) => {
+                      const newProvider = value as 'openai' | 'xai';
+                      const defaultModel = providers.find(p => p.value === newProvider)?.models[0] || 'gpt-4o-mini';
+                      setSettings(prev => ({ 
+                        ...prev, 
+                        provider: newProvider,
+                        model: defaultModel
+                      }));
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {providers.map((provider) => (
+                        <SelectItem key={provider.value} value={provider.value}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{provider.label}</span>
+                            <span className="text-xs text-muted-foreground">{provider.description}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Model Selection */}
+                <div className="space-y-3">
+                  <Label>Model</Label>
+                  <Select 
+                    value={settings.model} 
+                    onValueChange={(value) => 
+                      setSettings(prev => ({ ...prev, model: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableModels.map((model) => (
+                        <SelectItem key={model} value={model}>
+                          {model}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {settings.provider === 'xai' 
+                      ? 'Grok models are known for wit and real-time knowledge'
+                      : 'GPT models excel at general conversation and creativity'
+                    }
+                  </p>
+                </div>
+
                 {/* Mode Selection */}
                 <div className="space-y-3">
                   <Label>Conversation Mode</Label>
