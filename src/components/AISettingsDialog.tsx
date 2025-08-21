@@ -98,7 +98,7 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
           current_mode: data.current_mode,
           auto_response_enabled: data.auto_response_enabled,
           typing_simulation_enabled: data.typing_simulation_enabled,
-          provider: data.provider || 'openai',
+          provider: (data.provider || 'openai') as 'openai' | 'xai',
           model: data.model || 'gpt-4o-mini'
         });
       }

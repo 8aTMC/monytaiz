@@ -22,6 +22,8 @@ export type Database = {
           current_mode: Database["public"]["Enums"]["ai_conversation_mode"]
           id: string
           is_ai_enabled: boolean
+          model: string | null
+          provider: string | null
           typing_simulation_enabled: boolean
           updated_at: string
         }
@@ -32,6 +34,8 @@ export type Database = {
           current_mode?: Database["public"]["Enums"]["ai_conversation_mode"]
           id?: string
           is_ai_enabled?: boolean
+          model?: string | null
+          provider?: string | null
           typing_simulation_enabled?: boolean
           updated_at?: string
         }
@@ -42,6 +46,8 @@ export type Database = {
           current_mode?: Database["public"]["Enums"]["ai_conversation_mode"]
           id?: string
           is_ai_enabled?: boolean
+          model?: string | null
+          provider?: string | null
           typing_simulation_enabled?: boolean
           updated_at?: string
         }

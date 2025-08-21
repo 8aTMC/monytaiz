@@ -121,6 +121,28 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   // Initialize AI chat hook
   const { generateAIResponseWithTyping, sendAIMessage, isProcessing, isTyping } = useAIChat();
 
+  // Load AI settings when conversation changes
+  const loadAISettings = async (conversationId: string) => {
+    try {
+      const { data } = await supabase
+        .from('ai_conversation_settings')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .single();
+      
+      setAiSettings(data);
+    } catch (error) {
+      console.error('Error loading AI settings:', error);
+      setAiSettings(null);
+    }
+  };
+
+  useEffect(() => {
+    if (activeConversation?.id) {
+      loadAISettings(activeConversation.id);
+    }
+  }, [activeConversation?.id]);
+
 
   const scrollToBottom = () => {
     setTimeout(() => {

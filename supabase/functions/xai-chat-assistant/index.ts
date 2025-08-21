@@ -113,7 +113,7 @@ serve(async (req) => {
         systemPrompt += 'Engage in immersive roleplay. Stay completely in character and respond to scenarios naturally.';
         break;
       case 'girlfriend_experience':
-        systemPromot += 'Act like a caring, loving girlfriend. Be supportive, affectionate, and emotionally available.';
+        systemPrompt += 'Act like a caring, loving girlfriend. Be supportive, affectionate, and emotionally available.';
         break;
       case 'professional':
         systemPrompt += 'Maintain a professional but warm demeanor. Be helpful and knowledgeable while staying personable.';

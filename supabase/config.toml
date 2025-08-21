@@ -1,5 +1,11 @@
 project_id = "alzyzfjzwvofmjccirjq"
 
+[functions.ai-chat-assistant]
+verify_jwt = true
+
+[functions.xai-chat-assistant]
+verify_jwt = true
+
 [functions.cleanup-deleted-users]
 verify_jwt = true
 
@@ -19,4 +25,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.verify-user-email]
+verify_jwt = true
+
+[functions.delete-pending-user]
 verify_jwt = true
