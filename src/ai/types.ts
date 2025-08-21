@@ -33,15 +33,26 @@ export type AIResponseResult =
   | { skipped: true; reason: string }
   | { skipped: false; reply: string };
 
-export interface ShouldAutoRespondInput {
-  isCreator: boolean;
-  aiCfg?: { aiEnabled: boolean; autoResponseEnabled: boolean };
-  convOverride?: { disabled?: boolean };
-  isMuted?: boolean;
-  fanBlocked?: boolean;
-}
 
 export interface ShouldAutoRespondResult {
   ok: boolean;
   reason?: string;
+}
+
+export interface GlobalAISettings {
+  enabled: boolean;
+  mode: string;
+  endTime: string | null;
+  hoursRemaining: number;
+  timerType: 'hours' | 'endTime';
+  updatedAt: string;
+}
+
+export interface ShouldAutoRespondInput {
+  isCreator: boolean;
+  globalSettings?: GlobalAISettings;
+  aiCfg?: { aiEnabled: boolean; autoResponseEnabled: boolean };
+  convOverride?: { disabled?: boolean };
+  isMuted?: boolean;
+  fanBlocked?: boolean;
 }

@@ -6,12 +6,14 @@ import {
   ConversationOverride, 
   CachedConfig, 
   MessageQueueItem, 
-  AIResponseResult 
+  AIResponseResult,
+  GlobalAISettings 
 } from './types';
 
 // In-memory cache with stale-while-revalidate
 const aiConfigCache = new Map<string, CachedConfig<AIConfig>>();
 const conversationOverrideCache = new Map<string, CachedConfig<ConversationOverride>>();
+const globalSettingsCache: CachedConfig<GlobalAISettings> = { data: null, status: 'idle' };
 const messageQueue = new Map<string, MessageQueueItem>();
 
 const CACHE_TTL = 30000; // 30 seconds
@@ -151,6 +153,70 @@ async function fetchConversationOverride(conversationId: string): Promise<Conver
   };
 }
 
+export async function getGlobalAISettings(): Promise<GlobalAISettings | undefined> {
+  const now = Date.now();
+  
+  // Return cached data if fresh or loading
+  if (globalSettingsCache.status === 'loading') {
+    try {
+      return await globalSettingsCache.promise;
+    } catch {
+      return undefined;
+    }
+  }
+  
+  if (globalSettingsCache.data && globalSettingsCache.lastFetched && (now - globalSettingsCache.lastFetched) < CACHE_TTL) {
+    return globalSettingsCache.data;
+  }
+
+  // Set loading state
+  const promise = fetchGlobalSettings();
+  globalSettingsCache.status = 'loading';
+  globalSettingsCache.promise = promise;
+
+  try {
+    const data = await promise;
+    globalSettingsCache.data = data;
+    globalSettingsCache.status = 'success';
+    globalSettingsCache.lastFetched = now;
+    return data;
+  } catch (error) {
+    globalSettingsCache.status = 'error';
+    globalSettingsCache.lastFetched = now;
+    return undefined;
+  }
+}
+
+async function fetchGlobalSettings(): Promise<GlobalAISettings> {
+  const { data } = await supabase
+    .from('global_ai_settings')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) {
+    // Default config if none exists
+    return {
+      enabled: false,
+      mode: 'auto',
+      endTime: null,
+      hoursRemaining: 0,
+      timerType: 'hours',
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  return {
+    enabled: data.enabled || false,
+    mode: data.mode || 'auto',
+    endTime: data.end_time || null,
+    hoursRemaining: data.hours_remaining || 0,
+    timerType: data.timer_type as 'hours' | 'endTime' || 'hours',
+    updatedAt: data.updated_at || new Date().toISOString()
+  };
+}
+
 async function isConversationMuted(conversationId: string): Promise<boolean> {
   // TODO: implement conversation muting logic
   return false;
@@ -223,7 +289,11 @@ export async function handleIncomingMessage({
 
   try {
     // Wait for settings with timeout
-    const [aiCfg, convOverride] = await Promise.all([
+    const [globalSettings, aiCfg, convOverride] = await Promise.all([
+      Promise.race([
+        getGlobalAISettings(),
+        new Promise<undefined>(resolve => setTimeout(() => resolve(undefined), QUEUE_TIMEOUT))
+      ]),
       Promise.race([
         getAIConfig(creatorId),
         new Promise<undefined>(resolve => setTimeout(() => resolve(undefined), QUEUE_TIMEOUT))
@@ -236,6 +306,7 @@ export async function handleIncomingMessage({
 
     const { ok, reason } = shouldAutoRespond({
       isCreator,
+      globalSettings,
       aiCfg,
       convOverride,
       isMuted: await isConversationMuted(conversationId),
@@ -276,7 +347,14 @@ export function invalidateConversationOverride(conversationId: string) {
   conversationOverrideCache.delete(conversationId);
 }
 
+export function invalidateGlobalSettings() {
+  globalSettingsCache.data = null;
+  globalSettingsCache.status = 'idle';
+  globalSettingsCache.lastFetched = undefined;
+}
+
 export function clearAICache() {
   aiConfigCache.clear();
   conversationOverrideCache.clear();
+  invalidateGlobalSettings();
 }

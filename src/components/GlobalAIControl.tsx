@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Bot, Timer } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { invalidateGlobalSettings } from '@/ai/service';
 
 interface GlobalAIControlProps {
   isActive: boolean;
@@ -30,13 +32,28 @@ export const GlobalAIControl = ({ isActive, onToggle }: GlobalAIControlProps) =>
     loadGlobalSettings();
   }, []);
 
-  const loadGlobalSettings = () => {
-    // Load settings from localStorage for now
-    const stored = localStorage.getItem('global_ai_settings');
-    if (stored) {
-      const settings = JSON.parse(stored);
-      setGlobalSettings(settings);
-      onToggle(settings.enabled);
+  const loadGlobalSettings = async () => {
+    try {
+      const { data } = await supabase
+        .from('global_ai_settings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (data) {
+        const settings = {
+          enabled: data.enabled || false,
+          mode: data.mode || 'auto',
+          endTime: data.end_time || '',
+          hoursRemaining: data.hours_remaining || 0,
+          timerType: data.timer_type as 'hours' | 'endTime' || 'hours'
+        };
+        setGlobalSettings(settings);
+        onToggle(settings.enabled);
+      }
+    } catch (error) {
+      console.error('Error loading global AI settings:', error);
     }
   };
 
@@ -53,14 +70,26 @@ export const GlobalAIControl = ({ isActive, onToggle }: GlobalAIControlProps) =>
         calculatedEndTime = new Date(globalSettings.endTime);
       }
 
-      const settingsToSave = {
-        ...globalSettings,
-        calculatedEndTime: calculatedEndTime?.toISOString(),
-        updated_at: now.toISOString()
-      };
+      // First delete any existing settings
+      await supabase.from('global_ai_settings').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
-      // Store in localStorage for now
-      localStorage.setItem('global_ai_settings', JSON.stringify(settingsToSave));
+      // Insert new settings
+      const { error } = await supabase
+        .from('global_ai_settings')
+        .insert({
+          enabled: globalSettings.enabled,
+          mode: globalSettings.mode,
+          end_time: calculatedEndTime?.toISOString() || null,
+          hours_remaining: globalSettings.hoursRemaining,
+          timer_type: globalSettings.timerType
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      // Invalidate cache to force refresh
+      invalidateGlobalSettings();
 
       onToggle(globalSettings.enabled);
       setOpen(false);
@@ -82,22 +111,31 @@ export const GlobalAIControl = ({ isActive, onToggle }: GlobalAIControlProps) =>
   };
 
   const getRemainingTime = () => {
-    const stored = localStorage.getItem('global_ai_settings');
-    if (!stored) return null;
+    if (globalSettings.timerType === 'hours' && globalSettings.hoursRemaining > 0) {
+      const now = new Date();
+      const end = new Date(now.getTime() + (globalSettings.hoursRemaining * 60 * 60 * 1000));
+      const diff = end.getTime() - now.getTime();
+      
+      if (diff <= 0) return 'Expired';
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      
+      return `${hours}h ${minutes}m`;
+    } else if (globalSettings.timerType === 'endTime' && globalSettings.endTime) {
+      const now = new Date();
+      const end = new Date(globalSettings.endTime);
+      const diff = end.getTime() - now.getTime();
+      
+      if (diff <= 0) return 'Expired';
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      
+      return `${hours}h ${minutes}m`;
+    }
     
-    const settings = JSON.parse(stored);
-    if (!settings.calculatedEndTime) return null;
-    
-    const now = new Date();
-    const end = new Date(settings.calculatedEndTime);
-    const diff = end.getTime() - now.getTime();
-    
-    if (diff <= 0) return 'Expired';
-    
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
-    return `${hours}h ${minutes}m`;
+    return null;
   };
 
   return (
