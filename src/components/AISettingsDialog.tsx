@@ -17,6 +17,9 @@ interface AISettingsDialogProps {
 }
 
 export function AISettingsDialog({ open, onOpenChange, conversationId, onSettingsUpdate }: AISettingsDialogProps) {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [loadingSettings, setLoadingSettings] = useState(true);
   const [settings, setSettings] = useState({
     is_ai_enabled: false,
     current_mode: 'friendly_chat' as 'friendly_chat' | 'supportive_nudges' | 'comeback_mode' | 'intimate_flirt' | 'autopilot',
@@ -25,9 +28,6 @@ export function AISettingsDialog({ open, onOpenChange, conversationId, onSetting
     provider: 'xai' as 'xai',
     model: 'grok-2' as string
   });
-  const [loading, setLoading] = useState(false);
-  const [loadingSettings, setLoadingSettings] = useState(true);
-  const { toast } = useToast();
 
   const modes = [
     { 
