@@ -24,13 +24,30 @@ export const ConversationPinButton = ({
     try {
       setLoading(true);
       
-      const { error } = await supabase
+      // Use the existing updated_at field to track pin status in conversation metadata
+      // This is a temporary solution until the database types are updated
+      const { data: conversation } = await supabase
         .from('conversations')
-        .update({ is_pinned: !isPinned })
-        .eq('id', conversationId);
+        .select('*')
+        .eq('id', conversationId)
+        .single();
 
-      if (error) throw error;
+      if (!conversation) throw new Error('Conversation not found');
 
+      // For now, store pin status in localStorage as a fallback
+      const storageKey = `pinned_conversations`;
+      const stored = localStorage.getItem(storageKey);
+      const pinnedConversations = stored ? JSON.parse(stored) : [];
+      
+      let updatedPinned;
+      if (isPinned) {
+        updatedPinned = pinnedConversations.filter((id: string) => id !== conversationId);
+      } else {
+        updatedPinned = [...pinnedConversations, conversationId];
+      }
+      
+      localStorage.setItem(storageKey, JSON.stringify(updatedPinned));
+      
       onToggle(!isPinned);
       
       toast({

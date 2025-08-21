@@ -192,6 +192,7 @@ export type Database = {
           fan_id: string
           id: string
           is_active: boolean
+          is_pinned: boolean | null
           last_message_at: string | null
           latest_message_content: string | null
           latest_message_sender_id: string | null
@@ -207,6 +208,7 @@ export type Database = {
           fan_id: string
           id?: string
           is_active?: boolean
+          is_pinned?: boolean | null
           last_message_at?: string | null
           latest_message_content?: string | null
           latest_message_sender_id?: string | null
@@ -222,6 +224,7 @@ export type Database = {
           fan_id?: string
           id?: string
           is_active?: boolean
+          is_pinned?: boolean | null
           last_message_at?: string | null
           latest_message_content?: string | null
           latest_message_sender_id?: string | null
@@ -288,6 +291,36 @@ export type Database = {
           updated_at?: string
           username?: string | null
           website_url?: string | null
+        }
+        Relationships: []
+      }
+      fan_lists: {
+        Row: {
+          color: string
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -436,6 +469,39 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
           watermark_applied?: boolean | null
+        }
+        Relationships: []
+      }
+      global_ai_settings: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          end_time: string | null
+          hours_remaining: number | null
+          id: string
+          mode: string
+          timer_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          end_time?: string | null
+          hours_remaining?: number | null
+          id?: string
+          mode?: string
+          timer_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          end_time?: string | null
+          hours_remaining?: number | null
+          id?: string
+          mode?: string
+          timer_type?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -952,6 +1018,30 @@ export type Database = {
           created_at?: string
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_message_filters: {
+        Row: {
+          created_at: string
+          filter_list_ids: string[] | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          filter_list_ids?: string[] | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          filter_list_ids?: string[] | null
+          id?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

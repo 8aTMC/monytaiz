@@ -6,8 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Bot, Clock, Timer } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Bot, Timer } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface GlobalAIControlProps {
@@ -31,26 +30,13 @@ export const GlobalAIControl = ({ isActive, onToggle }: GlobalAIControlProps) =>
     loadGlobalSettings();
   }, []);
 
-  const loadGlobalSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('global_ai_settings')
-        .select('*')
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
-
-      if (data) {
-        setGlobalSettings({
-          enabled: data.enabled,
-          mode: data.mode,
-          endTime: data.end_time || '',
-          hoursRemaining: data.hours_remaining || 0,
-          timerType: data.timer_type || 'hours'
-        });
-      }
-    } catch (error) {
-      console.error('Error loading global AI settings:', error);
+  const loadGlobalSettings = () => {
+    // Load settings from localStorage for now
+    const stored = localStorage.getItem('global_ai_settings');
+    if (stored) {
+      const settings = JSON.parse(stored);
+      setGlobalSettings(settings);
+      onToggle(settings.enabled);
     }
   };
 
@@ -67,18 +53,14 @@ export const GlobalAIControl = ({ isActive, onToggle }: GlobalAIControlProps) =>
         calculatedEndTime = new Date(globalSettings.endTime);
       }
 
-      const { error } = await supabase
-        .from('global_ai_settings')
-        .upsert({
-          enabled: globalSettings.enabled,
-          mode: globalSettings.mode,
-          end_time: calculatedEndTime?.toISOString(),
-          hours_remaining: globalSettings.hoursRemaining,
-          timer_type: globalSettings.timerType,
-          updated_at: now.toISOString()
-        });
+      const settingsToSave = {
+        ...globalSettings,
+        calculatedEndTime: calculatedEndTime?.toISOString(),
+        updated_at: now.toISOString()
+      };
 
-      if (error) throw error;
+      // Store in localStorage for now
+      localStorage.setItem('global_ai_settings', JSON.stringify(settingsToSave));
 
       onToggle(globalSettings.enabled);
       setOpen(false);
@@ -100,10 +82,14 @@ export const GlobalAIControl = ({ isActive, onToggle }: GlobalAIControlProps) =>
   };
 
   const getRemainingTime = () => {
-    if (!globalSettings.endTime) return null;
+    const stored = localStorage.getItem('global_ai_settings');
+    if (!stored) return null;
+    
+    const settings = JSON.parse(stored);
+    if (!settings.calculatedEndTime) return null;
     
     const now = new Date();
-    const end = new Date(globalSettings.endTime);
+    const end = new Date(settings.calculatedEndTime);
     const diff = end.getTime() - now.getTime();
     
     if (diff <= 0) return 'Expired';

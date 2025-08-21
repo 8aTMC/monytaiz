@@ -21,6 +21,7 @@ import { AIPersonaDialog } from '@/components/AIPersonaDialog';
 import { AISettingsDialog } from '@/components/AISettingsDialog';
 import { FanNotesManager } from '@/components/FanNotesManager';
 import { GlobalAIControl } from '@/components/GlobalAIControl';
+import { ConversationPinButton } from '@/components/ConversationPinButton';
 import { MessageFilters, FilterType } from '@/components/MessageFilters';
 import { useMessageFileUpload } from '@/hooks/useMessageFileUpload';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
@@ -358,6 +359,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     }
   }, [activeConversation?.id]); // Only depend on conversation ID, not the whole object
 
+  // Load conversations with pin status and AI status
   const loadConversations = async () => {
     try {
       setLoading(true);
@@ -400,6 +402,9 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
       if (error) throw error;
       
+      // Load pin status from localStorage
+      const pinnedConversations = JSON.parse(localStorage.getItem('pinned_conversations') || '[]');
+      
       // Process conversations to add fallback data and get actual latest message
       const processedConversations = await Promise.all(
         (data || []).map(async (conv) => {
@@ -413,6 +418,13 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             .limit(1)
             .single();
 
+          // Check if AI is active for this conversation
+          const { data: aiSettings } = await supabase
+            .from('ai_conversation_settings')
+            .select('is_ai_enabled')
+            .eq('conversation_id', conv.id)
+            .single();
+
           return {
             ...conv,
             latest_message: latestMessage?.content || conv.latest_message_content || '',
@@ -420,6 +432,8 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             latest_message_sender_id: latestMessage?.sender_id || conv.latest_message_sender_id || '',
             total_spent: 0, // Real data - will be updated when purchases are implemented
             unread_count: conv.unread_count || 0,
+            is_pinned: pinnedConversations.includes(conv.id),
+            has_ai_active: aiSettings?.is_ai_enabled || false,
           };
         })
       );
@@ -533,10 +547,31 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     }
   };
 
-  const filteredConversations = conversations.filter(conv => {
-    const profile = isCreator ? conv.fan_profile : conv.creator_profile;
-    const name = profile?.display_name || profile?.username || '';
-    return name.toLowerCase().includes(searchQuery.toLowerCase());
+  // Filter conversations based on active filter
+  const filteredConversations = conversations.filter((conversation) => {
+    // First apply text search filter
+    const profile = getProfileForConversation(conversation);
+    const searchTerm = searchQuery.toLowerCase();
+    const matchesSearch = !searchQuery || 
+      profile?.display_name?.toLowerCase().includes(searchTerm) ||
+      profile?.username?.toLowerCase().includes(searchTerm) ||
+      conversation.latest_message_content?.toLowerCase().includes(searchTerm);
+
+    if (!matchesSearch) return false;
+
+    // Then apply active filter
+    switch (activeFilter) {
+      case 'all':
+        return true;
+      case 'ai':
+        return conversation.has_ai_active;
+      case 'pinned':
+        return conversation.is_pinned;
+      case 'unread':
+        return conversation.unread_count > 0;
+      default:
+        return true;
+    }
   });
 
   const getProfileForConversation = (conv: Conversation) => {
@@ -742,9 +777,24 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                             <span className="text-xs text-muted-foreground">
                               {formatDate(conversation.last_message_at)}
                             </span>
-                            <span className="text-xs font-medium text-primary">
-                              ${conversation.total_spent || 0}
-                            </span>
+                            <div className="flex items-center gap-1 mt-1">
+                              <span className="text-xs font-medium text-primary">
+                                ${conversation.total_spent || 0}
+                              </span>
+                              <ConversationPinButton
+                                conversationId={conversation.id}
+                                isPinned={conversation.is_pinned || false}
+                                onToggle={(pinned) => {
+                                  setConversations(prev => 
+                                    prev.map(conv => 
+                                      conv.id === conversation.id 
+                                        ? { ...conv, is_pinned: pinned }
+                                        : conv
+                                    )
+                                  );
+                                }}
+                              />
+                            </div>
                           </div>
                         </div>
                         <p className={`text-xs truncate mt-1 ${

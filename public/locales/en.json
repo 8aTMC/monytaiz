@@ -96,6 +96,42 @@
       "previousUsernames": "Previous Usernames",
       "changedFrom": "Changed from",
       "loading": "Loading"
+    },
+    "messages": {
+      "filters": {
+        "all": "All",
+        "ai": "AI",
+        "pinned": "Pinned",
+        "unread": "Unread",
+        "addFilter": "Add Filter"
+      },
+      "globalAI": {
+        "title": "Global AI Assistant",
+        "enableAutopilot": "Enable Global AI Autopilot",
+        "mode": "AI Mode",
+        "modeAuto": "Auto (AI decides approach)",
+        "modeFriendly": "Friendly Chat",
+        "modeIntimate": "Intimate/Flirty",
+        "timerSettings": "Timer Settings (Max 24 hours)",
+        "setDuration": "Set duration (hours)",
+        "setEndTime": "Set end time",
+        "remaining": "Remaining",
+        "save": "Save",
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "autopilotOn": "AI autopilot is now ON",
+        "autopilotOff": "AI autopilot is now OFF",
+        "settingsUpdated": "Global AI Settings Updated"
+      },
+      "pin": {
+        "pinConversation": "Pin conversation",
+        "unpinConversation": "Unpin conversation",
+        "pinned": "Pinned",
+        "unpinned": "Unpinned",
+        "pinnedSuccess": "Conversation pinned successfully",
+        "unpinnedSuccess": "Conversation unpinned successfully",
+        "error": "Failed to toggle pin status"
+      }
     }
   }
 }
