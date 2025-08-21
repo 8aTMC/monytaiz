@@ -855,43 +855,50 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             <div className="flex-1 min-h-0 overflow-hidden" style={{ height: 'calc(100vh - 73px - 140px)' }}>
               <ScrollArea className="h-full px-6 py-4">
                 <div className="space-y-4 max-w-4xl mx-auto pb-4">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex gap-3 px-4 ${
-                        message.sender_id === user.id ? 'justify-end' : 'justify-start'
-                      }`}
-                    >
-                      {message.sender_id !== user.id && (
-                        <Avatar className="h-8 w-8 flex-shrink-0">
-                          <AvatarImage src={getProfileForConversation(activeConversation)?.avatar_url} />
-                          <AvatarFallback>
-                            {getInitials(
-                              getProfileForConversation(activeConversation)?.display_name,
-                              getProfileForConversation(activeConversation)?.username
-                            )}
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
-                      <div className={`flex-1 max-w-sm ${message.sender_id === user.id ? 'text-right' : ''}`}>
-                        <div
-                          className={`inline-block p-3 rounded-lg ${
-                            message.sender_id === user.id
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted'
-                          }`}
-                        >
-                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          <div className="flex items-center justify-end gap-1">
-                            <span>{formatTime(message.created_at)}</span>
-                            {getDeliveryStatusIcon(message)}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                   ))}
+                   {messages.map((message) => (
+                     <div
+                       key={message.id}
+                       className={`flex gap-3 px-4 ${
+                         message.sender_id === user.id ? 'justify-end' : 'justify-start'
+                       }`}
+                     >
+                       {message.sender_id !== user.id && (
+                         <Avatar className="h-8 w-8 flex-shrink-0">
+                           <AvatarImage src={getProfileForConversation(activeConversation)?.avatar_url} />
+                           <AvatarFallback>
+                             {getInitials(
+                               getProfileForConversation(activeConversation)?.display_name,
+                               getProfileForConversation(activeConversation)?.username
+                             )}
+                           </AvatarFallback>
+                         </Avatar>
+                       )}
+                       <div className={`flex flex-col max-w-sm ${message.sender_id === user.id ? 'items-end' : 'items-start'}`}>
+                         <div
+                           className={`inline-block p-3 rounded-lg ${
+                             message.sender_id === user.id
+                               ? 'bg-primary text-primary-foreground'
+                               : 'bg-muted'
+                           }`}
+                         >
+                           <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                         </div>
+                         {/* Only show read receipt for sent messages */}
+                         {message.sender_id === user.id && (
+                           <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                             <span>{formatTime(message.created_at)}</span>
+                             {getDeliveryStatusIcon(message)}
+                           </div>
+                         )}
+                         {/* Show just timestamp for received messages */}
+                         {message.sender_id !== user.id && (
+                           <div className="text-xs text-muted-foreground mt-1">
+                             <span>{formatTime(message.created_at)}</span>
+                           </div>
+                         )}
+                       </div>
+                     </div>
+                    ))}
                    
                    {/* Typing Indicator */}
                    {typingUsers.length > 0 && (
