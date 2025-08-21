@@ -241,49 +241,74 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
               }, 1000);
               
               // Check if AI should respond to this fan message (only for creators)
-              console.log('🤖 AI Response Check:', {
-                messageId: newMessage.id,
-                isCreator,
-                aiSettingsExists: !!aiSettings,
-                aiEnabled: aiSettings?.is_ai_enabled,
-                autoResponse: aiSettings?.auto_response_enabled,
-                isFanMessage: activeConversation.fan_id === newMessage.sender_id,
-                fanId: activeConversation.fan_id,
-                senderId: newMessage.sender_id,
-                conversationId: activeConversation.id,
-                messageContent: newMessage.content?.substring(0, 50) + '...'
-              });
-              
-              if (isCreator && aiSettings?.is_ai_enabled && aiSettings?.auto_response_enabled) {
-                // Only respond to fan messages (when creator receives a message from fan)
-                if (activeConversation.fan_id === newMessage.sender_id) {
-                  console.log('✅ All AI conditions met - triggering response for message:', newMessage.id);
-                  setTimeout(async () => {
-                    try {
-                      const model = aiSettings.model || 'grok-4';
-                      
-                      await generateAIResponseWithTyping(
-                        activeConversation.fan_id,
-                        activeConversation.id,
-                        newMessage.content,
-                        aiSettings.current_mode || 'friendly_chat',
-                        model
-                      );
-                    } catch (aiError) {
-                      console.error('AI response error:', aiError);
-                    }
-                  }, 1000 + Math.random() * 2000); // Random delay between 1-3 seconds
-                } else {
-                  console.log('❌ Message not from fan, skipping AI response. Expected fan:', activeConversation.fan_id, 'Got:', newMessage.sender_id);
+              // First ensure we have current AI settings
+              const checkAIResponse = async () => {
+                let currentAISettings = aiSettings;
+                
+                // If we don't have AI settings or they're stale, reload them
+                if (!currentAISettings) {
+                  console.log('🔄 AI settings not loaded, fetching...');
+                  try {
+                    const { data } = await supabase
+                      .from('ai_conversation_settings')
+                      .select('*')
+                      .eq('conversation_id', activeConversation.id)
+                      .single();
+                    currentAISettings = data;
+                    setAiSettings(data); // Update state for future use
+                  } catch (error) {
+                    console.log('⚠️ No AI settings found in real-time check');
+                    return; // Exit early if no settings
+                  }
                 }
-              } else {
-                console.log('❌ AI response conditions not met:', {
+                
+                console.log('🤖 AI Response Check:', {
+                  messageId: newMessage.id,
                   isCreator,
-                  aiEnabled: aiSettings?.is_ai_enabled,
-                  autoResponse: aiSettings?.auto_response_enabled,
-                  hasAiSettings: !!aiSettings
+                  aiSettingsExists: !!currentAISettings,
+                  aiEnabled: currentAISettings?.is_ai_enabled,
+                  autoResponse: currentAISettings?.auto_response_enabled,
+                  isFanMessage: activeConversation.fan_id === newMessage.sender_id,
+                  fanId: activeConversation.fan_id,
+                  senderId: newMessage.sender_id,
+                  conversationId: activeConversation.id,
+                  messageContent: newMessage.content?.substring(0, 50) + '...'
                 });
-              }
+                
+                if (isCreator && currentAISettings?.is_ai_enabled && currentAISettings?.auto_response_enabled) {
+                  // Only respond to fan messages (when creator receives a message from fan)
+                  if (activeConversation.fan_id === newMessage.sender_id) {
+                    console.log('✅ All AI conditions met - triggering response for message:', newMessage.id);
+                    setTimeout(async () => {
+                      try {
+                        const model = currentAISettings.model || 'grok-4';
+                        
+                        await generateAIResponseWithTyping(
+                          activeConversation.fan_id,
+                          activeConversation.id,
+                          newMessage.content,
+                          currentAISettings.current_mode || 'friendly_chat',
+                          model
+                        );
+                      } catch (aiError) {
+                        console.error('AI response error:', aiError);
+                      }
+                    }, 1000 + Math.random() * 2000); // Random delay between 1-3 seconds
+                  } else {
+                    console.log('❌ Message not from fan, skipping AI response. Expected fan:', activeConversation.fan_id, 'Got:', newMessage.sender_id);
+                  }
+                } else {
+                  console.log('❌ AI response conditions not met:', {
+                    isCreator,
+                    aiEnabled: currentAISettings?.is_ai_enabled,
+                    autoResponse: currentAISettings?.auto_response_enabled,
+                    hasAiSettings: !!currentAISettings
+                  });
+                }
+              };
+              
+              // Call the AI check function
+              checkAIResponse();
             }
           }
         )
