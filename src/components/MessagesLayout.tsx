@@ -547,6 +547,11 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     }
   };
 
+  // Helper function to get profile based on user role
+  const getProfileForConversation = (conv: Conversation) => {
+    return isCreator ? conv.fan_profile : conv.creator_profile;
+  };
+
   // Filter conversations based on active filter
   const filteredConversations = conversations.filter((conversation) => {
     // First apply text search filter
@@ -573,10 +578,6 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
         return true;
     }
   });
-
-  const getProfileForConversation = (conv: Conversation) => {
-    return isCreator ? conv.fan_profile : conv.creator_profile;
-  };
 
   // Mark messages as read when conversation is opened and auto-mark when messages are viewed
   const markConversationAsRead = async (conversationId: string) => {
