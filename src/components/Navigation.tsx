@@ -159,7 +159,7 @@ export const Navigation = () => {
   const getCurrentSection = (): 'fans' | 'content' | 'management' | null => {
     if (location.pathname.startsWith('/fans')) return 'fans';
     if (location.pathname === '/library' || location.pathname === '/upload') return 'content';
-    if (location.pathname.startsWith('/management')) return 'management';
+    if (location.pathname.startsWith('/management') || location.pathname === '/ai-management') return 'management';
     return null;
   };
 
@@ -237,7 +237,7 @@ export const Navigation = () => {
       case 'content':
         return location.pathname === '/library' || location.pathname === '/upload';
       case 'management':
-        return location.pathname.startsWith('/management');
+        return location.pathname.startsWith('/management') || location.pathname === '/ai-management';
       default:
         return false;
     }
@@ -592,15 +592,15 @@ export const Navigation = () => {
                       </button>
                     </CreatorProfileDialog>
                     <Link
-                      to="/management/messages"
+                      to="/ai-management"
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
-                        location.pathname === '/management/messages'
+                        location.pathname === '/ai-management'
                           ? 'bg-primary/10 text-primary'
                           : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                       }`}
                     >
-                      <MessageSquare className="h-4 w-4" />
-                      <span>Messages</span>
+                      <Settings className="h-4 w-4" />
+                      <span>AI Management</span>
                     </Link>
                     <Link
                       to="/management/users"
@@ -644,15 +644,15 @@ export const Navigation = () => {
                     </button>
                   </CreatorProfileDialog>
                   <Link
-                    to="/management/messages"
+                    to="/ai-management"
                     className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
-                      location.pathname === '/management/messages'
+                      location.pathname === '/ai-management'
                         ? 'bg-primary/3 text-primary/90'
                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                     }`}
                   >
-                    <MessageSquare className="h-4 w-4" />
-                    <span>Messages</span>
+                    <Settings className="h-4 w-4" />
+                    <span>AI Management</span>
                   </Link>
                   <Link
                     to="/management/users"
