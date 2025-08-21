@@ -155,14 +155,10 @@ export function useAIChat() {
     } catch (error) {
       console.error('AI response with typing error:', error);
       
-      // If there's an error, send a fallback message
-      console.log('🔄 Using fallback response due to error');
-      await sendAIMessage(conversationId, "Hey! Something went wrong on my end, let me try that again...");
-      
       toast({
-        title: "Connection Issue",
-        description: "Had a small hiccup, but I'm still here! 😊",
-        variant: "default",
+        title: "AI Unavailable",
+        description: "AI assistant is temporarily unavailable",
+        variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
