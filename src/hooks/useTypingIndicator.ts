@@ -96,6 +96,17 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
 
     console.log('Setting up typing indicator subscription for:', conversationId);
 
+    // Clean up stale typing indicators on load
+    const cleanupStaleIndicators = async () => {
+      try {
+        await supabase.rpc('cleanup_stale_typing_indicators');
+      } catch (error) {
+        console.error('Error cleaning up stale typing indicators:', error);
+      }
+    };
+
+    cleanupStaleIndicators();
+
     const channel = supabase
       .channel(`typing-${conversationId}`)
       .on(
@@ -116,6 +127,18 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
               }
               return [...current, newIndicator.user_id];
             });
+            
+            // Auto-cleanup this typing indicator after 15 seconds
+            setTimeout(async () => {
+              try {
+                await supabase.rpc('cleanup_user_typing_status', {
+                  p_user_id: newIndicator.user_id,
+                  p_conversation_id: conversationId
+                });
+              } catch (error) {
+                console.error('Error auto-cleaning typing indicator:', error);
+              }
+            }, 15000);
           }
         }
       )
@@ -133,9 +156,23 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
           if (updatedIndicator.user_id !== userId) {
             setTypingUsers((current) => {
               if (updatedIndicator.is_typing) {
-                return current.includes(updatedIndicator.user_id) 
+                const newUsers = current.includes(updatedIndicator.user_id) 
                   ? current 
                   : [...current, updatedIndicator.user_id];
+                
+                // Auto-cleanup this typing indicator after 15 seconds
+                setTimeout(async () => {
+                  try {
+                    await supabase.rpc('cleanup_user_typing_status', {
+                      p_user_id: updatedIndicator.user_id,
+                      p_conversation_id: conversationId
+                    });
+                  } catch (error) {
+                    console.error('Error auto-cleaning typing indicator:', error);
+                  }
+                }, 15000);
+                
+                return newUsers;
               } else {
                 return current.filter(id => id !== updatedIndicator.user_id);
               }
@@ -163,8 +200,18 @@ export const useTypingIndicator = (conversationId: string | null, userId: string
       )
       .subscribe();
 
+    // Set up interval to periodically clean up stale indicators
+    const cleanupInterval = setInterval(async () => {
+      try {
+        await supabase.rpc('cleanup_stale_typing_indicators');
+      } catch (error) {
+        console.error('Error in periodic cleanup:', error);
+      }
+    }, 30000); // Every 30 seconds
+
     return () => {
       console.log('Cleaning up typing indicator subscription');
+      clearInterval(cleanupInterval);
       supabase.removeChannel(channel);
     };
   }, [conversationId, userId]);
