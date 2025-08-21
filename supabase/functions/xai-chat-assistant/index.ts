@@ -191,11 +191,21 @@ serve(async (req) => {
 
     const data = await response.json();
     console.log('✅ xAI API response received');
+    console.log('📋 Full API response:', JSON.stringify(data, null, 2));
+
+    if (!data.choices || data.choices.length === 0) {
+      console.error('❌ No choices in xAI response:', data);
+      throw new Error('No choices returned from xAI API');
+    }
 
     const aiResponse = data.choices[0]?.message?.content;
-    if (!aiResponse) {
-      console.error('❌ No content in xAI response');
-      throw new Error('No response content from xAI');
+    if (!aiResponse || typeof aiResponse !== 'string' || aiResponse.trim() === '') {
+      console.error('❌ No valid content in xAI response:', {
+        choices: data.choices,
+        message: data.choices[0]?.message,
+        content: aiResponse
+      });
+      throw new Error('No valid response content from xAI');
     }
 
     console.log('📤 Raw AI response:', aiResponse);
