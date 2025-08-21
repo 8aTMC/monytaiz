@@ -46,10 +46,11 @@ serve(async (req) => {
       messageText,
       message, 
       fanMemories, 
-      aiSettings, 
-      mode = 'friendly_chat', 
-      model = 'grok-4' 
+      aiSettings
     } = body;
+
+    let mode = body.mode || 'friendly_chat';
+    let model = body.model || 'grok-4';
 
     // Use messageText if provided (new format), otherwise fall back to message (old format)
     const userMessage = messageText || message;
