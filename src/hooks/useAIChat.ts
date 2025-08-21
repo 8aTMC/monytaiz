@@ -98,7 +98,15 @@ export function useAIChat() {
       if (error) throw error;
 
       const reply = data.response;
-      const typingDelay = Math.min(Math.max(reply.length / 50, 1), 5);
+      
+      // Calculate realistic typing delay based on message length
+      // Average typing speed: 40 words per minute = 0.67 words per second
+      // Add some variation and minimum delay
+      const wordCount = reply.split(' ').length;
+      const baseTypingDelay = Math.max(wordCount / 0.67, 2); // Minimum 2 seconds
+      const typingDelay = baseTypingDelay + (Math.random() * 3); // Add 0-3 seconds variation
+      
+      console.log(`💬 Reply: "${reply}" (${wordCount} words, ${typingDelay.toFixed(1)}s delay)`);
 
       // Simulate typing if enabled in settings
       if (aiSettings?.typing_simulation_enabled) {

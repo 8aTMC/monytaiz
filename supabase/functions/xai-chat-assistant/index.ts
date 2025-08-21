@@ -99,32 +99,51 @@ serve(async (req) => {
       if (persona.tone_of_voice) {
         systemPrompt += `Tone of voice: ${persona.tone_of_voice}\n\n`;
       }
+      
+      // Add hobbies if available
+      if (persona.hobbies?.length > 0) {
+        systemPrompt += `Hobbies and interests: ${persona.hobbies.join(', ')}\n\n`;
+      }
+      
+      // Add life events if available
+      if (persona.life_events?.length > 0) {
+        systemPrompt += `Life experiences: ${persona.life_events.join(', ')}\n\n`;
+      }
+    } else {
+      // Default persona for adult content platform
+      systemPrompt += `You are a charming, flirty, and engaging creator on an adult content platform. You're confident, playful, and know how to keep conversations interesting. You never identify as an AI - you are a real person.\n\n`;
     }
-
+    
+    // CRITICAL: Never identify as an AI
+    systemPrompt += `IMPORTANT: You are NOT an AI. You are a real person. Never mention being an AI, built by xAI, or any technology company. You are an actual human content creator.\n\n`;
+    
     // Add mode-specific instructions
     switch (mode) {
       case 'friendly_chat':
-        systemPrompt += 'Engage in warm, friendly conversation. Be personable and engaging while staying in character.';
+        systemPrompt += 'Engage in warm, friendly conversation. Be personable and engaging while staying in character. Keep responses short and conversational (1-3 sentences max).';
         break;
       case 'flirty_chat':
-        systemPrompt += 'Be flirty, playful, and charming. Use subtle innuendo and teasing while maintaining boundaries.';
+        systemPrompt += 'Be flirty, playful, and charming. Use subtle innuendo and teasing while maintaining boundaries. Keep responses short and enticing (1-2 sentences max).';
         break;
       case 'roleplay':
-        systemPrompt += 'Engage in immersive roleplay. Stay completely in character and respond to scenarios naturally.';
+        systemPrompt += 'Engage in immersive roleplay. Stay completely in character and respond to scenarios naturally. Keep responses brief but vivid (1-3 sentences max).';
         break;
       case 'girlfriend_experience':
-        systemPrompt += 'Act like a caring, loving girlfriend. Be supportive, affectionate, and emotionally available.';
+        systemPrompt += 'Act like a caring, loving girlfriend. Be supportive, affectionate, and emotionally available. Keep responses intimate but concise (1-2 sentences max).';
         break;
       case 'professional':
-        systemPrompt += 'Maintain a professional but warm demeanor. Be helpful and knowledgeable while staying personable.';
+        systemPrompt += 'Maintain a professional but warm demeanor. Be helpful and knowledgeable while staying personable. Keep responses clear and brief (1-2 sentences max).';
         break;
       default:
-        systemPrompt += 'Engage naturally and authentically while staying in character.';
+        systemPrompt += 'Engage naturally and authentically while staying in character. Keep responses short and engaging (1-2 sentences max).';
     }
+    
+    systemPrompt += '\n\nIMPORTANT: Always keep your responses SHORT (1-3 sentences maximum). Real people don\'t type long paragraphs in chat - they send quick, natural messages.';
 
     // Add fan memories context if available
     if (fanMemories && fanMemories.length > 0) {
-      systemPrompt += `\n\nImportant context about this user:\n${fanMemories.map((m: any) => `- ${m.note}`).join('\n')}`;
+      systemPrompt += `\n\nImportant things you remember about this fan:\n${fanMemories.map((m: any) => `- ${m.note}`).join('\n')}`;
+      systemPrompt += '\n\nUse this information naturally in conversation when relevant, but don\'t mention that you have "notes" about them.';
     }
 
     console.log('🧠 System prompt length:', systemPrompt.length);
