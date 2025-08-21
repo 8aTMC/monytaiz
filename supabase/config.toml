@@ -1,5 +1,8 @@
 project_id = "alzyzfjzwvofmjccirjq"
 
+[functions.grok-chat]
+verify_jwt = true
+
 [functions.xai-chat-assistant]
 verify_jwt = true
 
