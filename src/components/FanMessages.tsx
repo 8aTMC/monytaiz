@@ -571,11 +571,14 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
         >
           <Input
             value={newMessage}
-            onChange={(e) => {
-              setNewMessage(e.target.value);
-              handleInputChange();
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyDown={(e) => {
+              // Only trigger typing indicator for actual character input
+              if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete') {
+                handleInputChange();
+              }
+              handleKeyPress(e);
             }}
-            onKeyDown={handleKeyPress}
             placeholder="Type your message..."
             disabled={sending}
             className="flex-1"

@@ -783,11 +783,14 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                 >
                   <Input
                     value={newMessage}
-                    onChange={(e) => {
-                      setNewMessage(e.target.value);
-                      handleInputChange();
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyDown={(e) => {
+                      // Only trigger typing indicator for actual character input
+                      if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete') {
+                        handleInputChange();
+                      }
+                      handleKeyPress(e);
                     }}
-                    onKeyDown={handleKeyPress}
                     placeholder="Type a message..."
                     disabled={sending || (hasFiles && !allFilesUploaded)}
                     className="flex-1"
