@@ -138,7 +138,7 @@ serve(async (req) => {
         systemPrompt += 'Engage naturally and authentically while staying in character. Keep responses short and engaging (1-2 sentences max).';
     }
     
-    systemPrompt += '\n\nIMPORTANT: Always keep your responses SHORT (1-3 sentences maximum). Real people don\'t type long paragraphs in chat - they send quick, natural messages.';
+    systemPrompt += '\n\nIMPORTANT: Always keep your responses SHORT and send them as MULTIPLE separate messages, like real people do in chat. Break your response into 2-4 short messages. Each message should be very brief (5-15 words max). You can:\n- Cut sentences and continue in next message\n- Send quick reactions first\n- Add follow-up thoughts\n- Use natural conversation flow\n\nExample format:\n"oh hey! 😊"\n"sorry was just thinking about..."\n"actually nevermind lol"\n"what were you saying?"';
 
     // Add fan memories context if available
     if (fanMemories && fanMemories.length > 0) {
@@ -157,7 +157,7 @@ serve(async (req) => {
       messages: [
         {
           role: 'system',
-          content: systemPrompt
+          content: systemPrompt + '\n\nRESPOND WITH MULTIPLE SHORT MESSAGES SEPARATED BY TRIPLE DASHES (---). Each message should be 5-15 words maximum.'
         },
         {
           role: 'user',
@@ -165,7 +165,8 @@ serve(async (req) => {
         }
       ],
       stream: false,
-      temperature: 0.7
+      temperature: 0.8, // Higher temperature for more natural variation
+      max_completion_tokens: 150 // Limit to keep responses short
     };
     
     console.log('📦 Request body:', JSON.stringify(requestBody, null, 2));
@@ -194,10 +195,45 @@ serve(async (req) => {
       throw new Error('No response content from xAI');
     }
 
-    console.log('📤 Returning AI response, length:', aiResponse.length);
+    console.log('📤 Raw AI response:', aiResponse);
+    
+    // Split response into multiple messages using triple dashes
+    let messageParts = aiResponse.split('---').map(part => part.trim()).filter(part => part.length > 0);
+    
+    // If no triple dashes found, split by sentences and group into short messages
+    if (messageParts.length === 1) {
+      const sentences = aiResponse.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 0);
+      messageParts = [];
+      
+      let currentMessage = '';
+      for (const sentence of sentences) {
+        if (currentMessage.length + sentence.length < 60) {
+          currentMessage += (currentMessage ? '. ' : '') + sentence;
+        } else {
+          if (currentMessage) messageParts.push(currentMessage);
+          currentMessage = sentence;
+        }
+      }
+      if (currentMessage) messageParts.push(currentMessage);
+    }
+    
+    // Ensure we have 2-4 message parts max
+    if (messageParts.length > 4) {
+      messageParts = messageParts.slice(0, 4);
+    } else if (messageParts.length === 1 && messageParts[0].length > 50) {
+      // If still too long, force split
+      const words = messageParts[0].split(' ');
+      const mid = Math.floor(words.length / 2);
+      messageParts = [
+        words.slice(0, mid).join(' '),
+        words.slice(mid).join(' ')
+      ];
+    }
+    
+    console.log('📤 Returning AI response parts:', messageParts.length, 'messages');
 
     return new Response(JSON.stringify({ 
-      response: aiResponse,
+      response: messageParts, // Return array of messages
       model: model,
       provider: 'xai'
     }), {

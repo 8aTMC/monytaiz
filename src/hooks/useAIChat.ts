@@ -44,7 +44,10 @@ export function useAIChat() {
       });
 
       if (error) throw error;
-      return data.response;
+      
+      // Handle both array and string responses for backward compatibility
+      const responses = Array.isArray(data.response) ? data.response : [data.response];
+      return responses.join(' '); // Join for single response
     } catch (error) {
       console.error('AI response error:', error);
       toast({
@@ -97,33 +100,45 @@ export function useAIChat() {
 
       if (error) throw error;
 
-      const reply = data.response;
+      const responses = data.response; // Now an array of message parts
       
-      // Calculate realistic typing delay based on message length
-      // Average typing speed: 40 words per minute = 0.67 words per second
-      // Add some variation and minimum delay
-      const wordCount = reply.split(' ').length;
-      const baseTypingDelay = Math.max(wordCount / 0.67, 2); // Minimum 2 seconds
-      const typingDelay = baseTypingDelay + (Math.random() * 3); // Add 0-3 seconds variation
-      
-      console.log(`💬 Reply: "${reply}" (${wordCount} words, ${typingDelay.toFixed(1)}s delay)`);
+      console.log(`💬 Received ${responses.length} message parts:`, responses);
 
-      // Simulate typing if enabled in settings
-      if (aiSettings?.typing_simulation_enabled) {
-        setIsTyping(true);
+      // Send each message part with realistic delays and typing indicators
+      for (let i = 0; i < responses.length; i++) {
+        const messagePart = responses[i];
         
-        await new Promise(resolve => {
-          setTimeout(resolve, typingDelay * 1000);
-        });
+        // Calculate realistic typing delay for this message part
+        const wordCount = messagePart.split(' ').length;
+        const baseTypingDelay = Math.max(wordCount / 0.8, 1.5); // Slightly faster for short messages
+        const typingDelay = baseTypingDelay + (Math.random() * 2); // Add 0-2 seconds variation
         
-        setIsTyping(false);
+        console.log(`📝 Message ${i + 1}/${responses.length}: "${messagePart}" (${wordCount} words, ${typingDelay.toFixed(1)}s delay)`);
+
+        // Show typing indicator
+        if (aiSettings?.typing_simulation_enabled) {
+          setIsTyping(true);
+          
+          await new Promise(resolve => {
+            setTimeout(resolve, typingDelay * 1000);
+          });
+          
+          setIsTyping(false);
+        }
+
+        // Send this message part
+        await sendAIMessage(conversationId, messagePart);
+        
+        // Short pause between messages (except for the last one)
+        if (i < responses.length - 1) {
+          await new Promise(resolve => {
+            setTimeout(resolve, 500 + Math.random() * 1000); // 0.5-1.5 second pause
+          });
+        }
       }
-
-      // Send AI response
-      await sendAIMessage(conversationId, reply);
       
       if (onResponse) {
-        onResponse(reply);
+        onResponse(responses.join(' ')); // Join for callback
       }
     } catch (error) {
       console.error('AI response with typing error:', error);
