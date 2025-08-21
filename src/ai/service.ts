@@ -243,6 +243,7 @@ export async function handleIncomingMessage({
     });
 
     if (!ok) {
+      console.log(`AI blocked: ${reason}`);
       return { skipped: true, reason: reason || 'unknown' };
     }
 
