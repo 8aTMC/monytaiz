@@ -717,33 +717,36 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   }
 
   return (
-    <div className="h-full flex bg-background -m-6 -mt-4">
-      {/* Conversations Sidebar */}
-      <div className="w-80 border-r border-border bg-background flex flex-col flex-shrink-0 h-full">
-        {/* Header */}
-        <div className="flex-none p-4 border-b border-border">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Messages</h2>
-            <div className="flex items-center gap-2">
-              <GlobalAIControl 
-                isActive={globalAIActive}
-                onToggle={setGlobalAIActive}
-              />
-              <Button variant="ghost" size="icon">
-                <Settings className="h-4 w-4" />
-              </Button>
+    <div className="flex h-screen overflow-hidden bg-background">
+      {/* Conversation Sidebar */}
+      <div className="w-80 border-r border-border bg-background flex-shrink-0 h-screen">
+        <div className="h-full flex flex-col">
+          {/* Header */}
+          <div className="flex-none p-4 border-b border-border">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Messages</h2>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="icon">
+                  <Search className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-          </div>
-          <div className="space-y-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            
+            {/* Search */}
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search conversations..."
-                className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
               />
             </div>
+            
+            {/* Filters */}
             <MessageFilters
               activeFilter={activeFilter}
               onFilterChange={setActiveFilter}
@@ -753,100 +756,100 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
               userId={user.id}
             />
           </div>
-        </div>
 
-        {/* Conversations List */}
-        <div className="flex-1 min-h-0">
-          <ScrollArea className="h-full">
-            <div className="p-2">
-              {filteredConversations.map((conversation) => {
-                const profile = getProfileForConversation(conversation);
-                const isActive = activeConversation?.id === conversation.id;
-                
-                return (
-                  <div
-                    key={conversation.id}
-                    className={`relative p-3 rounded-lg cursor-pointer transition-colors mb-1 ${
-                      isActive ? 'bg-primary/10' : 'hover:bg-muted/50'
-                    }`}
-                    onClick={() => {
-                      setActiveConversation(conversation);
-                      if (conversation.unread_count > 0) {
-                        markConversationAsRead(conversation.id);
-                      }
-                    }}
-                  >
-                    {/* Unread Badge */}
-                    {conversation.unread_count > 0 && (
-                      <Badge 
-                        variant="destructive" 
-                        className="absolute top-2 right-2 h-5 px-2 text-xs font-medium"
-                      >
-                        Unread
-                      </Badge>
-                    )}
-                    
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={profile?.avatar_url} />
-                          <AvatarFallback>
-                            {getInitials(profile?.display_name, profile?.username)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-background"></div>
-                      </div>
+          {/* Conversations List */}
+          <div className="flex-1 min-h-0">
+            <ScrollArea className="h-full">
+              <div className="p-2">
+                {filteredConversations.map((conversation) => {
+                  const profile = getProfileForConversation(conversation);
+                  const isActive = activeConversation?.id === conversation.id;
+                  
+                  return (
+                    <div
+                      key={conversation.id}
+                      className={`relative p-3 rounded-lg cursor-pointer transition-colors mb-1 ${
+                        isActive ? 'bg-primary/10' : 'hover:bg-muted/50'
+                      }`}
+                      onClick={() => {
+                        setActiveConversation(conversation);
+                        if (conversation.unread_count > 0) {
+                          markConversationAsRead(conversation.id);
+                        }
+                      }}
+                    >
+                      {/* Unread Badge */}
+                      {conversation.unread_count > 0 && (
+                        <Badge 
+                          variant="destructive" 
+                          className="absolute top-2 right-2 h-5 px-2 text-xs font-medium"
+                        >
+                          Unread
+                        </Badge>
+                      )}
                       
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-1">
-                          <h4 className="font-medium text-sm truncate pr-2">
-                            {profile?.display_name || profile?.username || 'Unknown User'}
-                          </h4>
-                          <div className="flex flex-col items-end text-right flex-shrink-0 ml-auto">
-                            <span className="text-xs text-muted-foreground">
-                              {formatDate(conversation.last_message_at)}
-                            </span>
-                            <div className="flex items-center gap-1 mt-1">
-                              <span className="text-xs font-medium text-primary">
-                                ${conversation.total_spent || 0}
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <Avatar className="h-12 w-12">
+                            <AvatarImage src={profile?.avatar_url} />
+                            <AvatarFallback>
+                              {getInitials(profile?.display_name, profile?.username)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-background"></div>
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between mb-1">
+                            <h4 className="font-medium text-sm truncate pr-2">
+                              {profile?.display_name || profile?.username || 'Unknown User'}
+                            </h4>
+                            <div className="flex flex-col items-end text-right flex-shrink-0 ml-auto">
+                              <span className="text-xs text-muted-foreground">
+                                {formatDate(conversation.last_message_at)}
                               </span>
-                              <ConversationPinButton
-                                conversationId={conversation.id}
-                                isPinned={conversation.is_pinned || false}
-                                onToggle={(pinned) => {
-                                  setConversations(prev => 
-                                    prev.map(conv => 
-                                      conv.id === conversation.id 
-                                        ? { ...conv, is_pinned: pinned }
-                                        : conv
-                                    )
-                                  );
-                                }}
-                              />
+                              <div className="flex items-center gap-1 mt-1">
+                                <span className="text-xs font-medium text-primary">
+                                  ${conversation.total_spent || 0}
+                                </span>
+                                <ConversationPinButton
+                                  conversationId={conversation.id}
+                                  isPinned={conversation.is_pinned || false}
+                                  onToggle={(pinned) => {
+                                    setConversations(prev => 
+                                      prev.map(conv => 
+                                        conv.id === conversation.id 
+                                          ? { ...conv, is_pinned: pinned }
+                                          : conv
+                                      )
+                                    );
+                                  }}
+                                />
+                              </div>
                             </div>
                           </div>
+                          <p className={`text-xs truncate mt-1 ${
+                            conversation.unread_count > 0 
+                              ? 'text-foreground font-semibold' 
+                              : 'text-muted-foreground'
+                          }`}>
+                            {conversation.latest_message_content || 'No messages yet'}
+                          </p>
                         </div>
-                        <p className={`text-xs truncate mt-1 ${
-                          conversation.unread_count > 0 
-                            ? 'text-foreground font-semibold' 
-                            : 'text-muted-foreground'
-                        }`}>
-                          {conversation.latest_message_content || 'No messages yet'}
-                        </p>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </ScrollArea>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+          </div>
         </div>
       </div>
 
       {/* Main Chat Area - Responsive width */}
-      <div className={`flex flex-col min-w-0 ${
+      <div className={`flex flex-col min-w-0 h-screen ${
         activeConversation && isCreator ? 'flex-1' : 'flex-1'
-      }`} style={{ height: '100vh' }}>
+      }`}>
         {activeConversation ? (
           <>
             {/* Chat Header - Fixed */}
@@ -1083,7 +1086,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
       {/* Fan Insights Sidebar */}
       {activeConversation && isCreator && (
-        <div className="w-80 border-l border-border bg-background flex-shrink-0 h-full">
+        <div className="w-80 border-l border-border bg-background flex-shrink-0 h-screen">
           <div className="p-4 h-full flex flex-col">
             <h3 className="font-semibold mb-4">Fan Insights</h3>
             
