@@ -399,6 +399,10 @@ export const MessageList = ({
         ref={containerRef}
         onScroll={handleScroll}
         className="flex-1 overflow-auto px-4 py-3"
+        style={{ 
+          scrollbarWidth: 'none', 
+          msOverflowStyle: 'none',
+        }}
         role="log"
         aria-live="polite"
         aria-label="Chat messages"

@@ -158,6 +158,11 @@ body::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
 
+/* Hide scrollbars for chat areas */
+div[aria-label="Chat messages"]::-webkit-scrollbar {
+  display: none;
+}
+
 /* Responsive sidebar auto-collapse - force collapse on narrow screens only when collapsed */
 @media (max-width: 1023px) {
   [data-auto-collapse]:not([data-manually-opened]) {

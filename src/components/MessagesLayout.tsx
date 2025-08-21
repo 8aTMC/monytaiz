@@ -626,7 +626,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Conversation Sidebar */}
-      <div className="w-80 border-r border-border bg-background flex-shrink-0 h-screen">
+      <div className="w-80 border-r border-border bg-background flex-shrink-0 h-screen overflow-hidden">
         <div className="h-full flex flex-col">
           {/* Header */}
           <div className="flex-none p-4 border-b border-border">
@@ -665,7 +665,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
           </div>
 
           {/* Conversations List */}
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <ScrollArea className="h-full">
               <div className="p-2">
                 {filteredConversations.map((conversation) => {
@@ -754,7 +754,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
       </div>
 
       {/* Main Chat Area - Responsive width */}
-      <div className={`flex flex-col min-w-0 h-screen ${
+      <div className={`flex flex-col min-w-0 h-screen overflow-hidden ${
         activeConversation && isCreator ? 'flex-1' : 'flex-1'
       }`}>
         {activeConversation ? (
@@ -791,7 +791,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             </div>
 
             {/* Messages Area - Takes remaining space, scrollable */}
-            <div className="flex-1 min-h-0 overflow-hidden" style={{ height: 'calc(100vh - 73px - 140px)' }}>
+            <div className="flex-1 min-h-0 overflow-hidden">
               {activeConversation && (
                 <MessageList
                   conversationId={activeConversation.id}
@@ -811,7 +811,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             )}
 
             {/* Message Input Area - Fixed at bottom */}
-            <div className="flex-none border-t border-border bg-background" style={{ height: '140px' }}>
+            <div className="flex-none border-t border-border bg-background h-auto">
               <div className="p-4">
                 {/* Action Buttons */}
                 <div className="flex items-center gap-2 mb-3 overflow-x-auto">
@@ -924,8 +924,8 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
       {/* Fan Insights Sidebar */}
       {activeConversation && isCreator && (
-        <div className="w-80 border-l border-border bg-background flex-shrink-0 h-screen">
-          <div className="p-4 h-full flex flex-col">
+        <div className="w-80 border-l border-border bg-background flex-shrink-0 h-screen overflow-hidden">
+          <div className="p-4 h-full flex flex-col overflow-hidden">
             <h3 className="font-semibold mb-4">Fan Insights</h3>
             
             <ScrollArea className="flex-1">
