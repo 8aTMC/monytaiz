@@ -420,7 +420,11 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   const handleEnterKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      // Don't call sendMessage here since form submission will handle it
+      const form = e.currentTarget.closest('form') as HTMLFormElement;
+      if (form) {
+        form.requestSubmit();
+      }
     }
   };
 
