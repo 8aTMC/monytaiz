@@ -261,15 +261,16 @@ export const useFileUpload = () => {
         throw new Error('User account is not active');
       }
 
-      // Create abort controller for timeout handling
+      // Create abort controller for timeout handling  
       uploadAbortController = new AbortController();
       const timeoutId = setTimeout(() => {
+        console.log('Upload timeout reached, aborting...');
         uploadAbortController?.abort();
-      }, 300000); // 5 minute timeout
+      }, 600000); // 10 minute timeout for large files
 
       console.log('Uploading to storage path:', filePath);
       
-      // Upload to Supabase Storage
+      // Upload to Supabase Storage with better error handling
       let { data, error } = await supabase.storage
         .from('content')
         .upload(filePath, file, {
@@ -282,23 +283,34 @@ export const useFileUpload = () => {
         progressInterval = null;
       }
       
-      console.log('Storage upload result:', { data, error });
+      console.log('Storage upload completed:', { 
+        success: !error, 
+        data: data?.path, 
+        error: error?.message 
+      });
       
       if (error) {
+        console.error('Storage upload failed:', error);
         // Handle specific upload errors
         if (error.message.includes('already exists')) {
           // Retry with different filename
           const retryFileName = `${Date.now()}_${Math.random()}.${fileExt}`;
           const retryFilePath = `${storageFolder}/${retryFileName}`;
           
+          console.log('Retrying upload with new filename:', retryFilePath);
+          
           const { data: retryData, error: retryError } = await supabase.storage
             .from('content')
             .upload(retryFilePath, file);
           
-          if (retryError) throw retryError;
+          if (retryError) {
+            console.error('Retry upload failed:', retryError);
+            throw new Error(`Upload failed after retry: ${retryError.message}`);
+          }
           data = retryData;
+          console.log('Retry upload successful:', retryData?.path);
         } else {
-          throw error;
+          throw new Error(`Storage upload failed: ${error.message}`);
         }
       }
 
