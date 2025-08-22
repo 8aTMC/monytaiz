@@ -147,6 +147,82 @@ export type Database = {
           },
         ]
       }
+      collection_items: {
+        Row: {
+          added_at: string | null
+          added_by: string
+          collection_id: string
+          media_id: string
+        }
+        Insert: {
+          added_at?: string | null
+          added_by: string
+          collection_id: string
+          media_id: string
+        }
+        Update: {
+          added_at?: string | null
+          added_by?: string
+          collection_id?: string
+          media_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_items_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_items_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "fan_my_media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_items_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collections: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          creator_id: string
+          id: string
+          name: string
+          system: boolean
+          system_key: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          creator_id: string
+          id?: string
+          name: string
+          system?: boolean
+          system_key?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          creator_id?: string
+          id?: string
+          name?: string
+          system?: boolean
+          system_key?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       content_files: {
         Row: {
           base_price: number
@@ -366,6 +442,54 @@ export type Database = {
         }
         Relationships: []
       }
+      fan_media_grants: {
+        Row: {
+          creator_id: string
+          fan_id: string
+          grant_type: string
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+          media_id: string | null
+          price_cents: number | null
+        }
+        Insert: {
+          creator_id: string
+          fan_id: string
+          grant_type: string
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          media_id?: string | null
+          price_cents?: number | null
+        }
+        Update: {
+          creator_id?: string
+          fan_id?: string
+          grant_type?: string
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          media_id?: string | null
+          price_cents?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fan_media_grants_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "fan_my_media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fan_media_grants_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fan_memories: {
         Row: {
           created_at: string
@@ -544,6 +668,60 @@ export type Database = {
           mode?: string
           timer_type?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      media: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          creator_id: string
+          id: string
+          mime: string
+          notes: string | null
+          origin: string
+          sha256: string | null
+          size_bytes: number
+          storage_path: string
+          suggested_price_cents: number | null
+          tags: string[] | null
+          title: string | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          creator_id: string
+          id?: string
+          mime: string
+          notes?: string | null
+          origin: string
+          sha256?: string | null
+          size_bytes: number
+          storage_path: string
+          suggested_price_cents?: number | null
+          tags?: string[] | null
+          title?: string | null
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          creator_id?: string
+          id?: string
+          mime?: string
+          notes?: string | null
+          origin?: string
+          sha256?: string | null
+          size_bytes?: number
+          storage_path?: string
+          suggested_price_cents?: number | null
+          tags?: string[] | null
+          title?: string | null
+          type?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1248,6 +1426,29 @@ export type Database = {
           status?: string | null
           tries?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      fan_my_media: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          creator_id: string | null
+          grant_type: string | null
+          granted_at: string | null
+          id: string | null
+          mime: string | null
+          notes: string | null
+          origin: string | null
+          price_cents: number | null
+          sha256: string | null
+          size_bytes: number | null
+          storage_path: string | null
+          suggested_price_cents: number | null
+          tags: string[] | null
+          title: string | null
+          type: string | null
+          updated_at: string | null
         }
         Relationships: []
       }
