@@ -559,44 +559,49 @@ const ContentLibrary = () => {
           })}
         </div>
 
+        {/* Horizontal Divider */}
+        <div className="border-t border-border my-4"></div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 mb-4">
+          <NewFolderDialog onFolderCreated={refreshCustomFolders} />
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleStartReorder}
+            disabled={customFolders.length === 0}
+          >
+            <ArrowUpDown className="h-4 w-4 mr-2" />
+            Reorder Folders
+          </Button>
+        </div>
+
             {/* Custom Folders */}
             {sortedCustomFolders.length > 0 && (
               <div className="space-y-1">
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-sm font-medium text-muted-foreground">My Folders</div>
-                  <div className="flex items-center gap-2">
-                    <NewFolderDialog onFolderCreated={refreshCustomFolders} />
-                    {!isReorderMode ? (
+                  {isReorderMode && (
+                    <div className="flex gap-1">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleStartReorder}
+                        onClick={handleCancelReorder}
                         className="text-xs h-7 px-2"
                       >
-                        <ArrowUpDown className="h-3 w-3 mr-1" />
-                        Reorder
+                        ✕
                       </Button>
-                    ) : (
-                      <div className="flex gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleCancelReorder}
-                          className="text-xs h-7 px-2"
-                        >
-                          ✕
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleConfirmReorder}
-                          className="text-xs h-7 px-2"
-                        >
-                          ✓
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleConfirmReorder}
+                        className="text-xs h-7 px-2"
+                      >
+                        ✓
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 {/* Separator at the top for dropping before first item */}
                 {isReorderMode && (
@@ -695,20 +700,6 @@ const ContentLibrary = () => {
                    customFolders.find(c => c.id === selectedCategory)?.label || 'Library'}
                 </h1>
                 
-                {/* Action Buttons */}
-                <div className="flex items-center gap-2">
-                  <NewFolderDialog onFolderCreated={refreshCustomFolders} />
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleStartReorder}
-                    disabled={customFolders.length === 0}
-                  >
-                    <ArrowUpDown className="h-4 w-4 mr-2" />
-                    Reorder Folders
-                  </Button>
-                </div>
               </div>
 
               {/* Controls and Filters */}
