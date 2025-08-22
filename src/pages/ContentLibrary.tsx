@@ -694,6 +694,21 @@ const ContentLibrary = () => {
                   {defaultCategories.find(c => c.id === selectedCategory)?.label || 
                    customFolders.find(c => c.id === selectedCategory)?.label || 'Library'}
                 </h1>
+                
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2">
+                  <NewFolderDialog onFolderCreated={refreshCustomFolders} />
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleStartReorder}
+                    disabled={customFolders.length === 0}
+                  >
+                    <ArrowUpDown className="h-4 w-4 mr-2" />
+                    Reorder Folders
+                  </Button>
+                </div>
               </div>
 
               {/* Controls and Filters */}
