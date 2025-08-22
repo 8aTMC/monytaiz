@@ -175,8 +175,7 @@ export const useFileUpload = () => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random()}.${fileExt}`;
     const storageFolder = getStorageFolder(fileType);
-    const filePath = `${storageFolder}/${fileName}`;
-
+    
     let progressInterval: NodeJS.Timeout | null = null;
     let uploadAbortController: AbortController | null = null;
     let simulatedUploadedBytes = 0;
@@ -230,6 +229,9 @@ export const useFileUpload = () => {
       }
       
       console.log('User authenticated:', userData.user.id);
+
+      // Organize files by user ID in storage (required for RLS policies)
+      const filePath = `${userData.user.id}/${storageFolder}/${fileName}`;
 
       // Verify user has required role for content upload
       const { data: userRoles, error: roleError } = await supabase
@@ -295,7 +297,7 @@ export const useFileUpload = () => {
         if (error.message.includes('already exists')) {
           // Retry with different filename
           const retryFileName = `${Date.now()}_${Math.random()}.${fileExt}`;
-          const retryFilePath = `${storageFolder}/${retryFileName}`;
+          const retryFilePath = `${userData.user.id}/${storageFolder}/${retryFileName}`;
           
           console.log('Retrying upload with new filename:', retryFilePath);
           
