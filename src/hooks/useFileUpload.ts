@@ -310,22 +310,33 @@ export const useFileUpload = () => {
         content_type: fileType
       });
 
+      const insertPayload = {
+        title: file.name.replace(/\.[^/.]+$/, ""), // Remove extension
+        original_filename: file.name,
+        file_path: data!.path,
+        content_type: fileType,
+        mime_type: file.type,
+        file_size: file.size,
+        creator_id: userData.user.id,
+      };
+      
+      console.log('Insert payload:', insertPayload);
+      
       const { data: insertData, error: dbError } = await supabase
         .from('content_files')
-        .insert({
-          title: file.name.replace(/\.[^/.]+$/, ""), // Remove extension
-          original_filename: file.name,
-          file_path: data!.path,
-          content_type: fileType as any,
-          mime_type: file.type,
-          file_size: file.size,
-          creator_id: userData.user.id,
-        })
+        .insert(insertPayload)
         .select();
 
       if (dbError) {
-        console.error('Database insert error:', dbError);
-        throw new Error(`Failed to save file metadata: ${dbError.message}`);
+        console.error('Database insert error:', {
+          error: dbError,
+          code: dbError.code,
+          message: dbError.message,
+          details: dbError.details,
+          hint: dbError.hint,
+          payload: insertPayload
+        });
+        throw new Error(`Failed to save file metadata: ${dbError.message} (Code: ${dbError.code})`);
       }
       
       console.log('Database insert successful:', insertData);
