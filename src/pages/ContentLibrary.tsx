@@ -9,28 +9,37 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Filter, Grid, Image, Video, FileAudio, FileText, Calendar, ArrowUpDown, BookOpen, Zap, MessageSquare, GripVertical, Edit } from 'lucide-react';
+import { Search, Filter, Grid, Image, Video, FileAudio, FileText, Calendar, ArrowUpDown, BookOpen, Zap, MessageSquare, GripVertical, Edit, Check } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { NewFolderDialog } from '@/components/NewFolderDialog';
 import { EditFolderDialog } from '@/components/EditFolderDialog';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { LibrarySelectionToolbar } from '@/components/LibrarySelectionToolbar';
+import { useMediaOperations } from '@/hooks/useMediaOperations';
 
-interface ContentFile {
+interface MediaItem {
   id: string;
-  title: string;
-  description: string | null;
-  content_type: 'image' | 'video' | 'audio' | 'document' | 'pack';
-  thumbnail_url: string | null;
-  file_path: string;
-  base_price: number;
-  is_active: boolean;
-  is_pack: boolean;
-  created_at: string;
+  title: string | null;
+  origin: 'upload' | 'story' | 'livestream' | 'message';
+  storage_path: string;
+  mime: string;
+  type: 'image' | 'video' | 'audio' | 'document';
+  size_bytes: number;
+  sha256: string | null;
+  tags: string[];
+  suggested_price_cents: number;
+  notes: string | null;
   creator_id: string;
-  profiles: {
-    display_name: string | null;
-    username: string | null;
-  } | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Collection {
+  id: string;
+  name: string;
+  system: boolean;
+  system_key: string | null;
+  creator_id: string;
 }
 
 const ContentLibrary = () => {
@@ -39,7 +48,7 @@ const ContentLibrary = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [content, setContent] = useState<ContentFile[]>([]);
+  const [content, setContent] = useState<MediaItem[]>([]);
   const [loadingContent, setLoadingContent] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
@@ -48,6 +57,12 @@ const ContentLibrary = () => {
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
   const [originalFolderOrder, setOriginalFolderOrder] = useState<typeof customFolders>([]);
+  
+  // Selection state
+  const [selecting, setSelecting] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  
+  const { copyToCollection, removeFromCollection, deleteMediaHard, createCollection, loading: operationLoading } = useMediaOperations();
   
   const [defaultCategories] = useState([
     { id: 'all-files', label: 'All Files', icon: Grid, description: 'All uploaded content', isDefault: true },
@@ -126,27 +141,49 @@ const ContentLibrary = () => {
   useEffect(() => {
     const fetchContent = async () => {
       try {
-        let query = supabase
-          .from('content_files')
-          .select(`
-            *,
-            profiles:creator_id (
-              display_name,
-              username
-            )
-          `)
-          .eq('is_active', true);
+        let query = supabase.from('media').select('*');
 
-        // Apply content type filter
-        if (selectedFilter !== 'all') {
-          query = query.eq('content_type', selectedFilter as 'image' | 'video' | 'audio' | 'document' | 'pack');
+        // Apply origin filter based on selected category
+        if (selectedCategory === 'stories') {
+          query = query.eq('origin', 'story');
+        } else if (selectedCategory === 'livestreams') {
+          query = query.eq('origin', 'livestream'); 
+        } else if (selectedCategory === 'messages') {
+          query = query.eq('origin', 'message');
+        } else if (selectedCategory !== 'all-files' && !selectedCategory.startsWith('custom-')) {
+          // For custom collections, we need to fetch via collection_items
+          const { data: collectionItems, error: collectionError } = await supabase
+            .from('collection_items')
+            .select(`
+              media_id,
+              media:media_id (*)
+            `)
+            .eq('collection_id', selectedCategory);
+
+          if (collectionError) {
+            console.error('Error fetching collection items:', collectionError);
+            setContent([]);
+            return;
+          }
+
+          const mediaItems = collectionItems?.map(item => item.media).filter(Boolean).filter(media => 
+            ['upload', 'story', 'livestream', 'message'].includes(media.origin) &&
+            ['image', 'video', 'audio', 'document'].includes(media.type)
+          ) as MediaItem[] || [];
+          setContent(mediaItems);
+          return;
         }
 
-        // Apply search filter with improved matching
+        // Apply type filter
+        if (selectedFilter !== 'all') {
+          query = query.eq('type', selectedFilter);
+        }
+
+        // Apply search filter
         if (searchQuery) {
           const searchTerms = searchQuery.trim().split(/\s+/).map(term => term.toLowerCase());
           const searchConditions = searchTerms.map(term => 
-            `title.ilike.%${term}%,description.ilike.%${term}%,tags.cs.{${term}}`
+            `title.ilike.%${term}%,notes.ilike.%${term}%,tags.cs.{${term}}`
           ).join(',');
           query = query.or(searchConditions);
         }
@@ -157,20 +194,24 @@ const ContentLibrary = () => {
         } else if (sortBy === 'oldest') {
           query = query.order('created_at', { ascending: true });
         } else if (sortBy === 'price_high') {
-          query = query.order('base_price', { ascending: false });
+          query = query.order('suggested_price_cents', { ascending: false });
         } else if (sortBy === 'price_low') {
-          query = query.order('base_price', { ascending: true });
+          query = query.order('suggested_price_cents', { ascending: true });
         }
 
         const { data, error } = await query;
 
         if (error) {
-          console.error('Error fetching content:', error);
+          console.error('Error fetching media:', error);
         } else {
-          setContent(data || []);
+          const mediaData = data as any[];
+          setContent(mediaData.filter(item => 
+            ['upload', 'story', 'livestream', 'message'].includes(item.origin) &&
+            ['image', 'video', 'audio', 'document'].includes(item.type)
+          ));
         }
       } catch (error) {
-        console.error('Error fetching content:', error);
+        console.error('Error fetching media:', error);
       } finally {
         setLoadingContent(false);
       }
@@ -179,39 +220,39 @@ const ContentLibrary = () => {
     if (user) {
       fetchContent();
     }
-  }, [user, selectedFilter, searchQuery, sortBy]);
+  }, [user, selectedFilter, searchQuery, sortBy, selectedCategory]);
 
-  // Fetch custom folders from database
+  // Fetch custom collections from database
   useEffect(() => {
-    const fetchCustomFolders = async () => {
+    const fetchCustomCollections = async () => {
       if (!user) return;
       
       try {
         const { data, error } = await supabase
-          .from('file_folders')
+          .from('collections')
           .select('*')
-          .eq('creator_id', user.id)
+          .eq('system', false)
           .order('name', { ascending: true });
 
         if (error) {
-          console.error('Error fetching folders:', error);
+          console.error('Error fetching collections:', error);
         } else {
-          const folders = data?.map(folder => ({
-            id: folder.id,
-            label: folder.name,
+          const folders = data?.map(collection => ({
+            id: collection.id,
+            label: collection.name,
             icon: Grid,
-            description: folder.description || 'Custom folder',
+            description: 'Custom folder',
             isDefault: false as const,
             count: 0
           })) || [];
           setCustomFolders(folders);
         }
       } catch (error) {
-        console.error('Error fetching folders:', error);
+        console.error('Error fetching collections:', error);
       }
     };
 
-    fetchCustomFolders();
+    fetchCustomCollections();
   }, [user]);
 
   // Sort custom folders based on sortOrder
@@ -318,27 +359,84 @@ const ContentLibrary = () => {
     setOriginalFolderOrder([]);
   };
 
+  // Selection handlers
+  const handleToggleSelect = () => {
+    if (selecting) {
+      setSelecting(false);
+      setSelectedItems(new Set());
+    } else {
+      setSelecting(true);
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelecting(false);
+    setSelectedItems(new Set());
+  };
+
+  const handleToggleItem = (itemId: string) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(itemId)) {
+      newSelected.delete(itemId);
+    } else {
+      newSelected.add(itemId);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const handleCopy = async (collectionId: string) => {
+    try {
+      await copyToCollection(collectionId, Array.from(selectedItems));
+      handleClearSelection();
+    } catch (error) {
+      console.error('Copy failed:', error);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      const isCustomFolder = selectedCategory.startsWith('custom-') || !['all-files', 'stories', 'livestreams', 'messages'].includes(selectedCategory);
+      
+      if (isCustomFolder) {
+        // Remove from collection only
+        await removeFromCollection(selectedCategory, Array.from(selectedItems));
+      } else {
+        // Delete permanently
+        await deleteMediaHard(Array.from(selectedItems));
+      }
+      
+      handleClearSelection();
+      // Refetch content
+      const fetchContent = async () => {
+        // ... same fetch logic as in useEffect
+      };
+      fetchContent();
+    } catch (error) {
+      console.error('Delete failed:', error);
+    }
+  };
+
   const refreshCustomFolders = async () => {
     if (!user) return;
     try {
       const { data, error } = await supabase
-        .from('file_folders')
+        .from('collections')
         .select('*')
-        .eq('creator_id', user.id)
+        .eq('system', false)
         .order('name', { ascending: true });
       if (!error && data) {
-        const folders = data.map(folder => ({
-          id: folder.id,
-          label: folder.name,
+        const folders = data.map(collection => ({
+          id: collection.id,
+          label: collection.name,
           icon: Grid,
-          description: folder.description || 'Custom folder',
+          description: 'Custom folder',
           isDefault: false as const,
           count: 0
         }));
         setCustomFolders(folders);
       }
     } catch (error) {
-      console.error('Error fetching folders:', error);
+      console.error('Error fetching collections:', error);
     }
   };
 
@@ -392,6 +490,10 @@ const ContentLibrary = () => {
     return null;
   }
 
+  const truncateText = (text: string, maxLength: number) => {
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+  };
+
   const getContentTypeIcon = (type: string) => {
     switch (type) {
       case 'image': return <Image className="h-4 w-4" />;
@@ -402,51 +504,60 @@ const ContentLibrary = () => {
     }
   };
 
-  const truncateText = (text: string, maxLength: number) => {
-    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+  const handleCardClick = (item: MediaItem) => {
+    if (selecting) {
+      handleToggleItem(item.id);
+    } else {
+      // Open preview/edit modal
+      console.log('Open preview for:', item);
+    }
   };
+
+  const formatPrice = (cents: number) => {
+    return (cents / 100).toFixed(2);
+  };
+
+  const isCustomFolder = selectedCategory !== 'all-files' && 
+    !['stories', 'livestreams', 'messages'].includes(selectedCategory);
 
   return (
     <div className="h-full flex overflow-hidden -m-6 -mt-4">
       {/* Categories Sidebar */}
       <div className="w-80 bg-card border-r border-border overflow-y-auto flex-shrink-0 p-6">
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold text-foreground mb-3">Library</h2>
-            </div>
-              
-            {/* Default Categories */}
-            <div className="space-y-1 mb-4">
-              {defaultCategories.map((category) => {
-                const IconComponent = category.icon;
-                return (
-                  <div key={category.id} className="relative">
-                    <Button
-                      variant={selectedCategory === category.id ? "default" : "ghost"}
-                      className="w-full justify-start text-left p-2 h-auto pr-10"
-                      onClick={() => {
-                        setSelectedCategory(category.id);
-                        if (category.id === 'all-files') {
-                          setSelectedFilter('all');
-                        } else {
-                          setSelectedFilter('all');
-                        }
-                      }}
-                    >
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <IconComponent className="h-4 w-4 flex-shrink-0" />
-                         <div className="flex flex-col items-start min-w-0 flex-1">
-                           <span className="font-medium text-left w-full">{truncateText(category.label, 24)}</span>
-                           <span className={`text-xs text-left w-full ${selectedCategory === category.id ? 'text-foreground' : 'text-muted-foreground/80'}`}>{truncateText(category.description, 30)}</span>
-                         </div>
-                      </div>
-                    </Button>
-                    <Badge variant="secondary" className="absolute top-1 right-2 text-xs pointer-events-none">
-                      {category.id === 'all-files' ? content.length : 0}
-                    </Badge>
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-foreground mb-3">Library</h2>
+        </div>
+          
+        {/* Default Categories */}
+        <div className="space-y-1 mb-4">
+          {defaultCategories.map((category) => {
+            const IconComponent = category.icon;
+            return (
+              <div key={category.id} className="relative">
+                <Button
+                  variant={selectedCategory === category.id ? "default" : "ghost"}
+                  className="w-full justify-start text-left p-2 h-auto pr-10"
+                  onClick={() => {
+                    setSelectedCategory(category.id);
+                    setSelectedFilter('all');
+                    handleClearSelection();
+                  }}
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <IconComponent className="h-4 w-4 flex-shrink-0" />
+                     <div className="flex flex-col items-start min-w-0 flex-1">
+                       <span className="font-medium text-left w-full">{truncateText(category.label, 24)}</span>
+                       <span className={`text-xs text-left w-full ${selectedCategory === category.id ? 'text-foreground' : 'text-muted-foreground/80'}`}>{truncateText(category.description, 30)}</span>
+                     </div>
                   </div>
-                );
-              })}
-            </div>
+                </Button>
+                <Badge variant="secondary" className="absolute top-1 right-2 text-xs pointer-events-none">
+                  {category.id === 'all-files' ? content.length : 0}
+                </Badge>
+              </div>
+            );
+          })}
+        </div>
 
             {/* Custom Folders */}
             {sortedCustomFolders.length > 0 && (
@@ -529,6 +640,7 @@ const ContentLibrary = () => {
                             if (!isReorderMode) {
                               setSelectedCategory(folder.id);
                               setSelectedFilter('all');
+                              handleClearSelection();
                             }
                           }}
                           disabled={isReorderMode}
@@ -636,6 +748,20 @@ const ContentLibrary = () => {
               </div>
             </div>
 
+            {/* Selection Toolbar */}
+            <LibrarySelectionToolbar
+              selecting={selecting}
+              selectedCount={selectedItems.size}
+              currentView={defaultCategories.find(c => c.id === selectedCategory)?.label || 
+                customFolders.find(c => c.id === selectedCategory)?.label || 'Library'}
+              isCustomFolder={isCustomFolder}
+              onToggleSelect={handleToggleSelect}
+              onClearSelection={handleClearSelection}
+              onCopy={handleCopy}
+              onDelete={handleDelete}
+              disabled={operationLoading || loadingContent}
+            />
+
             {/* Content Grid */}
             <div className="flex-1 overflow-y-auto p-6">
               {loadingContent ? (
@@ -652,68 +778,73 @@ const ContentLibrary = () => {
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                   {content.map((item) => (
-                    <Card key={item.id} className="bg-gradient-card border-border shadow-card hover:shadow-lg transition-shadow cursor-pointer">
+                    <Card 
+                      key={item.id} 
+                      className={`bg-gradient-card border-border shadow-card hover:shadow-lg transition-all cursor-pointer relative ${
+                        selecting && selectedItems.has(item.id) ? 'ring-2 ring-primary' : ''
+                      }`}
+                      onClick={() => handleCardClick(item)}
+                    >
+                      {selecting && (
+                        <div className="absolute top-2 left-2 z-10">
+                          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                            selectedItems.has(item.id) 
+                              ? 'bg-primary border-primary text-primary-foreground' 
+                              : 'bg-background border-muted-foreground'
+                          }`}>
+                            {selectedItems.has(item.id) && <Check className="h-3 w-3" />}
+                          </div>
+                        </div>
+                      )}
+
                       <CardContent className="p-0">
                         {/* Thumbnail */}
                         <div className="aspect-square bg-muted rounded-t-lg flex items-center justify-center relative">
-                          {item.thumbnail_url ? (
-                            <img
-                              src={item.thumbnail_url}
-                              alt={item.title}
-                              className="w-full h-full object-cover rounded-t-lg"
-                            />
-                          ) : (
-                            <div className="flex flex-col items-center gap-2">
-                              {getContentTypeIcon(item.content_type)}
-                              <span className="text-xs text-muted-foreground capitalize">
-                                {item.content_type}
-                              </span>
-                            </div>
-                          )}
+                          <div className="flex flex-col items-center gap-2">
+                            {getContentTypeIcon(item.type)}
+                            <span className="text-xs text-muted-foreground capitalize">
+                              {item.type}
+                            </span>
+                          </div>
                           
                           {/* Content Type Badge */}
                           <Badge 
                             variant="secondary" 
-                            className="absolute top-2 left-2 text-xs"
+                            className="absolute top-2 right-2 text-xs"
                           >
-                            {item.content_type}
+                            {item.type}
                           </Badge>
-                          
-                          {/* Pack Badge */}
-                          {item.is_pack && (
-                            <Badge 
-                              variant="default" 
-                              className="absolute top-2 right-2 text-xs"
-                            >
-                              Pack
-                            </Badge>
-                          )}
                         </div>
                         
                         {/* Content Info */}
                         <div className="p-3">
                           <h3 className="font-medium text-foreground text-sm truncate mb-1">
-                            {item.title}
+                            {item.title || 'Untitled'}
                           </h3>
-                          {item.description && (
+                          {item.notes && (
                             <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                              {item.description}
+                              {item.notes}
                             </p>
                           )}
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-semibold text-primary">
-                              ${item.base_price}
+                              ${formatPrice(item.suggested_price_cents)}
                             </span>
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
                               <Calendar className="h-3 w-3" />
                               {new Date(item.created_at).toLocaleDateString()}
                             </div>
                           </div>
-                          {item.profiles && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              by {item.profiles.display_name || item.profiles.username}
-                            </p>
-                          )}
+                          <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                            <span className="capitalize">{item.origin}</span>
+                            {item.tags.length > 0 && (
+                              <>
+                                <span>•</span>
+                                <span>{item.tags.slice(0, 2).join(', ')}</span>
+                                {item.tags.length > 2 && <span>+{item.tags.length - 2}</span>}
+                              </>
+                            )}
+                          </div>
                         </div>
                       </CardContent>
                     </Card>

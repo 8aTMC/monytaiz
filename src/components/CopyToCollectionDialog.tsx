@@ -1,0 +1,199 @@
+import React, { useState, useEffect } from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Search, Plus, Folder } from 'lucide-react'
+import { supabase } from '@/integrations/supabase/client'
+import { useMediaOperations } from '@/hooks/useMediaOperations'
+
+interface Collection {
+  id: string
+  name: string
+  system: boolean
+}
+
+interface CopyToCollectionDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onConfirm: (collectionId: string) => void
+}
+
+export const CopyToCollectionDialog: React.FC<CopyToCollectionDialogProps> = ({
+  open,
+  onOpenChange,
+  onConfirm
+}) => {
+  const [collections, setCollections] = useState<Collection[]>([])
+  const [loading, setLoading] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string>('')
+  const [showNewFolder, setShowNewFolder] = useState(false)
+  const [newFolderName, setNewFolderName] = useState('')
+  const { createCollection, loading: createLoading } = useMediaOperations()
+
+  useEffect(() => {
+    if (open) {
+      fetchCollections()
+    }
+  }, [open])
+
+  const fetchCollections = async () => {
+    setLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('collections')
+        .select('id, name, system')
+        .eq('system', false)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setCollections(data || [])
+    } catch (error) {
+      console.error('Error fetching collections:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return
+
+    try {
+      const newCollection = await createCollection(newFolderName.trim())
+      setCollections(prev => [newCollection, ...prev])
+      setNewFolderName('')
+      setShowNewFolder(false)
+      setSelectedCollectionId(newCollection.id)
+    } catch (error) {
+      console.error('Error creating folder:', error)
+    }
+  }
+
+  const handleConfirm = () => {
+    if (selectedCollectionId) {
+      onConfirm(selectedCollectionId)
+      setSelectedCollectionId('')
+      setSearchTerm('')
+      setShowNewFolder(false)
+      setNewFolderName('')
+    }
+  }
+
+  const handleCancel = () => {
+    onOpenChange(false)
+    setSelectedCollectionId('')
+    setSearchTerm('')
+    setShowNewFolder(false)
+    setNewFolderName('')
+  }
+
+  const filteredCollections = collections.filter(collection =>
+    collection.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Copy to Folder</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search folders..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {showNewFolder && (
+            <div className="flex gap-2">
+              <Input
+                placeholder="Folder name"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCreateFolder()
+                  if (e.key === 'Escape') setShowNewFolder(false)
+                }}
+                autoFocus
+              />
+              <Button 
+                onClick={handleCreateFolder} 
+                disabled={!newFolderName.trim() || createLoading}
+                size="sm"
+              >
+                Create
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowNewFolder(false)}
+                size="sm"
+              >
+                Cancel
+              </Button>
+            </div>
+          )}
+
+          <Button
+            variant="outline"
+            onClick={() => setShowNewFolder(true)}
+            className="w-full justify-start"
+            disabled={showNewFolder}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Folder
+          </Button>
+
+          <ScrollArea className="h-[200px]">
+            <div className="space-y-1">
+              {loading ? (
+                <div className="text-center text-muted-foreground py-4">
+                  Loading folders...
+                </div>
+              ) : filteredCollections.length === 0 ? (
+                <div className="text-center text-muted-foreground py-4">
+                  {searchTerm ? 'No folders found' : 'No custom folders yet'}
+                </div>
+              ) : (
+                filteredCollections.map((collection) => (
+                  <Button
+                    key={collection.id}
+                    variant={selectedCollectionId === collection.id ? "secondary" : "ghost"}
+                    onClick={() => setSelectedCollectionId(collection.id)}
+                    className="w-full justify-start"
+                  >
+                    <Folder className="h-4 w-4 mr-2" />
+                    {collection.name}
+                  </Button>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleCancel}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleConfirm}
+            disabled={!selectedCollectionId}
+          >
+            Copy Here
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

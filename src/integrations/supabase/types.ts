@@ -1432,7 +1432,6 @@ export type Database = {
       fan_my_media: {
         Row: {
           created_at: string | null
-          created_by: string | null
           creator_id: string | null
           grant_type: string | null
           granted_at: string | null
@@ -1441,7 +1440,6 @@ export type Database = {
           notes: string | null
           origin: string | null
           price_cents: number | null
-          sha256: string | null
           size_bytes: number | null
           storage_path: string | null
           suggested_price_cents: number | null
