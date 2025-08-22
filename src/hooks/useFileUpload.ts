@@ -15,10 +15,10 @@ export interface FileUploadItem {
 }
 
 const FILE_LIMITS = {
-  video: 6 * 1024 * 1024 * 1024, // 6GB
-  image: 20 * 1024 * 1024, // 20MB
+  video: 10 * 1024 * 1024 * 1024, // 10GB
+  image: 50 * 1024 * 1024, // 50MB
   audio: 10 * 1024 * 1024, // 10MB
-  document: 100 * 1024 * 1024, // 100MB
+  document: 10 * 1024 * 1024, // 10MB
 };
 
 const ALLOWED_TYPES = {
