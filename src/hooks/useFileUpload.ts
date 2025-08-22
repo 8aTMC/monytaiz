@@ -193,7 +193,7 @@ export const useFileUpload = () => {
         f.id === item.id ? { ...f, status: 'uploading' as const } : f
       ));
 
-      // Progress tracking - don't stop at 90%, continue to 95%
+      // Progress tracking - simulate upload progress
       progressInterval = setInterval(() => {
         if (pausedUploads.has(item.id)) {
           if (progressInterval) clearInterval(progressInterval);
@@ -201,7 +201,7 @@ export const useFileUpload = () => {
           return;
         }
 
-        simulatedUploadedBytes = Math.min(simulatedUploadedBytes + chunkSize, file.size * 0.95);
+        simulatedUploadedBytes = Math.min(simulatedUploadedBytes + chunkSize, file.size * 0.90);
         const progress = Math.round((simulatedUploadedBytes / file.size) * 100);
         
         setUploadQueue(prev => prev.map(f => 
@@ -212,7 +212,7 @@ export const useFileUpload = () => {
           } : f
         ));
 
-        if (simulatedUploadedBytes >= file.size * 0.95) {
+        if (simulatedUploadedBytes >= file.size * 0.90) {
           if (progressInterval) {
             clearInterval(progressInterval);
             progressInterval = null;
@@ -220,11 +220,16 @@ export const useFileUpload = () => {
         }
       }, 100);
 
+      console.log('Starting upload for file:', file.name);
+      
       // Get current user first to ensure we have the ID
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData.user) {
+        console.error('User authentication error:', userError);
         throw new Error('User not authenticated - please log in again');
       }
+      
+      console.log('User authenticated:', userData.user.id);
 
       // Verify user has required role for content upload
       const { data: userRoles, error: roleError } = await supabase
@@ -262,6 +267,8 @@ export const useFileUpload = () => {
         uploadAbortController?.abort();
       }, 300000); // 5 minute timeout
 
+      console.log('Uploading to storage path:', filePath);
+      
       // Upload to Supabase Storage
       let { data, error } = await supabase.storage
         .from('content')
@@ -274,6 +281,8 @@ export const useFileUpload = () => {
         clearInterval(progressInterval);
         progressInterval = null;
       }
+      
+      console.log('Storage upload result:', { data, error });
       
       if (error) {
         // Handle specific upload errors
@@ -301,7 +310,7 @@ export const useFileUpload = () => {
         content_type: fileType
       });
 
-      const { error: dbError } = await supabase
+      const { data: insertData, error: dbError } = await supabase
         .from('content_files')
         .insert({
           title: file.name.replace(/\.[^/.]+$/, ""), // Remove extension
@@ -311,12 +320,15 @@ export const useFileUpload = () => {
           mime_type: file.type,
           file_size: file.size,
           creator_id: userData.user.id,
-        });
+        })
+        .select();
 
       if (dbError) {
         console.error('Database insert error:', dbError);
         throw new Error(`Failed to save file metadata: ${dbError.message}`);
       }
+      
+      console.log('Database insert successful:', insertData);
 
       // Mark as completed
       setUploadQueue(prev => prev.map(f => 
