@@ -23,6 +23,7 @@ export const AdvancedFileUpload = () => {
     cancelUpload,
     startUpload,
     clearQueue,
+    cancelAllUploads,
     processedCount,
     totalCount,
   } = useFileUpload();
@@ -98,7 +99,16 @@ export const AdvancedFileUpload = () => {
                   Upload More
                 </Button>
               )}
-              {!isUploading && (
+              {isUploading ? (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={cancelAllUploads}
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Cancel All
+                </Button>
+              ) : (
                 <>
                   <Button
                     variant="outline"
@@ -172,10 +182,10 @@ export const AdvancedFileUpload = () => {
             />
             <div className="mt-4 text-xs text-muted-foreground space-y-1">
               <p><strong>Supported formats:</strong></p>
-              <p>📸 Photos: JPG, PNG, WEBP, GIF (max 20MB)</p>
-              <p>🎥 Videos: MP4, MOV, WEBM, AVI, MKV (max 6GB)</p>
+              <p>📸 Photos: JPG, PNG, WEBP, GIF (max 50MB)</p>
+              <p>🎥 Videos: MP4, MOV, WEBM, AVI, MKV (max 10GB)</p>
               <p>🎵 Audio: MP3, WAV, AAC, OGG (max 10MB)</p>
-              <p>📄 Documents: PDF, DOC, DOCX, TXT, RTF (max 100MB)</p>
+              <p>📄 Documents: PDF, DOC, DOCX, TXT, RTF (max 10MB)</p>
               <p className="font-medium">Maximum 100 files per batch</p>
             </div>
           </div>

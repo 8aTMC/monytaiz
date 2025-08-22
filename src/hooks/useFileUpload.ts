@@ -69,7 +69,10 @@ export const useFileUpload = () => {
       const maxSize = FILE_LIMITS[fileType];
       
       if (file.size > maxSize) {
-        throw new Error(`File too large. Max size for ${fileType}: ${(maxSize / (1024 * 1024)).toFixed(0)}MB`);
+        const sizeLabel = fileType === 'video' 
+          ? `${(maxSize / (1024 * 1024 * 1024)).toFixed(0)}GB`
+          : `${(maxSize / (1024 * 1024)).toFixed(0)}MB`;
+        throw new Error(`File too large. Max size for ${fileType}: ${sizeLabel}`);
       }
       
       return { fileType, valid: true };
@@ -465,6 +468,26 @@ export const useFileUpload = () => {
     setCurrentUploadIndex(0);
   }, []);
 
+  const cancelAllUploads = useCallback(() => {
+    if (!isUploading) return;
+    
+    // Cancel all pending/uploading files
+    uploadQueue.forEach(item => {
+      if (item.status === 'uploading' || item.status === 'pending') {
+        cancelUpload(item.id);
+      }
+    });
+    
+    // Reset state
+    setIsUploading(false);
+    setCurrentUploadIndex(0);
+    
+    toast({
+      title: "Upload cancelled",
+      description: "All uploads have been cancelled",
+    });
+  }, [isUploading, uploadQueue, cancelUpload, toast]);
+
   return {
     uploadQueue,
     isUploading,
@@ -476,6 +499,7 @@ export const useFileUpload = () => {
     cancelUpload,
     startUpload,
     clearQueue,
+    cancelAllUploads,
     processedCount: uploadQueue.filter(f => f.status === 'completed').length,
     totalCount: uploadQueue.length,
   };
