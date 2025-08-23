@@ -609,29 +609,6 @@ const ContentLibrary = () => {
             Reorder Folders
           </Button>
 
-          {/* Temporary role assignment button */}
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={async () => {
-              try {
-                const { data, error } = await supabase.rpc('assign_initial_owner_role');
-                if (error) {
-                  console.error('Role assignment failed:', error);
-                } else {
-                  console.log('Role assignment result:', data);
-                  const result = data as { success: boolean; message: string };
-                  if (result.success) {
-                    window.location.reload();
-                  }
-                }
-              } catch (e) {
-                console.error('Role assignment failed:', e);
-              }
-            }}
-          >
-            Fix Permissions (Owner Role)
-          </Button>
         </div>
 
             {/* Custom Folders */}
