@@ -222,7 +222,7 @@ const ContentLibrary = () => {
     }
   }, [user, selectedFilter, searchQuery, sortBy, selectedCategory]);
 
-  // Fetch custom collections from database
+  // Fetch custom collections from database and set up real-time subscription
   useEffect(() => {
     const fetchCustomCollections = async () => {
       if (!user) return;
@@ -252,7 +252,31 @@ const ContentLibrary = () => {
       }
     };
 
-    fetchCustomCollections();
+    if (user) {
+      fetchCustomCollections();
+
+      // Set up real-time subscription for collections
+      const channel = supabase
+        .channel('collections-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'collections',
+            filter: 'system=eq.false'
+          },
+          () => {
+            // Refetch collections when any change occurs
+            fetchCustomCollections();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [user]);
 
   // Sort custom folders based on sortOrder
