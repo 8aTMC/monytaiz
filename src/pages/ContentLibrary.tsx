@@ -16,6 +16,7 @@ import { EditFolderDialog } from '@/components/EditFolderDialog';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LibrarySelectionToolbar } from '@/components/LibrarySelectionToolbar';
 import { useMediaOperations } from '@/hooks/useMediaOperations';
+import { DeletionProgressDialog } from '@/components/DeletionProgressDialog';
 
 interface MediaItem {
   id: string;
@@ -60,6 +61,16 @@ const ContentLibrary = () => {
   // Selection state
   const [selecting, setSelecting] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  
+  // Deletion progress state
+  const [deletionProgress, setDeletionProgress] = useState({
+    open: false,
+    totalFiles: 0,
+    deletedFiles: 0,
+    isComplete: false,
+    isError: false,
+    errorMessage: ''
+  });
   
   const { copyToCollection, removeFromCollection, deleteMediaHard, createCollection, loading: operationLoading } = useMediaOperations();
   
@@ -429,14 +440,30 @@ const ContentLibrary = () => {
 
   const handleDelete = async () => {
     try {
+      const selectedItemsArray = Array.from(selectedItems);
       const isCustomFolder = selectedCategory.startsWith('custom-') || !['all-files', 'stories', 'livestreams', 'messages'].includes(selectedCategory);
       
       if (isCustomFolder) {
         // Remove from collection only
-        await removeFromCollection(selectedCategory, Array.from(selectedItems));
+        await removeFromCollection(selectedCategory, selectedItemsArray);
       } else {
-        // Delete permanently
-        await deleteMediaHard(Array.from(selectedItems));
+        // Delete permanently with progress tracking
+        setDeletionProgress({
+          open: true,
+          totalFiles: selectedItemsArray.length,
+          deletedFiles: 0,
+          isComplete: false,
+          isError: false,
+          errorMessage: ''
+        });
+        
+        await deleteMediaHard(selectedItemsArray, (deletedCount, totalCount) => {
+          setDeletionProgress(prev => ({
+            ...prev,
+            deletedFiles: deletedCount,
+            isComplete: deletedCount === totalCount
+          }));
+        });
       }
       
       handleClearSelection();
@@ -444,7 +471,23 @@ const ContentLibrary = () => {
       await refetchContent();
     } catch (error) {
       console.error('Delete failed:', error);
+      setDeletionProgress(prev => ({
+        ...prev,
+        isError: true,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error occurred'
+      }));
     }
+  };
+
+  const handleCloseProgressDialog = () => {
+    setDeletionProgress({
+      open: false,
+      totalFiles: 0,
+      deletedFiles: 0,
+      isComplete: false,
+      isError: false,
+      errorMessage: ''
+    });
   };
 
   const refreshCustomFolders = async () => {
@@ -892,6 +935,16 @@ const ContentLibrary = () => {
               )}
             </div>
           </div>
+          
+          <DeletionProgressDialog
+            open={deletionProgress.open}
+            totalFiles={deletionProgress.totalFiles}
+            deletedFiles={deletionProgress.deletedFiles}
+            isComplete={deletionProgress.isComplete}
+            isError={deletionProgress.isError}
+            errorMessage={deletionProgress.errorMessage}
+            onClose={handleCloseProgressDialog}
+          />
     </div>
   );
 };

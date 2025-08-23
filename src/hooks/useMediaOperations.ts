@@ -85,24 +85,44 @@ export const useMediaOperations = () => {
     }
   }
 
-  const deleteMediaHard = async (mediaIds: string[]) => {
+  const deleteMediaHard = async (
+    mediaIds: string[], 
+    onProgress?: (deletedCount: number, totalCount: number) => void
+  ) => {
     setLoading(true)
+    const totalFiles = mediaIds.length;
+    const batchSize = 5; // Process in batches to show progress
+    let deletedCount = 0;
+    
     try {
-      const { data, error } = await supabase.functions.invoke('media-operations', {
-        body: {
-          action: 'delete_media_hard',
-          media_ids: mediaIds
-        }
-      })
+      // Process files in batches
+      for (let i = 0; i < mediaIds.length; i += batchSize) {
+        const batch = mediaIds.slice(i, i + batchSize);
+        
+        const { data, error } = await supabase.functions.invoke('media-operations', {
+          body: {
+            action: 'delete_media_hard',
+            media_ids: batch
+          }
+        })
 
-      if (error) throw error
+        if (error) throw error
+        
+        deletedCount += batch.length;
+        onProgress?.(deletedCount, totalFiles);
+        
+        // Small delay to show progress
+        if (i + batchSize < mediaIds.length) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
 
       toast({
         title: "Success",
-        description: data.message || `Permanently deleted ${mediaIds.length} files`
+        description: `Permanently deleted ${totalFiles} files`
       })
 
-      return data
+      return { success: true, deleted_count: totalFiles };
     } catch (error: any) {
       console.error('Delete media error:', error)
       toast({
