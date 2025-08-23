@@ -1452,6 +1452,10 @@ export type Database = {
       }
     }
     Functions: {
+      assign_initial_owner_role: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       cleanup_stale_typing_indicators: {
         Args: Record<PropertyKey, never>
         Returns: undefined

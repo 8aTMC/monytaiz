@@ -615,12 +615,15 @@ const ContentLibrary = () => {
             size="sm"
             onClick={async () => {
               try {
-                const { error } = await supabase
-                  .from('user_roles')
-                  .insert({ user_id: user?.id, role: 'owner' });
-                if (!error) {
-                  console.log('Owner role assigned');
-                  window.location.reload();
+                const { data, error } = await supabase.rpc('assign_initial_owner_role');
+                if (error) {
+                  console.error('Role assignment failed:', error);
+                } else {
+                  console.log('Role assignment result:', data);
+                  const result = data as { success: boolean; message: string };
+                  if (result.success) {
+                    window.location.reload();
+                  }
                 }
               } catch (e) {
                 console.error('Role assignment failed:', e);
