@@ -137,97 +137,106 @@ const ContentLibrary = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [isCollapsed]);
 
-  useEffect(() => {
-    const fetchContent = async () => {
-      try {
-        let query = supabase.from('content_files').select('*').eq('is_active', true);
+  // Separate refetch function that can be called from anywhere
+  const refetchContent = async () => {
+    try {
+      let query = supabase.from('content_files').select('*').eq('is_active', true);
 
-        // Apply type filter  
-        if (selectedFilter !== 'all') {
-          query = query.eq('content_type', selectedFilter as 'image' | 'video' | 'audio' | 'document');
-        }
+      // Apply type filter  
+      if (selectedFilter !== 'all') {
+        query = query.eq('content_type', selectedFilter as 'image' | 'video' | 'audio' | 'document');
+      }
 
-        // For custom collections, we need to fetch via collection_items
-        if (selectedCategory !== 'all-files' && selectedCategory.startsWith('custom-')) {
-          const collectionId = selectedCategory.replace('custom-', '');
-          const { data: collectionItems, error: collectionError } = await supabase
-            .from('collection_items')
-            .select(`
-              media_id,
-              content_files:media_id (*)
-            `)
-            .eq('collection_id', collectionId);
+      // For custom collections, we need to fetch via collection_items
+      if (selectedCategory !== 'all-files' && selectedCategory.startsWith('custom-')) {
+        const collectionId = selectedCategory.replace('custom-', '');
+        const { data: collectionItems, error: collectionError } = await supabase
+          .from('collection_items')
+          .select(`
+            media_id,
+            content_files:media_id (*)
+          `)
+          .eq('collection_id', collectionId);
 
-          if (collectionError) {
-            console.error('Error fetching collection items:', collectionError);
-            setContent([]);
-            return;
-          }
-
-          const mediaItems = collectionItems?.map(item => {
-            const file = item.content_files;
-            return file ? {
-              id: file.id,
-              title: file.title,
-              type: file.type as 'image' | 'video' | 'audio' | 'document',
-              origin: 'upload' as const,
-              storage_path: file.storage_path,
-              created_at: file.created_at,
-              updated_at: file.updated_at,
-              size_bytes: file.size_bytes || 0,
-              suggested_price_cents: file.suggested_price_cents || 0,
-              tags: file.tags || [],
-              notes: file.notes || null,
-              mime: file.mime || '',
-              creator_id: file.creator_id
-            } : null;
-          }).filter(Boolean) as MediaItem[] || [];
-          setContent(mediaItems);
+        if (collectionError) {
+          console.error('Error fetching collection items:', collectionError);
+          setContent([]);
           return;
         }
 
-        // Apply search filter
-        if (searchQuery) {
-          const searchTerms = searchQuery.trim().split(/\s+/).map(term => term.toLowerCase());
-          const searchConditions = searchTerms.map(term => 
-            `title.ilike.%${term}%,description.ilike.%${term}%,tags.cs.{${term}}`
-          ).join(',');
-          query = query.or(searchConditions);
-        }
-
-        // Apply sorting
-        if (sortBy === 'newest') {
-          query = query.order('created_at', { ascending: false });
-        } else if (sortBy === 'oldest') {
-          query = query.order('created_at', { ascending: true });
-        } else if (sortBy === 'price_high') {
-          query = query.order('base_price', { ascending: false });
-        } else if (sortBy === 'price_low') {
-          query = query.order('base_price', { ascending: true });
-        }
-
-        const { data, error } = await query;
-
-        if (error) {
-          console.error('Error fetching content:', error);
-        } else {
-          const mediaData = data as any[];
-          setContent(mediaData.map(item => ({
-            id: item.id,
-            title: item.title,
-            type: item.type as 'image' | 'video' | 'audio' | 'document',
+        const mediaItems = collectionItems?.map(item => {
+          const file = item.content_files;
+          return file ? {
+            id: file.id,
+            title: file.title,
+            type: file.type as 'image' | 'video' | 'audio' | 'document',
             origin: 'upload' as const,
-            storage_path: item.storage_path,
-            created_at: item.created_at,
-            updated_at: item.updated_at,
-            size_bytes: item.size_bytes || 0,
-            suggested_price_cents: item.suggested_price_cents || 0,
-            tags: item.tags || [],
-            notes: item.notes || null,
-            mime: item.mime || '',
-            creator_id: item.creator_id
-          })));
-        }
+            storage_path: file.storage_path,
+            created_at: file.created_at,
+            updated_at: file.updated_at,
+            size_bytes: file.size_bytes || 0,
+            suggested_price_cents: file.suggested_price_cents || 0,
+            tags: file.tags || [],
+            notes: file.notes || null,
+            mime: file.mime || '',
+            creator_id: file.creator_id
+          } : null;
+        }).filter(Boolean) as MediaItem[] || [];
+        setContent(mediaItems);
+        return;
+      }
+
+      // Apply search filter
+      if (searchQuery) {
+        const searchTerms = searchQuery.trim().split(/\s+/).map(term => term.toLowerCase());
+        const searchConditions = searchTerms.map(term => 
+          `title.ilike.%${term}%,description.ilike.%${term}%,tags.cs.{${term}}`
+        ).join(',');
+        query = query.or(searchConditions);
+      }
+
+      // Apply sorting
+      if (sortBy === 'newest') {
+        query = query.order('created_at', { ascending: false });
+      } else if (sortBy === 'oldest') {
+        query = query.order('created_at', { ascending: true });
+      } else if (sortBy === 'price_high') {
+        query = query.order('base_price', { ascending: false });
+      } else if (sortBy === 'price_low') {
+        query = query.order('base_price', { ascending: true });
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching content:', error);
+      } else {
+        const mediaData = data as any[];
+        setContent(mediaData.map(item => ({
+          id: item.id,
+          title: item.title,
+          type: item.type as 'image' | 'video' | 'audio' | 'document',
+          origin: 'upload' as const,
+          storage_path: item.storage_path,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+          size_bytes: item.size_bytes || 0,
+          suggested_price_cents: item.suggested_price_cents || 0,
+          tags: item.tags || [],
+          notes: item.notes || null,
+          mime: item.mime || '',
+          creator_id: item.creator_id
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching content:', error);
+    }
+  };
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        await refetchContent();
       } catch (error) {
         console.error('Error fetching content:', error);
       } finally {
@@ -462,11 +471,8 @@ const ContentLibrary = () => {
       }
       
       handleClearSelection();
-      // Refetch content
-      const fetchContent = async () => {
-        // ... same fetch logic as in useEffect
-      };
-      fetchContent();
+      // Refetch content to update UI
+      await refetchContent();
     } catch (error) {
       console.error('Delete failed:', error);
     }
