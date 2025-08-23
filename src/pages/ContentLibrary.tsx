@@ -227,12 +227,15 @@ const ContentLibrary = () => {
     const fetchCustomCollections = async () => {
       if (!user) return;
       
+      console.log('Fetching custom collections...');
       try {
         const { data, error } = await supabase
           .from('collections')
           .select('*')
           .eq('system', false)
           .order('name', { ascending: true });
+
+        console.log('Collections query result:', { data, error });
 
         if (error) {
           console.error('Error fetching collections:', error);
@@ -245,6 +248,7 @@ const ContentLibrary = () => {
             isDefault: false as const,
             count: 0
           })) || [];
+          console.log('Mapped folders:', folders);
           setCustomFolders(folders);
         }
       } catch (error) {
@@ -256,6 +260,7 @@ const ContentLibrary = () => {
       fetchCustomCollections();
 
       // Set up real-time subscription for collections
+      console.log('Setting up real-time subscription for collections');
       const channel = supabase
         .channel('collections-changes')
         .on(
@@ -266,14 +271,18 @@ const ContentLibrary = () => {
             table: 'collections',
             filter: 'system=eq.false'
           },
-          () => {
+          (payload) => {
+            console.log('Real-time collection change:', payload);
             // Refetch collections when any change occurs
             fetchCustomCollections();
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('Subscription status:', status);
+        });
 
       return () => {
+        console.log('Cleaning up collection subscription');
         supabase.removeChannel(channel);
       };
     }
