@@ -608,6 +608,27 @@ const ContentLibrary = () => {
             <ArrowUpDown className="h-4 w-4 mr-2" />
             Reorder Folders
           </Button>
+
+          {/* Temporary role assignment button */}
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={async () => {
+              try {
+                const { error } = await supabase
+                  .from('user_roles')
+                  .insert({ user_id: user?.id, role: 'owner' });
+                if (!error) {
+                  console.log('Owner role assigned');
+                  window.location.reload();
+                }
+              } catch (e) {
+                console.error('Role assignment failed:', e);
+              }
+            }}
+          >
+            Fix Permissions (Owner Role)
+          </Button>
         </div>
 
             {/* Custom Folders */}
