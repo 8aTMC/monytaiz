@@ -25,7 +25,6 @@ interface MediaItem {
   mime: string;
   type: 'image' | 'video' | 'audio' | 'document';
   size_bytes: number;
-  sha256: string | null;
   tags: string[];
   suggested_price_cents: number;
   notes: string | null;
@@ -141,24 +140,23 @@ const ContentLibrary = () => {
   useEffect(() => {
     const fetchContent = async () => {
       try {
-        let query = supabase.from('media').select('*');
+        let query = supabase.from('content_files').select('*').eq('is_active', true);
 
-        // Apply origin filter based on selected category
-        if (selectedCategory === 'stories') {
-          query = query.eq('origin', 'story');
-        } else if (selectedCategory === 'livestreams') {
-          query = query.eq('origin', 'livestream'); 
-        } else if (selectedCategory === 'messages') {
-          query = query.eq('origin', 'message');
-        } else if (selectedCategory !== 'all-files' && !selectedCategory.startsWith('custom-')) {
-          // For custom collections, we need to fetch via collection_items
+        // Apply type filter  
+        if (selectedFilter !== 'all') {
+          query = query.eq('content_type', selectedFilter as 'image' | 'video' | 'audio' | 'document');
+        }
+
+        // For custom collections, we need to fetch via collection_items
+        if (selectedCategory !== 'all-files' && selectedCategory.startsWith('custom-')) {
+          const collectionId = selectedCategory.replace('custom-', '');
           const { data: collectionItems, error: collectionError } = await supabase
             .from('collection_items')
             .select(`
               media_id,
-              media:media_id (*)
+              content_files:media_id (*)
             `)
-            .eq('collection_id', selectedCategory);
+            .eq('collection_id', collectionId);
 
           if (collectionError) {
             console.error('Error fetching collection items:', collectionError);
@@ -166,24 +164,33 @@ const ContentLibrary = () => {
             return;
           }
 
-          const mediaItems = collectionItems?.map(item => item.media).filter(Boolean).filter(media => 
-            ['upload', 'story', 'livestream', 'message'].includes(media.origin) &&
-            ['image', 'video', 'audio', 'document'].includes(media.type)
-          ) as MediaItem[] || [];
+          const mediaItems = collectionItems?.map(item => {
+            const file = item.content_files;
+            return file ? {
+              id: file.id,
+              title: file.title,
+              type: file.content_type as 'image' | 'video' | 'audio' | 'document',
+              origin: 'upload' as const,
+              storage_path: file.file_path,
+              created_at: file.created_at,
+              updated_at: file.updated_at,
+              size_bytes: file.file_size || 0,
+              suggested_price_cents: Math.round((file.base_price || 0) * 100),
+              tags: file.tags || [],
+              notes: file.description || null,
+              mime: file.mime_type || '',
+              creator_id: file.creator_id
+            } : null;
+          }).filter(Boolean) as MediaItem[] || [];
           setContent(mediaItems);
           return;
-        }
-
-        // Apply type filter
-        if (selectedFilter !== 'all') {
-          query = query.eq('type', selectedFilter);
         }
 
         // Apply search filter
         if (searchQuery) {
           const searchTerms = searchQuery.trim().split(/\s+/).map(term => term.toLowerCase());
           const searchConditions = searchTerms.map(term => 
-            `title.ilike.%${term}%,notes.ilike.%${term}%,tags.cs.{${term}}`
+            `title.ilike.%${term}%,description.ilike.%${term}%,tags.cs.{${term}}`
           ).join(',');
           query = query.or(searchConditions);
         }
@@ -194,24 +201,35 @@ const ContentLibrary = () => {
         } else if (sortBy === 'oldest') {
           query = query.order('created_at', { ascending: true });
         } else if (sortBy === 'price_high') {
-          query = query.order('suggested_price_cents', { ascending: false });
+          query = query.order('base_price', { ascending: false });
         } else if (sortBy === 'price_low') {
-          query = query.order('suggested_price_cents', { ascending: true });
+          query = query.order('base_price', { ascending: true });
         }
 
         const { data, error } = await query;
 
         if (error) {
-          console.error('Error fetching media:', error);
+          console.error('Error fetching content:', error);
         } else {
           const mediaData = data as any[];
-          setContent(mediaData.filter(item => 
-            ['upload', 'story', 'livestream', 'message'].includes(item.origin) &&
-            ['image', 'video', 'audio', 'document'].includes(item.type)
-          ));
+          setContent(mediaData.map(item => ({
+            id: item.id,
+            title: item.title,
+            type: item.content_type as 'image' | 'video' | 'audio' | 'document',
+            origin: 'upload' as const,
+            storage_path: item.file_path,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            size_bytes: item.file_size || 0,
+            suggested_price_cents: Math.round((item.base_price || 0) * 100),
+            tags: item.tags || [],
+            notes: item.description || null,
+            mime: item.mime_type || '',
+            creator_id: item.creator_id
+          })));
         }
       } catch (error) {
-        console.error('Error fetching media:', error);
+        console.error('Error fetching content:', error);
       } finally {
         setLoadingContent(false);
       }
