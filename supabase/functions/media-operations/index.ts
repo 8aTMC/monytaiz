@@ -120,7 +120,7 @@ async function copyToCollection(supabaseClient: any, userId: string, collectionI
 
     // Validate media ownership (all media must belong to same creator)
     const { data: media, error: mediaError } = await supabaseClient
-      .from('media')
+      .from('content_files')
       .select('id, creator_id')
       .in('id', mediaIds)
 
@@ -197,8 +197,8 @@ async function deleteMediaHard(supabaseClient: any, userId: string, mediaIds: st
   try {
     // Get media details for storage cleanup
     const { data: media, error: mediaError } = await supabaseClient
-      .from('media')
-      .select('id, storage_path')
+      .from('content_files')
+      .select('id, file_path')
       .in('id', mediaIds)
 
     if (mediaError || !media) {
@@ -212,18 +212,18 @@ async function deleteMediaHard(supabaseClient: any, userId: string, mediaIds: st
     const storagePromises = media.map(async (item: any) => {
       const { error } = await supabaseClient.storage
         .from('content')
-        .remove([item.storage_path])
+        .remove([item.file_path])
       
       if (error) {
-        console.error(`Failed to delete storage file ${item.storage_path}:`, error)
+        console.error(`Failed to delete storage file ${item.file_path}:`, error)
       }
     })
 
     await Promise.all(storagePromises)
 
-    // Delete from database (CASCADE will handle collection_items and fan_media_grants)
+    // Delete from database
     const { error: deleteError } = await supabaseClient
-      .from('media')
+      .from('content_files')
       .delete()
       .in('id', mediaIds)
 
