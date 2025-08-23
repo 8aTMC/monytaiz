@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { FolderPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -15,7 +14,6 @@ interface NewFolderDialogProps {
 export const NewFolderDialog = ({ onFolderCreated }: NewFolderDialogProps) => {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -40,15 +38,6 @@ export const NewFolderDialog = ({ onFolderCreated }: NewFolderDialogProps) => {
       return;
     }
 
-    if (description.length > 40) {
-      toast({
-        title: "Error",
-        description: "Description must be 40 characters or less",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -59,11 +48,12 @@ export const NewFolderDialog = ({ onFolderCreated }: NewFolderDialogProps) => {
       }
 
       const { error } = await supabase
-        .from('file_folders')
+        .from('collections')
         .insert({
           name: name.trim(),
-          description: description.trim() || null,
           creator_id: user.id,
+          created_by: user.id,
+          system: false,
         });
 
       if (error) {
@@ -76,7 +66,6 @@ export const NewFolderDialog = ({ onFolderCreated }: NewFolderDialogProps) => {
       });
 
       setName('');
-      setDescription('');
       setOpen(false);
       onFolderCreated?.();
     } catch (error) {
@@ -116,21 +105,6 @@ export const NewFolderDialog = ({ onFolderCreated }: NewFolderDialogProps) => {
             />
             <p className="text-xs text-muted-foreground">
               {name.length}/30 characters
-            </p>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="folder-description">Description (optional)</Label>
-            <Textarea
-              id="folder-description"
-              placeholder="Enter folder description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              maxLength={40}
-              rows={2}
-            />
-            <p className="text-xs text-muted-foreground">
-              {description.length}/40 characters
             </p>
           </div>
 
