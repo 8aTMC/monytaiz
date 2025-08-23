@@ -249,20 +249,17 @@ const ContentLibrary = () => {
     }
   }, [user, selectedFilter, searchQuery, sortBy, selectedCategory]);
 
-  // Fetch custom collections from database and set up real-time subscription
+  // Fetch custom collections from database
   useEffect(() => {
     const fetchCustomCollections = async () => {
       if (!user) return;
       
-      console.log('Fetching custom collections...');
       try {
         const { data, error } = await supabase
           .from('collections')
           .select('*')
           .eq('system', false)
           .order('name', { ascending: true });
-
-        console.log('Collections query result:', { data, error });
 
         if (error) {
           console.error('Error fetching collections:', error);
@@ -275,7 +272,6 @@ const ContentLibrary = () => {
             isDefault: false as const,
             count: 0
           })) || [];
-          console.log('Mapped folders:', folders);
           setCustomFolders(folders);
         }
       } catch (error) {
@@ -285,33 +281,6 @@ const ContentLibrary = () => {
 
     if (user) {
       fetchCustomCollections();
-
-      // Set up real-time subscription for collections
-      console.log('Setting up real-time subscription for collections');
-      const channel = supabase
-        .channel('collections-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'collections',
-            filter: 'system=eq.false'
-          },
-          (payload) => {
-            console.log('Real-time collection change:', payload);
-            // Refetch collections when any change occurs
-            fetchCustomCollections();
-          }
-        )
-        .subscribe((status) => {
-          console.log('Subscription status:', status);
-        });
-
-      return () => {
-        console.log('Cleaning up collection subscription');
-        supabase.removeChannel(channel);
-      };
     }
   }, [user]);
 
