@@ -665,8 +665,7 @@ const ContentLibrary = () => {
                             <EditFolderDialog 
                               folder={{
                                 id: folder.id,
-                                label: folder.label,
-                                description: folder.description
+                                label: folder.label
                               }}
                               onFolderUpdated={refreshCustomFolders}
                             />

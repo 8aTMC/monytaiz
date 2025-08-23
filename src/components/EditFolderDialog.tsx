@@ -12,7 +12,6 @@ interface EditFolderDialogProps {
   folder: {
     id: string;
     label: string;
-    description: string;
   };
   onFolderUpdated: () => void;
 }
@@ -20,7 +19,6 @@ interface EditFolderDialogProps {
 export const EditFolderDialog = ({ folder, onFolderUpdated }: EditFolderDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState(folder.label);
-  const [description, setDescription] = useState(folder.description);
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
@@ -38,10 +36,9 @@ export const EditFolderDialog = ({ folder, onFolderUpdated }: EditFolderDialogPr
     setIsLoading(true);
     try {
       const { error } = await supabase
-        .from('file_folders')
+        .from('collections')
         .update({
           name: name.trim(),
-          description: description.trim() || null,
           updated_at: new Date().toISOString()
         })
         .eq('id', folder.id);
@@ -73,7 +70,7 @@ export const EditFolderDialog = ({ folder, onFolderUpdated }: EditFolderDialogPr
     setIsDeleting(true);
     try {
       const { error } = await supabase
-        .from('file_folders')
+        .from('collections')
         .delete()
         .eq('id', folder.id);
 
@@ -102,7 +99,6 @@ export const EditFolderDialog = ({ folder, onFolderUpdated }: EditFolderDialogPr
 
   const resetForm = () => {
     setName(folder.label);
-    setDescription(folder.description);
   };
 
   return (
@@ -138,19 +134,6 @@ export const EditFolderDialog = ({ folder, onFolderUpdated }: EditFolderDialogPr
             />
             <p className="text-xs text-muted-foreground">
               {name.length}/30 characters
-            </p>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="folder-description">Description</Label>
-            <Input
-              id="folder-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter folder description"
-              maxLength={40}
-            />
-            <p className="text-xs text-muted-foreground">
-              {description.length}/40 characters
             </p>
           </div>
         </div>
