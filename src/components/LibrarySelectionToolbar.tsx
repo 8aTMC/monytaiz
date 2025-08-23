@@ -7,10 +7,12 @@ import { DeleteConfirmationDialog } from './DeleteConfirmationDialog'
 interface LibrarySelectionToolbarProps {
   selecting: boolean
   selectedCount: number
+  totalCount: number
   currentView: string
   isCustomFolder: boolean
   onToggleSelect: () => void
   onClearSelection: () => void
+  onSelectAll: () => void
   onCopy: (collectionId: string) => void
   onDelete: () => void
   disabled?: boolean
@@ -19,10 +21,12 @@ interface LibrarySelectionToolbarProps {
 export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = ({
   selecting,
   selectedCount,
+  totalCount,
   currentView,
   isCustomFolder,
   onToggleSelect,
   onClearSelection,
+  onSelectAll,
   onCopy,
   onDelete,
   disabled = false
@@ -49,6 +53,7 @@ export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = (
   }
 
   const hasSelection = selectedCount > 0
+  const allSelected = selectedCount === totalCount && totalCount > 0
 
   return (
     <>
@@ -72,6 +77,18 @@ export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = (
               </>
             )}
           </Button>
+
+          {selecting && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={allSelected ? onClearSelection : onSelectAll}
+              disabled={disabled || totalCount === 0}
+            >
+              <Check className="h-4 w-4 mr-2" />
+              {allSelected ? "Deselect All" : "Select All"}
+            </Button>
+          )}
 
           <Button
             variant="outline"

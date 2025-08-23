@@ -169,16 +169,16 @@ const ContentLibrary = () => {
             return file ? {
               id: file.id,
               title: file.title,
-              type: file.content_type as 'image' | 'video' | 'audio' | 'document',
+              type: file.type as 'image' | 'video' | 'audio' | 'document',
               origin: 'upload' as const,
-              storage_path: file.file_path,
+              storage_path: file.storage_path,
               created_at: file.created_at,
               updated_at: file.updated_at,
-              size_bytes: file.file_size || 0,
-              suggested_price_cents: Math.round((file.base_price || 0) * 100),
+              size_bytes: file.size_bytes || 0,
+              suggested_price_cents: file.suggested_price_cents || 0,
               tags: file.tags || [],
-              notes: file.description || null,
-              mime: file.mime_type || '',
+              notes: file.notes || null,
+              mime: file.mime || '',
               creator_id: file.creator_id
             } : null;
           }).filter(Boolean) as MediaItem[] || [];
@@ -215,16 +215,16 @@ const ContentLibrary = () => {
           setContent(mediaData.map(item => ({
             id: item.id,
             title: item.title,
-            type: item.content_type as 'image' | 'video' | 'audio' | 'document',
+            type: item.type as 'image' | 'video' | 'audio' | 'document',
             origin: 'upload' as const,
-            storage_path: item.file_path,
+            storage_path: item.storage_path,
             created_at: item.created_at,
             updated_at: item.updated_at,
-            size_bytes: item.file_size || 0,
-            suggested_price_cents: Math.round((item.base_price || 0) * 100),
+            size_bytes: item.size_bytes || 0,
+            suggested_price_cents: item.suggested_price_cents || 0,
             tags: item.tags || [],
-            notes: item.description || null,
-            mime: item.mime_type || '',
+            notes: item.notes || null,
+            mime: item.mime || '',
             creator_id: item.creator_id
           })));
         }
@@ -423,6 +423,11 @@ const ContentLibrary = () => {
   const handleClearSelection = () => {
     setSelecting(false);
     setSelectedItems(new Set());
+  };
+
+  const handleSelectAll = () => {
+    const allItemIds = new Set(content.map(item => item.id));
+    setSelectedItems(allItemIds);
   };
 
   const handleToggleItem = (itemId: string) => {
@@ -809,11 +814,13 @@ const ContentLibrary = () => {
             <LibrarySelectionToolbar
               selecting={selecting}
               selectedCount={selectedItems.size}
+              totalCount={content.length}
               currentView={defaultCategories.find(c => c.id === selectedCategory)?.label || 
                 customFolders.find(c => c.id === selectedCategory)?.label || 'Library'}
               isCustomFolder={isCustomFolder}
               onToggleSelect={handleToggleSelect}
               onClearSelection={handleClearSelection}
+              onSelectAll={handleSelectAll}
               onCopy={handleCopy}
               onDelete={handleDelete}
               disabled={operationLoading || loadingContent}
