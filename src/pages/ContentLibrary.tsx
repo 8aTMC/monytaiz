@@ -37,6 +37,7 @@ interface MediaItem {
 interface Collection {
   id: string;
   name: string;
+  description: string | null;
   system: boolean;
   system_key: string | null;
   creator_id: string;
@@ -279,7 +280,7 @@ const ContentLibrary = () => {
             id: collection.id,
             label: collection.name,
             icon: Grid,
-            description: 'Custom folder',
+            description: collection.description || 'Custom folder',
             isDefault: false as const,
             count: 0
           })) || [];
@@ -503,7 +504,7 @@ const ContentLibrary = () => {
           id: collection.id,
           label: collection.name,
           icon: Grid,
-          description: 'Custom folder',
+          description: collection.description || 'Custom folder',
           isDefault: false as const,
           count: 0
         }));
