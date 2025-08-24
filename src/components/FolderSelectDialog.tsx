@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus, Folder, Check, Loader2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from './AuthProvider';
@@ -18,15 +19,15 @@ interface Folder {
 interface FolderSelectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedFolder: string;
-  onFolderChange: (folderId: string) => void;
+  selectedFolders: string[];
+  onFoldersChange: (folderIds: string[]) => void;
 }
 
 export const FolderSelectDialog = ({
   open,
   onOpenChange,
-  selectedFolder,
-  onFolderChange,
+  selectedFolders,
+  onFoldersChange,
 }: FolderSelectDialogProps) => {
   const [newFolderName, setNewFolderName] = useState('');
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
@@ -49,15 +50,12 @@ export const FolderSelectDialog = ({
         throw error;
       }
 
-      // Always include "All Files" as the first option
-      const allFolders: Folder[] = [
-        { id: 'all-files', name: 'All Files', isDefault: true },
-        ...data.map(folder => ({
-          id: folder.id,
-          name: folder.name,
-          isDefault: false
-        }))
-      ];
+      // Only show custom folders
+      const allFolders: Folder[] = data.map(folder => ({
+        id: folder.id,
+        name: folder.name,
+        isDefault: false
+      }));
 
       setFolders(allFolders);
     } catch (error: any) {
@@ -115,7 +113,7 @@ export const FolderSelectDialog = ({
       };
 
       setFolders(prev => [...prev, newFolder]);
-      onFolderChange(newFolder.id);
+      onFoldersChange([...selectedFolders, newFolder.id]);
       setNewFolderName('');
       setIsCreatingFolder(false);
 
@@ -135,15 +133,19 @@ export const FolderSelectDialog = ({
     }
   };
 
-  const selectFolder = (folderId: string) => {
-    onFolderChange(folderId);
+  const toggleFolder = (folderId: string) => {
+    if (selectedFolders.includes(folderId)) {
+      onFoldersChange(selectedFolders.filter(id => id !== folderId));
+    } else {
+      onFoldersChange([...selectedFolders, folderId]);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Select Folder</DialogTitle>
+          <DialogTitle>Select Folders</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
@@ -206,7 +208,7 @@ export const FolderSelectDialog = ({
           {/* Existing Folders */}
           <div>
             <Label className="text-sm font-medium">
-              {folders.length > 1 ? 'Existing Folders' : 'Folders'}
+              {folders.length > 0 ? 'Select Folders' : 'No Folders Available'}
             </Label>
             <ScrollArea className="h-64 mt-2">
               {loading ? (
@@ -214,28 +216,25 @@ export const FolderSelectDialog = ({
                   <Loader2 className="w-6 h-6 animate-spin" />
                   <span className="ml-2 text-sm text-muted-foreground">Loading folders...</span>
                 </div>
-              ) : folders.length === 1 ? (
+              ) : folders.length === 0 ? (
                 <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
                   No custom folders created yet. Create your first folder above.
                 </div>
               ) : (
-                <div className="space-y-1">
+                <div className="space-y-2">
                   {folders.map((folder) => (
-                    <Button
+                    <div
                       key={folder.id}
-                      variant={selectedFolder === folder.id ? "default" : "ghost"}
-                      onClick={() => selectFolder(folder.id)}
-                      className="w-full justify-between"
-                      disabled={loading}
+                      className="flex items-center space-x-3 p-2 rounded-md hover:bg-accent cursor-pointer"
+                      onClick={() => toggleFolder(folder.id)}
                     >
-                      <div className="flex items-center">
-                        <Folder className="w-4 h-4 mr-2" />
-                        {folder.name}
-                      </div>
-                      {selectedFolder === folder.id && (
-                        <Check className="w-4 h-4" />
-                      )}
-                    </Button>
+                      <Checkbox
+                        checked={selectedFolders.includes(folder.id)}
+                        onChange={() => toggleFolder(folder.id)}
+                      />
+                      <Folder className="w-4 h-4 text-muted-foreground" />
+                      <span className="flex-1 text-sm">{folder.name}</span>
+                    </div>
                   ))}
                 </div>
               )}

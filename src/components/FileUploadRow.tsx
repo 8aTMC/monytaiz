@@ -46,7 +46,7 @@ export const FileUploadRow = ({
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   
   const [creators, setCreators] = useState<Array<{id: string, name: string, url: string}>>([]);
-  const [selectedFolder, setSelectedFolder] = useState<string>('all-files');
+  const [selectedFolders, setSelectedFolders] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [suggestedPrice, setSuggestedPrice] = useState<number | null>(null);
@@ -191,9 +191,9 @@ export const FileUploadRow = ({
             >
               <Folder className="w-3 h-3 mr-1" />
               Folder
-              {selectedFolder !== 'all-files' && (
+              {selectedFolders.length > 0 && (
                 <Badge variant="secondary" className="ml-1 h-4 text-xs">
-                  1
+                  {selectedFolders.length}
                 </Badge>
               )}
             </Button>
@@ -308,8 +308,8 @@ export const FileUploadRow = ({
       <FolderSelectDialog
         open={showFolderDialog}
         onOpenChange={setShowFolderDialog}
-        selectedFolder={selectedFolder}
-        onFolderChange={setSelectedFolder}
+        selectedFolders={selectedFolders}
+        onFoldersChange={setSelectedFolders}
       />
       
       <TagsDialog
