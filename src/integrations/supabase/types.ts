@@ -195,6 +195,7 @@ export type Database = {
           created_at: string | null
           created_by: string
           creator_id: string
+          description: string | null
           id: string
           name: string
           system: boolean
@@ -205,6 +206,7 @@ export type Database = {
           created_at?: string | null
           created_by: string
           creator_id: string
+          description?: string | null
           id?: string
           name: string
           system?: boolean
@@ -215,6 +217,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string
           creator_id?: string
+          description?: string | null
           id?: string
           name?: string
           system?: boolean
