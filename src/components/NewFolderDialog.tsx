@@ -69,6 +69,15 @@ export const NewFolderDialog = ({ onFolderCreated }: NewFolderDialogProps) => {
         });
 
       if (error) {
+        // Handle unique constraint violation
+        if (error.code === '23505' && error.message.includes('unique_collection_name_per_creator')) {
+          toast({
+            title: "Error",
+            description: "A folder with this name already exists",
+            variant: "destructive",
+          });
+          return;
+        }
         throw error;
       }
 
