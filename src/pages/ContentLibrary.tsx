@@ -17,6 +17,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { LibrarySelectionToolbar } from '@/components/LibrarySelectionToolbar';
 import { useMediaOperations } from '@/hooks/useMediaOperations';
 import { DeletionProgressDialog } from '@/components/DeletionProgressDialog';
+import { MediaPreviewDialog } from '@/components/MediaPreviewDialog';
 
 interface MediaItem {
   id: string;
@@ -62,6 +63,9 @@ const ContentLibrary = () => {
   // Selection state
   const [selecting, setSelecting] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  
+  // Preview state
+  const [previewItem, setPreviewItem] = useState<MediaItem | null>(null);
   
   // Deletion progress state
   const [deletionProgress, setDeletionProgress] = useState({
@@ -569,8 +573,11 @@ const ContentLibrary = () => {
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   };
 
-  const getContentTypeIcon = (type: string) => {
-    switch (type) {
+  const getContentTypeIcon = (type: string | any) => {
+    // Handle both string and object types from database
+    const typeValue = typeof type === 'object' && type?.value ? type.value : type;
+    
+    switch (typeValue) {
       case 'image': return <Image className="h-4 w-4" />;
       case 'video': return <Video className="h-4 w-4" />;
       case 'audio': return <FileAudio className="h-4 w-4" />;
@@ -579,12 +586,17 @@ const ContentLibrary = () => {
     }
   };
 
+  const getTypeValue = (type: string | any): string => {
+    return typeof type === 'object' && type?.value ? type.value : type || 'unknown';
+  };
+
   const handleCardClick = (item: MediaItem) => {
     if (selecting) {
       handleToggleItem(item.id);
     } else {
       // Open preview/edit modal
       console.log('Open preview for:', item);
+      setPreviewItem(item);
     }
   };
 
@@ -886,7 +898,7 @@ const ContentLibrary = () => {
                           <div className="flex flex-col items-center gap-2">
                             {getContentTypeIcon(item.type)}
                             <span className="text-xs text-muted-foreground capitalize">
-                              {item.type}
+                              {getTypeValue(item.type)}
                             </span>
                           </div>
                           
@@ -895,7 +907,7 @@ const ContentLibrary = () => {
                             variant="secondary" 
                             className="absolute top-2 right-2 text-xs"
                           >
-                            {item.type}
+                            {getTypeValue(item.type)}
                           </Badge>
                         </div>
                         
@@ -945,6 +957,12 @@ const ContentLibrary = () => {
             isError={deletionProgress.isError}
             errorMessage={deletionProgress.errorMessage}
             onClose={handleCloseProgressDialog}
+          />
+          
+          <MediaPreviewDialog
+            open={!!previewItem}
+            onOpenChange={(open) => !open && setPreviewItem(null)}
+            item={previewItem}
           />
     </div>
   );
