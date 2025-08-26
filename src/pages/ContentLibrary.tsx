@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Navigation, useSidebar } from '@/components/Navigation';
@@ -20,6 +20,7 @@ import { useMediaOperations } from '@/hooks/useMediaOperations';
 import { MediaPreviewDialog } from '@/components/MediaPreviewDialog';
 import { MediaThumbnail } from '@/components/MediaThumbnail';
 import { useToast } from '@/hooks/use-toast';
+import { useMediaPreloader } from '@/hooks/useMediaPreloader';
 
 interface MediaItem {
   id: string;
@@ -87,6 +88,17 @@ const ContentLibrary = () => {
   
   // User roles state
   const [userRoles, setUserRoles] = useState<string[]>([]);
+  
+  // Preloader functionality
+  const { preloadMore } = useMediaPreloader(content, {
+    initialBatchSize: 50,
+    scrollBatchSize: 20,
+    preloadDelay: 150
+  });
+  
+  // Intersection observer for scroll-based preloading
+  const gridContainerRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
   
   const [defaultCategories] = useState([
     { id: 'all-files', label: 'All Files', icon: Grid, description: 'All uploaded content', isDefault: true },
@@ -473,6 +485,45 @@ const ContentLibrary = () => {
       calculateCategoryCounts();
     }
   }, [customFolders.length]);
+
+  // Set up intersection observer for preloading
+  useEffect(() => {
+    if (!gridContainerRef.current || content.length === 0) return;
+
+    // Clean up existing observer
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+
+    // Create new observer
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const index = parseInt(entry.target.getAttribute('data-index') || '0');
+            preloadMore(index);
+          }
+        });
+      },
+      {
+        root: null,
+        rootMargin: '300px', // Start preloading 300px before item comes into view
+        threshold: 0
+      }
+    );
+
+    // Observe all grid items
+    const gridItems = gridContainerRef.current.querySelectorAll('[data-index]');
+    gridItems.forEach((item) => {
+      observerRef.current?.observe(item);
+    });
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [content, preloadMore]);
 
   // Sort custom folders based on sortOrder
   const sortedCustomFolders = sortOrder 
@@ -1142,10 +1193,14 @@ const ContentLibrary = () => {
                   <p className="text-muted-foreground">No content found</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1">
-                  {content.map((item) => (
+                <div 
+                  ref={gridContainerRef}
+                  className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1"
+                >
+                  {content.map((item, index) => (
                     <Card 
-                      key={item.id} 
+                      key={item.id}
+                      data-index={index}
                       className={`bg-gradient-card shadow-card hover:shadow-lg transition-all cursor-pointer relative overflow-hidden ${
                         selectedItems.has(item.id) 
                           ? 'border-2 border-primary' 
