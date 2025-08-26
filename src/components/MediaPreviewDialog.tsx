@@ -137,8 +137,7 @@ export const MediaPreviewDialog = ({
         
         // Request optimized size for preview - much faster loading
         const transforms = {
-          width: 1200,  // Reasonable size for preview
-          height: 1200, 
+          width: 1200,  // Max width for preview, height will scale proportionally
           quality: 85   // Good quality but compressed
         };
         
