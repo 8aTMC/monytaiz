@@ -421,10 +421,13 @@ export const useFileUpload = () => {
           headers: { 'Content-Type': 'application/json' },
         });
 
+        // Different timeouts based on file type
+        const timeoutMs = fileType === 'video' ? 60000 : fileType === 'audio' ? 30000 : 15000;
+        
         const { data: postProcessData, error: postProcessError } = await Promise.race([
           postProcessPromise,
           new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Post-processing timeout')), 30000);
+            setTimeout(() => reject(new Error(`Post-processing timeout (${timeoutMs/1000}s)`)), timeoutMs);
           })
         ]) as any;
 

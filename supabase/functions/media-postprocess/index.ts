@@ -106,14 +106,15 @@ Deno.serve(async (req) => {
       originalUrl = data.signedUrl;
     }
 
-    // 2) Get metadata from storage with timeout to determine file type first
+    // 2) Get metadata from storage - simplified for better reliability
     let size_bytes = null;
     let mime = null;
     let type = 'image';
     
     try {
+      // Faster metadata retrieval with shorter timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // Shorter timeout
       
       const { data: meta, error: metaErr } = await sb.storage.from(bucket).list(
         path.includes("/") ? path.split("/").slice(0, -1).join("/") : "",
@@ -123,13 +124,16 @@ Deno.serve(async (req) => {
       
       if (metaErr) {
         console.warn("List meta error:", metaErr);
-      } else {
-        const fileMeta = meta?.find((f) => f.name === path.split("/").pop());
-        size_bytes = fileMeta?.metadata?.size ?? null;
-        mime = fileMeta?.metadata?.mimetype ?? null;
+      } else if (meta && meta.length > 0) {
+        const fileMeta = meta.find((f) => f.name === path.split("/").pop());
+        if (fileMeta?.metadata) {
+          size_bytes = fileMeta.metadata.size ?? null;
+          mime = fileMeta.metadata.mimetype ?? null;
+        }
       }
     } catch (error) {
       console.warn("Failed to get file metadata:", error);
+      // Continue processing even if metadata fails
     }
 
     // Determine type based on mime or file extension
@@ -144,24 +148,24 @@ Deno.serve(async (req) => {
       else if (ext && ['mp3', 'wav', 'aac', 'ogg'].includes(ext)) type = 'audio';
     }
 
-    // 3) Get image dimensions for images only
+    // 3) Get dimensions and placeholder based on file type
     let width = 1920;
     let height = 1080;
-    if (type === 'image') {
-      const dimensions = await getImageDimensions(originalUrl);
-      width = dimensions.width;
-      height = dimensions.height;
-    }
-
-    // 4) Generate tiny placeholder - simplified approach
     let tinyDataUrl = '';
-    try {
-      // Only try transform for images, and with timeout
-      if (type === 'image' || (!mime || mime.startsWith('image/'))) {
+    
+    console.log(`Processing ${type} file: ${path}`);
+    
+    if (type === 'image') {
+      try {
+        const dimensions = await getImageDimensions(originalUrl);
+        width = dimensions.width;
+        height = dimensions.height;
+        
+        // Generate tiny placeholder for images only
         const tinyUrl = `${TRANSFORM_BASE}/public/${bucket}/${path}?width=24&quality=20`;
         
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // Shorter timeout
         
         const tinyRes = await fetch(tinyUrl, { 
           signal: controller.signal,
@@ -175,9 +179,19 @@ Deno.serve(async (req) => {
           const contentType = tinyRes.headers.get('content-type') || 'image/jpeg';
           tinyDataUrl = `data:${contentType};base64,${tinyB64}`;
         }
+      } catch (error) {
+        console.warn('Failed to process image:', error);
       }
-    } catch (error) {
-      console.warn('Failed to generate tiny placeholder:', error);
+    } else if (type === 'video') {
+      // For videos, use default dimensions and video icon placeholder
+      width = 1920;
+      height = 1080;
+      console.log('Video processing - using default dimensions');
+    } else if (type === 'audio') {
+      // For audio, use square dimensions
+      width = 800;
+      height = 800;
+      console.log('Audio processing - using square dimensions');
     }
     
     // Fallback to simple colored pixel if no placeholder generated
