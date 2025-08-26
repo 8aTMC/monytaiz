@@ -123,6 +123,9 @@ const ContentLibrary = () => {
   const [lastClickTime, setLastClickTime] = useState<number>(0);
   const [clickTimeout, setClickTimeout] = useState<NodeJS.Timeout | null>(null);
   
+  // Range selection state for shift+click
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<number>(-1);
+  
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const { isCollapsed, isNarrowScreen } = useSidebar();
@@ -630,13 +633,14 @@ const ContentLibrary = () => {
   };
 
   // Selection handlers
-  const handleToggleItem = (itemId: string) => {
+  const handleToggleItem = (itemId: string, itemIndex?: number) => {
     const newSelected = new Set(selectedItems);
     if (newSelected.has(itemId)) {
       newSelected.delete(itemId);
       // If no items are selected after removal, exit selection mode
       if (newSelected.size === 0) {
         setSelecting(false);
+        setLastSelectedIndex(-1);
       }
     } else {
       newSelected.add(itemId);
@@ -644,13 +648,36 @@ const ContentLibrary = () => {
       if (!selecting) {
         setSelecting(true);
       }
+      // Update last selected index for range selection
+      if (itemIndex !== undefined) {
+        setLastSelectedIndex(itemIndex);
+      }
     }
     setSelectedItems(newSelected);
+  };
+
+  // Range selection handler for shift+click
+  const handleRangeSelection = (fromIndex: number, toIndex: number) => {
+    const startIndex = Math.min(fromIndex, toIndex);
+    const endIndex = Math.max(fromIndex, toIndex);
+    const newSelected = new Set(selectedItems);
+    
+    // Add all items in the range to selection
+    for (let i = startIndex; i <= endIndex; i++) {
+      if (content[i]) {
+        newSelected.add(content[i].id);
+      }
+    }
+    
+    setSelectedItems(newSelected);
+    setSelecting(true);
+    setLastSelectedIndex(toIndex);
   };
 
   const handleClearSelection = () => {
     setSelecting(false);
     setSelectedItems(new Set());
+    setLastSelectedIndex(-1);
   };
 
   const handleSelectAll = () => {
@@ -865,9 +892,16 @@ const ContentLibrary = () => {
     }
   };
 
-  const handleCardClick = (item: MediaItem, event: React.MouseEvent) => {
+  const handleCardClick = (item: MediaItem, event: React.MouseEvent, itemIndex: number) => {
     const currentTime = Date.now();
     const timeDiff = currentTime - lastClickTime;
+
+    // Handle shift+click for range selection
+    if (event.shiftKey && selecting && lastSelectedIndex >= 0) {
+      event.preventDefault();
+      handleRangeSelection(lastSelectedIndex, itemIndex);
+      return;
+    }
 
     // Clear any existing timeout
     if (clickTimeout) {
@@ -895,7 +929,7 @@ const ContentLibrary = () => {
       // Single click behavior
       if (selecting) {
         // In selection mode, single click toggles selection
-        handleToggleItem(item.id);
+        handleToggleItem(item.id, itemIndex);
       } else {
         // In default mode, single click opens preview
         setPreviewItem(item);
@@ -905,10 +939,10 @@ const ContentLibrary = () => {
     setClickTimeout(timeout);
   };
 
-  const handleCheckboxClick = (itemId: string) => {
+  const handleCheckboxClick = (itemId: string, itemIndex: number) => {
     // Always toggle selection when checkbox is clicked
     // This will enter selection mode if not already active
-    handleToggleItem(itemId);
+    handleToggleItem(itemId, itemIndex);
   };
 
   const formatPrice = (cents: number) => {
@@ -1206,7 +1240,7 @@ const ContentLibrary = () => {
                           ? 'border-2 border-primary' 
                           : 'border border-border'
                       }`}
-                      onClick={(event) => handleCardClick(item, event)}
+                      onClick={(event) => handleCardClick(item, event, index)}
                      >
                        {/* Selection checkbox in top right corner */}
                        <div className="absolute top-2 right-2 z-10">
@@ -1216,10 +1250,10 @@ const ContentLibrary = () => {
                                  ? 'bg-primary border-primary text-primary-foreground' 
                                  : 'bg-background/80 border-muted-foreground backdrop-blur-sm'
                              }`}
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               handleCheckboxClick(item.id);
-                             }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCheckboxClick(item.id, index);
+                              }}
                            >
                            {selectedItems.has(item.id) && <Check className="h-3 w-3" />}
                          </div>
@@ -1277,7 +1311,7 @@ const ContentLibrary = () => {
           item={previewItem}
           allItems={content}
           selectedItems={selectedItems}
-          onToggleSelection={handleToggleItem}
+          onToggleSelection={(itemId: string) => handleToggleItem(itemId)}
           onItemChange={(item) => setPreviewItem(item)}
         />
     </div>
