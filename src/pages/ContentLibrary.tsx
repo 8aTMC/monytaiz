@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Navigation, useSidebar } from '@/components/Navigation';
 import { User, Session } from '@supabase/supabase-js';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -78,6 +79,10 @@ const ContentLibrary = () => {
   });
   
   const { copyToCollection, removeFromCollection, deleteMediaHard, createCollection, loading: operationLoading } = useMediaOperations();
+  const { toast } = useToast();
+  
+  // User roles state
+  const [userRoles, setUserRoles] = useState<string[]>([]);
   
   const [defaultCategories] = useState([
     { id: 'all-files', label: 'All Files', icon: Grid, description: 'All uploaded content', isDefault: true },
@@ -109,6 +114,8 @@ const ContentLibrary = () => {
           navigate('/');
         } else {
           setLoading(false);
+          // Fetch user roles
+          fetchUserRoles(session.user.id);
         }
       }
     );
@@ -121,11 +128,32 @@ const ContentLibrary = () => {
         navigate('/');
       } else {
         setLoading(false);
+        // Fetch user roles
+        fetchUserRoles(session.user.id);
       }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  // Fetch user roles function
+  const fetchUserRoles = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+      
+      if (error) {
+        console.error('Error fetching user roles:', error);
+      } else {
+        const roles = data?.map(item => item.role) || [];
+        setUserRoles(roles);
+      }
+    } catch (error) {
+      console.error('Error fetching user roles:', error);
+    }
+  };
 
   // Auto-collapse sidebar on narrow screens
   useEffect(() => {
@@ -202,35 +230,60 @@ const ContentLibrary = () => {
         return;
       }
 
+      // Try media table first, then fallback to content_files
+      let mediaData: any[] = [];
+      
+      // Fetch from media table with corruption filtering
+      const { data: mediaResults, error: mediaError } = await supabase
+        .from('media')
+        .select('*')
+        .not('type', 'is', null)
+        .not('storage_path', 'is', null)
+        .not('storage_path', 'eq', '')
+        .gt('size_bytes', 0);
+
+      if (mediaError) {
+        console.error('Error fetching from media table:', mediaError);
+      } else if (mediaResults) {
+        mediaData = mediaResults;
+      }
+
       // Apply search filter
-      if (searchQuery) {
+      if (searchQuery && mediaData.length > 0) {
         const searchTerms = searchQuery.trim().split(/\s+/).map(term => term.toLowerCase());
-        const searchConditions = searchTerms.map(term => 
-          `title.ilike.%${term}%,description.ilike.%${term}%,tags.cs.{${term}}`
-        ).join(',');
-        query = query.or(searchConditions);
+        mediaData = mediaData.filter(item => {
+          const searchableText = [
+            item.title || '',
+            ...(item.tags || [])
+          ].join(' ').toLowerCase();
+          return searchTerms.some(term => searchableText.includes(term));
+        });
+      }
+
+      // Apply type filter for media table
+      if (selectedFilter !== 'all' && mediaData.length > 0) {
+        mediaData = mediaData.filter(item => item.type === selectedFilter);
       }
 
       // Apply sorting
-      if (sortBy === 'newest') {
-        query = query.order('created_at', { ascending: false });
-      } else if (sortBy === 'oldest') {
-        query = query.order('created_at', { ascending: true });
-      } else if (sortBy === 'price_high') {
-        query = query.order('base_price', { ascending: false });
-      } else if (sortBy === 'price_low') {
-        query = query.order('base_price', { ascending: true });
+      if (mediaData.length > 0) {
+        if (sortBy === 'newest') {
+          mediaData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        } else if (sortBy === 'oldest') {
+          mediaData.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        } else if (sortBy === 'price_high') {
+          mediaData.sort((a, b) => (b.suggested_price_cents || 0) - (a.suggested_price_cents || 0));
+        } else if (sortBy === 'price_low') {
+          mediaData.sort((a, b) => (a.suggested_price_cents || 0) - (b.suggested_price_cents || 0));
+        }
       }
 
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Error fetching content:', error);
-      } else {
-        const mediaData = data as any[];
-        setContent(mediaData.map(item => ({
+      // Convert to MediaItem format and filter out any remaining corrupted items
+      const validMediaItems = mediaData
+        .filter(item => item.type && item.storage_path && item.size_bytes > 0)
+        .map(item => ({
           id: item.id,
-          title: item.title,
+          title: item.title || 'Untitled',
           type: item.type as 'image' | 'video' | 'audio' | 'document',
           origin: 'upload' as const,
           storage_path: item.storage_path,
@@ -242,8 +295,9 @@ const ContentLibrary = () => {
           notes: item.notes || null,
           mime: item.mime || '',
           creator_id: item.creator_id
-        })));
-      }
+        }));
+
+      setContent(validMediaItems);
     } catch (error) {
       console.error('Error fetching content:', error);
     }
@@ -590,6 +644,38 @@ const ContentLibrary = () => {
     return typeof type === 'object' && type?.value ? type.value : type || 'unknown';
   };
 
+  // Add cleanup function for admins
+  const handleCleanupCorruptedMedia = async () => {
+    try {
+      const { data, error } = await supabase.rpc('cleanup_corrupted_media');
+      
+      if (error) {
+        console.error('Error cleaning up corrupted media:', error);
+        toast({
+          title: "Error",
+          description: "Failed to clean up corrupted media",
+          variant: "destructive"
+        });
+      } else {
+        console.log('Cleanup result:', data);
+        const result = data as { deleted_media_records: number };
+        toast({
+          title: "Success",
+          description: `Successfully cleaned up ${result.deleted_media_records} corrupted records`
+        });
+        // Refresh the content after cleanup
+        await refetchContent();
+      }
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to clean up corrupted media",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleCardClick = (item: MediaItem) => {
     if (selecting) {
       handleToggleItem(item.id);
@@ -782,9 +868,21 @@ const ContentLibrary = () => {
         {/* Header */}
         <div className="bg-card border-b border-border p-6 pb-4">
               <div className="flex items-center justify-between mb-4">
-                <h1 className="text-lg font-semibold text-foreground">
+                <h1 className="text-lg font-semibold text-foreground flex items-center gap-2">
                   {defaultCategories.find(c => c.id === selectedCategory)?.label || 
                    customFolders.find(c => c.id === selectedCategory)?.label || 'Library'}
+                  
+                  {/* Admin cleanup button */}
+                  {userRoles.includes('admin') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCleanupCorruptedMedia}
+                      className="ml-auto"
+                    >
+                      Clean Up Corrupted Files
+                    </Button>
+                  )}
                 </h1>
                 
               </div>
