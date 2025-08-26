@@ -951,7 +951,7 @@ const ContentLibrary = () => {
             />
 
             {/* Content Grid */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto">
               {loadingContent ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 animate-pulse">
                   {Array.from({ length: 8 }).map((_, i) => (
