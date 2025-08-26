@@ -188,57 +188,112 @@ const ContentLibrary = () => {
   // Separate refetch function that can be called from anywhere
   const refetchContent = async () => {
     try {
-      // Fetch from both media table (new optimized) and content_files (legacy) for compatibility
-      const [mediaResults, contentResults] = await Promise.all([
-        supabase
-          .from('media')
-          .select('id, bucket, path, storage_path, mime, type, size_bytes, title, notes, tags, suggested_price_cents, creator_id, created_at, updated_at, tiny_placeholder, width, height')
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('content_files')
-          .select('id, title, content_type, file_path, file_size, mime_type, base_price, tags, description, creator_id, created_at, updated_at, is_active')
-          .eq('is_active', true)
-          .not('content_type', 'is', null)
-          .not('file_path', 'is', null)
-          .not('file_path', 'eq', '')
-          .gt('file_size', 0)
-          .order('created_at', { ascending: false })
-      ]);
-
       let combinedData: any[] = [];
 
-      // Add media table results (optimized)
-      if (mediaResults.data) {
-        combinedData = [...mediaResults.data];
-      }
+      // Apply category-based filtering at the database level
+      if (selectedCategory === 'all-files') {
+        // Fetch all content for "All Files"
+        const [mediaResults, contentResults] = await Promise.all([
+          supabase
+            .from('media')
+            .select('id, bucket, path, storage_path, mime, type, size_bytes, title, notes, tags, suggested_price_cents, creator_id, created_at, updated_at, tiny_placeholder, width, height, origin')
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('content_files')
+            .select('id, title, content_type, file_path, file_size, mime_type, base_price, tags, description, creator_id, created_at, updated_at, is_active')
+            .eq('is_active', true)
+            .not('content_type', 'is', null)
+            .not('file_path', 'is', null)
+            .not('file_path', 'eq', '')
+            .gt('file_size', 0)
+            .order('created_at', { ascending: false })
+        ]);
 
-      // Add content_files results (legacy), but avoid duplicates
-      if (contentResults.data) {
-        const mediaStoragePaths = new Set(mediaResults.data?.map(item => item.path || item.storage_path) || []);
-        const legacyItems = contentResults.data.filter(item => !mediaStoragePaths.has(item.file_path));
-        
-        // Convert legacy format to new format
-        const convertedLegacyItems = legacyItems.map(item => ({
-          id: item.id,
-          title: item.title || 'Untitled',
-          type: item.content_type,
-          bucket: 'content',
-          path: item.file_path,
-          storage_path: item.file_path,
-          mime: item.mime_type || '',
-          size_bytes: item.file_size || 0,
-          suggested_price_cents: (item.base_price || 0) * 100,
-          tags: item.tags || [],
-          notes: item.description || null,
-          creator_id: item.creator_id,
-          created_at: item.created_at,
-          updated_at: item.updated_at,
-          tiny_placeholder: undefined,
-          width: undefined,
-          height: undefined
-        }));
+        // Add media table results (optimized)
+        if (mediaResults.data) {
+          combinedData = [...mediaResults.data];
+        }
 
-        combinedData = [...combinedData, ...convertedLegacyItems];
+        // Add content_files results (legacy), but avoid duplicates
+        if (contentResults.data) {
+          const mediaStoragePaths = new Set(mediaResults.data?.map(item => item.path || item.storage_path) || []);
+          const legacyItems = contentResults.data.filter(item => !mediaStoragePaths.has(item.file_path));
+          
+          // Convert legacy format to new format
+          const convertedLegacyItems = legacyItems.map(item => ({
+            id: item.id,
+            title: item.title || 'Untitled',
+            type: item.content_type,
+            bucket: 'content',
+            path: item.file_path,
+            storage_path: item.file_path,
+            mime: item.mime_type || '',
+            size_bytes: item.file_size || 0,
+            suggested_price_cents: (item.base_price || 0) * 100,
+            tags: item.tags || [],
+            notes: item.description || null,
+            creator_id: item.creator_id,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            origin: 'upload',
+            tiny_placeholder: undefined,
+            width: undefined,
+            height: undefined
+          }));
+
+          combinedData = [...combinedData, ...convertedLegacyItems];
+        }
+
+      } else if (selectedCategory === 'stories') {
+        // Stories content (not implemented yet, so return empty)
+        combinedData = [];
+
+      } else if (selectedCategory === 'livestreams') {
+        // Livestreams content (not implemented yet, so return empty)
+        combinedData = [];
+
+      } else if (selectedCategory === 'messages') {
+        // Content uploaded via messages - filter by origin = 'message' or 'chat'
+        const [mediaResults, contentResults] = await Promise.all([
+          supabase
+            .from('media')
+            .select('id, bucket, path, storage_path, mime, type, size_bytes, title, notes, tags, suggested_price_cents, creator_id, created_at, updated_at, tiny_placeholder, width, height, origin')
+            .in('origin', ['message', 'chat'])
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('content_files')
+            .select('id, title, content_type, file_path, file_size, mime_type, base_price, tags, description, creator_id, created_at, updated_at, is_active')
+            .eq('is_active', true)
+            .not('content_type', 'is', null)
+            .not('file_path', 'is', null)
+            .not('file_path', 'eq', '')
+            .gt('file_size', 0)
+            .order('created_at', { ascending: false })
+        ]);
+
+        // For messages, combine results from both tables but only include message-origin content
+        if (mediaResults.data) {
+          combinedData = [...mediaResults.data];
+        }
+
+        // Legacy content files don't have origin tracking, so skip them for messages category
+        // This ensures only explicitly message-uploaded content appears in Messages folder
+
+      } else {
+        // Custom folder - get content assigned to this collection
+        const { data: collectionItems } = await supabase
+          .from('collection_items')
+          .select(`
+            media_id,
+            media:media_id (id, bucket, path, storage_path, mime, type, size_bytes, title, notes, tags, suggested_price_cents, creator_id, created_at, updated_at, tiny_placeholder, width, height, origin)
+          `)
+          .eq('collection_id', selectedCategory);
+
+        if (collectionItems) {
+          combinedData = collectionItems
+            .filter(item => item.media)
+            .map(item => item.media);
+        }
       }
 
       // Apply search filter
@@ -273,12 +328,12 @@ const ContentLibrary = () => {
 
       // Convert to MediaItem format
       const validMediaItems = combinedData
-        .filter(item => item.type && (item.path || item.storage_path) && item.size_bytes > 0)
+        .filter(item => item && item.type && (item.path || item.storage_path) && item.size_bytes > 0)
         .map(item => ({
           id: item.id,
           title: item.title || 'Untitled',
           type: item.type as 'image' | 'video' | 'audio',
-          origin: 'upload' as const,
+          origin: item.origin || 'upload' as const,
           storage_path: item.path || item.storage_path,
           created_at: item.created_at,
           updated_at: item.updated_at,
