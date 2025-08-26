@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Filter, Grid, Image, Video, FileAudio, FileText, Calendar, ArrowUpDown, BookOpen, Zap, MessageSquare, GripVertical, Edit, Check } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { NewFolderDialog } from '@/components/NewFolderDialog';
 import { EditFolderDialog } from '@/components/EditFolderDialog';
 import { DeletionProgressDialog } from '@/components/DeletionProgressDialog';
 import { ThemeToggle } from '@/components/ThemeToggle';
