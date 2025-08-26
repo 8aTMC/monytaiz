@@ -36,15 +36,7 @@ export const useSecureMedia = () => {
       if (transforms?.height) params.append('height', transforms.height.toString());
       if (transforms?.quality) params.append('quality', transforms.quality.toString());
 
-      const { data, error } = await supabase.functions.invoke('secure-media', {
-        body: null,
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      // Use direct fetch since we need query parameters
+      // Use direct fetch with query parameters
       const response = await fetch(
         `https://alzyzfjzwvofmjccirjq.supabase.co/functions/v1/secure-media?${params.toString()}`,
         {
