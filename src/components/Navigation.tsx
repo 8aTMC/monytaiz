@@ -207,12 +207,14 @@ export const Navigation = () => {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user?.id && (!userProfile || userProfile.id !== user.id)) {
       fetchUserProfile(user.id);
-    } else {
+    } else if (!user) {
       setUserProfile(null);
+      setUserRoles([]);
+      setIsFan(false);
     }
-  }, [user]);
+  }, [user?.id]);
 
   const handleSignOut = async () => {
     await signOut();
