@@ -939,7 +939,14 @@ const ContentLibrary = () => {
     setClickTimeout(timeout);
   };
 
-  const handleCheckboxClick = (itemId: string, itemIndex: number) => {
+  const handleCheckboxClick = (itemId: string, itemIndex: number, event?: React.MouseEvent) => {
+    // Handle alt+click for range selection on checkboxes
+    if (event?.altKey && selecting && lastSelectedIndex >= 0) {
+      event.preventDefault();
+      handleRangeSelection(lastSelectedIndex, itemIndex);
+      return;
+    }
+
     // Always toggle selection when checkbox is clicked
     // This will enter selection mode if not already active
     handleToggleItem(itemId, itemIndex);
