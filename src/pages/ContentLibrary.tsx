@@ -539,12 +539,29 @@ const ContentLibrary = () => {
     setSelectedItems(newSelected);
   };
 
-  const handleCopy = async (collectionId: string) => {
+  const handleCopy = async (collectionIds: string[]) => {
     try {
-      await copyToCollection(collectionId, Array.from(selectedItems));
+      const selectedItemsArray = Array.from(selectedItems);
+      
+      // Copy to each selected collection
+      for (const collectionId of collectionIds) {
+        await copyToCollection(collectionId, selectedItemsArray);
+      }
+      
       handleClearSelection();
+      
+      // Show success message
+      toast({
+        title: "Success",
+        description: `Content copied to ${collectionIds.length} folder${collectionIds.length !== 1 ? 's' : ''}`
+      });
     } catch (error) {
       console.error('Copy failed:', error);
+      toast({
+        title: "Error",
+        description: "Failed to copy content",
+        variant: "destructive"
+      });
     }
   };
 

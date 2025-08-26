@@ -22,7 +22,7 @@ interface Collection {
 interface CopyToCollectionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onConfirm: (collectionId: string) => void
+  onConfirm: (collectionIds: string[]) => void
 }
 
 export const CopyToCollectionDialog: React.FC<CopyToCollectionDialogProps> = ({
@@ -33,7 +33,7 @@ export const CopyToCollectionDialog: React.FC<CopyToCollectionDialogProps> = ({
   const [collections, setCollections] = useState<Collection[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCollectionId, setSelectedCollectionId] = useState<string>('')
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<Set<string>>(new Set())
   const [showNewFolder, setShowNewFolder] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
   const { createCollection, loading: createLoading } = useMediaOperations()
@@ -70,16 +70,28 @@ export const CopyToCollectionDialog: React.FC<CopyToCollectionDialogProps> = ({
       setCollections(prev => [newCollection, ...prev])
       setNewFolderName('')
       setShowNewFolder(false)
-      setSelectedCollectionId(newCollection.id)
+      setSelectedCollectionIds(new Set([newCollection.id]))
     } catch (error) {
       console.error('Error creating folder:', error)
     }
   }
 
+  const handleToggleSelection = (collectionId: string) => {
+    setSelectedCollectionIds(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(collectionId)) {
+        newSet.delete(collectionId)
+      } else {
+        newSet.add(collectionId)
+      }
+      return newSet
+    })
+  }
+
   const handleConfirm = () => {
-    if (selectedCollectionId) {
-      onConfirm(selectedCollectionId)
-      setSelectedCollectionId('')
+    if (selectedCollectionIds.size > 0) {
+      onConfirm(Array.from(selectedCollectionIds))
+      setSelectedCollectionIds(new Set())
       setSearchTerm('')
       setShowNewFolder(false)
       setNewFolderName('')
@@ -88,7 +100,7 @@ export const CopyToCollectionDialog: React.FC<CopyToCollectionDialogProps> = ({
 
   const handleCancel = () => {
     onOpenChange(false)
-    setSelectedCollectionId('')
+    setSelectedCollectionIds(new Set())
     setSearchTerm('')
     setShowNewFolder(false)
     setNewFolderName('')
@@ -102,7 +114,7 @@ export const CopyToCollectionDialog: React.FC<CopyToCollectionDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Copy to Folder</DialogTitle>
+          <DialogTitle>Copy to Folders</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -166,17 +178,27 @@ export const CopyToCollectionDialog: React.FC<CopyToCollectionDialogProps> = ({
                   {searchTerm ? 'No folders found' : 'No custom folders yet'}
                 </div>
               ) : (
-                filteredCollections.map((collection) => (
-                  <Button
-                    key={collection.id}
-                    variant={selectedCollectionId === collection.id ? "secondary" : "ghost"}
-                    onClick={() => setSelectedCollectionId(collection.id)}
-                    className="w-full justify-start"
-                  >
-                    <Folder className="h-4 w-4 mr-2" />
-                    {collection.name}
-                  </Button>
-                ))
+                 filteredCollections.map((collection) => {
+                   const isSelected = selectedCollectionIds.has(collection.id)
+                   return (
+                     <Button
+                       key={collection.id}
+                       variant={isSelected ? "default" : "ghost"}
+                       onClick={() => handleToggleSelection(collection.id)}
+                       className={`w-full justify-start relative ${
+                         isSelected 
+                           ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                           : "hover:bg-accent hover:text-accent-foreground"
+                       }`}
+                     >
+                       <Folder className="h-4 w-4 mr-2" />
+                       {collection.name}
+                       {isSelected && (
+                         <div className="absolute right-2 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary-foreground" />
+                       )}
+                     </Button>
+                   )
+                 })
               )}
             </div>
           </ScrollArea>
@@ -188,9 +210,9 @@ export const CopyToCollectionDialog: React.FC<CopyToCollectionDialogProps> = ({
           </Button>
           <Button 
             onClick={handleConfirm}
-            disabled={!selectedCollectionId}
+            disabled={selectedCollectionIds.size === 0}
           >
-            Copy Here
+            Copy to {selectedCollectionIds.size} Folder{selectedCollectionIds.size !== 1 ? 's' : ''}
           </Button>
         </DialogFooter>
       </DialogContent>

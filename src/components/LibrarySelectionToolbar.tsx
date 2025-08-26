@@ -13,7 +13,7 @@ interface LibrarySelectionToolbarProps {
   onToggleSelect: () => void
   onClearSelection: () => void
   onSelectAll: () => void
-  onCopy: (collectionId: string) => void
+  onCopy: (collectionIds: string[]) => void
   onDelete: () => void
   disabled?: boolean
 }
@@ -38,8 +38,8 @@ export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = (
     setCopyDialogOpen(true)
   }
 
-  const handleCopyConfirm = (collectionId: string) => {
-    onCopy(collectionId)
+  const handleCopyConfirm = (collectionIds: string[]) => {
+    onCopy(collectionIds)
     setCopyDialogOpen(false)
   }
 
