@@ -210,7 +210,7 @@ export const MediaPreviewDialog = ({
                         <img 
                           src={item.tiny_placeholder} 
                           alt=""
-                          className="max-w-full max-h-full w-auto h-auto object-contain rounded blur-sm opacity-60 transition-all duration-300"
+                          className="max-w-full max-h-full w-auto h-auto object-contain rounded blur-sm opacity-60"
                         />
                       )}
                       
@@ -228,11 +228,10 @@ export const MediaPreviewDialog = ({
                         } ${!fullImageLoaded && item.tiny_placeholder ? 'absolute inset-0' : ''}`}
                       />
                       
-                      {/* Loading state for image */}
+                      {/* Center loading spinner only when no placeholder and image hasn't loaded */}
                       {!fullImageLoaded && !item.tiny_placeholder && (
-                        <div className="flex flex-col items-center gap-4">
+                        <div className="absolute inset-0 flex items-center justify-center">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/60"></div>
-                          <p className="text-sm text-muted-foreground">Loading image...</p>
                         </div>
                       )}
                     </div>
