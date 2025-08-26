@@ -122,7 +122,14 @@ export const MediaPreviewDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${getModalSize()} max-h-[90vh] overflow-hidden z-[60]`}>
+      {/* Darkened background overlay */}
+      {open && (
+        <div 
+          className="fixed inset-0 bg-black/80 z-[59]" 
+          onClick={() => onOpenChange(false)}
+        />
+      )}
+      <DialogContent className={`${getModalSize()} max-h-[90vh] overflow-hidden z-[60] border-0 bg-background/95 backdrop-blur-sm`}>
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
