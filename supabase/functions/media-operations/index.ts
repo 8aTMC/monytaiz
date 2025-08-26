@@ -118,13 +118,33 @@ async function copyToCollection(supabaseClient: any, userId: string, collectionI
       )
     }
 
-    // Validate media ownership (all media must belong to same creator)
-    const { data: media, error: mediaError } = await supabaseClient
-      .from('content_files')
-      .select('id, creator_id')
-      .in('id', mediaIds)
+    // Validate media ownership - check both media and content_files tables
+    const [mediaResults, contentResults] = await Promise.all([
+      supabaseClient
+        .from('media')
+        .select('id, creator_id')
+        .in('id', mediaIds),
+      supabaseClient
+        .from('content_files')
+        .select('id, creator_id')
+        .in('id', mediaIds)
+        .eq('is_active', true)
+    ])
 
-    if (mediaError || !media || media.length !== mediaIds.length) {
+    if (mediaResults.error && contentResults.error) {
+      return new Response(
+        JSON.stringify({ error: 'Failed to validate media' }),
+        { status: 500, headers: corsHeaders }
+      )
+    }
+
+    // Combine results from both tables
+    const allMedia = [
+      ...(mediaResults.data || []),
+      ...(contentResults.data || [])
+    ]
+
+    if (allMedia.length !== mediaIds.length) {
       return new Response(
         JSON.stringify({ error: 'Some media not found' }),
         { status: 404, headers: corsHeaders }
@@ -195,40 +215,71 @@ async function removeFromCollection(supabaseClient: any, userId: string, collect
 
 async function deleteMediaHard(supabaseClient: any, userId: string, mediaIds: string[]) {
   try {
-    // Get media details for storage cleanup
-    const { data: media, error: mediaError } = await supabaseClient
-      .from('content_files')
-      .select('id, file_path')
-      .in('id', mediaIds)
+    // Get media details for storage cleanup - check both tables
+    const [mediaResults, contentResults] = await Promise.all([
+      supabaseClient
+        .from('media')
+        .select('id, storage_path')
+        .in('id', mediaIds),
+      supabaseClient
+        .from('content_files')
+        .select('id, file_path')
+        .in('id', mediaIds)
+        .eq('is_active', true)
+    ])
 
-    if (mediaError || !media) {
+    if (mediaResults.error && contentResults.error) {
       return new Response(
         JSON.stringify({ error: 'Failed to fetch media details' }),
         { status: 500, headers: corsHeaders }
       )
     }
 
+    // Combine results from both tables, normalizing file paths
+    const allMedia = [
+      ...(mediaResults.data || []).map((item: any) => ({ 
+        id: item.id, 
+        file_path: item.storage_path 
+      })),
+      ...(contentResults.data || [])
+    ]
+
+    if (allMedia.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'No media found to delete' }),
+        { status: 404, headers: corsHeaders }
+      )
+    }
+
     // Delete from storage first
-    const storagePromises = media.map(async (item: any) => {
-      const { error } = await supabaseClient.storage
-        .from('content')
-        .remove([item.file_path])
-      
-      if (error) {
-        console.error(`Failed to delete storage file ${item.file_path}:`, error)
+    const storagePromises = allMedia.map(async (item: any) => {
+      if (item.file_path) {
+        const { error } = await supabaseClient.storage
+          .from('content')
+          .remove([item.file_path])
+        
+        if (error) {
+          console.error(`Failed to delete storage file ${item.file_path}:`, error)
+        }
       }
     })
 
     await Promise.all(storagePromises)
 
-    // Delete from database
-    const { error: deleteError } = await supabaseClient
-      .from('content_files')
-      .delete()
-      .in('id', mediaIds)
+    // Delete from both database tables
+    const [mediaDeleteResult, contentDeleteResult] = await Promise.all([
+      supabaseClient
+        .from('media')
+        .delete()
+        .in('id', mediaIds),
+      supabaseClient
+        .from('content_files')
+        .delete()
+        .in('id', mediaIds)
+    ])
 
-    if (deleteError) {
-      console.error('Database delete error:', deleteError)
+    if (mediaDeleteResult.error && contentDeleteResult.error) {
+      console.error('Database delete errors:', mediaDeleteResult.error, contentDeleteResult.error)
       return new Response(
         JSON.stringify({ error: 'Failed to delete media from database' }),
         { status: 500, headers: corsHeaders }
