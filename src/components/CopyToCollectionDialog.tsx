@@ -33,7 +33,7 @@ export const CopyToCollectionDialog: React.FC<CopyToCollectionDialogProps> = ({
   const [collections, setCollections] = useState<Collection[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCollectionIds, setSelectedCollectionIds] = useState<Set<string>>(new Set())
+  const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set())
   const [showNewFolder, setShowNewFolder] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
   const { createCollection, loading: createLoading } = useMediaOperations()
@@ -70,14 +70,14 @@ export const CopyToCollectionDialog: React.FC<CopyToCollectionDialogProps> = ({
       setCollections(prev => [newCollection, ...prev])
       setNewFolderName('')
       setShowNewFolder(false)
-      setSelectedCollectionIds(new Set([newCollection.id]))
+      setSelectedFolders(new Set([newCollection.id]))
     } catch (error) {
       console.error('Error creating folder:', error)
     }
   }
 
   const handleToggleSelection = (collectionId: string) => {
-    setSelectedCollectionIds(prev => {
+    setSelectedFolders(prev => {
       const newSet = new Set(prev)
       if (newSet.has(collectionId)) {
         newSet.delete(collectionId)
@@ -89,18 +89,19 @@ export const CopyToCollectionDialog: React.FC<CopyToCollectionDialogProps> = ({
   }
 
   const handleConfirm = () => {
-    if (selectedCollectionIds.size > 0) {
-      onConfirm(Array.from(selectedCollectionIds))
-      setSelectedCollectionIds(new Set())
-      setSearchTerm('')
-      setShowNewFolder(false)
-      setNewFolderName('')
+    if (selectedFolders.size > 0) {
+      onConfirm(Array.from(selectedFolders))
+      resetDialog()
     }
   }
 
   const handleCancel = () => {
     onOpenChange(false)
-    setSelectedCollectionIds(new Set())
+    resetDialog()
+  }
+
+  const resetDialog = () => {
+    setSelectedFolders(new Set())
     setSearchTerm('')
     setShowNewFolder(false)
     setNewFolderName('')
@@ -179,7 +180,7 @@ export const CopyToCollectionDialog: React.FC<CopyToCollectionDialogProps> = ({
                 </div>
               ) : (
                  filteredCollections.map((collection) => {
-                   const isSelected = selectedCollectionIds.has(collection.id)
+                   const isSelected = selectedFolders.has(collection.id)
                    return (
                      <Button
                        key={collection.id}
@@ -210,9 +211,9 @@ export const CopyToCollectionDialog: React.FC<CopyToCollectionDialogProps> = ({
           </Button>
           <Button 
             onClick={handleConfirm}
-            disabled={selectedCollectionIds.size === 0}
+            disabled={selectedFolders.size === 0}
           >
-            Copy to {selectedCollectionIds.size} Folder{selectedCollectionIds.size !== 1 ? 's' : ''}
+            Copy to {selectedFolders.size} Folder{selectedFolders.size !== 1 ? 's' : ''}
           </Button>
         </DialogFooter>
       </DialogContent>
