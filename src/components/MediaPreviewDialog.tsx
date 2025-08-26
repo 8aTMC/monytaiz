@@ -125,11 +125,11 @@ export const MediaPreviewDialog = ({
       {/* Semi-transparent dark overlay covering everything including menu */}
       {open && (
         <div 
-          className="fixed inset-0 bg-black/30 z-[70]" 
+          className="fixed inset-0 bg-black/30 z-[90]" 
           onClick={() => onOpenChange(false)}
         />
       )}
-      <DialogContent className={`${getModalSize()} max-h-[90vh] overflow-hidden z-[80] border-0 bg-background/95 backdrop-blur-sm`}>
+      <DialogContent className={`${getModalSize()} max-h-[90vh] overflow-hidden z-[100] border-0 bg-background/95 backdrop-blur-sm`}>
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
