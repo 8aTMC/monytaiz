@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogPortal } from '
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Image, Video, FileAudio, FileText, X } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useSidebar } from '@/components/Navigation';
 
 interface MediaItem {
@@ -34,9 +33,6 @@ export const MediaPreviewDialog = ({
   item,
 }: MediaPreviewDialogProps) => {
   const [fullImageLoaded, setFullImageLoaded] = useState(false);
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const sidebar = useSidebar();
 
   const getTypeValue = (type: string | any): string => {
@@ -45,7 +41,7 @@ export const MediaPreviewDialog = ({
 
   const getStoragePath = (path: string | any): string | null => {
     if (typeof path === 'string' && path.trim()) {
-      // Remove 'content/' prefix since we'll add it in the bucket parameter
+      // Remove 'content/' prefix since we'll add it in the URL
       return path.startsWith('content/') ? path.substring(8) : path;
     }
     if (typeof path === 'object' && path?.value && typeof path.value === 'string') {
@@ -78,56 +74,12 @@ export const MediaPreviewDialog = ({
     }
   };
 
-  // Generate signed URLs when dialog opens - but don't block dialog appearance
+  // Reset image loaded state when dialog opens/closes
   useEffect(() => {
-    const generateSignedUrls = async () => {
-      if (!item || !open) {
-        // Reset state when closing
-        if (!open) {
-          setSignedUrl(null);
-          setError(null);
-          setLoading(false);
-          setFullImageLoaded(false);
-        }
-        return;
-      }
-
-      const storagePath = getItemStoragePath(item);
-      if (!storagePath) {
-        setError('No storage path available');
-        return;
-      }
-
-      // Only start loading if we don't already have a URL
-      if (!signedUrl && !loading) {
-        setLoading(true);
-        setError(null);
-
-        try {
-          const { data, error } = await supabase.storage
-            .from('content')
-            .createSignedUrl(storagePath, 3600);
-
-          if (error) {
-            console.error('Error creating signed URL:', error);
-            setError('Failed to load media');
-          } else if (data?.signedUrl) {
-            setSignedUrl(data.signedUrl);
-          }
-        } catch (err) {
-          console.error('Error generating signed URL:', err);
-          setError('Failed to load media');
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    // Start generating URLs immediately when dialog opens
-    if (open && item) {
-      generateSignedUrls();
+    if (open) {
+      setFullImageLoaded(false);
     }
-  }, [open, item, signedUrl, loading]);
+  }, [open, item]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -176,32 +128,18 @@ export const MediaPreviewDialog = ({
 
           <div className="flex-1 overflow-hidden">
             <div className="flex items-center justify-center h-full max-h-[70vh] bg-muted/20 rounded-lg">
-              {/* Always show loading state immediately while URL is being generated */}
-              {loading && !signedUrl && (
-                <div className="flex flex-col items-center gap-4">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                  <p className="text-sm text-muted-foreground">Loading media...</p>
-                </div>
-              )}
-
-              {error && (
+              {/* Error handling */}
+              {!getItemStoragePath(item) && (
                 <div className="flex flex-col items-center justify-center h-64 text-center">
                   <X className="h-12 w-12 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground mb-2">{error}</p>
+                  <p className="text-muted-foreground mb-2">No storage path available</p>
                   <p className="text-sm text-muted-foreground mb-4">
                     This media item may have corrupted data or the file may be missing.
                   </p>
-                  <div className="text-xs text-muted-foreground/70 space-y-1 max-w-md">
-                    <p><strong>Debug Info:</strong></p>
-                    <p>Type: {getItemType(item)}</p>
-                    <p>Storage path: {getItemStoragePath(item) || 'Missing/Invalid'}</p>
-                    <p>Size: {itemSize} bytes</p>
-                    <p>MIME: {item.mime || item.mime_type || 'Not specified'}</p>
-                  </div>
                 </div>
               )}
 
-              {signedUrl && !error && (
+              {getItemStoragePath(item) && (
                 <>
                   {typeValue === 'image' && (
                     <div className="relative flex items-center justify-center w-full h-full">
@@ -214,14 +152,13 @@ export const MediaPreviewDialog = ({
                         />
                       )}
                       
-                      {/* High quality preview using signed URL */}
+                      {/* High quality preview using direct public URL */}
                       <img 
-                        src={signedUrl}
+                        src={`https://alzyzfjzwvofmjccirjq.supabase.co/storage/v1/object/public/content/${getItemStoragePath(item)}?width=1280&height=720&resize=contain&quality=85&format=webp`}
                         alt={item.title || 'Preview'} 
                         onLoad={() => setFullImageLoaded(true)}
                         onError={(e) => {
-                          console.error('Failed to load image:', signedUrl, e);
-                          setError('Failed to load image');
+                          console.error('Failed to load image:', e);
                         }}
                         className={`max-w-full max-h-full w-auto h-auto object-contain rounded transition-opacity duration-300 ${
                           fullImageLoaded ? 'opacity-100' : 'opacity-0'
@@ -239,7 +176,7 @@ export const MediaPreviewDialog = ({
 
                   {typeValue === 'video' && (
                     <video 
-                      src={signedUrl}
+                      src={`https://alzyzfjzwvofmjccirjq.supabase.co/storage/v1/object/public/content/${getItemStoragePath(item)}`}
                       controls 
                       className="max-w-full max-h-full w-auto h-auto object-contain rounded"
                       preload="metadata"
@@ -251,7 +188,7 @@ export const MediaPreviewDialog = ({
                   {typeValue === 'audio' && (
                     <div className="flex flex-col items-center gap-4 p-8">
                       <FileAudio className="h-16 w-16 text-muted-foreground" />
-                      <audio src={signedUrl} controls className="w-full max-w-md" preload="metadata">
+                      <audio src={`https://alzyzfjzwvofmjccirjq.supabase.co/storage/v1/object/public/content/${getItemStoragePath(item)}`} controls className="w-full max-w-md" preload="metadata">
                         Your browser does not support the audio tag.
                       </audio>
                     </div>
@@ -267,16 +204,6 @@ export const MediaPreviewDialog = ({
                     </div>
                   )}
                 </>
-              )}
-
-              {!loading && !error && !signedUrl && (
-                <div className="flex flex-col items-center justify-center h-64 text-center">
-                  {getContentTypeIcon(typeValue)}
-                  <p className="text-muted-foreground mt-4 mb-2">No preview available</p>
-                  <p className="text-sm text-muted-foreground">
-                    This item may not have associated media content.
-                  </p>
-                </div>
               )}
             </div>
           </div>
