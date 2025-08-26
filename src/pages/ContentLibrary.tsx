@@ -811,14 +811,41 @@ const ContentLibrary = () => {
     }
   };
 
-  const handleCardClick = (item: MediaItem) => {
-    if (selecting) {
-      handleToggleItem(item.id);
-    } else {
-      // Open preview/edit modal
-      console.log('Open preview for:', item);
-      setPreviewItem(item);
+  const [lastClickTime, setLastClickTime] = useState<number>(0);
+  const [clickTimeout, setClickTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  const handleCardClick = (item: MediaItem, event: React.MouseEvent) => {
+    const currentTime = Date.now();
+    const timeDiff = currentTime - lastClickTime;
+
+    // Clear any existing timeout
+    if (clickTimeout) {
+      clearTimeout(clickTimeout);
+      setClickTimeout(null);
     }
+
+    // Double click detection (within 300ms)
+    if (timeDiff < 300) {
+      // Double click - always open preview regardless of selecting mode
+      event.preventDefault();
+      setPreviewItem(item);
+      return;
+    }
+
+    // Single click - set timeout to handle it
+    setLastClickTime(currentTime);
+    const timeout = setTimeout(() => {
+      // Single click behavior
+      if (selecting) {
+        // In selecting mode, single click toggles selection
+        handleToggleItem(item.id);
+      } else {
+        // Not in selecting mode, single click also toggles selection
+        handleToggleItem(item.id);
+      }
+    }, 300);
+
+    setClickTimeout(timeout);
   };
 
   const formatPrice = (cents: number) => {
@@ -1110,21 +1137,26 @@ const ContentLibrary = () => {
                       className={`bg-gradient-card border-border shadow-card hover:shadow-lg transition-all cursor-pointer relative ${
                         selecting && selectedItems.has(item.id) ? 'ring-2 ring-primary' : ''
                       }`}
-                      onClick={() => handleCardClick(item)}
-                    >
-                      {selecting && (
-                        <div className="absolute top-2 left-2 z-10">
-                          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                            selectedItems.has(item.id) 
-                              ? 'bg-primary border-primary text-primary-foreground' 
-                              : 'bg-background border-muted-foreground'
-                          }`}>
-                            {selectedItems.has(item.id) && <Check className="h-3 w-3" />}
-                          </div>
-                        </div>
-                      )}
+                      onClick={(event) => handleCardClick(item, event)}
+                     >
+                       {/* Selection checkbox in top right corner */}
+                       <div className="absolute top-2 right-2 z-10">
+                         <div 
+                           className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                             selectedItems.has(item.id) 
+                               ? 'bg-primary border-primary text-primary-foreground' 
+                               : 'bg-background/80 border-muted-foreground backdrop-blur-sm'
+                           }`}
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             handleToggleItem(item.id);
+                           }}
+                         >
+                           {selectedItems.has(item.id) && <Check className="h-3 w-3" />}
+                         </div>
+                       </div>
 
-                      <CardContent className="p-0 relative">
+                       <CardContent className="p-0 relative">
                         {/* Date in top left corner */}
                         <div className="absolute top-2 left-2 z-10 text-xs text-white bg-black/50 rounded px-1.5 py-0.5">
                           {new Date(item.created_at).toLocaleDateString('en-US', { 
@@ -1170,11 +1202,15 @@ const ContentLibrary = () => {
             onClose={handleCloseProgressDialog}
           />
           
-          <MediaPreviewDialog
-            open={!!previewItem}
-            onOpenChange={(open) => !open && setPreviewItem(null)}
-            item={previewItem}
-          />
+        <MediaPreviewDialog
+          open={!!previewItem}
+          onOpenChange={(open) => !open && setPreviewItem(null)}
+          item={previewItem}
+          allItems={content}
+          selectedItems={selectedItems}
+          onToggleSelection={handleToggleItem}
+          onItemChange={(item) => setPreviewItem(item)}
+        />
     </div>
   );
 };

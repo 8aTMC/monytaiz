@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogPortal } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Image, Video, FileAudio, FileText, X } from 'lucide-react';
+import { Image, Video, FileAudio, FileText, X, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { useSidebar } from '@/components/Navigation';
 import { useSecureMedia } from '@/hooks/useSecureMedia';
 
@@ -20,24 +20,67 @@ interface MediaItem {
   tiny_placeholder?: string;
   width?: number;
   height?: number;
+  origin: 'upload' | 'story' | 'livestream' | 'message';
+  tags: string[];
+  suggested_price_cents: number;
+  notes: string | null;
+  creator_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface MediaPreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   item: MediaItem | null;
+  allItems: MediaItem[];
+  selectedItems: Set<string>;
+  onToggleSelection: (id: string) => void;
+  onItemChange?: (item: MediaItem) => void;
 }
 
 export const MediaPreviewDialog = ({
   open,
   onOpenChange,
   item,
+  allItems,
+  selectedItems,
+  onToggleSelection,
+  onItemChange,
 }: MediaPreviewDialogProps) => {
   const [fullImageLoaded, setFullImageLoaded] = useState(false);
   const [secureUrl, setSecureUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const sidebar = useSidebar();
   const { getSecureUrl } = useSecureMedia();
+
+  // Navigation functions
+  const getCurrentIndex = () => {
+    return allItems.findIndex(i => i.id === item?.id);
+  };
+
+  const handlePrevious = () => {
+    const currentIndex = getCurrentIndex();
+    if (currentIndex > 0 && onItemChange) {
+      const previousItem = allItems[currentIndex - 1];
+      onItemChange(previousItem);
+    }
+  };
+
+  const handleNext = () => {
+    const currentIndex = getCurrentIndex();
+    if (currentIndex < allItems.length - 1 && onItemChange) {
+      const nextItem = allItems[currentIndex + 1];
+      onItemChange(nextItem);
+    }
+  };
+
+  const handleMediaClick = (e: React.MouseEvent) => {
+    // Double click on media closes the dialog
+    if (e.detail === 2) {
+      onOpenChange(false);
+    }
+  };
 
   const getTypeValue = (type: string | any): string => {
     return typeof type === 'object' && type?.value ? type.value : type || 'unknown';
@@ -239,6 +282,46 @@ export const MediaPreviewDialog = ({
               )}
             </div>
           </div>
+
+          {/* Selection checkbox in top right corner */}
+          <div 
+            className="absolute right-14 top-4 z-10"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleSelection(item.id);
+            }}
+          >
+            <div className={`w-6 h-6 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${
+              selectedItems.has(item.id)
+                ? 'bg-primary border-primary text-primary-foreground' 
+                : 'bg-background/80 border-muted-foreground backdrop-blur-sm hover:bg-background'
+            }`}>
+              {selectedItems.has(item.id) && <Check className="h-4 w-4" />}
+            </div>
+          </div>
+
+          {/* Navigation arrows */}
+          {getCurrentIndex() > 0 && (
+            <Button
+              variant="secondary"
+              size="icon"
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-background/80 backdrop-blur-sm"
+              onClick={handlePrevious}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          )}
+          
+          {getCurrentIndex() < allItems.length - 1 && (
+            <Button
+              variant="secondary"
+              size="icon"
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-background/80 backdrop-blur-sm"
+              onClick={handleNext}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          )}
 
           {/* Close button */}
           <button
