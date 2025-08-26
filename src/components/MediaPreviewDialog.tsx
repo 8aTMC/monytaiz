@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogPortal } from '
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Image, Video, FileAudio, FileText, X } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useSidebar } from '@/components/Navigation';
 
 interface MediaItem {
@@ -33,12 +32,6 @@ export const MediaPreviewDialog = ({
   onOpenChange,
   item,
 }: MediaPreviewDialogProps) => {
-  // Force recompilation to clear imageLoaded cache issue
-  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const [fullImageLoaded, setFullImageLoaded] = useState(false);
   const sidebar = useSidebar();
 
@@ -47,19 +40,14 @@ export const MediaPreviewDialog = ({
   };
 
   const getStoragePath = (path: string | any): string | null => {
-    let storagePath: string | null = null;
-    
     if (typeof path === 'string' && path.trim()) {
-      storagePath = path;
-    } else if (typeof path === 'object' && path?.value && typeof path.value === 'string') {
-      storagePath = path.value;
+      // Remove 'content/' prefix since we'll add it in the URL
+      return path.startsWith('content/') ? path.substring(8) : path;
     }
-    
-    if (storagePath) {
-      // Remove 'content/' prefix if it exists since we'll add it in the bucket parameter
-      return storagePath.startsWith('content/') ? storagePath.substring(8) : storagePath;
+    if (typeof path === 'object' && path?.value && typeof path.value === 'string') {
+      const pathStr = path.value;
+      return pathStr.startsWith('content/') ? pathStr.substring(8) : pathStr;
     }
-    
     return null;
   };
 
@@ -86,75 +74,9 @@ export const MediaPreviewDialog = ({
     }
   };
 
+  // Reset image loaded state when dialog opens/closes
   useEffect(() => {
-    const fetchMediaUrl = async () => {
-      if (!item) {
-        return;
-      }
-
-      const storagePath = getItemStoragePath(item);
-      
-      if (!storagePath) {
-        setError('No storage path available');
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const typeValue = getItemType(item);
-        
-        // For images, create both thumbnail and full quality URLs for faster loading
-        if (typeValue === 'image') {
-          // Create thumbnail URL with image transformation (smaller, lower quality)
-          const { data: thumbnailData, error: thumbnailError } = await supabase.storage
-            .from('content')
-            .createSignedUrl(storagePath, 3600, {
-              transform: {
-                width: 400,
-                height: 400,
-                resize: 'contain',
-                quality: 60
-              }
-            });
-          
-          if (!thumbnailError && thumbnailData) {
-            setThumbnailUrl(thumbnailData.signedUrl);
-          }
-        }
-        
-        // Create full quality URL
-        const { data, error } = await supabase.storage
-          .from('content')
-          .createSignedUrl(storagePath, 3600);
-
-        if (error) {
-          console.error('Error creating signed URL:', error);
-          setError('Failed to load media');
-        } else if (data) {
-          setMediaUrl(data.signedUrl);
-        }
-      } catch (err) {
-        console.error('Error fetching media:', err);
-        setError('Failed to load media');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (open && item) {
-      setThumbnailLoaded(false);
-      setFullImageLoaded(false);
-      setThumbnailUrl(null);
-      fetchMediaUrl();
-    } else {
-      setMediaUrl(null);
-      setThumbnailUrl(null);
-      setError(null);
-      setLoading(false);
-      setThumbnailLoaded(false);
+    if (open) {
       setFullImageLoaded(false);
     }
   }, [open, item]);
@@ -206,14 +128,14 @@ export const MediaPreviewDialog = ({
 
           <div className="flex-1 overflow-hidden">
             <div className="flex items-center justify-center h-full max-h-[70vh]">
-              {loading && (
+              {!item && (
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               )}
 
-              {error && (
+              {item && !getItemStoragePath(item) && (
                 <div className="flex flex-col items-center justify-center h-64 text-center">
                   <X className="h-12 w-12 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground mb-2">{error}</p>
+                  <p className="text-muted-foreground mb-2">Failed to load media</p>
                   <p className="text-sm text-muted-foreground mb-4">
                     This media item may have corrupted data or the file may be missing.
                   </p>
@@ -227,43 +149,40 @@ export const MediaPreviewDialog = ({
                 </div>
               )}
 
-              {!loading && !error && (mediaUrl || thumbnailUrl) && (
+              {item && getItemStoragePath(item) && (
                 <>
-                    {typeValue === 'image' && (
-                      <div className="relative flex items-center justify-center w-full h-full">
+                  {typeValue === 'image' && (
+                    <div className="relative flex items-center justify-center w-full h-full">
+                      {/* Show tiny placeholder first for instant loading */}
+                      {item.tiny_placeholder && !fullImageLoaded && (
+                        <img 
+                          src={item.tiny_placeholder} 
+                          alt=""
+                          className="max-w-full max-h-full w-auto h-auto object-contain rounded blur-md opacity-70 transition-all duration-300"
+                        />
+                      )}
                       
-                        {/* Show tiny placeholder first for instant loading */}
-                        {item.tiny_placeholder && !fullImageLoaded && (
-                          <img 
-                            src={item.tiny_placeholder} 
-                            alt=""
-                            className="max-w-full max-h-full w-auto h-auto object-contain rounded blur-md opacity-70 transition-all duration-300"
-                          />
-                        )}
-                        
-                         {/* High quality preview using signed URL */}
-                        {mediaUrl && (
-                          <img 
-                            src={mediaUrl}
-                            alt={item.title || 'Preview'} 
-                            onLoad={() => setFullImageLoaded(true)}
-                            className={`max-w-full max-h-full w-auto h-auto object-contain rounded transition-all duration-500 ${
-                              fullImageLoaded ? 'opacity-100 blur-0' : 'opacity-0'
-                            } ${!fullImageLoaded && item.tiny_placeholder ? 'absolute inset-0' : ''}`}
-                          />
-                        )}
-                        
-                        {!fullImageLoaded && !item.tiny_placeholder && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/50"></div>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                      {/* High quality preview using direct public URL */}
+                      <img 
+                        src={`https://alzyzfjzwvofmjccirjq.supabase.co/storage/v1/object/public/content/${getItemStoragePath(item)}?width=1280&height=720&resize=contain&quality=85&format=webp`}
+                        alt={item.title || 'Preview'} 
+                        onLoad={() => setFullImageLoaded(true)}
+                        className={`max-w-full max-h-full w-auto h-auto object-contain rounded transition-all duration-500 ${
+                          fullImageLoaded ? 'opacity-100 blur-0' : 'opacity-0'
+                        } ${!fullImageLoaded && item.tiny_placeholder ? 'absolute inset-0' : ''}`}
+                      />
+                      
+                      {!fullImageLoaded && !item.tiny_placeholder && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/50"></div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {typeValue === 'video' && (
                     <video 
-                      src={mediaUrl!} 
+                      src={`https://alzyzfjzwvofmjccirjq.supabase.co/storage/v1/object/public/content/${getItemStoragePath(item)}`}
                       controls 
                       className="max-w-full max-h-full w-auto h-auto object-contain rounded"
                     >
@@ -274,23 +193,22 @@ export const MediaPreviewDialog = ({
                   {typeValue === 'audio' && (
                     <div className="flex flex-col items-center gap-4 p-8">
                       <FileAudio className="h-16 w-16 text-muted-foreground" />
-                      <audio src={mediaUrl!} controls className="w-full max-w-md">
+                      <audio src={`https://alzyzfjzwvofmjccirjq.supabase.co/storage/v1/object/public/content/${getItemStoragePath(item)}`} controls className="w-full max-w-md">
                         Your browser does not support the audio tag.
                       </audio>
                     </div>
                   )}
 
+                  {typeValue !== 'image' && typeValue !== 'video' && typeValue !== 'audio' && (
+                    <div className="flex flex-col items-center justify-center h-64 text-center">
+                      {getContentTypeIcon(typeValue)}
+                      <p className="text-muted-foreground mt-4 mb-2">No preview available</p>
+                      <p className="text-sm text-muted-foreground">
+                        This file type cannot be previewed directly.
+                      </p>
+                    </div>
+                  )}
                 </>
-              )}
-
-              {!loading && !error && !mediaUrl && !thumbnailUrl && (
-                <div className="flex flex-col items-center justify-center h-64 text-center">
-                  {getContentTypeIcon(typeValue)}
-                  <p className="text-muted-foreground mt-4 mb-2">No preview available</p>
-                  <p className="text-sm text-muted-foreground">
-                    This item may not have associated media content.
-                  </p>
-                </div>
               )}
             </div>
           </div>
