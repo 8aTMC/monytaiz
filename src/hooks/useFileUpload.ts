@@ -182,9 +182,9 @@ export const useFileUpload = () => {
     let progressInterval: NodeJS.Timeout | null = null;
     let simulatedUploadedBytes = 0;
     
-    // Different timeouts for different file types
-    const timeoutDuration = fileType === 'video' ? 300000 : 120000; // 5min for video, 2min for others
-    const maxRetries = 3;
+    // Different timeouts for different file types - increased for better reliability
+    const timeoutDuration = fileType === 'video' ? 600000 : 180000; // 10min for video, 3min for others
+    const maxRetries = fileType === 'video' ? 5 : 3; // More retries for large video files
 
     try {
       // Check if paused
@@ -250,18 +250,19 @@ export const useFileUpload = () => {
           return;
         }
 
-        simulatedUploadedBytes = Math.min(simulatedUploadedBytes + chunkSize, file.size * 0.85);
+        // More realistic progress simulation for large files
+        simulatedUploadedBytes = Math.min(simulatedUploadedBytes + chunkSize, file.size * 0.90);
         const progress = Math.round((simulatedUploadedBytes / file.size) * 100);
         
         setUploadQueue(prev => prev.map(f => 
           f.id === item.id ? { 
             ...f, 
-            progress: Math.min(progress, 85),
+            progress: Math.min(progress, 90), // Allow progress up to 90% during simulation
             uploadedBytes: simulatedUploadedBytes 
           } : f
         ));
 
-        if (simulatedUploadedBytes >= file.size * 0.85) {
+        if (simulatedUploadedBytes >= file.size * 0.90) {
           if (progressInterval) {
             clearInterval(progressInterval);
             progressInterval = null;
@@ -298,10 +299,21 @@ export const useFileUpload = () => {
           if (!error) break; // Success, exit retry loop
           
         } catch (timeoutError) {
+          console.log(`Upload attempt ${attempts} timed out, retrying...`);
+          
+          // Show timeout message to user
+          setUploadQueue(prev => prev.map(f => 
+            f.id === item.id ? { 
+              ...f, 
+              status: 'uploading' as const,
+              progress: 10, // Reset progress for retry
+              error: `Upload attempt ${attempts} timed out, retrying...`
+            } : f
+          ));
+          
           if (attempts === maxRetries) {
             throw new Error(`Upload timeout after ${attempts} attempts - please try a smaller file or check your connection`);
           }
-          console.log(`Upload attempt ${attempts} timed out, retrying...`);
           continue;
         }
 
@@ -387,9 +399,20 @@ export const useFileUpload = () => {
       
       console.log('Database insert successful:', insertData);
 
-      // Post-process media for fast loading (generate tiny placeholder and get dimensions)
+      // Post-process media for fast loading with timeout and better error handling
       try {
-        const { data: postProcessData, error: postProcessError } = await supabase.functions.invoke('media-postprocess', {
+        console.log('Starting media post-processing...');
+        
+        // Set progress to 95% during post-processing
+        setUploadQueue(prev => prev.map(f => 
+          f.id === item.id ? { 
+            ...f, 
+            progress: 95,
+            error: undefined // Clear any previous errors
+          } : f
+        ));
+
+        const postProcessPromise = supabase.functions.invoke('media-postprocess', {
           body: { 
             bucket: 'content', 
             path: data!.path, 
@@ -397,6 +420,13 @@ export const useFileUpload = () => {
           },
           headers: { 'Content-Type': 'application/json' },
         });
+
+        const { data: postProcessData, error: postProcessError } = await Promise.race([
+          postProcessPromise,
+          new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Post-processing timeout')), 30000);
+          })
+        ]) as any;
 
         if (postProcessError) {
           console.warn('Media post-processing failed:', postProcessError);

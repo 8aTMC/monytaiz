@@ -78,7 +78,20 @@ Deno.serve(async (req) => {
   try {
     if (req.method !== 'POST') return json({ error: "Method not allowed" }, 405);
 
-    const { bucket, path, isPublic = true } = (await req.json()) as ReqBody;
+    // Better error handling for JSON parsing
+    let body: ReqBody;
+    try {
+      const text = await req.text();
+      if (!text.trim()) {
+        return json({ error: "Request body is empty" }, 400);
+      }
+      body = JSON.parse(text);
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError);
+      return json({ error: "Invalid JSON in request body" }, 400);
+    }
+
+    const { bucket, path, isPublic = true } = body;
     if (!bucket || !path) return json({ error: "bucket and path required" }, 400);
 
     console.log(`Processing media: ${bucket}/${path}`);
@@ -93,44 +106,84 @@ Deno.serve(async (req) => {
       originalUrl = data.signedUrl;
     }
 
-    // 2) Get image dimensions
-    const { width, height } = await getImageDimensions(originalUrl);
-
-    // 3) Generate tiny placeholder via transform endpoint (24px webp)
-    const tinyUrl = `${TRANSFORM_BASE}/public/${bucket}/${path}?width=24&quality=20&format=webp`;
+    // 2) Get metadata from storage with timeout to determine file type first
+    let size_bytes = null;
+    let mime = null;
+    let type = 'image';
     
-    let tinyDataUrl = '';
     try {
-      const tinyRes = await fetch(tinyUrl);
-      if (tinyRes.ok) {
-        const tinyBytes = new Uint8Array(await tinyRes.arrayBuffer());
-        const tinyB64 = btoa(String.fromCharCode(...tinyBytes));
-        tinyDataUrl = `data:image/webp;base64,${tinyB64}`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const { data: meta, error: metaErr } = await sb.storage.from(bucket).list(
+        path.includes("/") ? path.split("/").slice(0, -1).join("/") : "",
+        { search: path.split("/").pop() }
+      );
+      clearTimeout(timeoutId);
+      
+      if (metaErr) {
+        console.warn("List meta error:", metaErr);
+      } else {
+        const fileMeta = meta?.find((f) => f.name === path.split("/").pop());
+        size_bytes = fileMeta?.metadata?.size ?? null;
+        mime = fileMeta?.metadata?.mimetype ?? null;
       }
     } catch (error) {
-      console.warn('Failed to generate tiny placeholder:', error);
-      // Create a simple colored pixel as fallback
-      const fallbackPixel = 'data:image/webp;base64,UklGRjIAAABXRUJQVlA4ICYAAABwAQCdASoBAAEAAwA0JQBOiP/+//7///+AAA==';
-      tinyDataUrl = fallbackPixel;
+      console.warn("Failed to get file metadata:", error);
     }
 
-    // 4) Get metadata from storage
-    const { data: meta, error: metaErr } = await sb.storage.from(bucket).list(
-      path.includes("/") ? path.split("/").slice(0, -1).join("/") : "",
-      { search: path.split("/").pop() }
-    );
-    
-    if (metaErr) console.warn("list meta error", metaErr);
-
-    const fileMeta = meta?.find((f) => f.name === path.split("/").pop());
-    const size_bytes = fileMeta?.metadata?.size ?? null;
-    const mime = fileMeta?.metadata?.mimetype ?? null;
-
-    // Determine type based on mime
-    let type = 'image';
+    // Determine type based on mime or file extension
     if (mime) {
       if (mime.startsWith('video/')) type = 'video';
       else if (mime.startsWith('audio/')) type = 'audio';
+      else if (mime.startsWith('image/')) type = 'image';
+    } else {
+      // Fallback to file extension
+      const ext = path.toLowerCase().split('.').pop();
+      if (ext && ['mp4', 'mov', 'avi', 'webm', 'mkv'].includes(ext)) type = 'video';
+      else if (ext && ['mp3', 'wav', 'aac', 'ogg'].includes(ext)) type = 'audio';
+    }
+
+    // 3) Get image dimensions for images only
+    let width = 1920;
+    let height = 1080;
+    if (type === 'image') {
+      const dimensions = await getImageDimensions(originalUrl);
+      width = dimensions.width;
+      height = dimensions.height;
+    }
+
+    // 4) Generate tiny placeholder - simplified approach
+    let tinyDataUrl = '';
+    try {
+      // Only try transform for images, and with timeout
+      if (type === 'image' || (!mime || mime.startsWith('image/'))) {
+        const tinyUrl = `${TRANSFORM_BASE}/public/${bucket}/${path}?width=24&quality=20`;
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        
+        const tinyRes = await fetch(tinyUrl, { 
+          signal: controller.signal,
+          headers: { 'Accept': 'image/*' }
+        });
+        clearTimeout(timeoutId);
+        
+        if (tinyRes.ok && tinyRes.headers.get('content-type')?.startsWith('image/')) {
+          const tinyBytes = new Uint8Array(await tinyRes.arrayBuffer());
+          const tinyB64 = btoa(String.fromCharCode(...tinyBytes));
+          const contentType = tinyRes.headers.get('content-type') || 'image/jpeg';
+          tinyDataUrl = `data:${contentType};base64,${tinyB64}`;
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to generate tiny placeholder:', error);
+    }
+    
+    // Fallback to simple colored pixel if no placeholder generated
+    if (!tinyDataUrl) {
+      const fallbackPixel = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
+      tinyDataUrl = fallbackPixel;
     }
 
     // 5) Upsert into media table
