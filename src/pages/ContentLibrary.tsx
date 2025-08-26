@@ -1259,7 +1259,7 @@ const ContentLibrary = () => {
                              }`}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleCheckboxClick(item.id, index);
+                                handleCheckboxClick(item.id, index, e);
                               }}
                            >
                            {selectedItems.has(item.id) && <Check className="h-3 w-3" />}
