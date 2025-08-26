@@ -180,9 +180,11 @@ export const useFileUpload = () => {
     const storageFolder = getStorageFolder(fileType);
     
     let progressInterval: NodeJS.Timeout | null = null;
-    let uploadAbortController: AbortController | null = null;
     let simulatedUploadedBytes = 0;
-    const chunkSize = Math.max(1024 * 1024, file.size / 100);
+    
+    // Different timeouts for different file types
+    const timeoutDuration = fileType === 'video' ? 300000 : 120000; // 5min for video, 2min for others
+    const maxRetries = 3;
 
     try {
       // Check if paused
@@ -194,33 +196,6 @@ export const useFileUpload = () => {
       setUploadQueue(prev => prev.map(f => 
         f.id === item.id ? { ...f, status: 'uploading' as const } : f
       ));
-
-      // Progress tracking - simulate upload progress
-      progressInterval = setInterval(() => {
-        if (pausedUploads.has(item.id)) {
-          if (progressInterval) clearInterval(progressInterval);
-          progressInterval = null;
-          return;
-        }
-
-        simulatedUploadedBytes = Math.min(simulatedUploadedBytes + chunkSize, file.size * 0.90);
-        const progress = Math.round((simulatedUploadedBytes / file.size) * 100);
-        
-        setUploadQueue(prev => prev.map(f => 
-          f.id === item.id ? { 
-            ...f, 
-            progress,
-            uploadedBytes: simulatedUploadedBytes 
-          } : f
-        ));
-
-        if (simulatedUploadedBytes >= file.size * 0.90) {
-          if (progressInterval) {
-            clearInterval(progressInterval);
-            progressInterval = null;
-          }
-        }
-      }, 100);
 
       console.log('Starting upload for file:', file.name);
       
@@ -266,23 +241,77 @@ export const useFileUpload = () => {
         throw new Error('User account is not active');
       }
 
-      // Create abort controller for timeout handling  
-      uploadAbortController = new AbortController();
-      const timeoutId = setTimeout(() => {
-        console.log('Upload timeout reached, aborting...');
-        uploadAbortController?.abort();
-      }, 600000); // 10 minute timeout for large files
+      // Start progress tracking after validation
+      const chunkSize = Math.max(1024 * 1024, file.size / 100);
+      progressInterval = setInterval(() => {
+        if (pausedUploads.has(item.id)) {
+          if (progressInterval) clearInterval(progressInterval);
+          progressInterval = null;
+          return;
+        }
+
+        simulatedUploadedBytes = Math.min(simulatedUploadedBytes + chunkSize, file.size * 0.85);
+        const progress = Math.round((simulatedUploadedBytes / file.size) * 100);
+        
+        setUploadQueue(prev => prev.map(f => 
+          f.id === item.id ? { 
+            ...f, 
+            progress: Math.min(progress, 85),
+            uploadedBytes: simulatedUploadedBytes 
+          } : f
+        ));
+
+        if (simulatedUploadedBytes >= file.size * 0.85) {
+          if (progressInterval) {
+            clearInterval(progressInterval);
+            progressInterval = null;
+          }
+        }
+      }, fileType === 'video' ? 500 : 200); // Slower progress updates for video
 
       console.log('Uploading to storage path:', filePath);
       
-      // Upload to Supabase Storage with better error handling
-      let { data, error } = await supabase.storage
-        .from('content')
-        .upload(filePath, file, {
-          upsert: false // Don't overwrite if file exists
-        });
+      // Upload with retry logic
+      let data, error;
+      let attempts = 0;
+      
+      while (attempts < maxRetries) {
+        attempts++;
+        
+        try {
+          const uploadPromise = supabase.storage
+            .from('content')
+            .upload(filePath, file, {
+              upsert: false,
+              cacheControl: '3600'
+            });
 
-      clearTimeout(timeoutId);
+          // Race between upload and timeout
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Upload timeout')), timeoutDuration);
+          });
+
+          const result = await Promise.race([uploadPromise, timeoutPromise]) as any;
+          data = result.data;
+          error = result.error;
+          
+          if (!error) break; // Success, exit retry loop
+          
+        } catch (timeoutError) {
+          if (attempts === maxRetries) {
+            throw new Error(`Upload timeout after ${attempts} attempts - please try a smaller file or check your connection`);
+          }
+          console.log(`Upload attempt ${attempts} timed out, retrying...`);
+          continue;
+        }
+
+        if (error && attempts < maxRetries) {
+          console.log(`Upload attempt ${attempts} failed:`, error.message, 'Retrying...');
+          // Brief delay before retry
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+        }
+      }
+
       if (progressInterval) {
         clearInterval(progressInterval);
         progressInterval = null;
