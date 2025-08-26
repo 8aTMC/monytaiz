@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Image, Video, FileAudio, FileText, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useSidebar } from '@/components/ui/sidebar';
 
 interface MediaItem {
   id: string;
@@ -28,6 +29,7 @@ export const MediaPreviewDialog = ({
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const sidebar = useSidebar();
 
   const getTypeValue = (type: string | any): string => {
     return typeof type === 'object' && type?.value ? type.value : type || 'unknown';
@@ -110,9 +112,17 @@ export const MediaPreviewDialog = ({
 
   const typeValue = getTypeValue(item.type);
 
+  // Dynamic sizing based on sidebar state
+  const getModalSize = () => {
+    if (sidebar.state === 'collapsed') {
+      return "max-w-5xl"; // Larger when sidebar is collapsed
+    }
+    return "max-w-3xl"; // Smaller when sidebar is expanded
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+      <DialogContent className={`${getModalSize()} max-h-[90vh] overflow-hidden z-[60]`}>
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
@@ -158,7 +168,9 @@ export const MediaPreviewDialog = ({
                 <img 
                   src={mediaUrl} 
                   alt={item.title || 'Preview'} 
-                  className="max-w-full max-h-[60vh] object-contain rounded"
+                  className={`max-w-full object-contain rounded ${
+                    sidebar.state === 'collapsed' ? 'max-h-[70vh]' : 'max-h-[60vh]'
+                  }`}
                 />
               )}
 
@@ -166,7 +178,9 @@ export const MediaPreviewDialog = ({
                 <video 
                   src={mediaUrl} 
                   controls 
-                  className="max-w-full max-h-[60vh] rounded"
+                  className={`max-w-full rounded ${
+                    sidebar.state === 'collapsed' ? 'max-h-[70vh]' : 'max-h-[60vh]'
+                  }`}
                 >
                   Your browser does not support the video tag.
                 </video>

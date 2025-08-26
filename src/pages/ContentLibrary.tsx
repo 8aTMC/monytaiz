@@ -11,13 +11,13 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Filter, Grid, Image, Video, FileAudio, FileText, Calendar, ArrowUpDown, BookOpen, Zap, MessageSquare, GripVertical, Edit, Check } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { NewFolderDialog } from '@/components/NewFolderDialog';
 import { EditFolderDialog } from '@/components/EditFolderDialog';
+import { DeletionProgressDialog } from '@/components/DeletionProgressDialog';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LibrarySelectionToolbar } from '@/components/LibrarySelectionToolbar';
 import { useMediaOperations } from '@/hooks/useMediaOperations';
-import { DeletionProgressDialog } from '@/components/DeletionProgressDialog';
 import { MediaPreviewDialog } from '@/components/MediaPreviewDialog';
+import { MediaThumbnail } from '@/components/MediaThumbnail';
 import { useToast } from '@/hooks/use-toast';
 
 interface MediaItem {
@@ -230,15 +230,16 @@ const ContentLibrary = () => {
         return;
       }
 
-      // Fetch from content_files table (this is where uploads go)
+      // Fetch from content_files table (this is where uploads go) with DISTINCT to prevent duplicates
       const { data: contentResults, error: contentError } = await supabase
         .from('content_files')
-        .select('*')
+        .select('id, title, content_type, file_path, file_size, mime_type, base_price, tags, description, creator_id, created_at, updated_at, is_active')
         .eq('is_active', true)
         .not('content_type', 'is', null)
         .not('file_path', 'is', null)
         .not('file_path', 'eq', '')
-        .gt('file_size', 0);
+        .gt('file_size', 0)
+        .order('created_at', { ascending: false });
 
       if (contentError) {
         console.error('Error fetching from content_files table:', contentError);
@@ -248,10 +249,15 @@ const ContentLibrary = () => {
 
       let mediaData = contentResults || [];
 
+      // Remove duplicates based on id (just in case)
+      let uniqueMediaData = mediaData.filter((item, index, self) => 
+        index === self.findIndex((t) => t.id === item.id)
+      );
+
       // Apply search filter
-      if (searchQuery && mediaData.length > 0) {
+      if (searchQuery && uniqueMediaData.length > 0) {
         const searchTerms = searchQuery.trim().split(/\s+/).map(term => term.toLowerCase());
-        mediaData = mediaData.filter(item => {
+        uniqueMediaData = uniqueMediaData.filter(item => {
           const searchableText = [
             item.title || '',
             ...(item.tags || [])
@@ -261,25 +267,25 @@ const ContentLibrary = () => {
       }
 
       // Apply type filter for content_files table
-      if (selectedFilter !== 'all' && mediaData.length > 0) {
-        mediaData = mediaData.filter(item => item.content_type === selectedFilter);
+      if (selectedFilter !== 'all' && uniqueMediaData.length > 0) {
+        uniqueMediaData = uniqueMediaData.filter(item => item.content_type === selectedFilter);
       }
 
       // Apply sorting
-      if (mediaData.length > 0) {
+      if (uniqueMediaData.length > 0) {
         if (sortBy === 'newest') {
-          mediaData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          uniqueMediaData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         } else if (sortBy === 'oldest') {
-          mediaData.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+          uniqueMediaData.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
         } else if (sortBy === 'price_high') {
-          mediaData.sort((a, b) => (b.base_price || 0) - (a.base_price || 0));
+          uniqueMediaData.sort((a, b) => (b.base_price || 0) - (a.base_price || 0));
         } else if (sortBy === 'price_low') {
-          mediaData.sort((a, b) => (a.base_price || 0) - (b.base_price || 0));
+          uniqueMediaData.sort((a, b) => (a.base_price || 0) - (b.base_price || 0));
         }
       }
 
       // Convert to MediaItem format and filter out any remaining corrupted items
-      const validMediaItems = mediaData
+      const validMediaItems = uniqueMediaData
         .filter(item => item.content_type && item.file_path && item.file_size > 0)
         .map(item => ({
           id: item.id,
@@ -992,22 +998,13 @@ const ContentLibrary = () => {
 
                       <CardContent className="p-0">
                         {/* Thumbnail */}
-                        <div className="aspect-square bg-muted rounded-t-lg flex items-center justify-center relative">
-                          <div className="flex flex-col items-center gap-2">
-                            {getContentTypeIcon(item.type)}
-                            <span className="text-xs text-muted-foreground capitalize">
-                              {getTypeValue(item.type)}
-                            </span>
-                          </div>
-                          
-                          {/* Content Type Badge */}
-                          <Badge 
-                            variant="secondary" 
-                            className="absolute top-2 right-2 text-xs"
-                          >
-                            {getTypeValue(item.type)}
-                          </Badge>
-                        </div>
+                        <MediaThumbnail 
+                          item={{
+                            type: item.type,
+                            storage_path: item.storage_path,
+                            title: item.title
+                          }}
+                        />
                         
                         {/* Content Info */}
                         <div className="p-3">
