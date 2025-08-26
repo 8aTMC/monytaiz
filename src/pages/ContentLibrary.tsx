@@ -191,7 +191,7 @@ const ContentLibrary = () => {
       // Fetch from new media table for optimized loading
       const { data: mediaResults, error: mediaError } = await supabase
         .from('media')
-        .select('*')
+        .select('id, bucket, path, storage_path, mime, type, size_bytes, title, notes, tags, suggested_price_cents, creator_id, created_at, updated_at, tiny_placeholder, width, height')
         .order('created_at', { ascending: false });
 
       if (mediaError) {
@@ -234,13 +234,13 @@ const ContentLibrary = () => {
 
       // Convert to MediaItem format
       const validMediaItems = mediaData
-        .filter(item => item.type && item.path && item.size_bytes > 0)
+        .filter(item => item.type && (item.path || item.storage_path) && item.size_bytes > 0)
         .map(item => ({
           id: item.id,
           title: item.title || 'Untitled',
           type: item.type as 'image' | 'video' | 'audio',
           origin: 'upload' as const,
-          storage_path: item.path,
+          storage_path: item.path || item.storage_path,
           created_at: item.created_at,
           updated_at: item.updated_at,
           size_bytes: item.size_bytes || 0,
