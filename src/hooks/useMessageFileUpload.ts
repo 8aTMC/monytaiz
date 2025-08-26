@@ -9,7 +9,7 @@ interface UseMessageFileUploadOptions {
 
 const FILE_LIMITS = {
   images: 20 * 1024 * 1024, // 20MB
-  videos: 6 * 1024 * 1024 * 1024, // 6GB
+  videos: 10 * 1024 * 1024 * 1024, // 10GB
   audio: 10 * 1024 * 1024, // 10MB
   documents: 100 * 1024 * 1024, // 100MB
 };
