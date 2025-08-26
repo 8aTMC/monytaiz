@@ -33,6 +33,16 @@ export const MediaPreviewDialog = ({
     return typeof type === 'object' && type?.value ? type.value : type || 'unknown';
   };
 
+  const getStoragePath = (path: string | any): string | null => {
+    if (typeof path === 'string' && path.trim()) {
+      return path;
+    }
+    if (typeof path === 'object' && path?.value && typeof path.value === 'string') {
+      return path.value;
+    }
+    return null;
+  };
+
   const getContentTypeIcon = (type: string) => {
     switch (type) {
       case 'image': return <Image className="h-8 w-8" />;
@@ -45,8 +55,15 @@ export const MediaPreviewDialog = ({
 
   useEffect(() => {
     const fetchMediaUrl = async () => {
-      if (!item || !item.storage_path) {
+      if (!item) {
+        return;
+      }
+
+      const storagePath = getStoragePath(item.storage_path);
+      
+      if (!storagePath) {
         setError('No storage path available');
+        setLoading(false);
         return;
       }
 
@@ -56,7 +73,7 @@ export const MediaPreviewDialog = ({
       try {
         const { data, error } = await supabase.storage
           .from('content')
-          .createSignedUrl(item.storage_path, 3600); // 1 hour expiry
+          .createSignedUrl(storagePath, 3600); // 1 hour expiry
 
         if (error) {
           console.error('Error creating signed URL:', error);
@@ -77,6 +94,7 @@ export const MediaPreviewDialog = ({
     } else {
       setMediaUrl(null);
       setError(null);
+      setLoading(false);
     }
   }, [open, item]);
 
@@ -121,9 +139,16 @@ export const MediaPreviewDialog = ({
             <div className="flex flex-col items-center justify-center h-64 text-center">
               <X className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground mb-2">{error}</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground mb-4">
                 This media item may have corrupted data or the file may be missing.
               </p>
+              <div className="text-xs text-muted-foreground/70 space-y-1 max-w-md">
+                <p><strong>Debug Info:</strong></p>
+                <p>Type: {getTypeValue(item.type)}</p>
+                <p>Storage path: {getStoragePath(item.storage_path) || 'Missing/Invalid'}</p>
+                <p>Size: {item.size_bytes} bytes</p>
+                <p>MIME: {item.mime || 'Not specified'}</p>
+              </div>
             </div>
           )}
 
