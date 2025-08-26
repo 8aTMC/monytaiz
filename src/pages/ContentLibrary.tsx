@@ -91,12 +91,12 @@ const ContentLibrary = () => {
   // User roles state
   const [userRoles, setUserRoles] = useState<string[]>([]);
   
-  // Preloader functionality with reduced batch sizes
-  const { preloadMore } = useMediaPreloader(content, {
-    initialBatchSize: 10, // Reduced from 50
-    scrollBatchSize: 5,   // Reduced from 20
-    preloadDelay: 500     // Increased delay
-  });
+  // Disabled preloading to fix connection issues
+  // const { preloadMore } = useMediaPreloader(content, {
+  //   initialBatchSize: 10,
+  //   scrollBatchSize: 5,
+  //   preloadDelay: 500
+  // });
 
   // Intersection observer for scroll-based preloading
   const gridContainerRef = useRef<HTMLDivElement>(null);
@@ -491,51 +491,12 @@ const ContentLibrary = () => {
     }
   }, [customFolders.length]);
 
-  // Set up intersection observer for preloading with throttling
-  useEffect(() => {
-    if (!gridContainerRef.current || content.length === 0) return;
-
-    // Clean up existing observer
-    if (preloadObserverRef.current) {
-      preloadObserverRef.current.disconnect();
-    }
-
-    let lastTriggerTime = 0;
-    const throttleDelay = 1000; // 1 second throttle
-
-    // Create new observer with throttling
-    preloadObserverRef.current = new IntersectionObserver(
-      (entries) => {
-        const now = Date.now();
-        if (now - lastTriggerTime < throttleDelay) return;
-        
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const index = parseInt(entry.target.getAttribute('data-index') || '0');
-            preloadMore(index);
-            lastTriggerTime = now;
-          }
-        });
-      },
-      {
-        root: null,
-        rootMargin: '500px', // Reduced from 300px to load later
-        threshold: 0
-      }
-    );
-
-    // Observe all grid items
-    const gridItems = gridContainerRef.current.querySelectorAll('[data-index]');
-    gridItems.forEach((item) => {
-      preloadObserverRef.current?.observe(item);
-    });
-
-    return () => {
-      if (preloadObserverRef.current) {
-        preloadObserverRef.current.disconnect();
-      }
-    };
-  }, [content, preloadMore]);
+  // Disabled intersection observer to fix connection issues
+  // useEffect(() => {
+  //   // Preloading disabled
+  // }, [content]);
+  
+  const preloadMore = () => {}; // Dummy function
 
   // Sort custom folders based on sortOrder
   const sortedCustomFolders = sortOrder 
