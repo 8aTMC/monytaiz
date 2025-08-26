@@ -97,10 +97,10 @@ const ContentLibrary = () => {
     scrollBatchSize: 20,
     preloadDelay: 150
   });
-  
+
   // Intersection observer for scroll-based preloading
   const gridContainerRef = useRef<HTMLDivElement>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
+  const preloadObserverRef = useRef<IntersectionObserver | null>(null);
   
   const [defaultCategories] = useState([
     { id: 'all-files', label: 'All Files', icon: Grid, description: 'All uploaded content', isDefault: true },
@@ -496,12 +496,12 @@ const ContentLibrary = () => {
     if (!gridContainerRef.current || content.length === 0) return;
 
     // Clean up existing observer
-    if (observerRef.current) {
-      observerRef.current.disconnect();
+    if (preloadObserverRef.current) {
+      preloadObserverRef.current.disconnect();
     }
 
     // Create new observer
-    observerRef.current = new IntersectionObserver(
+    preloadObserverRef.current = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
@@ -520,12 +520,12 @@ const ContentLibrary = () => {
     // Observe all grid items
     const gridItems = gridContainerRef.current.querySelectorAll('[data-index]');
     gridItems.forEach((item) => {
-      observerRef.current?.observe(item);
+      preloadObserverRef.current?.observe(item);
     });
 
     return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
+      if (preloadObserverRef.current) {
+        preloadObserverRef.current.disconnect();
       }
     };
   }, [content, preloadMore]);

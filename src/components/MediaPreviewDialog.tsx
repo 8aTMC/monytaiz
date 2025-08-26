@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Image, Video, FileAudio, FileText, X, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { useSidebar } from '@/components/Navigation';
 import { useSecureMedia } from '@/hooks/useSecureMedia';
+import { useMediaPreloader } from '@/hooks/useMediaPreloader';
 
 // Use the MediaItem interface from ContentLibrary
 interface MediaItem {
@@ -50,6 +51,13 @@ export const MediaPreviewDialog = ({
   const [loading, setLoading] = useState(false);
   const sidebar = useSidebar();
   const { getSecureUrl } = useSecureMedia();
+  
+  // Preloader for adjacent items
+  const { preloadMore } = useMediaPreloader(allItems, {
+    initialBatchSize: 5, // Smaller batch for preview preloading
+    scrollBatchSize: 3,
+    preloadDelay: 50 // Faster preloading for navigation
+  });
 
   // Navigation functions
   const getCurrentIndex = () => {
@@ -61,6 +69,8 @@ export const MediaPreviewDialog = ({
     if (currentIndex > 0 && onItemChange) {
       const previousItem = allItems[currentIndex - 1];
       onItemChange(previousItem);
+      // Preload items around the new position
+      preloadMore(currentIndex - 1);
     }
   };
 
@@ -69,6 +79,8 @@ export const MediaPreviewDialog = ({
     if (currentIndex < allItems.length - 1 && onItemChange) {
       const nextItem = allItems[currentIndex + 1];
       onItemChange(nextItem);
+      // Preload items around the new position
+      preloadMore(currentIndex + 1);
     }
   };
 
@@ -118,7 +130,7 @@ export const MediaPreviewDialog = ({
     }
   };
 
-  // Load secure URL when dialog opens
+  // Load secure URL when dialog opens and preload adjacent items
   useEffect(() => {
     if (open && item) {
       const storagePath = getItemStoragePath(item);
@@ -138,8 +150,14 @@ export const MediaPreviewDialog = ({
             setLoading(false);
           });
       }
+      
+      // Preload adjacent items when dialog opens
+      const currentIndex = getCurrentIndex();
+      if (currentIndex >= 0) {
+        preloadMore(currentIndex);
+      }
     }
-  }, [open, item, getSecureUrl]);
+  }, [open, item, getSecureUrl, preloadMore, getCurrentIndex]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
