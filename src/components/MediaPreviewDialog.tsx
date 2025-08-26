@@ -27,9 +27,11 @@ export const MediaPreviewDialog = ({
   item,
 }: MediaPreviewDialogProps) => {
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [imageLoaded, setImageLoaded] = useState(false);
+  const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
+  const [fullImageLoaded, setFullImageLoaded] = useState(false);
   const sidebar = useSidebar();
 
   const getTypeValue = (type: string | any): string => {
@@ -74,9 +76,31 @@ export const MediaPreviewDialog = ({
       setError(null);
 
       try {
+        const typeValue = getTypeValue(item.type);
+        
+        // For images, create both thumbnail and full quality URLs for faster loading
+        if (typeValue === 'image') {
+          // Create thumbnail URL with image transformation (smaller, lower quality)
+          const { data: thumbnailData, error: thumbnailError } = await supabase.storage
+            .from('content')
+            .createSignedUrl(storagePath, 3600, {
+              transform: {
+                width: 400,
+                height: 400,
+                resize: 'contain',
+                quality: 60
+              }
+            });
+          
+          if (!thumbnailError && thumbnailData) {
+            setThumbnailUrl(thumbnailData.signedUrl);
+          }
+        }
+        
+        // Create full quality URL
         const { data, error } = await supabase.storage
           .from('content')
-          .createSignedUrl(storagePath, 3600); // 1 hour expiry
+          .createSignedUrl(storagePath, 3600);
 
         if (error) {
           console.error('Error creating signed URL:', error);
@@ -93,13 +117,17 @@ export const MediaPreviewDialog = ({
     };
 
     if (open && item) {
-      setImageLoaded(false); // Reset loaded state for new item
+      setThumbnailLoaded(false);
+      setFullImageLoaded(false);
+      setThumbnailUrl(null);
       fetchMediaUrl();
     } else {
       setMediaUrl(null);
+      setThumbnailUrl(null);
       setError(null);
       setLoading(false);
-      setImageLoaded(false);
+      setThumbnailLoaded(false);
+      setFullImageLoaded(false);
     }
   }, [open, item]);
 
@@ -147,94 +175,104 @@ export const MediaPreviewDialog = ({
             </div>
           </DialogHeader>
 
-          <div className="flex-1 overflow-auto">
-            {loading && (
-              <div className="flex items-center justify-center h-64">
+          <div className="flex-1 overflow-hidden">
+            <div className="flex items-center justify-center h-full max-h-[70vh]">
+              {loading && (
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            )}
+              )}
 
-            {error && (
-              <div className="flex flex-col items-center justify-center h-64 text-center">
-                <X className="h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground mb-2">{error}</p>
-                <p className="text-sm text-muted-foreground mb-4">
-                  This media item may have corrupted data or the file may be missing.
-                </p>
-                <div className="text-xs text-muted-foreground/70 space-y-1 max-w-md">
-                  <p><strong>Debug Info:</strong></p>
-                  <p>Type: {getTypeValue(item.type)}</p>
-                  <p>Storage path: {getStoragePath(item.storage_path) || 'Missing/Invalid'}</p>
-                  <p>Size: {item.size_bytes} bytes</p>
-                  <p>MIME: {item.mime || 'Not specified'}</p>
+              {error && (
+                <div className="flex flex-col items-center justify-center h-64 text-center">
+                  <X className="h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground mb-2">{error}</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    This media item may have corrupted data or the file may be missing.
+                  </p>
+                  <div className="text-xs text-muted-foreground/70 space-y-1 max-w-md">
+                    <p><strong>Debug Info:</strong></p>
+                    <p>Type: {getTypeValue(item.type)}</p>
+                    <p>Storage path: {getStoragePath(item.storage_path) || 'Missing/Invalid'}</p>
+                    <p>Size: {item.size_bytes} bytes</p>
+                    <p>MIME: {item.mime || 'Not specified'}</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {!loading && !error && mediaUrl && (
-              <div className="flex items-center justify-center">
-                {typeValue === 'image' && (
-                  <div className="relative flex items-center justify-center">
-                    <img 
-                      src={mediaUrl} 
-                      alt={item.title || 'Preview'} 
-                      onLoad={() => setImageLoaded(true)}
-                      className={`max-w-full object-contain rounded transition-all duration-500 ${
-                        sidebar.isCollapsed ? 'max-h-[70vh]' : 'max-h-[60vh]'
-                      } ${!imageLoaded ? 'blur-sm opacity-70 scale-105' : 'blur-0 opacity-100 scale-100'}`}
-                    />
-                    {!imageLoaded && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/50"></div>
-                      </div>
-                    )}
-                  </div>
-                )}
+              {!loading && !error && (mediaUrl || thumbnailUrl) && (
+                <>
+                   {typeValue === 'image' && (
+                     <div className="relative flex items-center justify-center w-full h-full">
+                       {/* Show thumbnail first for fast loading */}
+                       {thumbnailUrl && !fullImageLoaded && (
+                         <img 
+                           src={thumbnailUrl} 
+                           alt={item.title || 'Preview'} 
+                           onLoad={() => setThumbnailLoaded(true)}
+                           className="max-w-full max-h-full w-auto h-auto object-contain rounded blur-sm opacity-70 transition-all duration-300"
+                         />
+                       )}
+                       
+                       {/* Full quality image */}
+                       <img 
+                         src={mediaUrl!} 
+                         alt={item.title || 'Preview'} 
+                         onLoad={() => setFullImageLoaded(true)}
+                         className={`max-w-full max-h-full w-auto h-auto object-contain rounded transition-all duration-500 ${
+                           fullImageLoaded ? 'opacity-100 blur-0' : 'opacity-0'
+                         } ${!fullImageLoaded && thumbnailUrl ? 'absolute inset-0' : ''}`}
+                       />
+                       
+                       {!thumbnailLoaded && !fullImageLoaded && (
+                         <div className="absolute inset-0 flex items-center justify-center">
+                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/50"></div>
+                         </div>
+                       )}
+                     </div>
+                   )}
 
-                {typeValue === 'video' && (
-                  <video 
-                    src={mediaUrl} 
-                    controls 
-                    className={`max-w-full rounded ${
-                      sidebar.isCollapsed ? 'max-h-[70vh]' : 'max-h-[60vh]'
-                    }`}
-                  >
-                    Your browser does not support the video tag.
-                  </video>
-                )}
+                  {typeValue === 'video' && (
+                    <video 
+                      src={mediaUrl!} 
+                      controls 
+                      className="max-w-full max-h-full w-auto h-auto object-contain rounded"
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  )}
 
-                {typeValue === 'audio' && (
-                  <div className="flex flex-col items-center gap-4 p-8">
-                    <FileAudio className="h-16 w-16 text-muted-foreground" />
-                    <audio src={mediaUrl} controls className="w-full max-w-md">
-                      Your browser does not support the audio tag.
-                    </audio>
-                  </div>
-                )}
+                  {typeValue === 'audio' && (
+                    <div className="flex flex-col items-center gap-4 p-8">
+                      <FileAudio className="h-16 w-16 text-muted-foreground" />
+                      <audio src={mediaUrl!} controls className="w-full max-w-md">
+                        Your browser does not support the audio tag.
+                      </audio>
+                    </div>
+                  )}
 
-                {typeValue === 'document' && (
-                  <div className="flex flex-col items-center gap-4 p-8">
-                    <FileText className="h-16 w-16 text-muted-foreground" />
-                    <p className="text-muted-foreground">Document preview not available</p>
-                    <Button asChild>
-                      <a href={mediaUrl} download target="_blank" rel="noopener noreferrer">
-                        Download Document
-                      </a>
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
+                  {typeValue === 'document' && (
+                    <div className="flex flex-col items-center gap-4 p-8">
+                      <FileText className="h-16 w-16 text-muted-foreground" />
+                      <p className="text-muted-foreground">Document preview not available</p>
+                      <Button asChild>
+                        <a href={mediaUrl!} download target="_blank" rel="noopener noreferrer">
+                          Download Document
+                        </a>
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
 
-            {!loading && !error && !mediaUrl && (
-              <div className="flex flex-col items-center justify-center h-64 text-center">
-                {getContentTypeIcon(typeValue)}
-                <p className="text-muted-foreground mt-4 mb-2">No preview available</p>
-                <p className="text-sm text-muted-foreground">
-                  This item may not have associated media content.
-                </p>
-              </div>
-            )}
+              {!loading && !error && !mediaUrl && !thumbnailUrl && (
+                <div className="flex flex-col items-center justify-center h-64 text-center">
+                  {getContentTypeIcon(typeValue)}
+                  <p className="text-muted-foreground mt-4 mb-2">No preview available</p>
+                  <p className="text-sm text-muted-foreground">
+                    This item may not have associated media content.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Close button */}
