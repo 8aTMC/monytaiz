@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Image, Video, FileAudio, FileText, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useSidebar } from '@/components/ui/sidebar';
+import { useSidebar } from '@/components/Navigation';
 
 interface MediaItem {
   id: string;
@@ -114,7 +114,7 @@ export const MediaPreviewDialog = ({
 
   // Dynamic sizing based on sidebar state
   const getModalSize = () => {
-    if (sidebar.state === 'collapsed') {
+    if (sidebar.isCollapsed) {
       return "max-w-5xl"; // Larger when sidebar is collapsed
     }
     return "max-w-3xl"; // Smaller when sidebar is expanded
@@ -169,7 +169,7 @@ export const MediaPreviewDialog = ({
                   src={mediaUrl} 
                   alt={item.title || 'Preview'} 
                   className={`max-w-full object-contain rounded ${
-                    sidebar.state === 'collapsed' ? 'max-h-[70vh]' : 'max-h-[60vh]'
+                    sidebar.isCollapsed ? 'max-h-[70vh]' : 'max-h-[60vh]'
                   }`}
                 />
               )}
@@ -179,7 +179,7 @@ export const MediaPreviewDialog = ({
                   src={mediaUrl} 
                   controls 
                   className={`max-w-full rounded ${
-                    sidebar.state === 'collapsed' ? 'max-h-[70vh]' : 'max-h-[60vh]'
+                    sidebar.isCollapsed ? 'max-h-[70vh]' : 'max-h-[60vh]'
                   }`}
                 >
                   Your browser does not support the video tag.
