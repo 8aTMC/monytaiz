@@ -26,6 +26,7 @@ export const MediaPreviewDialog = ({
   onOpenChange,
   item,
 }: MediaPreviewDialogProps) => {
+  // Force recompilation to clear imageLoaded cache issue
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
