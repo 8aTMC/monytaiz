@@ -387,6 +387,56 @@ export const useFileUpload = () => {
       
       console.log('Database insert successful:', insertData);
 
+      // Post-process media for fast loading (generate tiny placeholder and get dimensions)
+      try {
+        const { data: postProcessData, error: postProcessError } = await supabase.functions.invoke('media-postprocess', {
+          body: { 
+            bucket: 'content', 
+            path: data!.path, 
+            isPublic: true 
+          },
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (postProcessError) {
+          console.warn('Media post-processing failed:', postProcessError);
+        } else if (postProcessData?.ok) {
+          console.log('Media post-processing successful:', postProcessData);
+          
+          // Insert into media table for fast loading
+          const mediaInsertPayload = {
+            bucket: 'content',
+            path: data!.path,
+            storage_path: data!.path, // Keep for compatibility
+            mime: file.type,
+            type: fileType,
+            size_bytes: file.size,
+            width: postProcessData.width,
+            height: postProcessData.height,
+            tiny_placeholder: postProcessData.tiny_placeholder,
+            title: file.name.replace(/\.[^/.]+$/, ""),
+            notes: null,
+            tags: [],
+            suggested_price_cents: 0,
+            creator_id: userData.user.id,
+            created_by: userData.user.id,
+            origin: 'upload'
+          };
+
+          const { error: mediaDbError } = await supabase
+            .from('media')
+            .upsert(mediaInsertPayload, { onConflict: 'bucket,path' });
+
+          if (mediaDbError) {
+            console.warn('Media table insert failed:', mediaDbError);
+          } else {
+            console.log('Media table insert successful');
+          }
+        }
+      } catch (postProcessError) {
+        console.warn('Media post-processing error:', postProcessError);
+      }
+
       // Mark as completed
       setUploadQueue(prev => prev.map(f => 
         f.id === item.id ? { 

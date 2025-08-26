@@ -188,24 +188,63 @@ const ContentLibrary = () => {
   // Separate refetch function that can be called from anywhere
   const refetchContent = async () => {
     try {
-      // Fetch from new media table for optimized loading
-      const { data: mediaResults, error: mediaError } = await supabase
-        .from('media')
-        .select('id, bucket, path, storage_path, mime, type, size_bytes, title, notes, tags, suggested_price_cents, creator_id, created_at, updated_at, tiny_placeholder, width, height')
-        .order('created_at', { ascending: false });
+      // Fetch from both media table (new optimized) and content_files (legacy) for compatibility
+      const [mediaResults, contentResults] = await Promise.all([
+        supabase
+          .from('media')
+          .select('id, bucket, path, storage_path, mime, type, size_bytes, title, notes, tags, suggested_price_cents, creator_id, created_at, updated_at, tiny_placeholder, width, height')
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('content_files')
+          .select('id, title, content_type, file_path, file_size, mime_type, base_price, tags, description, creator_id, created_at, updated_at, is_active')
+          .eq('is_active', true)
+          .not('content_type', 'is', null)
+          .not('file_path', 'is', null)
+          .not('file_path', 'eq', '')
+          .gt('file_size', 0)
+          .order('created_at', { ascending: false })
+      ]);
 
-      if (mediaError) {
-        console.error('Error fetching from media table:', mediaError);
-        setContent([]);
-        return;
+      let combinedData: any[] = [];
+
+      // Add media table results (optimized)
+      if (mediaResults.data) {
+        combinedData = [...mediaResults.data];
       }
 
-      let mediaData = mediaResults || [];
+      // Add content_files results (legacy), but avoid duplicates
+      if (contentResults.data) {
+        const mediaStoragePaths = new Set(mediaResults.data?.map(item => item.path || item.storage_path) || []);
+        const legacyItems = contentResults.data.filter(item => !mediaStoragePaths.has(item.file_path));
+        
+        // Convert legacy format to new format
+        const convertedLegacyItems = legacyItems.map(item => ({
+          id: item.id,
+          title: item.title || 'Untitled',
+          type: item.content_type,
+          bucket: 'content',
+          path: item.file_path,
+          storage_path: item.file_path,
+          mime: item.mime_type || '',
+          size_bytes: item.file_size || 0,
+          suggested_price_cents: (item.base_price || 0) * 100,
+          tags: item.tags || [],
+          notes: item.description || null,
+          creator_id: item.creator_id,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+          tiny_placeholder: undefined,
+          width: undefined,
+          height: undefined
+        }));
+
+        combinedData = [...combinedData, ...convertedLegacyItems];
+      }
 
       // Apply search filter
-      if (searchQuery && mediaData.length > 0) {
+      if (searchQuery && combinedData.length > 0) {
         const searchTerms = searchQuery.trim().split(/\s+/).map(term => term.toLowerCase());
-        mediaData = mediaData.filter(item => {
+        combinedData = combinedData.filter(item => {
           const searchableText = [
             item.title || '',
             ...(item.tags || [])
@@ -215,25 +254,25 @@ const ContentLibrary = () => {
       }
 
       // Apply type filter
-      if (selectedFilter !== 'all' && mediaData.length > 0) {
-        mediaData = mediaData.filter(item => item.type === selectedFilter);
+      if (selectedFilter !== 'all' && combinedData.length > 0) {
+        combinedData = combinedData.filter(item => item.type === selectedFilter);
       }
 
       // Apply sorting
-      if (mediaData.length > 0) {
+      if (combinedData.length > 0) {
         if (sortBy === 'newest') {
-          mediaData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          combinedData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         } else if (sortBy === 'oldest') {
-          mediaData.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+          combinedData.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
         } else if (sortBy === 'price_high') {
-          mediaData.sort((a, b) => (b.suggested_price_cents || 0) - (a.suggested_price_cents || 0));
+          combinedData.sort((a, b) => (b.suggested_price_cents || 0) - (a.suggested_price_cents || 0));
         } else if (sortBy === 'price_low') {
-          mediaData.sort((a, b) => (a.suggested_price_cents || 0) - (b.suggested_price_cents || 0));
+          combinedData.sort((a, b) => (a.suggested_price_cents || 0) - (b.suggested_price_cents || 0));
         }
       }
 
       // Convert to MediaItem format
-      const validMediaItems = mediaData
+      const validMediaItems = combinedData
         .filter(item => item.type && (item.path || item.storage_path) && item.size_bytes > 0)
         .map(item => ({
           id: item.id,
