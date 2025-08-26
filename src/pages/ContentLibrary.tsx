@@ -826,9 +826,15 @@ const ContentLibrary = () => {
 
     // Double click detection (within 300ms)
     if (timeDiff < 300) {
-      // Double click - always open preview regardless of selecting mode
+      // Double click behavior
       event.preventDefault();
-      setPreviewItem(item);
+      if (selecting) {
+        // In selection mode, double click opens preview
+        setPreviewItem(item);
+      } else {
+        // In default mode, double click also opens preview (same as single click)
+        setPreviewItem(item);
+      }
       return;
     }
 
@@ -837,15 +843,21 @@ const ContentLibrary = () => {
     const timeout = setTimeout(() => {
       // Single click behavior
       if (selecting) {
-        // In selecting mode, single click toggles selection
+        // In selection mode, single click toggles selection
         handleToggleItem(item.id);
       } else {
-        // Not in selecting mode, single click also toggles selection
-        handleToggleItem(item.id);
+        // In default mode, single click opens preview
+        setPreviewItem(item);
       }
     }, 300);
 
     setClickTimeout(timeout);
+  };
+
+  const handleCheckboxClick = (itemId: string) => {
+    // Always toggle selection when checkbox is clicked
+    // This will enter selection mode if not already active
+    handleToggleItem(itemId);
   };
 
   const formatPrice = (cents: number) => {
@@ -1143,17 +1155,17 @@ const ContentLibrary = () => {
                      >
                        {/* Selection checkbox in top right corner */}
                        <div className="absolute top-2 right-2 z-10">
-                         <div 
-                           className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                             selectedItems.has(item.id) 
-                               ? 'bg-primary border-primary text-primary-foreground' 
-                               : 'bg-background/80 border-muted-foreground backdrop-blur-sm'
-                           }`}
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             handleToggleItem(item.id);
-                           }}
-                         >
+                           <div 
+                             className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                               selectedItems.has(item.id) 
+                                 ? 'bg-primary border-primary text-primary-foreground' 
+                                 : 'bg-background/80 border-muted-foreground backdrop-blur-sm'
+                             }`}
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               handleCheckboxClick(item.id);
+                             }}
+                           >
                            {selectedItems.has(item.id) && <Check className="h-3 w-3" />}
                          </div>
                        </div>
