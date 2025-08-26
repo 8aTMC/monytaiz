@@ -35,3 +35,6 @@ verify_jwt = true
 
 [functions.delete-pending-user]
 verify_jwt = true
+
+[functions.secure-media]
+verify_jwt = true

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Image, Video, FileAudio, FileText, X } from 'lucide-react';
 import { useSidebar } from '@/components/Navigation';
+import { useSecureMedia } from '@/hooks/useSecureMedia';
 
 interface MediaItem {
   id: string;
@@ -33,7 +34,10 @@ export const MediaPreviewDialog = ({
   item,
 }: MediaPreviewDialogProps) => {
   const [fullImageLoaded, setFullImageLoaded] = useState(false);
+  const [secureUrl, setSecureUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const sidebar = useSidebar();
+  const { getSecureUrl } = useSecureMedia();
 
   const getTypeValue = (type: string | any): string => {
     return typeof type === 'object' && type?.value ? type.value : type || 'unknown';
@@ -74,12 +78,28 @@ export const MediaPreviewDialog = ({
     }
   };
 
-  // Reset image loaded state when dialog opens/closes
+  // Load secure URL when dialog opens
   useEffect(() => {
-    if (open) {
-      setFullImageLoaded(false);
+    if (open && item) {
+      const storagePath = getItemStoragePath(item);
+      if (storagePath) {
+        setLoading(true);
+        setSecureUrl(null);
+        setFullImageLoaded(false);
+        
+        getSecureUrl(storagePath)
+          .then(url => {
+            setSecureUrl(url);
+          })
+          .catch(err => {
+            console.error('Failed to get secure URL:', err);
+          })
+          .finally(() => {
+            setLoading(false);
+          });
+      }
     }
-  }, [open, item]);
+  }, [open, item, getSecureUrl]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -141,10 +161,16 @@ export const MediaPreviewDialog = ({
 
               {getItemStoragePath(item) && (
                 <>
+                  {loading && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/60"></div>
+                    </div>
+                  )}
+
                   {typeValue === 'image' && (
                     <div className="relative flex items-center justify-center w-full h-full">
                       {/* Show tiny placeholder first for instant loading */}
-                      {item.tiny_placeholder && !fullImageLoaded && (
+                      {item.tiny_placeholder && !fullImageLoaded && !loading && (
                         <img 
                           src={item.tiny_placeholder} 
                           alt=""
@@ -152,43 +178,49 @@ export const MediaPreviewDialog = ({
                         />
                       )}
                       
-                      {/* High quality preview using direct public URL */}
-                      <img 
-                        src={`https://alzyzfjzwvofmjccirjq.supabase.co/storage/v1/object/public/content/${getItemStoragePath(item)}?width=1280&height=720&resize=contain&quality=85&format=webp`}
-                        alt={item.title || 'Preview'} 
-                        onLoad={() => setFullImageLoaded(true)}
-                        onError={(e) => {
-                          console.error('Failed to load image:', e);
-                        }}
-                        className={`max-w-full max-h-full w-auto h-auto object-contain rounded transition-opacity duration-300 ${
-                          fullImageLoaded ? 'opacity-100' : 'opacity-0'
-                        } ${!fullImageLoaded && item.tiny_placeholder ? 'absolute inset-0' : ''}`}
-                      />
-                      
-                      {/* Center loading spinner only when no placeholder and image hasn't loaded */}
-                      {!fullImageLoaded && !item.tiny_placeholder && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/60"></div>
-                        </div>
+                      {/* High quality preview using secure URL */}
+                      {secureUrl && (
+                        <img 
+                          src={secureUrl}
+                          alt={item.title || 'Preview'} 
+                          onLoad={() => setFullImageLoaded(true)}
+                          onError={(e) => {
+                            console.error('Failed to load secure image:', e);
+                          }}
+                          className={`max-w-full max-h-full w-auto h-auto object-contain rounded transition-opacity duration-300 ${
+                            fullImageLoaded ? 'opacity-100' : 'opacity-0'
+                          } ${!fullImageLoaded && item.tiny_placeholder ? 'absolute inset-0' : ''}`}
+                        />
                       )}
                     </div>
                   )}
 
-                  {typeValue === 'video' && (
+                  {typeValue === 'video' && secureUrl && (
                     <video 
-                      src={`https://alzyzfjzwvofmjccirjq.supabase.co/storage/v1/object/public/content/${getItemStoragePath(item)}`}
+                      src={secureUrl}
                       controls 
                       className="max-w-full max-h-full w-auto h-auto object-contain rounded"
                       preload="metadata"
+                      onError={(e) => {
+                        console.error('Failed to load secure video:', e);
+                      }}
                     >
                       Your browser does not support the video tag.
                     </video>
                   )}
 
-                  {typeValue === 'audio' && (
+                  {typeValue === 'audio' && secureUrl && (
                     <div className="flex flex-col items-center gap-4 p-8">
                       <FileAudio className="h-16 w-16 text-muted-foreground" />
-                      <audio src={`https://alzyzfjzwvofmjccirjq.supabase.co/storage/v1/object/public/content/${getItemStoragePath(item)}`} controls className="w-full max-w-md" preload="metadata">
+                      <audio 
+                        src={secureUrl} 
+                        controls 
+                        className="w-full max-w-md" 
+                        preload="metadata"
+                        onError={(e) => {
+                          console.error('Failed to load secure audio:', e);
+                        }}
+                      >
                         Your browser does not support the audio tag.
                       </audio>
                     </div>

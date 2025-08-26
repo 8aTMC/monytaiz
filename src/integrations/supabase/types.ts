@@ -1522,6 +1522,10 @@ export type Database = {
           title: string
         }[]
       }
+      get_secure_media_url: {
+        Args: { expires_in_seconds?: number; media_path: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

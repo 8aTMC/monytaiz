@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Image, Video, FileAudio } from 'lucide-react';
+import { useSecureMedia } from '@/hooks/useSecureMedia';
 
 interface MediaThumbnailProps {
   item: {
@@ -18,6 +19,8 @@ interface MediaThumbnailProps {
 export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [secureUrl, setSecureUrl] = useState<string | null>(null);
+  const { getSecureUrl } = useSecureMedia();
 
   // Helper to get type from either format
   const getItemType = () => item.type || item.content_type || 'unknown';
@@ -41,6 +44,21 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
   const itemType = getItemType();
   const storagePath = getStoragePath();
 
+  // Load secure URL for images
+  useEffect(() => {
+    if (itemType === 'image' && storagePath) {
+      getSecureUrl(storagePath, { width: 256, height: 256, quality: 75 })
+        .then(url => {
+          if (url) {
+            setSecureUrl(url);
+          } else {
+            setHasError(true);
+          }
+        })
+        .catch(() => setHasError(true));
+    }
+  }, [itemType, storagePath, getSecureUrl]);
+
   // For non-image types, show icon
   if (itemType !== 'image') {
     return (
@@ -55,8 +73,16 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
     );
   }
 
-  // Build direct public URL with transforms for instant loading
-  const thumbUrl = `https://alzyzfjzwvofmjccirjq.supabase.co/storage/v1/object/public/content/${storagePath}?width=256&height=256&resize=cover&quality=75&format=webp`;
+  // Use secure URL if available
+  if (!secureUrl && !hasError) {
+    return (
+      <div className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}>
+        <div className="animate-pulse">
+          <Image className="h-8 w-8 text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
 
   // Calculate aspect ratio for layout stability
   const aspectWidth = item.width ? Math.min(item.width, 256) : 256;
@@ -74,23 +100,25 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
         />
       )}
       
-      {/* Main thumbnail - loads instantly from public bucket */}
-      <img
-        src={thumbUrl}
-        alt={item.title || 'Thumbnail'}
-        className={`w-full h-full object-cover transition-all duration-300 ${
-          imageLoaded ? 'opacity-100 blur-0' : 'opacity-0'
-        }`}
-        loading="lazy"
-        decoding="async"
-        width={aspectWidth}
-        height={aspectHeight}
-        onLoad={() => setImageLoaded(true)}
-        onError={() => {
-          console.error('Failed to load thumbnail:', thumbUrl);
-          setHasError(true);
-        }}
-      />
+      {/* Main thumbnail - loads from secure endpoint */}
+      {secureUrl && (
+        <img
+          src={secureUrl}
+          alt={item.title || 'Thumbnail'}
+          className={`w-full h-full object-cover transition-all duration-300 ${
+            imageLoaded ? 'opacity-100 blur-0' : 'opacity-0'
+          }`}
+          loading="lazy"
+          decoding="async"
+          width={aspectWidth}
+          height={aspectHeight}
+          onLoad={() => setImageLoaded(true)}
+          onError={() => {
+            console.error('Failed to load secure thumbnail');
+            setHasError(true);
+          }}
+        />
+      )}
 
       {/* Error state */}
       {hasError && (
