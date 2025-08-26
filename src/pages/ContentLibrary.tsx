@@ -104,6 +104,9 @@ const ContentLibrary = () => {
     count?: number;
   }>>([]);
   
+  // Store counts for all categories
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
+  
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const { isCollapsed, isNarrowScreen } = useSidebar();
@@ -184,6 +187,56 @@ const ContentLibrary = () => {
 
     return () => window.removeEventListener('resize', handleResize);
   }, [isCollapsed]);
+
+  // Function to calculate counts for all categories without filters
+  const calculateCategoryCounts = async () => {
+    try {
+      const counts: Record<string, number> = {};
+      
+      // Calculate All Files count
+      const [allMediaResults, allContentResults] = await Promise.all([
+        supabase
+          .from('media')
+          .select('id', { count: 'exact' }),
+        supabase
+          .from('content_files')
+          .select('id', { count: 'exact' })
+          .eq('is_active', true)
+          .not('content_type', 'is', null)
+          .not('file_path', 'is', null)
+          .not('file_path', 'eq', '')
+          .gt('file_size', 0)
+      ]);
+      
+      counts['all-files'] = (allMediaResults.count || 0) + (allContentResults.count || 0);
+      
+      // Calculate Messages count (only media with message/chat origin)
+      const { count: messagesCount } = await supabase
+        .from('media')
+        .select('id', { count: 'exact' })
+        .in('origin', ['message', 'chat']);
+      
+      counts['messages'] = messagesCount || 0;
+      
+      // Stories and LiveStreams are not implemented, so they remain 0
+      counts['stories'] = 0;
+      counts['livestreams'] = 0;
+      
+      // Calculate custom folder counts
+      for (const folder of customFolders) {
+        const { count: folderCount } = await supabase
+          .from('collection_items')
+          .select('media_id', { count: 'exact' })
+          .eq('collection_id', folder.id);
+        
+        counts[folder.id] = folderCount || 0;
+      }
+      
+      setCategoryCounts(counts);
+    } catch (error) {
+      console.error('Error calculating category counts:', error);
+    }
+  };
 
   // Separate refetch function that can be called from anywhere
   const refetchContent = async () => {
@@ -349,6 +402,9 @@ const ContentLibrary = () => {
         }));
 
       setContent(validMediaItems);
+      
+      // Update category counts after content changes
+      await calculateCategoryCounts();
     } catch (error) {
       console.error('Error fetching content:', error);
     }
@@ -394,6 +450,8 @@ const ContentLibrary = () => {
             count: 0
           })) || [];
           setCustomFolders(folders);
+          // Calculate counts after folders are loaded
+          await calculateCategoryCounts();
         }
       } catch (error) {
         console.error('Error fetching collections:', error);
@@ -404,6 +462,13 @@ const ContentLibrary = () => {
       fetchCustomCollections();
     }
   }, [user]);
+
+  // Update counts when custom folders change
+  useEffect(() => {
+    if (user && customFolders.length > 0) {
+      calculateCategoryCounts();
+    }
+  }, [customFolders.length]);
 
   // Sort custom folders based on sortOrder
   const sortedCustomFolders = sortOrder 
@@ -635,6 +700,8 @@ const ContentLibrary = () => {
           count: 0
         }));
         setCustomFolders(folders);
+        // Update counts after folder changes
+        await calculateCategoryCounts();
       }
     } catch (error) {
       console.error('Error fetching collections:', error);
@@ -793,7 +860,7 @@ const ContentLibrary = () => {
                   </div>
                 </Button>
                 <Badge variant="secondary" className="absolute top-1 right-2 text-xs pointer-events-none">
-                  {category.id === 'all-files' ? content.length : 0}
+                  {categoryCounts[category.id] || 0}
                 </Badge>
               </div>
             );
@@ -899,9 +966,9 @@ const ContentLibrary = () => {
                             </div>
                           </div>
                         </Button>
-                        <Badge variant="secondary" className="absolute top-1 right-2 text-xs pointer-events-none">
-                          {folder.count || 0}
-                        </Badge>
+                         <Badge variant="secondary" className="absolute top-1 right-2 text-xs pointer-events-none">
+                           {categoryCounts[folder.id] || 0}
+                         </Badge>
                       </div>
                       
                       {/* Separator line with drop zone */}
