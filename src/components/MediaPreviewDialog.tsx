@@ -47,12 +47,19 @@ export const MediaPreviewDialog = ({
   };
 
   const getStoragePath = (path: string | any): string | null => {
+    let storagePath: string | null = null;
+    
     if (typeof path === 'string' && path.trim()) {
-      return path;
+      storagePath = path;
+    } else if (typeof path === 'object' && path?.value && typeof path.value === 'string') {
+      storagePath = path.value;
     }
-    if (typeof path === 'object' && path?.value && typeof path.value === 'string') {
-      return path.value;
+    
+    if (storagePath) {
+      // Remove 'content/' prefix if it exists since we'll add it in the bucket parameter
+      return storagePath.startsWith('content/') ? storagePath.substring(8) : storagePath;
     }
+    
     return null;
   };
 
@@ -234,15 +241,17 @@ export const MediaPreviewDialog = ({
                           />
                         )}
                         
-                        {/* High quality preview using transforms */}
-                        <img 
-                          src={`https://alzyzfjzwvofmjccirjq.supabase.co/storage/v1/object/public/content/${getItemStoragePath(item)}?width=1280&height=720&resize=contain&quality=80&format=webp`}
-                          alt={item.title || 'Preview'} 
-                          onLoad={() => setFullImageLoaded(true)}
-                          className={`max-w-full max-h-full w-auto h-auto object-contain rounded transition-all duration-500 ${
-                            fullImageLoaded ? 'opacity-100 blur-0' : 'opacity-0'
-                          } ${!fullImageLoaded && item.tiny_placeholder ? 'absolute inset-0' : ''}`}
-                        />
+                         {/* High quality preview using signed URL */}
+                        {mediaUrl && (
+                          <img 
+                            src={mediaUrl}
+                            alt={item.title || 'Preview'} 
+                            onLoad={() => setFullImageLoaded(true)}
+                            className={`max-w-full max-h-full w-auto h-auto object-contain rounded transition-all duration-500 ${
+                              fullImageLoaded ? 'opacity-100 blur-0' : 'opacity-0'
+                            } ${!fullImageLoaded && item.tiny_placeholder ? 'absolute inset-0' : ''}`}
+                          />
+                        )}
                         
                         {!fullImageLoaded && !item.tiny_placeholder && (
                           <div className="absolute inset-0 flex items-center justify-center">
