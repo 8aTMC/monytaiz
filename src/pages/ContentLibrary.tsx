@@ -11,8 +11,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Filter, Grid, Image, Video, FileAudio, FileText, Calendar, ArrowUpDown, BookOpen, Zap, MessageSquare, GripVertical, Edit, Check } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog';
 import { NewFolderDialog } from '@/components/NewFolderDialog';
 import { EditFolderDialog } from '@/components/EditFolderDialog';
+import { TagManagementDialog } from '@/components/TagManagementDialog';
 import { DeletionProgressDialog } from '@/components/DeletionProgressDialog';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LibrarySelectionToolbar } from '@/components/LibrarySelectionToolbar';
@@ -1014,6 +1016,11 @@ const ContentLibrary = () => {
             <ArrowUpDown className="h-4 w-4 mr-2" />
             Reorder Folders
           </Button>
+          
+          <TagManagementDialog onTagsUpdated={() => {
+            // Refresh content when tags are updated
+            refetchContent();
+          }} />
 
         </div>
 
@@ -1288,10 +1295,14 @@ const ContentLibrary = () => {
                           }}
                         />
                         
-                        {/* Categories at bottom */}
+                         {/* Categories at bottom */}
                         <div className="absolute bottom-2 left-2 right-2 z-10">
                           <div className="text-xs text-white bg-black/50 rounded px-1.5 py-0.5 truncate">
-                            {item.tags.length > 0 ? item.tags.join(', ') : item.origin}
+                            {(() => {
+                              const defaultTags = ['upload', 'story', 'livestream', 'message'];
+                              const customTags = item.tags.filter(tag => !defaultTags.includes(tag.toLowerCase()));
+                              return customTags.length > 0 ? customTags.join(', ') : item.origin;
+                            })()}
                           </div>
                         </div>
                       </CardContent>
