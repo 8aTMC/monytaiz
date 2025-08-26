@@ -29,6 +29,7 @@ export const MediaPreviewDialog = ({
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const sidebar = useSidebar();
 
   const getTypeValue = (type: string | any): string => {
@@ -92,11 +93,13 @@ export const MediaPreviewDialog = ({
     };
 
     if (open && item) {
+      setImageLoaded(false); // Reset loaded state for new item
       fetchMediaUrl();
     } else {
       setMediaUrl(null);
       setError(null);
       setLoading(false);
+      setImageLoaded(false);
     }
   }, [open, item]);
 
@@ -171,13 +174,21 @@ export const MediaPreviewDialog = ({
             {!loading && !error && mediaUrl && (
               <div className="flex items-center justify-center">
                 {typeValue === 'image' && (
-                  <img 
-                    src={mediaUrl} 
-                    alt={item.title || 'Preview'} 
-                    className={`max-w-full object-contain rounded ${
-                      sidebar.isCollapsed ? 'max-h-[70vh]' : 'max-h-[60vh]'
-                    }`}
-                  />
+                  <div className="relative flex items-center justify-center">
+                    <img 
+                      src={mediaUrl} 
+                      alt={item.title || 'Preview'} 
+                      onLoad={() => setImageLoaded(true)}
+                      className={`max-w-full object-contain rounded transition-all duration-500 ${
+                        sidebar.isCollapsed ? 'max-h-[70vh]' : 'max-h-[60vh]'
+                      } ${!imageLoaded ? 'blur-sm opacity-70 scale-105' : 'blur-0 opacity-100 scale-100'}`}
+                    />
+                    {!imageLoaded && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/50"></div>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {typeValue === 'video' && (
