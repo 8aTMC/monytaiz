@@ -54,7 +54,7 @@ export const MediaPreviewDialog = ({
       case 'image': return <Image className="h-8 w-8" />;
       case 'video': return <Video className="h-8 w-8" />;
       case 'audio': return <FileAudio className="h-8 w-8" />;
-      case 'document': return <FileText className="h-8 w-8" />;
+      
       default: return <FileText className="h-8 w-8" />;
     }
   };
@@ -250,17 +250,6 @@ export const MediaPreviewDialog = ({
                     </div>
                   )}
 
-                  {typeValue === 'document' && (
-                    <div className="flex flex-col items-center gap-4 p-8">
-                      <FileText className="h-16 w-16 text-muted-foreground" />
-                      <p className="text-muted-foreground">Document preview not available</p>
-                      <Button asChild>
-                        <a href={mediaUrl!} download target="_blank" rel="noopener noreferrer">
-                          Download Document
-                        </a>
-                      </Button>
-                    </div>
-                  )}
                 </>
               )}
 

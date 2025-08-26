@@ -27,7 +27,7 @@ interface MediaItem {
   origin: 'upload' | 'story' | 'livestream' | 'message';
   storage_path: string;
   mime: string;
-  type: 'image' | 'video' | 'audio' | 'document';
+  type: 'image' | 'video' | 'audio';
   size_bytes: number;
   tags: string[];
   suggested_price_cents: number;
@@ -35,6 +35,9 @@ interface MediaItem {
   creator_id: string;
   created_at: string;
   updated_at: string;
+  tiny_placeholder?: string;
+  width?: number;
+  height?: number;
 }
 
 interface Collection {
@@ -185,80 +188,24 @@ const ContentLibrary = () => {
   // Separate refetch function that can be called from anywhere
   const refetchContent = async () => {
     try {
-      let query = supabase.from('content_files').select('*').eq('is_active', true);
-
-      // Apply type filter  
-      if (selectedFilter !== 'all') {
-        query = query.eq('content_type', selectedFilter as 'image' | 'video' | 'audio' | 'document');
-      }
-
-      // For custom collections, we need to fetch via collection_items
-      if (selectedCategory !== 'all-files' && selectedCategory.startsWith('custom-')) {
-        const collectionId = selectedCategory.replace('custom-', '');
-        const { data: collectionItems, error: collectionError } = await supabase
-          .from('collection_items')
-          .select(`
-            media_id,
-            content_files:media_id (*)
-          `)
-          .eq('collection_id', collectionId);
-
-        if (collectionError) {
-          console.error('Error fetching collection items:', collectionError);
-          setContent([]);
-          return;
-        }
-
-        const mediaItems = collectionItems?.map(item => {
-          const file = item.content_files;
-          return file ? {
-            id: file.id,
-            title: file.title,
-            type: file.type as 'image' | 'video' | 'audio' | 'document',
-            origin: 'upload' as const,
-            storage_path: file.storage_path,
-            created_at: file.created_at,
-            updated_at: file.updated_at,
-            size_bytes: file.size_bytes || 0,
-            suggested_price_cents: file.suggested_price_cents || 0,
-            tags: file.tags || [],
-            notes: file.notes || null,
-            mime: file.mime || '',
-            creator_id: file.creator_id
-          } : null;
-        }).filter(Boolean) as MediaItem[] || [];
-        setContent(mediaItems);
-        return;
-      }
-
-      // Fetch from content_files table (this is where uploads go) with DISTINCT to prevent duplicates
-      const { data: contentResults, error: contentError } = await supabase
-        .from('content_files')
-        .select('id, title, content_type, file_path, file_size, mime_type, base_price, tags, description, creator_id, created_at, updated_at, is_active')
-        .eq('is_active', true)
-        .not('content_type', 'is', null)
-        .not('file_path', 'is', null)
-        .not('file_path', 'eq', '')
-        .gt('file_size', 0)
+      // Fetch from new media table for optimized loading
+      const { data: mediaResults, error: mediaError } = await supabase
+        .from('media')
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (contentError) {
-        console.error('Error fetching from content_files table:', contentError);
+      if (mediaError) {
+        console.error('Error fetching from media table:', mediaError);
         setContent([]);
         return;
       }
 
-      let mediaData = contentResults || [];
-
-      // Remove duplicates based on id (just in case)
-      let uniqueMediaData = mediaData.filter((item, index, self) => 
-        index === self.findIndex((t) => t.id === item.id)
-      );
+      let mediaData = mediaResults || [];
 
       // Apply search filter
-      if (searchQuery && uniqueMediaData.length > 0) {
+      if (searchQuery && mediaData.length > 0) {
         const searchTerms = searchQuery.trim().split(/\s+/).map(term => term.toLowerCase());
-        uniqueMediaData = uniqueMediaData.filter(item => {
+        mediaData = mediaData.filter(item => {
           const searchableText = [
             item.title || '',
             ...(item.tags || [])
@@ -267,41 +214,44 @@ const ContentLibrary = () => {
         });
       }
 
-      // Apply type filter for content_files table
-      if (selectedFilter !== 'all' && uniqueMediaData.length > 0) {
-        uniqueMediaData = uniqueMediaData.filter(item => item.content_type === selectedFilter);
+      // Apply type filter
+      if (selectedFilter !== 'all' && mediaData.length > 0) {
+        mediaData = mediaData.filter(item => item.type === selectedFilter);
       }
 
       // Apply sorting
-      if (uniqueMediaData.length > 0) {
+      if (mediaData.length > 0) {
         if (sortBy === 'newest') {
-          uniqueMediaData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          mediaData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         } else if (sortBy === 'oldest') {
-          uniqueMediaData.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+          mediaData.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
         } else if (sortBy === 'price_high') {
-          uniqueMediaData.sort((a, b) => (b.base_price || 0) - (a.base_price || 0));
+          mediaData.sort((a, b) => (b.suggested_price_cents || 0) - (a.suggested_price_cents || 0));
         } else if (sortBy === 'price_low') {
-          uniqueMediaData.sort((a, b) => (a.base_price || 0) - (b.base_price || 0));
+          mediaData.sort((a, b) => (a.suggested_price_cents || 0) - (b.suggested_price_cents || 0));
         }
       }
 
-      // Convert to MediaItem format and filter out any remaining corrupted items
-      const validMediaItems = uniqueMediaData
-        .filter(item => item.content_type && item.file_path && item.file_size > 0)
+      // Convert to MediaItem format
+      const validMediaItems = mediaData
+        .filter(item => item.type && item.path && item.size_bytes > 0)
         .map(item => ({
           id: item.id,
           title: item.title || 'Untitled',
-          type: item.content_type as 'image' | 'video' | 'audio' | 'document',
+          type: item.type as 'image' | 'video' | 'audio',
           origin: 'upload' as const,
-          storage_path: item.file_path,
+          storage_path: item.path,
           created_at: item.created_at,
           updated_at: item.updated_at,
-          size_bytes: item.file_size || 0,
-          suggested_price_cents: (item.base_price || 0) * 100, // Convert to cents
+          size_bytes: item.size_bytes || 0,
+          suggested_price_cents: item.suggested_price_cents || 0,
           tags: item.tags || [],
-          notes: item.description || null,
-          mime: item.mime_type || '',
-          creator_id: item.creator_id
+          notes: item.notes || null,
+          mime: item.mime || '',
+          creator_id: item.creator_id,
+          tiny_placeholder: item.tiny_placeholder,
+          width: item.width,
+          height: item.height
         }));
 
       setContent(validMediaItems);
@@ -902,8 +852,7 @@ const ContentLibrary = () => {
                     { id: 'all', label: 'All' },
                     { id: 'image', label: 'Photo' },
                     { id: 'video', label: 'Video' },
-                    { id: 'audio', label: 'Audio' },
-                    { id: 'document', label: 'Documents' }
+                    { id: 'audio', label: 'Audio' }
                   ].map((filter) => (
                     <Button
                       key={filter.id}
@@ -1003,7 +952,10 @@ const ContentLibrary = () => {
                           item={{
                             type: item.type,
                             storage_path: item.storage_path,
-                            title: item.title
+                            title: item.title,
+                            tiny_placeholder: item.tiny_placeholder,
+                            width: item.width,
+                            height: item.height
                           }}
                         />
                         

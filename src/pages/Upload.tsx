@@ -66,7 +66,7 @@ const Upload = () => {
             {t('upload.title', 'Upload Content')}
           </h1>
           <p className="text-muted-foreground mt-2">
-            Upload photos, videos, audio files, and documents to your content library
+            📸 Photos: JPG, PNG, WEBP, GIF (max 50MB) • 🎥 Videos: MP4, MOV, WEBM, AVI, MKV (max 10GB) • 🎵 Audio: MP3, WAV, AAC, OGG (max 10MB)
           </p>
         </div>
 
