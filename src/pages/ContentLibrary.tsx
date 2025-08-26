@@ -1234,10 +1234,10 @@ const ContentLibrary = () => {
                   <p className="text-muted-foreground">No content found</p>
                 </div>
               ) : (
-                <div 
-                  ref={gridContainerRef}
-                  className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1"
-                >
+                 <div 
+                   ref={gridContainerRef}
+                   className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1 select-none"
+                 >
                   {content.map((item, index) => (
                     <Card 
                       key={item.id}
