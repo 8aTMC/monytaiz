@@ -149,6 +149,15 @@ export const MediaPreviewDialog = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const capitalizeFirstLetter = (str: string): string => {
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  };
+
+  const truncateFileName = (name: string, maxLength: number = 30): string => {
+    if (name.length <= maxLength) return name;
+    return name.substring(0, maxLength) + '...';
+  };
+
   if (!item) return null;
 
   const typeValue = getItemType(item);
@@ -172,18 +181,16 @@ export const MediaPreviewDialog = ({
         />
         <div className={`fixed left-[50%] top-[50%] z-[210] grid w-full ${getModalSize()} max-h-[90vh] translate-x-[-50%] translate-y-[-50%] gap-4 border-0 bg-background/95 backdrop-blur-sm p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg overflow-hidden`}>
           <DialogHeader>
-            <div className="flex items-center justify-between">
-              <DialogTitle className="flex items-center gap-2">
-                {getContentTypeIcon(typeValue)}
-                {item.title || 'Untitled'}
-              </DialogTitle>
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">{typeValue}</Badge>
+            <DialogTitle className="flex items-center gap-2">
+              {getContentTypeIcon(typeValue)}
+              {truncateFileName(item.title || "Untitled")}
+              <div className="flex items-center gap-2 ml-2">
+                <Badge variant="secondary">{capitalizeFirstLetter(typeValue)}</Badge>
                 {itemSize > 0 && (
                   <Badge variant="outline">{formatFileSize(itemSize)}</Badge>
                 )}
               </div>
-            </div>
+            </DialogTitle>
           </DialogHeader>
 
           <div className="flex-1 overflow-hidden">
