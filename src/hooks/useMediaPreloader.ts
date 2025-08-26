@@ -36,21 +36,22 @@ export const useMediaPreloader = (
     }
 
     isPreloadingRef.current = true;
-    const batch = preloadQueueRef.current.splice(0, 5); // Process 5 at a time
+    const batch = preloadQueueRef.current.splice(0, 2); // Reduced to 2 at a time
 
     try {
-      // Preload batch with different transforms for optimal caching
-      await Promise.allSettled(
-        batch.map(async (item) => {
-          // Preload thumbnail size for grid view
-          await getSecureUrl(item.storage_path, { width: 300, height: 300, quality: 80 });
+      // Process items sequentially instead of in parallel to avoid overwhelming the server
+      for (const item of batch) {
+        try {
+          // Only preload thumbnail size to reduce server load
+          await getSecureUrl(item.storage_path, { width: 300, height: 300, quality: 70 });
           
-          // For images, also preload a medium size for quick preview
-          if (item.type === 'image') {
-            await getSecureUrl(item.storage_path, { width: 800, height: 800, quality: 85 });
-          }
-        })
-      );
+          // Add delay between each request
+          await new Promise(resolve => setTimeout(resolve, 200));
+        } catch (error) {
+          console.error('Error preloading single item:', error);
+          // Continue with next item even if one fails
+        }
+      }
     } catch (error) {
       console.error('Error preloading media batch:', error);
     } finally {
@@ -80,7 +81,18 @@ export const useMediaPreloader = (
 
     const initialBatch = items.slice(0, Math.min(initialBatchSize, items.length));
     preloadedIndexRef.current = initialBatch.length;
-    queuePreload(initialBatch);
+    
+    // Add items to queue gradually instead of all at once
+    const addGradually = (batch: MediaItem[], index = 0) => {
+      if (index >= batch.length) return;
+      
+      queuePreload([batch[index]]);
+      
+      // Add next item after a delay
+      setTimeout(() => addGradually(batch, index + 1), 300);
+    };
+    
+    addGradually(initialBatch);
   }, [items, initialBatchSize, queuePreload]);
 
   // Preload more items based on scroll position

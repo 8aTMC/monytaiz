@@ -91,11 +91,11 @@ const ContentLibrary = () => {
   // User roles state
   const [userRoles, setUserRoles] = useState<string[]>([]);
   
-  // Preloader functionality
+  // Preloader functionality with reduced batch sizes
   const { preloadMore } = useMediaPreloader(content, {
-    initialBatchSize: 50,
-    scrollBatchSize: 20,
-    preloadDelay: 150
+    initialBatchSize: 10, // Reduced from 50
+    scrollBatchSize: 5,   // Reduced from 20
+    preloadDelay: 500     // Increased delay
   });
 
   // Intersection observer for scroll-based preloading
@@ -491,7 +491,7 @@ const ContentLibrary = () => {
     }
   }, [customFolders.length]);
 
-  // Set up intersection observer for preloading
+  // Set up intersection observer for preloading with throttling
   useEffect(() => {
     if (!gridContainerRef.current || content.length === 0) return;
 
@@ -500,19 +500,26 @@ const ContentLibrary = () => {
       preloadObserverRef.current.disconnect();
     }
 
-    // Create new observer
+    let lastTriggerTime = 0;
+    const throttleDelay = 1000; // 1 second throttle
+
+    // Create new observer with throttling
     preloadObserverRef.current = new IntersectionObserver(
       (entries) => {
+        const now = Date.now();
+        if (now - lastTriggerTime < throttleDelay) return;
+        
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const index = parseInt(entry.target.getAttribute('data-index') || '0');
             preloadMore(index);
+            lastTriggerTime = now;
           }
         });
       },
       {
         root: null,
-        rootMargin: '300px', // Start preloading 300px before item comes into view
+        rootMargin: '500px', // Reduced from 300px to load later
         threshold: 0
       }
     );
