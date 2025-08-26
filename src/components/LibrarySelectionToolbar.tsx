@@ -57,7 +57,7 @@ export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = (
 
   return (
     <>
-      <div className="flex items-center justify-between p-4 border-b bg-card">
+      <div className="flex items-center justify-between px-4 py-2 border-b bg-card">
         <div className="flex items-center gap-2">
           <Button
             variant={selecting ? "secondary" : "outline"}
@@ -90,25 +90,29 @@ export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = (
             </Button>
           )}
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCopy}
-            disabled={!selecting || !hasSelection || disabled}
-          >
-            <Copy className="h-4 w-4 mr-2" />
-            Copy
-          </Button>
+          {selecting && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopy}
+                disabled={!hasSelection || disabled}
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Copy
+              </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDelete}
-            disabled={!selecting || !hasSelection || disabled}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete
-          </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDelete}
+                disabled={!hasSelection || disabled}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </>
+          )}
         </div>
 
         {selecting && (
