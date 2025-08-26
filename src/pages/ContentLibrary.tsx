@@ -579,13 +579,22 @@ const ContentLibrary = () => {
   };
 
   // Selection handlers
-  const handleToggleSelect = () => {
-    if (selecting) {
-      setSelecting(false);
-      setSelectedItems(new Set());
+  const handleToggleItem = (itemId: string) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(itemId)) {
+      newSelected.delete(itemId);
+      // If no items are selected after removal, exit selection mode
+      if (newSelected.size === 0) {
+        setSelecting(false);
+      }
     } else {
-      setSelecting(true);
+      newSelected.add(itemId);
+      // Enter selection mode when first item is selected
+      if (!selecting) {
+        setSelecting(true);
+      }
     }
+    setSelectedItems(newSelected);
   };
 
   const handleClearSelection = () => {
@@ -596,16 +605,6 @@ const ContentLibrary = () => {
   const handleSelectAll = () => {
     const allItemIds = new Set(content.map(item => item.id));
     setSelectedItems(allItemIds);
-  };
-
-  const handleToggleItem = (itemId: string) => {
-    const newSelected = new Set(selectedItems);
-    if (newSelected.has(itemId)) {
-      newSelected.delete(itemId);
-    } else {
-      newSelected.add(itemId);
-    }
-    setSelectedItems(newSelected);
   };
 
   const handleCopy = async (collectionIds: string[]) => {
@@ -1101,21 +1100,21 @@ const ContentLibrary = () => {
               </div>
             </div>
 
-            {/* Selection Toolbar */}
-            <LibrarySelectionToolbar
-              selecting={selecting}
-              selectedCount={selectedItems.size}
-              totalCount={content.length}
-              currentView={defaultCategories.find(c => c.id === selectedCategory)?.label || 
-                customFolders.find(c => c.id === selectedCategory)?.label || 'Library'}
-              isCustomFolder={isCustomFolder}
-              onToggleSelect={handleToggleSelect}
-              onClearSelection={handleClearSelection}
-              onSelectAll={handleSelectAll}
-              onCopy={handleCopy}
-              onDelete={handleDelete}
-              disabled={operationLoading || loadingContent}
-            />
+            {/* Selection Toolbar - only show when selecting */}
+            {selecting && (
+              <LibrarySelectionToolbar
+                selectedCount={selectedItems.size}
+                totalCount={content.length}
+                currentView={defaultCategories.find(c => c.id === selectedCategory)?.label || 
+                  customFolders.find(c => c.id === selectedCategory)?.label || 'Library'}
+                isCustomFolder={isCustomFolder}
+                onClearSelection={handleClearSelection}
+                onSelectAll={handleSelectAll}
+                onCopy={handleCopy}
+                onDelete={handleDelete}
+                disabled={operationLoading || loadingContent}
+              />
+            )}
 
             {/* Content Grid */}
             <div className="flex-1 overflow-y-auto">

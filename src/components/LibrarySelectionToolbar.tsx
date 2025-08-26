@@ -5,12 +5,10 @@ import { CopyToCollectionDialog } from './CopyToCollectionDialog'
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog'
 
 interface LibrarySelectionToolbarProps {
-  selecting: boolean
   selectedCount: number
   totalCount: number
   currentView: string
   isCustomFolder: boolean
-  onToggleSelect: () => void
   onClearSelection: () => void
   onSelectAll: () => void
   onCopy: (collectionIds: string[]) => void
@@ -19,12 +17,10 @@ interface LibrarySelectionToolbarProps {
 }
 
 export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = ({
-  selecting,
   selectedCount,
   totalCount,
   currentView,
   isCustomFolder,
-  onToggleSelect,
   onClearSelection,
   onSelectAll,
   onCopy,
@@ -60,66 +56,49 @@ export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = (
       <div className="flex items-center justify-between px-4 py-2 border-b bg-card">
         <div className="flex items-center gap-2">
           <Button
-            variant={selecting ? "secondary" : "outline"}
+            variant="secondary"
             size="sm"
-            onClick={selecting ? onClearSelection : onToggleSelect}
+            onClick={onClearSelection}
             disabled={disabled}
           >
-            {selecting ? (
-              <>
-                <X className="h-4 w-4 mr-2" />
-                Cancel
-              </>
-            ) : (
-              <>
-                <Check className="h-4 w-4 mr-2" />
-                Select
-              </>
-            )}
+            <X className="h-4 w-4 mr-2" />
+            Cancel
           </Button>
 
-          {selecting && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={allSelected ? onClearSelection : onSelectAll}
-              disabled={disabled || totalCount === 0}
-            >
-              <Check className="h-4 w-4 mr-2" />
-              {allSelected ? "Deselect All" : "Select All"}
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={allSelected ? onClearSelection : onSelectAll}
+            disabled={disabled || totalCount === 0}
+          >
+            <Check className="h-4 w-4 mr-2" />
+            {allSelected ? "Deselect All" : "Select All"}
+          </Button>
 
-          {selecting && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCopy}
-                disabled={!hasSelection || disabled}
-              >
-                <Copy className="h-4 w-4 mr-2" />
-                Copy
-              </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCopy}
+            disabled={!hasSelection || disabled}
+          >
+            <Copy className="h-4 w-4 mr-2" />
+            Copy
+          </Button>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDelete}
-                disabled={!hasSelection || disabled}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDelete}
+            disabled={!hasSelection || disabled}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </Button>
         </div>
 
-        {selecting && (
-          <div className="text-sm text-muted-foreground">
-            {selectedCount} selected
-          </div>
-        )}
+        <div className="text-sm text-muted-foreground">
+          {selectedCount} selected
+        </div>
       </div>
 
       <CopyToCollectionDialog
