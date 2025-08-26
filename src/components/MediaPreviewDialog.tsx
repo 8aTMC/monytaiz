@@ -9,10 +9,14 @@ import { useSidebar } from '@/components/Navigation';
 interface MediaItem {
   id: string;
   title: string | null;
-  type: any;
-  storage_path: string;
-  mime: string;
-  size_bytes: number;
+  type?: any;
+  content_type?: string;
+  storage_path?: string;
+  file_path?: string;
+  mime?: string;
+  mime_type?: string;
+  size_bytes?: number;
+  file_size?: number;
   tiny_placeholder?: string;
   width?: number;
   height?: number;
@@ -52,6 +56,19 @@ export const MediaPreviewDialog = ({
     return null;
   };
 
+  // Helper functions to handle both data formats
+  const getItemType = (item: MediaItem): string => {
+    return getTypeValue(item.type) || item.content_type || 'unknown';
+  };
+
+  const getItemStoragePath = (item: MediaItem): string | null => {
+    return getStoragePath(item.storage_path) || getStoragePath(item.file_path);
+  };
+
+  const getItemSize = (item: MediaItem): number => {
+    return item.size_bytes || item.file_size || 0;
+  };
+
   const getContentTypeIcon = (type: string) => {
     switch (type) {
       case 'image': return <Image className="h-8 w-8" />;
@@ -68,7 +85,7 @@ export const MediaPreviewDialog = ({
         return;
       }
 
-      const storagePath = getStoragePath(item.storage_path);
+      const storagePath = getItemStoragePath(item);
       
       if (!storagePath) {
         setError('No storage path available');
@@ -80,7 +97,7 @@ export const MediaPreviewDialog = ({
       setError(null);
 
       try {
-        const typeValue = getTypeValue(item.type);
+        const typeValue = getItemType(item);
         
         // For images, create both thumbnail and full quality URLs for faster loading
         if (typeValue === 'image') {
@@ -145,7 +162,8 @@ export const MediaPreviewDialog = ({
 
   if (!item) return null;
 
-  const typeValue = getTypeValue(item.type);
+  const typeValue = getItemType(item);
+  const itemSize = getItemSize(item);
 
   // Dynamic sizing based on sidebar state
   const getModalSize = () => {
@@ -172,8 +190,8 @@ export const MediaPreviewDialog = ({
               </DialogTitle>
               <div className="flex items-center gap-2">
                 <Badge variant="secondary">{typeValue}</Badge>
-                {item.size_bytes > 0 && (
-                  <Badge variant="outline">{formatFileSize(item.size_bytes)}</Badge>
+                {itemSize > 0 && (
+                  <Badge variant="outline">{formatFileSize(itemSize)}</Badge>
                 )}
               </div>
             </div>
@@ -194,10 +212,10 @@ export const MediaPreviewDialog = ({
                   </p>
                   <div className="text-xs text-muted-foreground/70 space-y-1 max-w-md">
                     <p><strong>Debug Info:</strong></p>
-                    <p>Type: {getTypeValue(item.type)}</p>
-                    <p>Storage path: {getStoragePath(item.storage_path) || 'Missing/Invalid'}</p>
-                    <p>Size: {item.size_bytes} bytes</p>
-                    <p>MIME: {item.mime || 'Not specified'}</p>
+                    <p>Type: {getItemType(item)}</p>
+                    <p>Storage path: {getItemStoragePath(item) || 'Missing/Invalid'}</p>
+                    <p>Size: {itemSize} bytes</p>
+                    <p>MIME: {item.mime || item.mime_type || 'Not specified'}</p>
                   </div>
                 </div>
               )}
@@ -218,7 +236,7 @@ export const MediaPreviewDialog = ({
                         
                         {/* High quality preview using transforms */}
                         <img 
-                          src={`https://alzyzfjzwvofmjccirjq.supabase.co/storage/v1/object/public/content/${getStoragePath(item.storage_path)}?width=1280&height=720&resize=contain&quality=80&format=webp`}
+                          src={`https://alzyzfjzwvofmjccirjq.supabase.co/storage/v1/object/public/content/${getItemStoragePath(item)}?width=1280&height=720&resize=contain&quality=80&format=webp`}
                           alt={item.title || 'Preview'} 
                           onLoad={() => setFullImageLoaded(true)}
                           className={`max-w-full max-h-full w-auto h-auto object-contain rounded transition-all duration-500 ${

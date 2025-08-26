@@ -4,8 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface MediaThumbnailProps {
   item: {
-    type: string;
-    storage_path: string;
+    type?: string;
+    content_type?: string;
+    storage_path?: string;
+    file_path?: string;
     title: string | null;
     tiny_placeholder?: string;
     width?: number;
@@ -20,6 +22,12 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
   const [imageLoaded, setImageLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
 
+  // Helper to get type from either format
+  const getItemType = () => item.type || item.content_type || 'unknown';
+  
+  // Helper to get storage path from either format
+  const getStoragePath = () => item.storage_path || item.file_path || '';
+
   const getContentTypeIcon = (type: string) => {
     switch (type) {
       case 'image': return <Image className="h-8 w-8" />;
@@ -29,14 +37,17 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
     }
   };
 
+  const itemType = getItemType();
+  const storagePath = getStoragePath();
+
   // For non-image types, show icon
-  if (item.type !== 'image') {
+  if (itemType !== 'image') {
     return (
       <div className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}>
         <div className="flex flex-col items-center gap-2">
-          {getContentTypeIcon(item.type)}
+          {getContentTypeIcon(itemType)}
           <span className="text-xs text-muted-foreground capitalize">
-            {item.type}
+            {itemType}
           </span>
         </div>
       </div>
@@ -44,7 +55,7 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
   }
 
   // Build transform URL for fast CDN-cached thumbnail
-  const baseUrl = `${SUPABASE_URL}/storage/v1/object/public/content/${item.storage_path}`;
+  const baseUrl = `${SUPABASE_URL}/storage/v1/object/public/content/${storagePath}`;
   const thumbUrl = `${baseUrl}?width=256&height=256&resize=cover&quality=70&format=webp`;
 
   // Calculate aspect ratio for layout stability
