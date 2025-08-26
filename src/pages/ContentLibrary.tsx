@@ -1130,12 +1130,14 @@ const ContentLibrary = () => {
                   <p className="text-muted-foreground">No content found</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-0.5">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1">
                   {content.map((item) => (
                     <Card 
                       key={item.id} 
-                      className={`bg-gradient-card border-border shadow-card hover:shadow-lg transition-all cursor-pointer relative ${
-                        selecting && selectedItems.has(item.id) ? 'ring-2 ring-primary' : ''
+                      className={`bg-gradient-card shadow-card hover:shadow-lg transition-all cursor-pointer relative overflow-hidden ${
+                        selectedItems.has(item.id) 
+                          ? 'border-2 border-primary' 
+                          : 'border border-border'
                       }`}
                       onClick={(event) => handleCardClick(item, event)}
                      >
