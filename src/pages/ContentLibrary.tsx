@@ -964,7 +964,7 @@ const ContentLibrary = () => {
                   <p className="text-muted-foreground">No content found</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-0.5">
                   {content.map((item) => (
                     <Card 
                       key={item.id} 
