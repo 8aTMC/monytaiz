@@ -135,10 +135,9 @@ export const MediaPreviewDialog = ({
         setSecureUrl(null);
         setFullImageLoaded(false);
         
-        // Request optimized size for preview - much faster loading
+        // Request optimized image with quality compression only
         const transforms = {
-          width: 1200,  // Max width for preview, height will scale proportionally
-          quality: 85   // Good quality but compressed
+          quality: 85   // Good quality but compressed, maintain original aspect ratio
         };
         
         console.log('Loading preview image with transforms:', transforms);
@@ -209,8 +208,8 @@ export const MediaPreviewDialog = ({
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 overflow-hidden">
-            <div className="flex items-center justify-center h-full max-h-[70vh] bg-muted/20 rounded-lg">
+          <div className="flex-1">
+            <div className="flex items-center justify-center w-full bg-muted/20 rounded-lg overflow-hidden">
               {/* Error handling */}
               {!getItemStoragePath(item) && (
                 <div className="flex flex-col items-center justify-center h-64 text-center">
@@ -231,13 +230,13 @@ export const MediaPreviewDialog = ({
                   )}
 
                   {typeValue === 'image' && (
-                    <div className="relative flex items-center justify-center w-full h-full">
+                    <div className="relative w-full">
                       {/* Show tiny placeholder first for instant loading */}
                       {item.tiny_placeholder && !fullImageLoaded && !loading && (
                         <img 
                           src={item.tiny_placeholder} 
                           alt=""
-                          className="max-w-full max-h-full w-auto h-auto object-contain rounded blur-sm opacity-60"
+                          className="w-full h-auto object-contain rounded blur-sm opacity-60"
                         />
                       )}
                       
@@ -250,7 +249,7 @@ export const MediaPreviewDialog = ({
                           onError={(e) => {
                             console.error('Failed to load secure image:', e);
                           }}
-                          className={`max-w-full max-h-full w-auto h-auto object-contain rounded transition-opacity duration-300 ${
+                          className={`w-full h-auto object-contain rounded transition-opacity duration-300 ${
                             fullImageLoaded ? 'opacity-100' : 'opacity-0'
                           } ${!fullImageLoaded && item.tiny_placeholder ? 'absolute inset-0' : ''}`}
                         />
@@ -262,7 +261,7 @@ export const MediaPreviewDialog = ({
                     <video 
                       src={secureUrl}
                       controls 
-                      className="max-w-full max-h-full w-auto h-auto object-contain rounded"
+                      className="w-full h-auto object-contain rounded"
                       preload="metadata"
                       onError={(e) => {
                         console.error('Failed to load secure video:', e);
