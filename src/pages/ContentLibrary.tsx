@@ -896,8 +896,8 @@ const ContentLibrary = () => {
     const currentTime = Date.now();
     const timeDiff = currentTime - lastClickTime;
 
-    // Handle shift+click for range selection
-    if (event.shiftKey && selecting && lastSelectedIndex >= 0) {
+    // Handle shift+click or alt+click for range selection
+    if ((event.shiftKey || event.altKey) && selecting && lastSelectedIndex >= 0) {
       event.preventDefault();
       handleRangeSelection(lastSelectedIndex, itemIndex);
       return;
@@ -940,8 +940,8 @@ const ContentLibrary = () => {
   };
 
   const handleCheckboxClick = (itemId: string, itemIndex: number, event?: React.MouseEvent) => {
-    // Handle alt+click for range selection on checkboxes
-    if (event?.altKey && selecting && lastSelectedIndex >= 0) {
+    // Handle shift+click or alt+click for range selection on checkboxes
+    if ((event?.shiftKey || event?.altKey) && selecting && lastSelectedIndex >= 0) {
       event.preventDefault();
       handleRangeSelection(lastSelectedIndex, itemIndex);
       return;
