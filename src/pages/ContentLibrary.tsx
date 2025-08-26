@@ -230,23 +230,23 @@ const ContentLibrary = () => {
         return;
       }
 
-      // Try media table first, then fallback to content_files
-      let mediaData: any[] = [];
-      
-      // Fetch from media table with corruption filtering
-      const { data: mediaResults, error: mediaError } = await supabase
-        .from('media')
+      // Fetch from content_files table (this is where uploads go)
+      const { data: contentResults, error: contentError } = await supabase
+        .from('content_files')
         .select('*')
-        .not('type', 'is', null)
-        .not('storage_path', 'is', null)
-        .not('storage_path', 'eq', '')
-        .gt('size_bytes', 0);
+        .eq('is_active', true)
+        .not('content_type', 'is', null)
+        .not('file_path', 'is', null)
+        .not('file_path', 'eq', '')
+        .gt('file_size', 0);
 
-      if (mediaError) {
-        console.error('Error fetching from media table:', mediaError);
-      } else if (mediaResults) {
-        mediaData = mediaResults;
+      if (contentError) {
+        console.error('Error fetching from content_files table:', contentError);
+        setContent([]);
+        return;
       }
+
+      let mediaData = contentResults || [];
 
       // Apply search filter
       if (searchQuery && mediaData.length > 0) {
@@ -260,9 +260,9 @@ const ContentLibrary = () => {
         });
       }
 
-      // Apply type filter for media table
+      // Apply type filter for content_files table
       if (selectedFilter !== 'all' && mediaData.length > 0) {
-        mediaData = mediaData.filter(item => item.type === selectedFilter);
+        mediaData = mediaData.filter(item => item.content_type === selectedFilter);
       }
 
       // Apply sorting
@@ -272,28 +272,28 @@ const ContentLibrary = () => {
         } else if (sortBy === 'oldest') {
           mediaData.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
         } else if (sortBy === 'price_high') {
-          mediaData.sort((a, b) => (b.suggested_price_cents || 0) - (a.suggested_price_cents || 0));
+          mediaData.sort((a, b) => (b.base_price || 0) - (a.base_price || 0));
         } else if (sortBy === 'price_low') {
-          mediaData.sort((a, b) => (a.suggested_price_cents || 0) - (b.suggested_price_cents || 0));
+          mediaData.sort((a, b) => (a.base_price || 0) - (b.base_price || 0));
         }
       }
 
       // Convert to MediaItem format and filter out any remaining corrupted items
       const validMediaItems = mediaData
-        .filter(item => item.type && item.storage_path && item.size_bytes > 0)
+        .filter(item => item.content_type && item.file_path && item.file_size > 0)
         .map(item => ({
           id: item.id,
           title: item.title || 'Untitled',
-          type: item.type as 'image' | 'video' | 'audio' | 'document',
+          type: item.content_type as 'image' | 'video' | 'audio' | 'document',
           origin: 'upload' as const,
-          storage_path: item.storage_path,
+          storage_path: item.file_path,
           created_at: item.created_at,
           updated_at: item.updated_at,
-          size_bytes: item.size_bytes || 0,
-          suggested_price_cents: item.suggested_price_cents || 0,
+          size_bytes: item.file_size || 0,
+          suggested_price_cents: (item.base_price || 0) * 100, // Convert to cents
           tags: item.tags || [],
-          notes: item.notes || null,
-          mime: item.mime || '',
+          notes: item.description || null,
+          mime: item.mime_type || '',
           creator_id: item.creator_id
         }));
 
