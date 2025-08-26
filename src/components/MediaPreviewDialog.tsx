@@ -122,10 +122,10 @@ export const MediaPreviewDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {/* Darkened background overlay */}
+      {/* Semi-transparent dark overlay covering everything including menu */}
       {open && (
         <div 
-          className="fixed inset-0 bg-black/80 z-[59]" 
+          className="fixed inset-0 bg-black/60 z-[59]" 
           onClick={() => onOpenChange(false)}
         />
       )}
