@@ -6,27 +6,24 @@ import { Image, Video, FileAudio, FileText, X, ChevronLeft, ChevronRight, Check 
 import { useSidebar } from '@/components/Navigation';
 import { useSecureMedia } from '@/hooks/useSecureMedia';
 
+// Use the MediaItem interface from ContentLibrary
 interface MediaItem {
   id: string;
   title: string | null;
-  type?: any;
-  content_type?: string;
-  storage_path?: string;
-  file_path?: string;
-  mime?: string;
-  mime_type?: string;
-  size_bytes?: number;
-  file_size?: number;
-  tiny_placeholder?: string;
-  width?: number;
-  height?: number;
   origin: 'upload' | 'story' | 'livestream' | 'message';
+  storage_path: string;
+  mime: string;
+  type: 'image' | 'video' | 'audio';
+  size_bytes: number;
   tags: string[];
   suggested_price_cents: number;
   notes: string | null;
   creator_id: string;
   created_at: string;
   updated_at: string;
+  tiny_placeholder?: string;
+  width?: number;
+  height?: number;
 }
 
 interface MediaPreviewDialogProps {
@@ -98,17 +95,17 @@ export const MediaPreviewDialog = ({
     return null;
   };
 
-  // Helper functions to handle both data formats
+  // Helper functions to handle data
   const getItemType = (item: MediaItem): string => {
-    return getTypeValue(item.type) || item.content_type || 'unknown';
+    return item.type || 'unknown';
   };
 
   const getItemStoragePath = (item: MediaItem): string | null => {
-    return getStoragePath(item.storage_path) || getStoragePath(item.file_path);
+    return getStoragePath(item.storage_path);
   };
 
   const getItemSize = (item: MediaItem): number => {
-    return item.size_bytes || item.file_size || 0;
+    return item.size_bytes || 0;
   };
 
   const getContentTypeIcon = (type: string) => {

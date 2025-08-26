@@ -107,6 +107,10 @@ const ContentLibrary = () => {
   // Store counts for all categories
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   
+  // Click handling state for single/double click detection
+  const [lastClickTime, setLastClickTime] = useState<number>(0);
+  const [clickTimeout, setClickTimeout] = useState<NodeJS.Timeout | null>(null);
+  
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const { isCollapsed, isNarrowScreen } = useSidebar();
@@ -810,9 +814,6 @@ const ContentLibrary = () => {
       });
     }
   };
-
-  const [lastClickTime, setLastClickTime] = useState<number>(0);
-  const [clickTimeout, setClickTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const handleCardClick = (item: MediaItem, event: React.MouseEvent) => {
     const currentTime = Date.now();
