@@ -676,55 +676,70 @@ export type Database = {
       }
       media: {
         Row: {
+          bucket: string
           created_at: string | null
           created_by: string
           creator_id: string
+          height: number | null
           id: string
           mime: string
           notes: string | null
           origin: string
+          path: string | null
           sha256: string | null
           size_bytes: number
           storage_path: string
           suggested_price_cents: number | null
           tags: string[] | null
+          tiny_placeholder: string | null
           title: string | null
           type: string
           updated_at: string | null
+          width: number | null
         }
         Insert: {
+          bucket: string
           created_at?: string | null
           created_by: string
           creator_id: string
+          height?: number | null
           id?: string
           mime: string
           notes?: string | null
           origin: string
+          path?: string | null
           sha256?: string | null
           size_bytes: number
           storage_path: string
           suggested_price_cents?: number | null
           tags?: string[] | null
+          tiny_placeholder?: string | null
           title?: string | null
           type: string
           updated_at?: string | null
+          width?: number | null
         }
         Update: {
+          bucket?: string
           created_at?: string | null
           created_by?: string
           creator_id?: string
+          height?: number | null
           id?: string
           mime?: string
           notes?: string | null
           origin?: string
+          path?: string | null
           sha256?: string | null
           size_bytes?: number
           storage_path?: string
           suggested_price_cents?: number | null
           tags?: string[] | null
+          tiny_placeholder?: string | null
           title?: string | null
           type?: string
           updated_at?: string | null
+          width?: number | null
         }
         Relationships: []
       }

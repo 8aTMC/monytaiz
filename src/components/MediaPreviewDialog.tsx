@@ -13,6 +13,9 @@ interface MediaItem {
   storage_path: string;
   mime: string;
   size_bytes: number;
+  tiny_placeholder?: string;
+  width?: number;
+  height?: number;
 }
 
 interface MediaPreviewDialogProps {
@@ -201,35 +204,35 @@ export const MediaPreviewDialog = ({
 
               {!loading && !error && (mediaUrl || thumbnailUrl) && (
                 <>
-                   {typeValue === 'image' && (
-                     <div className="relative flex items-center justify-center w-full h-full">
-                       {/* Show thumbnail first for fast loading */}
-                       {thumbnailUrl && !fullImageLoaded && (
-                         <img 
-                           src={thumbnailUrl} 
-                           alt={item.title || 'Preview'} 
-                           onLoad={() => setThumbnailLoaded(true)}
-                           className="max-w-full max-h-full w-auto h-auto object-contain rounded blur-sm opacity-70 transition-all duration-300"
-                         />
-                       )}
-                       
-                       {/* Full quality image */}
-                       <img 
-                         src={mediaUrl!} 
-                         alt={item.title || 'Preview'} 
-                         onLoad={() => setFullImageLoaded(true)}
-                         className={`max-w-full max-h-full w-auto h-auto object-contain rounded transition-all duration-500 ${
-                           fullImageLoaded ? 'opacity-100 blur-0' : 'opacity-0'
-                         } ${!fullImageLoaded && thumbnailUrl ? 'absolute inset-0' : ''}`}
-                       />
-                       
-                       {!thumbnailLoaded && !fullImageLoaded && (
-                         <div className="absolute inset-0 flex items-center justify-center">
-                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/50"></div>
-                         </div>
-                       )}
-                     </div>
-                   )}
+                    {typeValue === 'image' && (
+                      <div className="relative flex items-center justify-center w-full h-full">
+                      
+                        {/* Show tiny placeholder first for instant loading */}
+                        {item.tiny_placeholder && !fullImageLoaded && (
+                          <img 
+                            src={item.tiny_placeholder} 
+                            alt=""
+                            className="max-w-full max-h-full w-auto h-auto object-contain rounded blur-md opacity-70 transition-all duration-300"
+                          />
+                        )}
+                        
+                        {/* High quality preview using transforms */}
+                        <img 
+                          src={`https://alzyzfjzwvofmjccirjq.supabase.co/storage/v1/object/public/content/${getStoragePath(item.storage_path)}?width=1280&height=720&resize=contain&quality=80&format=webp`}
+                          alt={item.title || 'Preview'} 
+                          onLoad={() => setFullImageLoaded(true)}
+                          className={`max-w-full max-h-full w-auto h-auto object-contain rounded transition-all duration-500 ${
+                            fullImageLoaded ? 'opacity-100 blur-0' : 'opacity-0'
+                          } ${!fullImageLoaded && item.tiny_placeholder ? 'absolute inset-0' : ''}`}
+                        />
+                        
+                        {!fullImageLoaded && !item.tiny_placeholder && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/50"></div>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                   {typeValue === 'video' && (
                     <video 

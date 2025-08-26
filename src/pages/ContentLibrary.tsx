@@ -249,9 +249,9 @@ const ContentLibrary = () => {
           notes: item.notes || null,
           mime: item.mime || '',
           creator_id: item.creator_id,
-          tiny_placeholder: item.tiny_placeholder,
-          width: item.width,
-          height: item.height
+          tiny_placeholder: item.tiny_placeholder || undefined,
+          width: item.width || undefined,
+          height: item.height || undefined
         }));
 
       setContent(validMediaItems);
