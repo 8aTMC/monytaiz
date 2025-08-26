@@ -964,7 +964,7 @@ const ContentLibrary = () => {
                   <p className="text-muted-foreground">No content found</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
                   {content.map((item) => (
                     <Card 
                       key={item.id} 
@@ -985,7 +985,16 @@ const ContentLibrary = () => {
                         </div>
                       )}
 
-                      <CardContent className="p-0">
+                      <CardContent className="p-0 relative">
+                        {/* Date in top left corner */}
+                        <div className="absolute top-2 left-2 z-10 text-xs text-white bg-black/50 rounded px-1.5 py-0.5">
+                          {new Date(item.created_at).toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric', 
+                            year: 'numeric' 
+                          })}
+                        </div>
+
                         {/* Thumbnail */}
                         <MediaThumbnail 
                           item={{
@@ -998,34 +1007,10 @@ const ContentLibrary = () => {
                           }}
                         />
                         
-                        {/* Content Info */}
-                        <div className="p-3">
-                          <h3 className="font-medium text-foreground text-sm truncate mb-1">
-                            {item.title || 'Untitled'}
-                          </h3>
-                          {item.notes && (
-                            <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                              {item.notes}
-                            </p>
-                          )}
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-semibold text-primary">
-                              ${formatPrice(item.suggested_price_cents)}
-                            </span>
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Calendar className="h-3 w-3" />
-                              {new Date(item.created_at).toLocaleDateString()}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                            <span className="capitalize">{item.origin}</span>
-                            {item.tags.length > 0 && (
-                              <>
-                                <span>•</span>
-                                <span>{item.tags.slice(0, 2).join(', ')}</span>
-                                {item.tags.length > 2 && <span>+{item.tags.length - 2}</span>}
-                              </>
-                            )}
+                        {/* Categories at bottom */}
+                        <div className="absolute bottom-2 left-2 right-2 z-10">
+                          <div className="text-xs text-white bg-black/50 rounded px-1.5 py-0.5 truncate">
+                            {item.tags.length > 0 ? item.tags.join(', ') : item.origin}
                           </div>
                         </div>
                       </CardContent>

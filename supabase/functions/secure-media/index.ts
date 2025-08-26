@@ -75,8 +75,7 @@ serve(async (req) => {
         width: width ? parseInt(width) : undefined,
         height: height ? parseInt(height) : undefined,
         quality: parseInt(quality),
-        resize: 'cover',
-        format: 'webp'
+        resize: 'cover'
       }
     }
 
