@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Navigation, useSidebar } from '@/components/Navigation';
 import { User, Session } from '@supabase/supabase-js';
 import { useTranslation } from '@/hooks/useTranslation';
-import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,6 +18,7 @@ import { LibrarySelectionToolbar } from '@/components/LibrarySelectionToolbar';
 import { useMediaOperations } from '@/hooks/useMediaOperations';
 import { DeletionProgressDialog } from '@/components/DeletionProgressDialog';
 import { MediaPreviewDialog } from '@/components/MediaPreviewDialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface MediaItem {
   id: string;
