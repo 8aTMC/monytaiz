@@ -29,7 +29,7 @@ export const useSecureMedia = () => {
       return cached.url;
     }
 
-    console.log('Fetching secure URL for:', path, transforms);
+    console.log('Fetching secure URL for:', path, 'with transforms:', transforms);
     setLoading(true);
     try {
       // Build query parameters

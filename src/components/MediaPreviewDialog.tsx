@@ -135,7 +135,16 @@ export const MediaPreviewDialog = ({
         setSecureUrl(null);
         setFullImageLoaded(false);
         
-        getSecureUrl(storagePath)
+        // Request optimized size for preview - much faster loading
+        const transforms = {
+          width: 1200,  // Reasonable size for preview
+          height: 1200, 
+          quality: 85   // Good quality but compressed
+        };
+        
+        console.log('Loading preview image with transforms:', transforms);
+        
+        getSecureUrl(storagePath, transforms)
           .then(url => {
             setSecureUrl(url);
           })
