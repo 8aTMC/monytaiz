@@ -13,17 +13,22 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
     // Get authorization header
     const authHeader = req.headers.get('authorization') ?? ''
     const token = authHeader.replace('Bearer ', '')
 
-    // Set auth for the request
-    supabase.auth.setAuth(token)
+    // Create supabase client with user's JWT token for RLS
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: {
+            Authorization: authHeader,
+          },
+        },
+      }
+    )
 
     const { searchParams } = new URL(req.url)
     const path = searchParams.get('path')
@@ -75,7 +80,13 @@ serve(async (req) => {
       }
     }
 
-    const { data: urlData, error: urlError } = await supabase.storage
+     // Generate signed URL with transforms using service role client
+    const supabaseService = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    const { data: urlData, error: urlError } = await supabaseService.storage
       .from('content')
       .createSignedUrl(path, 3600, signedUrlOptions)
 
