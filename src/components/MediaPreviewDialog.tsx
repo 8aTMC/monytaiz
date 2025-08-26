@@ -78,14 +78,17 @@ export const MediaPreviewDialog = ({
     }
   };
 
-  // Generate signed URLs when dialog opens
+  // Generate signed URLs when dialog opens - but don't block dialog appearance
   useEffect(() => {
     const generateSignedUrls = async () => {
       if (!item || !open) {
-        setSignedUrl(null);
-        setError(null);
-        setLoading(false);
-        setFullImageLoaded(false);
+        // Reset state when closing
+        if (!open) {
+          setSignedUrl(null);
+          setError(null);
+          setLoading(false);
+          setFullImageLoaded(false);
+        }
         return;
       }
 
@@ -95,30 +98,36 @@ export const MediaPreviewDialog = ({
         return;
       }
 
-      setLoading(true);
-      setError(null);
+      // Only start loading if we don't already have a URL
+      if (!signedUrl && !loading) {
+        setLoading(true);
+        setError(null);
 
-      try {
-        const { data, error } = await supabase.storage
-          .from('content')
-          .createSignedUrl(storagePath, 3600);
+        try {
+          const { data, error } = await supabase.storage
+            .from('content')
+            .createSignedUrl(storagePath, 3600);
 
-        if (error) {
-          console.error('Error creating signed URL:', error);
+          if (error) {
+            console.error('Error creating signed URL:', error);
+            setError('Failed to load media');
+          } else if (data?.signedUrl) {
+            setSignedUrl(data.signedUrl);
+          }
+        } catch (err) {
+          console.error('Error generating signed URL:', err);
           setError('Failed to load media');
-        } else if (data?.signedUrl) {
-          setSignedUrl(data.signedUrl);
+        } finally {
+          setLoading(false);
         }
-      } catch (err) {
-        console.error('Error generating signed URL:', err);
-        setError('Failed to load media');
-      } finally {
-        setLoading(false);
       }
     };
 
-    generateSignedUrls();
-  }, [open, item]);
+    // Start generating URLs immediately when dialog opens
+    if (open && item) {
+      generateSignedUrls();
+    }
+  }, [open, item, signedUrl, loading]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -166,9 +175,13 @@ export const MediaPreviewDialog = ({
           </DialogHeader>
 
           <div className="flex-1 overflow-hidden">
-            <div className="flex items-center justify-center h-full max-h-[70vh]">
-              {loading && (
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="flex items-center justify-center h-full max-h-[70vh] bg-muted/20 rounded-lg">
+              {/* Always show loading state immediately while URL is being generated */}
+              {loading && !signedUrl && (
+                <div className="flex flex-col items-center gap-4">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                  <p className="text-sm text-muted-foreground">Loading media...</p>
+                </div>
               )}
 
               {error && (
@@ -188,7 +201,7 @@ export const MediaPreviewDialog = ({
                 </div>
               )}
 
-              {!loading && !error && signedUrl && (
+              {signedUrl && !error && (
                 <>
                   {typeValue === 'image' && (
                     <div className="relative flex items-center justify-center w-full h-full">
@@ -197,7 +210,7 @@ export const MediaPreviewDialog = ({
                         <img 
                           src={item.tiny_placeholder} 
                           alt=""
-                          className="max-w-full max-h-full w-auto h-auto object-contain rounded blur-md opacity-70 transition-all duration-300"
+                          className="max-w-full max-h-full w-auto h-auto object-contain rounded blur-sm opacity-60 transition-all duration-300"
                         />
                       )}
                       
@@ -206,14 +219,20 @@ export const MediaPreviewDialog = ({
                         src={signedUrl}
                         alt={item.title || 'Preview'} 
                         onLoad={() => setFullImageLoaded(true)}
-                        className={`max-w-full max-h-full w-auto h-auto object-contain rounded transition-all duration-500 ${
-                          fullImageLoaded ? 'opacity-100 blur-0' : 'opacity-0'
+                        onError={(e) => {
+                          console.error('Failed to load image:', signedUrl, e);
+                          setError('Failed to load image');
+                        }}
+                        className={`max-w-full max-h-full w-auto h-auto object-contain rounded transition-opacity duration-300 ${
+                          fullImageLoaded ? 'opacity-100' : 'opacity-0'
                         } ${!fullImageLoaded && item.tiny_placeholder ? 'absolute inset-0' : ''}`}
                       />
                       
+                      {/* Loading state for image */}
                       {!fullImageLoaded && !item.tiny_placeholder && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/50"></div>
+                        <div className="flex flex-col items-center gap-4">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/60"></div>
+                          <p className="text-sm text-muted-foreground">Loading image...</p>
                         </div>
                       )}
                     </div>
@@ -224,6 +243,7 @@ export const MediaPreviewDialog = ({
                       src={signedUrl}
                       controls 
                       className="max-w-full max-h-full w-auto h-auto object-contain rounded"
+                      preload="metadata"
                     >
                       Your browser does not support the video tag.
                     </video>
@@ -232,7 +252,7 @@ export const MediaPreviewDialog = ({
                   {typeValue === 'audio' && (
                     <div className="flex flex-col items-center gap-4 p-8">
                       <FileAudio className="h-16 w-16 text-muted-foreground" />
-                      <audio src={signedUrl} controls className="w-full max-w-md">
+                      <audio src={signedUrl} controls className="w-full max-w-md" preload="metadata">
                         Your browser does not support the audio tag.
                       </audio>
                     </div>
@@ -265,7 +285,7 @@ export const MediaPreviewDialog = ({
           {/* Close button */}
           <button
             onClick={() => onOpenChange(false)}
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 z-10"
           >
             <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
