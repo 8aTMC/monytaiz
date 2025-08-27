@@ -280,13 +280,13 @@ export const MediaPreviewDialog = ({
                   )}
 
                   {typeValue === 'image' && (
-                    <div className="relative w-full min-h-[200px] flex items-center justify-center">
+                    <div className="relative w-full flex items-center justify-center">
                       {/* Tiny placeholder - shows immediately for instant feedback */}
                       {item.tiny_placeholder && (
                         <img 
                           src={item.tiny_placeholder} 
                           alt=""
-                          className={`max-w-full max-h-full w-auto h-auto object-contain rounded transition-opacity duration-300 ${
+                          className={`max-w-full max-h-[70vh] w-auto h-auto object-contain rounded transition-opacity duration-300 ${
                             mediumImageLoaded || fullImageLoaded ? 'opacity-30 blur-sm' : 'opacity-100 blur-sm'
                           }`}
                         />
@@ -301,9 +301,9 @@ export const MediaPreviewDialog = ({
                           onError={(e) => {
                             console.error('Failed to load medium image:', e);
                           }}
-                          className={`max-w-full max-h-full w-auto h-auto object-contain rounded transition-opacity duration-300 ${
+                          className={`max-w-full max-h-[70vh] w-auto h-auto object-contain rounded transition-opacity duration-300 ${
                             mediumImageLoaded && !fullImageLoaded ? 'opacity-100' : 'opacity-0'
-                          } ${item.tiny_placeholder ? 'absolute top-0 left-0 right-0 bottom-0 m-auto' : ''}`}
+                          } ${item.tiny_placeholder ? 'absolute inset-0 m-auto' : ''}`}
                         />
                       )}
                       
@@ -316,9 +316,9 @@ export const MediaPreviewDialog = ({
                           onError={(e) => {
                             console.error('Failed to load full image:', e);
                           }}
-                          className={`max-w-full max-h-full w-auto h-auto object-contain rounded transition-opacity duration-500 ${
+                          className={`max-w-full max-h-[70vh] w-auto h-auto object-contain rounded transition-opacity duration-500 ${
                             fullImageLoaded ? 'opacity-100' : 'opacity-0'
-                          } ${item.tiny_placeholder || mediumUrl ? 'absolute top-0 left-0 right-0 bottom-0 m-auto' : ''}`}
+                          } ${item.tiny_placeholder || mediumUrl ? 'absolute inset-0 m-auto' : ''}`}
                         />
                       )}
 
