@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Image, Video, FileAudio, FileText, X, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { useSidebar } from '@/components/Navigation';
-import { useDirectMedia } from '@/hooks/useDirectMedia';
+import { useOptimizedSecureMedia } from '@/hooks/useOptimizedSecureMedia';
 import { useIntersectionPreloader } from '@/hooks/useIntersectionPreloader';
 
 // Use the MediaItem interface from ContentLibrary
@@ -52,7 +52,7 @@ export const MediaPreviewDialog = ({
   const [mediumUrl, setMediumUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const sidebar = useSidebar();
-  const { getDirectUrl } = useDirectMedia();
+  const { getOptimizedSecureUrl, getCachedUrl } = useOptimizedSecureMedia();
   const { preloadForNavigation } = useIntersectionPreloader(allItems);
   
   // Disabled preloader for media preview
@@ -133,29 +133,59 @@ export const MediaPreviewDialog = ({
     }
   };
 
-  // Instant loading with direct CDN URLs
+  // Fast loading with secure access control
   useEffect(() => {
-    if (!open || !item) return;
-    
-    const storagePath = getItemStoragePath(item);
-    if (!storagePath) return;
+    const loadSecureMedia = async () => {
+      if (!open || !item) return;
+      
+      const storagePath = getItemStoragePath(item);
+      if (!storagePath) return;
 
-    setLoading(false);
-    
-    // Get direct CDN URL - instant!
-    const directUrl = getDirectUrl(storagePath, { quality: 85 });
-    if (directUrl) {
-      setSecureUrl(directUrl);
-      setFullImageLoaded(true);
-    }
-    
-    // Also get medium quality for progressive enhancement
-    const mediumDirectUrl = getDirectUrl(storagePath, { quality: 75 });
-    if (mediumDirectUrl) {
-      setMediumUrl(mediumDirectUrl);
-      setMediumImageLoaded(true);
-    }
-  }, [open, item, getDirectUrl]);
+      setLoading(true);
+      
+      // Check cache first for instant loading
+      const cachedFullUrl = getCachedUrl(storagePath, { quality: 85 });
+      const cachedMediumUrl = getCachedUrl(storagePath, { quality: 75 });
+      
+      if (cachedFullUrl) {
+        setSecureUrl(cachedFullUrl);
+        setFullImageLoaded(true);
+        setLoading(false);
+        return;
+      }
+      
+      if (cachedMediumUrl) {
+        setMediumUrl(cachedMediumUrl);
+        setMediumImageLoaded(true);
+      }
+
+      try {
+        // Load high quality
+        const fullUrl = await getOptimizedSecureUrl(storagePath, { quality: 85 });
+        if (fullUrl) {
+          setSecureUrl(fullUrl);
+          setFullImageLoaded(true);
+        }
+      } catch (error) {
+        console.error('Failed to load full quality:', error);
+        
+        // Fallback to medium quality
+        try {
+          const mediumUrl = await getOptimizedSecureUrl(storagePath, { quality: 75 });
+          if (mediumUrl) {
+            setMediumUrl(mediumUrl);
+            setMediumImageLoaded(true);
+          }
+        } catch (e) {
+          console.error('Failed to load medium quality:', e);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSecureMedia();
+  }, [open, item, getOptimizedSecureUrl, getCachedUrl]);
 
   // Preload adjacent items when dialog opens
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Image, Video, FileAudio } from 'lucide-react';
-import { useDirectMedia } from '@/hooks/useDirectMedia';
+import { useOptimizedSecureMedia } from '@/hooks/useOptimizedSecureMedia';
 
 interface MediaThumbnailProps {
   item: {
@@ -20,7 +20,7 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
   const [imageLoaded, setImageLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [secureUrl, setSecureUrl] = useState<string | null>(null);
-  const { getDirectUrl } = useDirectMedia();
+  const { getOptimizedSecureUrl, getCachedUrl } = useOptimizedSecureMedia();
 
   // Helper to get type from either format
   const getItemType = () => item.type || item.content_type || 'unknown';
@@ -44,16 +44,30 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
   const itemType = getItemType();
   const storagePath = getStoragePath();
 
-  // Load image instantly with direct CDN URL
+  // Load thumbnail with optimized secure URLs
   useEffect(() => {
     if (itemType === 'image' && storagePath) {
-      // Get direct CDN URL - instant!
-      const directUrl = getDirectUrl(storagePath, { width: 300, height: 300, quality: 70 });
-      if (directUrl) {
-        setSecureUrl(directUrl);
+      // Check cache first for instant loading
+      const cachedUrl = getCachedUrl(storagePath, { width: 300, height: 300, quality: 70 });
+      if (cachedUrl) {
+        setSecureUrl(cachedUrl);
+        return;
       }
+      
+      // If not cached, load securely
+      getOptimizedSecureUrl(storagePath, { width: 300, height: 300, quality: 70 })
+        .then(url => {
+          if (url) {
+            setSecureUrl(url);
+          } else {
+            setHasError(true);
+          }
+        })
+        .catch(() => {
+          setHasError(true);
+        });
     }
-  }, [itemType, storagePath, getDirectUrl]);
+  }, [itemType, storagePath, getOptimizedSecureUrl, getCachedUrl]);
 
   // For non-image types, show icon
   if (itemType !== 'image') {

@@ -22,7 +22,7 @@ import { useMediaOperations } from '@/hooks/useMediaOperations';
 import { MediaPreviewDialog } from '@/components/MediaPreviewDialog';
 import { MediaThumbnail } from '@/components/MediaThumbnail';
 import { useToast } from '@/hooks/use-toast';
-import { useDirectMedia } from '@/hooks/useDirectMedia';
+import { useOptimizedSecureMedia } from '@/hooks/useOptimizedSecureMedia';
 
 interface MediaItem {
   id: string;
@@ -87,7 +87,7 @@ const ContentLibrary = () => {
   
   const { copyToCollection, removeFromCollection, deleteMediaHard, createCollection, loading: operationLoading } = useMediaOperations();
   const { toast } = useToast();
-  const { getDirectUrl } = useDirectMedia();
+  const { getOptimizedSecureUrl } = useOptimizedSecureMedia();
 
   // User roles state
   const [userRoles, setUserRoles] = useState<string[]>([]);
