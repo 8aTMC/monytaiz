@@ -73,25 +73,6 @@ export const useFileUpload = () => {
     uploadingRef.current = isUploading;
   }, [isUploading]);
 
-  // Helper function to continue upload process
-  const continueUploadProcess = useCallback(() => {
-    if (!uploadingRef.current) return;
-    
-    // Use a small delay to allow state updates to complete
-    setTimeout(() => {
-      // Trigger a re-evaluation of the upload queue
-      // This will be handled by the main upload loop's while condition
-      const nextPendingFile = queueRef.current.find(item => 
-        item.status === 'pending' && !pausedRef.current.has(item.id)
-      );
-      
-      if (!nextPendingFile) {
-        // No more files to upload
-        setIsUploading(false);
-      }
-    }, 100);
-  }, []);
-
   const validateFile = useCallback((file: File) => {
     try {
       const fileType = getFileType(file);
@@ -109,132 +90,6 @@ export const useFileUpload = () => {
       return { valid: false, error: error instanceof Error ? error.message : 'Invalid file' };
     }
   }, []);
-
-  const addFiles = useCallback((files: File[]) => {
-    if (uploadQueue.length + files.length > 100) {
-      toast({
-        title: "Too many files",
-        description: "Maximum 100 files allowed per batch",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const validFiles: FileUploadItem[] = [];
-    const errors: string[] = [];
-
-    files.forEach((file, index) => {
-      const validation = validateFile(file);
-      
-      if (validation.valid) {
-        validFiles.push({
-          file,
-          id: `${Date.now()}-${index}`,
-          progress: 0,
-          status: 'pending',
-          uploadedBytes: 0,
-          totalBytes: file.size,
-        });
-      } else {
-        errors.push(`${file.name}: ${validation.error}`);
-      }
-    });
-
-    if (errors.length > 0) {
-      toast({
-        title: "Some files were rejected",
-        description: errors.slice(0, 3).join(', ') + (errors.length > 3 ? '...' : ''),
-        variant: "destructive",
-      });
-    }
-
-    if (validFiles.length > 0) {
-      setUploadQueue(prev => [...prev, ...validFiles]);
-      toast({
-        title: "Files added",
-        description: `${validFiles.length} file(s) ready for upload`,
-        variant: "success",
-      });
-    }
-  }, [uploadQueue.length, validateFile, toast]);
-
-  const removeFile = useCallback((id: string) => {
-    const wasUploading = uploadQueue.find(item => item.id === id)?.status === 'uploading';
-    
-    setUploadQueue(prev => prev.filter(item => item.id !== id));
-    setPausedUploads(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(id);
-      return newSet;
-    });
-
-    // If we removed the currently uploading file, trigger continuation
-    if (wasUploading && isUploading) {
-      continueUploadProcess();
-    }
-    
-    // If no files left at all, stop uploading state
-    const remainingCount = uploadQueue.filter(item => item.id !== id).length;
-    if (remainingCount === 0) {
-      setIsUploading(false);
-    }
-  }, [uploadQueue, isUploading, continueUploadProcess]);
-
-  const pauseUpload = useCallback((id: string) => {
-    setPausedUploads(prev => new Set(prev).add(id));
-    setUploadQueue(prev => prev.map(item => 
-      item.id === id ? { ...item, status: 'paused' as const, isPaused: true } : item
-    ));
-    
-    // Trigger continuation of upload process if this was the current file
-    continueUploadProcess();
-  }, [continueUploadProcess]);
-
-  const resumeUpload = useCallback((id: string) => {
-    setPausedUploads(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(id);
-      return newSet;
-    });
-    setUploadQueue(prev => prev.map(item => 
-      item.id === id ? { ...item, status: 'pending' as const, isPaused: false } : item
-    ));
-  }, []);
-
-  const cancelUpload = useCallback((id: string) => {
-    const wasCurrent = uploadQueue.find(item => item.id === id)?.status === 'uploading';
-    
-    setUploadQueue(prev => prev.map(item => 
-      item.id === id ? { ...item, status: 'cancelled' as const } : item
-    ));
-    setPausedUploads(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(id);
-      return newSet;
-    });
-    
-    // Remove cancelled file after short delay
-    setTimeout(() => {
-      setUploadQueue(prev => {
-        const newQueue = prev.filter(item => item.id !== id);
-        
-        // If this was the current uploading file and there are still pending files
-        if (wasCurrent && isUploading) {
-          const remainingPending = newQueue.filter(item => item.status === 'pending');
-          if (remainingPending.length === 0) {
-            setIsUploading(false);
-          }
-        }
-        
-        // If no files left at all, stop uploading state
-        if (newQueue.length === 0) {
-          setIsUploading(false);
-        }
-        
-        return newQueue;
-      });
-    }, 1000);
-  }, [uploadQueue, isUploading]);
 
   const uploadFile = useCallback(async (item: FileUploadItem) => {
     const { file } = item;
@@ -583,6 +438,151 @@ export const useFileUpload = () => {
       return { success: false, error: errorMessage };
     }
   }, [pausedUploads, toast]);
+
+  // Helper function to continue upload process
+  const continueUploadProcess = useCallback(() => {
+    if (!uploadingRef.current) return;
+    
+    // Use a small delay to allow state updates to complete
+    setTimeout(() => {
+      // Trigger a re-evaluation of the upload queue
+      // This will be handled by the main upload loop's while condition
+      const nextPendingFile = queueRef.current.find(item => 
+        item.status === 'pending' && !pausedRef.current.has(item.id)
+      );
+      
+      if (!nextPendingFile) {
+        // No more files to upload
+        setIsUploading(false);
+      }
+    }, 100);
+  }, []);
+
+  const addFiles = useCallback((files: File[]) => {
+    if (uploadQueue.length + files.length > 100) {
+      toast({
+        title: "Too many files",
+        description: "Maximum 100 files allowed per batch",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const validFiles: FileUploadItem[] = [];
+    const errors: string[] = [];
+
+    files.forEach((file, index) => {
+      const validation = validateFile(file);
+      
+      if (validation.valid) {
+        validFiles.push({
+          file,
+          id: `${Date.now()}-${index}`,
+          progress: 0,
+          status: 'pending',
+          uploadedBytes: 0,
+          totalBytes: file.size,
+        });
+      } else {
+        errors.push(`${file.name}: ${validation.error}`);
+      }
+    });
+
+    if (errors.length > 0) {
+      toast({
+        title: "Some files were rejected",
+        description: errors.slice(0, 3).join(', ') + (errors.length > 3 ? '...' : ''),
+        variant: "destructive",
+      });
+    }
+
+    if (validFiles.length > 0) {
+      setUploadQueue(prev => [...prev, ...validFiles]);
+      toast({
+        title: "Files added",
+        description: `${validFiles.length} file(s) ready for upload`,
+        variant: "success",
+      });
+    }
+  }, [uploadQueue.length, validateFile, toast]);
+
+  const removeFile = useCallback((id: string) => {
+    const wasUploading = uploadQueue.find(item => item.id === id)?.status === 'uploading';
+    
+    setUploadQueue(prev => prev.filter(item => item.id !== id));
+    setPausedUploads(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(id);
+      return newSet;
+    });
+
+    // If we removed the currently uploading file, trigger continuation
+    if (wasUploading && isUploading) {
+      continueUploadProcess();
+    }
+    
+    // If no files left at all, stop uploading state
+    const remainingCount = uploadQueue.filter(item => item.id !== id).length;
+    if (remainingCount === 0) {
+      setIsUploading(false);
+    }
+  }, [uploadQueue, isUploading, continueUploadProcess]);
+
+  const pauseUpload = useCallback((id: string) => {
+    setPausedUploads(prev => new Set(prev).add(id));
+    setUploadQueue(prev => prev.map(item => 
+      item.id === id ? { ...item, status: 'paused' as const, isPaused: true } : item
+    ));
+    
+    // Trigger continuation of upload process if this was the current file
+    continueUploadProcess();
+  }, [continueUploadProcess]);
+
+  const resumeUpload = useCallback((id: string) => {
+    setPausedUploads(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(id);
+      return newSet;
+    });
+    setUploadQueue(prev => prev.map(item => 
+      item.id === id ? { ...item, status: 'pending' as const, isPaused: false } : item
+    ));
+  }, []);
+
+  const cancelUpload = useCallback((id: string) => {
+    const wasCurrent = uploadQueue.find(item => item.id === id)?.status === 'uploading';
+    
+    setUploadQueue(prev => prev.map(item => 
+      item.id === id ? { ...item, status: 'cancelled' as const } : item
+    ));
+    setPausedUploads(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(id);
+      return newSet;
+    });
+    
+    // Remove cancelled file after short delay
+    setTimeout(() => {
+      setUploadQueue(prev => {
+        const newQueue = prev.filter(item => item.id !== id);
+        
+        // If this was the current uploading file and there are still pending files
+        if (wasCurrent && isUploading) {
+          const remainingPending = newQueue.filter(item => item.status === 'pending');
+          if (remainingPending.length === 0) {
+            setIsUploading(false);
+          }
+        }
+        
+        // If no files left at all, stop uploading state
+        if (newQueue.length === 0) {
+          setIsUploading(false);
+        }
+        
+        return newQueue;
+      });
+    }, 1000);
+  }, [uploadQueue, isUploading]);
 
   const startUpload = useCallback(async () => {
     if (queueRef.current.length === 0 || isUploading) return;
