@@ -118,15 +118,15 @@ async function copyToCollection(supabaseClient: any, userId: string, collectionI
       )
     }
 
-    // Check which IDs are from media vs content_files
+    // Check which IDs exist in media table vs content_files table
     const [mediaResults, contentResults] = await Promise.all([
       supabaseClient
         .from('media')
-        .select('id, creator_id, storage_path, type, size_bytes')
+        .select('id, creator_id')
         .in('id', mediaIds),
       supabaseClient
         .from('content_files')
-        .select('id, creator_id, file_path, content_type, file_size, title')
+        .select('id, creator_id')
         .in('id', mediaIds)
         .eq('is_active', true)
     ])
@@ -139,13 +139,11 @@ async function copyToCollection(supabaseClient: any, userId: string, collectionI
     }
 
     const existingMediaIds = (mediaResults.data || []).map((item: any) => item.id)
-    const contentFiles = contentResults.data || []
-    const contentFileIds = contentFiles.map((item: any) => item.id)
+    const contentFileIds = (contentResults.data || []).map((item: any) => item.id)
+    const allValidIds = [...existingMediaIds, ...contentFileIds]
 
-    // Validate all IDs exist in either table
-    const foundIds = [...existingMediaIds, ...contentFileIds]
-    const missingIds = mediaIds.filter(id => !foundIds.includes(id))
-    
+    // Validate all requested IDs exist in either table
+    const missingIds = mediaIds.filter(id => !allValidIds.includes(id))
     if (missingIds.length > 0) {
       return new Response(
         JSON.stringify({ error: `Media not found: ${missingIds.join(', ')}` }),
@@ -153,64 +151,68 @@ async function copyToCollection(supabaseClient: any, userId: string, collectionI
       )
     }
 
-    // For content_files that don't have corresponding media records, create them
-    const mediaToCreate = []
-    for (const contentFile of contentFiles) {
-      if (!existingMediaIds.includes(contentFile.id)) {
-        // Create media record from content_file
-        mediaToCreate.push({
-          id: contentFile.id, // Use the same ID
-          creator_id: contentFile.creator_id,
-          title: contentFile.title,
-          type: contentFile.content_type === 'image' ? 'image' : 
-                contentFile.content_type === 'video' ? 'video' : 'document',
-          storage_path: contentFile.file_path,
-          bucket: 'content',
-          path: contentFile.file_path,
-          mime: contentFile.content_type || 'application/octet-stream',
-          size_bytes: contentFile.file_size || 0,
-          origin: 'library',
-          created_by: contentFile.creator_id
+    // For IDs that exist in media table, use media_id
+    // For IDs that only exist in content_files, we'll need to handle them differently
+    const itemsToInsert = []
+    
+    for (const id of mediaIds) {
+      if (existingMediaIds.includes(id)) {
+        // This ID exists in media table, use normal collection_items entry
+        itemsToInsert.push({
+          collection_id: collectionId,
+          media_id: id,
+          added_by: userId
         })
+      } else if (contentFileIds.includes(id)) {
+        // This ID only exists in content_files - for now, we'll create a media record
+        // Get the content file details
+        const contentFile = (contentResults.data || []).find((item: any) => item.id === id)
+        if (contentFile) {
+          // First create a minimal media record
+          const { error: mediaInsertError } = await supabaseClient
+            .from('media')
+            .insert({
+              id: id,
+              creator_id: contentFile.creator_id,
+              title: `Content File ${id.substring(0, 8)}`,
+              type: 'document', // Default type
+              storage_path: `content_files/${id}`,
+              bucket: 'content',
+              mime: 'application/octet-stream',
+              size_bytes: 0,
+              origin: 'content_files',
+              created_by: contentFile.creator_id
+            })
+
+          if (!mediaInsertError) {
+            // If media record created successfully, add to collection
+            itemsToInsert.push({
+              collection_id: collectionId,
+              media_id: id,
+              added_by: userId
+            })
+          }
+        }
       }
     }
 
-    // Insert missing media records
-    if (mediaToCreate.length > 0) {
-      const { error: mediaInsertError } = await supabaseClient
-        .from('media')
-        .upsert(mediaToCreate, { onConflict: 'id' })
+    // Insert collection items
+    if (itemsToInsert.length > 0) {
+      const { error: insertError } = await supabaseClient
+        .from('collection_items')
+        .upsert(itemsToInsert, { onConflict: 'collection_id,media_id' })
 
-      if (mediaInsertError) {
-        console.error('Media insert error:', mediaInsertError)
+      if (insertError) {
+        console.error('Insert error:', insertError)
         return new Response(
-          JSON.stringify({ error: 'Failed to create media records' }),
+          JSON.stringify({ error: 'Failed to copy to collection' }),
           { status: 500, headers: corsHeaders }
         )
       }
     }
 
-    // Insert collection items (on conflict do nothing)
-    const items = mediaIds.map(mediaId => ({
-      collection_id: collectionId,
-      media_id: mediaId,
-      added_by: userId
-    }))
-
-    const { error: insertError } = await supabaseClient
-      .from('collection_items')
-      .upsert(items, { onConflict: 'collection_id,media_id' })
-
-    if (insertError) {
-      console.error('Insert error:', insertError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to copy to collection' }),
-        { status: 500, headers: corsHeaders }
-      )
-    }
-
     return new Response(
-      JSON.stringify({ success: true, message: `Copied ${mediaIds.length} items to collection` }),
+      JSON.stringify({ success: true, message: `Copied ${itemsToInsert.length} items to collection` }),
       { headers: corsHeaders }
     )
   } catch (error) {
