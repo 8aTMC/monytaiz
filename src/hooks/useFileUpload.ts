@@ -15,11 +15,13 @@ export interface FileUploadItem {
 }
 
 const FILE_LIMITS = {
-  video: 10 * 1024 * 1024 * 1024, // 10GB
+  video: 6 * 1024 * 1024 * 1024, // 6GB
   image: 50 * 1024 * 1024, // 50MB
   audio: 10 * 1024 * 1024, // 10MB
   document: 10 * 1024 * 1024, // 10MB
 };
+
+const MAX_UPLOAD_SIZE = 10 * 1024 * 1024 * 1024; // 10GB total per upload session
 
 const ALLOWED_TYPES = {
   video: ['.mp4', '.mov', '.webm', '.avi', '.mkv'],
@@ -93,11 +95,23 @@ export const useFileUpload = () => {
 
     const validFiles: FileUploadItem[] = [];
     const errors: string[] = [];
+    
+    // Calculate current upload size from existing queue
+    const currentUploadSize = uploadQueue.reduce((total, item) => total + item.file.size, 0);
+    let cumulativeSize = currentUploadSize;
+    let filesAdded = 0;
+    let totalFiles = files.length;
 
     files.forEach((file, index) => {
       const validation = validateFile(file);
       
       if (validation.valid) {
+        // Check if adding this file would exceed the upload limit
+        if (cumulativeSize + file.size > MAX_UPLOAD_SIZE) {
+          // Stop adding files - we've reached the limit
+          return;
+        }
+        
         validFiles.push({
           file,
           id: `${Date.now()}-${index}`,
@@ -106,11 +120,15 @@ export const useFileUpload = () => {
           uploadedBytes: 0,
           totalBytes: file.size,
         });
+        
+        cumulativeSize += file.size;
+        filesAdded++;
       } else {
         errors.push(`${file.name}: ${validation.error}`);
       }
     });
 
+    // Show error messages for rejected files
     if (errors.length > 0) {
       toast({
         title: "Some files were rejected",
@@ -119,15 +137,26 @@ export const useFileUpload = () => {
       });
     }
 
+    // Show warning if upload limit was reached
+    if (filesAdded < totalFiles - errors.length) {
+      const skippedCount = totalFiles - errors.length - filesAdded;
+      toast({
+        title: "Upload size limit reached",
+        description: `Only ${filesAdded} of ${totalFiles} files have been set for upload due to the maximum upload size (10GB) being reached. ${skippedCount} files were excluded.`,
+        variant: "destructive",
+      });
+    }
+
     if (validFiles.length > 0) {
       setUploadQueue(prev => [...prev, ...validFiles]);
+      const totalSizeGB = (cumulativeSize / (1024 * 1024 * 1024)).toFixed(2);
       toast({
         title: "Files added",
-        description: `${validFiles.length} file(s) ready for upload`,
+        description: `${validFiles.length} file(s) ready for upload (${totalSizeGB}GB total)`,
         variant: "success",
       });
     }
-  }, [uploadQueue.length, validateFile, toast]);
+  }, [uploadQueue, validateFile, toast]);
 
   const removeFile = useCallback((id: string) => {
     const wasUploading = uploadQueue.find(item => item.id === id)?.status === 'uploading';
