@@ -94,8 +94,8 @@ const ContentLibrary = () => {
     if (!loadingContent && content.length > 0) {
       console.log('📚 Smart preloading for', content.length, 'items');
       
-      // Only preload first 8 images for full quality (not ALL images)
-      const imageItems = content.filter(item => item.type === 'image').slice(0, 8);
+      // Preload OLDEST images first (reverse order for proper sequence)
+      const imageItems = content.filter(item => item.type === 'image').slice(-8).reverse();
       
       imageItems.forEach((item, index) => {
         // Stagger the preloading to avoid overwhelming the system
