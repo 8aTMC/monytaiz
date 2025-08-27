@@ -89,40 +89,27 @@ const ContentLibrary = () => {
   const { toast } = useToast();
   const { preloadImage, preloadMultiResolution } = useAdvancedPreloader();
   
-  // INSTANT aggressive preloading - preload EVERYTHING immediately
+  // Smart preloading - fast but not overwhelming
   useEffect(() => {
     if (!loadingContent && content.length > 0) {
-      console.log('🔥 INSTANT PRELOAD: Loading ALL images immediately for instant access');
+      console.log('📚 Smart preloading for', content.length, 'items');
       
-      // Preload ALL images immediately (not just first 20)
-      const imageItems = content.filter(item => item.type === 'image');
+      // Only preload first 8 images for full quality (not ALL images)
+      const imageItems = content.filter(item => item.type === 'image').slice(0, 8);
       
-      // Load EVERYTHING at once for true instant access
       imageItems.forEach((item, index) => {
-        // High priority for first 15 items (full quality)
-        if (index < 15) {
-          preloadImage(item.storage_path, { quality: 85, priority: 'high' })
-            .then(() => {
-              console.log(`🚀 INSTANT-READY: ${index + 1}/15 full quality`);
-            })
-            .catch(console.error);
-        }
-        
-        // Medium quality for all items (for immediate display)
-        preloadImage(item.storage_path, { quality: 75, priority: 'high' })
-          .then(() => {
-            console.log(`⚡ FAST-READY: ${index + 1}/${imageItems.length} medium quality`);
-          })
-          .catch(console.error);
-      });
-      
-      // Also preload lower quality versions for super fast thumbnails
-      imageItems.slice(0, 30).forEach((item, index) => {
-        preloadImage(item.storage_path, { quality: 60, priority: 'medium' })
-          .then(() => {
-            console.log(`📸 THUMB-READY: ${index + 1}/30 thumbnails`);
-          })
-          .catch(console.error);
+        // Stagger the preloading to avoid overwhelming the system
+        setTimeout(() => {
+          // Full quality for first 3 items only
+          if (index < 3) {
+            preloadImage(item.storage_path, { quality: 85, priority: 'high' })
+              .catch(() => {}); // Silent fail to reduce logs
+          }
+          
+          // Medium quality for first 8 items
+          preloadImage(item.storage_path, { quality: 75, priority: 'medium' })
+            .catch(() => {}); // Silent fail to reduce logs
+        }, index * 200); // Stagger by 200ms each
       });
     }
   }, [content, loadingContent, preloadImage]);

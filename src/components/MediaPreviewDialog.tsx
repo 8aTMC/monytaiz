@@ -133,7 +133,7 @@ export const MediaPreviewDialog = ({
     }
   };
 
-  // INSTANT loading - check cache first, NO progressive loading
+  // Fast loading with smart caching and minimal logs  
   useEffect(() => {
     const loadSecureUrl = async () => {
       if (!open || !item) return;
@@ -141,72 +141,38 @@ export const MediaPreviewDialog = ({
       const storagePath = getItemStoragePath(item);
       if (!storagePath) return;
 
-      console.log('⚡ INSTANT CHECK for:', storagePath);
-
-      // INSTANT cache check - no loading states until we're sure it's not cached
-      const cachedFullUrl = getCachedUrl(storagePath, { quality: 85 });
-      if (cachedFullUrl) {
-        console.log('🚀🚀🚀 INSTANT FULL QUALITY!');
-        setSecureUrl(cachedFullUrl);
+      // Check cache first - if found, instant load
+      const cachedUrl = getCachedUrl(storagePath, { quality: 85 }) || 
+                       getCachedUrl(storagePath, { quality: 75 });
+      
+      if (cachedUrl) {
+        setSecureUrl(cachedUrl);
         setFullImageLoaded(true);
         setLoading(false);
-        return; // DONE - TRUE INSTANT LOADING!
-      }
-
-      const cachedMediumUrl = getCachedUrl(storagePath, { quality: 75 });
-      if (cachedMediumUrl) {
-        console.log('🚀🚀 INSTANT MEDIUM QUALITY!');
-        setMediumUrl(cachedMediumUrl);
-        setMediumImageLoaded(true);
-        setLoading(false);
-        
-        // Get full quality in background
-        preloadImage(storagePath, { quality: 85, priority: 'high' })
-          .then(fullUrl => {
-            if (fullUrl) {
-              setSecureUrl(fullUrl);
-              setFullImageLoaded(true);
-            }
-          });
         return;
       }
 
-      const cachedLowUrl = getCachedUrl(storagePath, { quality: 60 });
-      if (cachedLowUrl) {
-        console.log('🚀 INSTANT LOW QUALITY!');
-        setMediumUrl(cachedLowUrl);
-        setMediumImageLoaded(true);
-        setLoading(false);
-        
-        // Get better quality in background
-        Promise.allSettled([
-          preloadImage(storagePath, { quality: 75, priority: 'high' }),
-          preloadImage(storagePath, { quality: 85, priority: 'high' })
-        ]).then(([medium, full]) => {
-          if (medium.status === 'fulfilled' && medium.value) {
-            setMediumUrl(medium.value);
-          }
-          if (full.status === 'fulfilled' && full.value) {
-            setSecureUrl(full.value);
-            setFullImageLoaded(true);
-          }
-        });
-        return;
-      }
-
-      // If NOTHING cached, show loading (this should be rare due to aggressive preloading)
-      console.log('😱 NOT CACHED - loading fresh');
+      // If not cached, load with priority and preload adjacent items
       setLoading(true);
       
       try {
-        const url = await preloadImage(storagePath, { quality: 75, priority: 'high' });
+        const url = await preloadImage(storagePath, { quality: 85, priority: 'high' });
         if (url) {
-          setMediumUrl(url);
-          setMediumImageLoaded(true);
-          setLoading(false);
+          setSecureUrl(url);
+          setFullImageLoaded(true);
         }
       } catch (error) {
-        console.error('Failed to load:', error);
+        // Try medium quality as fallback
+        try {
+          const mediumUrl = await preloadImage(storagePath, { quality: 75, priority: 'high' });
+          if (mediumUrl) {
+            setMediumUrl(mediumUrl);
+            setMediumImageLoaded(true);
+          }
+        } catch (e) {
+          console.error('Failed to load image');
+        }
+      } finally {
         setLoading(false);
       }
     };

@@ -40,14 +40,14 @@ export const useAdvancedPreloader = () => {
     return `${path}:${width || 'auto'}x${height || 'auto'}q${quality}`;
   };
 
-  // Process preload queue with MAXIMUM speed and instant browser caching
+  // Optimized processing with minimal logging
   const processQueue = useCallback(async () => {
     if (processingRef.current || queueRef.current.length === 0) return;
     
     processingRef.current = true;
-    const batch = queueRef.current.splice(0, 15); // MASSIVE batch processing
+    const batch = queueRef.current.splice(0, 3); // Back to reasonable batch size
 
-    // Sort by priority (high -> medium -> low)
+    // Sort by priority
     batch.sort((a, b) => {
       const priorityOrder = { high: 3, medium: 2, low: 1 };
       return priorityOrder[b.options?.priority || 'medium'] - priorityOrder[a.options?.priority || 'medium'];
@@ -63,34 +63,22 @@ export const useAdvancedPreloader = () => {
           } : undefined;
 
           const cacheKey = getCacheKey(item.path, item.options);
-
           const url = await getSecureUrl(item.path, transforms);
+          
           if (url) {
-            // Store in global cache IMMEDIATELY
+            // Store in cache
             globalUrlCache.set(cacheKey, url);
             
-            // CRITICAL: Force immediate browser cache with fetch + cache headers
-            try {
-              const response = await fetch(url, { 
-                cache: 'force-cache',
-                mode: 'no-cors' 
-              });
-              console.log(`💾 BROWSER-CACHED: ${cacheKey}`);
-            } catch (e) {
-              // Fallback to Image constructor if fetch fails
-              const img = new Image();
-              img.crossOrigin = 'anonymous';
-              img.src = url;
-              console.log(`🖼️ IMG-CACHED: ${cacheKey}`);
-            }
-            
-            item.resolve(url);
+            // Simple browser caching without excessive logging
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => item.resolve(url);
+            img.onerror = () => item.resolve(url); // Still resolve to avoid blocking
+            img.src = url;
           } else {
-            console.error('❌ No URL for:', item.path);
-            item.reject(new Error('No secure URL returned'));
+            item.reject(new Error('No secure URL'));
           }
         } catch (error) {
-          console.error('❌ Preload error:', error);
           item.reject(error as Error);
         }
       })
@@ -98,9 +86,9 @@ export const useAdvancedPreloader = () => {
 
     processingRef.current = false;
     
-    // Continue processing IMMEDIATELY
+    // Continue processing with reasonable delay
     if (queueRef.current.length > 0) {
-      setTimeout(processQueue, 5); // SUPER fast processing
+      setTimeout(processQueue, 100);
     }
   }, [getSecureUrl]);
 
@@ -148,19 +136,10 @@ export const useAdvancedPreloader = () => {
     );
   }, [preloadImage]);
 
-  // Get cached URL if available (synchronous) with enhanced logging
+  // Get cached URL with minimal logging
   const getCachedUrl = useCallback((path: string, options?: PreloadOptions): string | null => {
     const cacheKey = getCacheKey(path, options);
-    const cachedUrl = globalUrlCache.get(cacheKey);
-    
-    if (cachedUrl) {
-      console.log('🚀 INSTANT: Found cached URL for', cacheKey);
-      return cachedUrl;
-    }
-    
-    console.log('⏳ CACHE MISS: No cached URL for', cacheKey);
-    getCacheStats();
-    return null;
+    return globalUrlCache.get(cacheKey) || null;
   }, []);
 
   return {
