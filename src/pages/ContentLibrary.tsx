@@ -14,7 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog';
 import { NewFolderDialog } from '@/components/NewFolderDialog';
 import { EditFolderDialog } from '@/components/EditFolderDialog';
-import { TagManagementDialog } from '@/components/TagManagementDialog';
+
 import { DeletionProgressDialog } from '@/components/DeletionProgressDialog';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LibrarySelectionToolbar } from '@/components/LibrarySelectionToolbar';
@@ -980,11 +980,6 @@ const ContentLibrary = () => {
             <ArrowUpDown className="h-4 w-4 mr-2" />
             Reorder Folders
           </Button>
-          
-          <TagManagementDialog onTagsUpdated={() => {
-            // Refresh content when tags are updated
-            refetchContent();
-          }} />
 
         </div>
 

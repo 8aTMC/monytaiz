@@ -35,10 +35,12 @@ import {
   Grid,
   List,
   Settings,
-  Brain
+  Brain,
+  Tags
 } from 'lucide-react';
 import { ContentIcon } from './icons/ContentIcon';
 import { CreatorProfileDialog } from '@/components/CreatorProfileDialog';
+import { TagManagementDialog } from '@/components/TagManagementDialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
@@ -530,11 +532,12 @@ export const Navigation = () => {
                           : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                       }`}
                     >
-                      <Upload className="h-4 w-4" />
-                      <span>Upload</span>
-                    </Link>
-                  </div>
-                </HoverCardContent>
+                     <Upload className="h-4 w-4" />
+                     <span>Upload</span>
+                   </Link>
+                   <TagManagementDialog />
+                 </div>
+               </HoverCardContent>
               </HoverCard>
             ) : (
               <Collapsible open={openSection === 'content'} onOpenChange={() => handleSectionToggle('content')}>
@@ -576,11 +579,12 @@ export const Navigation = () => {
                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                     }`}
                   >
-                    <Upload className="h-4 w-4" />
-                    <span>Upload</span>
-                  </Link>
-                </CollapsibleContent>
-              </Collapsible>
+                     <Upload className="h-4 w-4" />
+                     <span>Upload</span>
+                   </Link>
+                   <TagManagementDialog />
+                 </CollapsibleContent>
+               </Collapsible>
             )}
           </li>
           
