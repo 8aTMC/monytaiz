@@ -118,15 +118,15 @@ async function copyToCollection(supabaseClient: any, userId: string, collectionI
       )
     }
 
-    // Validate media ownership - check both media and content_files tables
+    // Check which IDs are from media vs content_files
     const [mediaResults, contentResults] = await Promise.all([
       supabaseClient
         .from('media')
-        .select('id, creator_id')
+        .select('id, creator_id, storage_path, type, size_bytes')
         .in('id', mediaIds),
       supabaseClient
         .from('content_files')
-        .select('id, creator_id')
+        .select('id, creator_id, file_path, content_type, file_size, title')
         .in('id', mediaIds)
         .eq('is_active', true)
     ])
@@ -138,17 +138,56 @@ async function copyToCollection(supabaseClient: any, userId: string, collectionI
       )
     }
 
-    // Combine results from both tables
-    const allMedia = [
-      ...(mediaResults.data || []),
-      ...(contentResults.data || [])
-    ]
+    const existingMediaIds = (mediaResults.data || []).map((item: any) => item.id)
+    const contentFiles = contentResults.data || []
+    const contentFileIds = contentFiles.map((item: any) => item.id)
 
-    if (allMedia.length !== mediaIds.length) {
+    // Validate all IDs exist in either table
+    const foundIds = [...existingMediaIds, ...contentFileIds]
+    const missingIds = mediaIds.filter(id => !foundIds.includes(id))
+    
+    if (missingIds.length > 0) {
       return new Response(
-        JSON.stringify({ error: 'Some media not found' }),
+        JSON.stringify({ error: `Media not found: ${missingIds.join(', ')}` }),
         { status: 404, headers: corsHeaders }
       )
+    }
+
+    // For content_files that don't have corresponding media records, create them
+    const mediaToCreate = []
+    for (const contentFile of contentFiles) {
+      if (!existingMediaIds.includes(contentFile.id)) {
+        // Create media record from content_file
+        mediaToCreate.push({
+          id: contentFile.id, // Use the same ID
+          creator_id: contentFile.creator_id,
+          title: contentFile.title,
+          type: contentFile.content_type === 'image' ? 'image' : 
+                contentFile.content_type === 'video' ? 'video' : 'document',
+          storage_path: contentFile.file_path,
+          bucket: 'content',
+          path: contentFile.file_path,
+          mime: contentFile.content_type || 'application/octet-stream',
+          size_bytes: contentFile.file_size || 0,
+          origin: 'library',
+          created_by: contentFile.creator_id
+        })
+      }
+    }
+
+    // Insert missing media records
+    if (mediaToCreate.length > 0) {
+      const { error: mediaInsertError } = await supabaseClient
+        .from('media')
+        .upsert(mediaToCreate, { onConflict: 'id' })
+
+      if (mediaInsertError) {
+        console.error('Media insert error:', mediaInsertError)
+        return new Response(
+          JSON.stringify({ error: 'Failed to create media records' }),
+          { status: 500, headers: corsHeaders }
+        )
+      }
     }
 
     // Insert collection items (on conflict do nothing)
