@@ -89,27 +89,18 @@ const ContentLibrary = () => {
   const { toast } = useToast();
   const { preloadImage, preloadMultiResolution } = useAdvancedPreloader();
   
-  // Smart preloading - fast but not overwhelming
+  // Lightweight preloading - only newest 3 images with minimal delay
   useEffect(() => {
     if (!loadingContent && content.length > 0) {
-      console.log('📚 Smart preloading for', content.length, 'items');
-      
-      // Preload OLDEST images first (reverse order for proper sequence)
-      const imageItems = content.filter(item => item.type === 'image').slice(-8).reverse();
+      // Only preload first 3 newest images (what user sees first)
+      const imageItems = content.filter(item => item.type === 'image').slice(0, 3);
       
       imageItems.forEach((item, index) => {
-        // Stagger the preloading to avoid overwhelming the system
+        // Very light staggering to avoid blocking
         setTimeout(() => {
-          // Full quality for first 3 items only
-          if (index < 3) {
-            preloadImage(item.storage_path, { quality: 85, priority: 'high' })
-              .catch(() => {}); // Silent fail to reduce logs
-          }
-          
-          // Medium quality for first 8 items
-          preloadImage(item.storage_path, { quality: 75, priority: 'medium' })
-            .catch(() => {}); // Silent fail to reduce logs
-        }, index * 200); // Stagger by 200ms each
+          preloadImage(item.storage_path, { quality: 80, priority: 'high' })
+            .catch(() => {}); // Silent fail
+        }, index * 50); // Much faster staggering
       });
     }
   }, [content, loadingContent, preloadImage]);
