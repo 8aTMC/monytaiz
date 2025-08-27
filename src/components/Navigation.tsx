@@ -331,7 +331,7 @@ export const Navigation = () => {
                       ? isCollapsed 
                         ? 'bg-primary/20 text-primary' 
                         : 'bg-primary/10 text-primary border border-primary/20'
-                      : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                   }`}
                   title={isCollapsed ? item.label : undefined}
                 >
@@ -354,7 +354,7 @@ export const Navigation = () => {
                     ? isCollapsed 
                       ? 'bg-primary/20 text-primary' 
                       : 'bg-primary/10 text-primary border border-primary/20'
-                    : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                 }`}
                 title={isCollapsed ? 'AI Management' : undefined}
               >
@@ -381,7 +381,7 @@ export const Navigation = () => {
                          ? isCollapsed 
                            ? 'bg-primary/20 text-primary' 
                            : 'bg-primary/10 text-primary border border-primary/20'
-                          : 'text-muted-foreground hover:text-white hover:bg-secondary/50'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                      }`}
                     title="Fans"
                   >
@@ -398,7 +398,7 @@ export const Navigation = () => {
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
                         location.pathname === '/fans' && !location.search
                           ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                       }`}
                     >
                       <Users className="h-4 w-4" />
@@ -409,7 +409,7 @@ export const Navigation = () => {
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
                         location.pathname === '/fans/categories'
                           ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                       }`}
                     >
                       <Grid className="h-4 w-4" />
@@ -420,7 +420,7 @@ export const Navigation = () => {
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
                         location.pathname === '/fans/lists'
                           ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                       }`}
                     >
                       <List className="h-4 w-4" />
@@ -434,7 +434,7 @@ export const Navigation = () => {
                 <CollapsibleTrigger className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
                   isSectionActive('fans') 
                     ? 'bg-primary/10 text-primary border border-primary/20' 
-                    : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                 }`}>
                   <div className="flex items-center gap-3 flex-1">
                     <Users className="h-5 w-5" />
@@ -455,7 +455,7 @@ export const Navigation = () => {
                     className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
                       location.pathname === '/fans' && !location.search
                         ? 'bg-primary/3 text-primary/90'
-                        : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                     }`}
                   >
                     <Users className="h-4 w-4" />
@@ -466,7 +466,7 @@ export const Navigation = () => {
                     className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
                       location.pathname === '/fans/categories'
                         ? 'bg-primary/3 text-primary/90'
-                        : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                     }`}
                   >
                     <Grid className="h-4 w-4" />
@@ -477,7 +477,7 @@ export const Navigation = () => {
                     className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
                       location.pathname === '/fans/lists'
                         ? 'bg-primary/3 text-primary/90'
-                        : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                     }`}
                   >
                     <List className="h-4 w-4" />
@@ -502,7 +502,7 @@ export const Navigation = () => {
                          ? isCollapsed 
                            ? 'bg-primary/20 text-primary' 
                            : 'bg-primary/10 text-primary border border-primary/20'
-                           : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                           : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                      }`}
                     title="Content"
                   >
@@ -519,7 +519,7 @@ export const Navigation = () => {
                         className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
                           location.pathname === '/library'
                             ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
-                            : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                         }`}
                      >
                        <Library className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/library' ? '' : 'group-hover:scale-110'}`} />
@@ -530,7 +530,7 @@ export const Navigation = () => {
                         className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
                           location.pathname === '/upload'
                             ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
-                            : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                         }`}
                      >
                       <Upload className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/upload' ? '' : 'group-hover:scale-110'}`} />
@@ -541,7 +541,7 @@ export const Navigation = () => {
                        className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
                          location.pathname === '/tags'
                            ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
-                           : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                           : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                        }`}
                     >
                       <Tags className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/tags' ? '' : 'group-hover:scale-110'}`} />
@@ -555,7 +555,7 @@ export const Navigation = () => {
                 <CollapsibleTrigger className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 hover:scale-[1.02] ${
                   isSectionActive('content') 
                     ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm' 
-                    : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                 }`}>
                   <div className="flex items-center gap-3 flex-1">
                     <ContentIcon className="h-5 w-5" />
@@ -576,7 +576,7 @@ export const Navigation = () => {
                       className={`group flex items-center gap-3 px-6 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
                         location.pathname === '/library'
                           ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
-                          : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                       }`}
                    >
                      <Library className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/library' ? '' : 'group-hover:scale-110'}`} />
@@ -587,7 +587,7 @@ export const Navigation = () => {
                       className={`group flex items-center gap-3 px-6 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
                         location.pathname === '/upload'
                           ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
-                          : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                       }`}
                     >
                       <Upload className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/upload' ? '' : 'group-hover:scale-110'}`} />
@@ -598,7 +598,7 @@ export const Navigation = () => {
                      className={`group flex items-center gap-3 px-6 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
                          location.pathname === '/tags'
                            ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
-                           : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                           : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                        }`}
                     >
                       <Tags className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/tags' ? '' : 'group-hover:scale-110'}`} />
@@ -623,7 +623,7 @@ export const Navigation = () => {
                          ? isCollapsed 
                            ? 'bg-primary/20 text-primary' 
                            : 'bg-primary/10 text-primary border border-primary/20'
-                           : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                           : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                      }`}
                     title="Management"
                   >
@@ -636,7 +636,7 @@ export const Navigation = () => {
                        Management
                      </div>
                      <CreatorProfileDialog>
-                       <button className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth w-full text-left text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50">
+                       <button className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth w-full text-left text-muted-foreground hover:text-foreground hover:bg-secondary/80">
                          <UserIcon className="h-4 w-4" />
                          <span>Creator Profile</span>
                        </button>
@@ -646,7 +646,7 @@ export const Navigation = () => {
                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
                          location.pathname === '/management/users'
                            ? 'bg-primary/10 text-primary'
-                             : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                             : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                        }`}
                      >
                        <Users className="h-4 w-4" />
@@ -660,7 +660,7 @@ export const Navigation = () => {
                 <CollapsibleTrigger className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
                   isSectionActive('management') 
                     ? 'bg-primary/10 text-primary border border-primary/20' 
-                           : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                           : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                 }`}>
                   <div className="flex items-center gap-3 flex-1">
                     <UserIcon className="h-5 w-5" />
@@ -677,7 +677,7 @@ export const Navigation = () => {
                 
                  <CollapsibleContent className="mt-1 space-y-1">
                    <CreatorProfileDialog>
-                     <button className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth w-full text-left text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50">
+                     <button className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth w-full text-left text-muted-foreground hover:text-foreground hover:bg-secondary/80">
                        <UserIcon className="h-4 w-4" />
                        <span>Creator Profile</span>
                      </button>
@@ -687,7 +687,7 @@ export const Navigation = () => {
                      className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
                        location.pathname === '/management/users'
                          ? 'bg-primary/3 text-primary/90'
-                           : 'text-muted-foreground hover:text-primary-foreground hover:bg-secondary/50'
+                           : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                      }`}
                    >
                      <Users className="h-4 w-4" />
@@ -764,7 +764,7 @@ export const Navigation = () => {
               variant="ghost" 
               size="sm" 
               onClick={() => navigate('/profile')}
-              className="w-full justify-start gap-2 text-muted-foreground hover:text-primary-foreground hover:bg-accent mb-1"
+              className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground hover:bg-accent mb-1"
             >
               <UserIcon className="h-4 w-4" />
               {t('platform.account.myAccount', 'My Account')}
@@ -773,7 +773,7 @@ export const Navigation = () => {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="w-full justify-start gap-2 text-muted-foreground hover:text-primary-foreground hover:bg-accent mb-1"
+                className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground hover:bg-accent mb-1"
               >
                 <Settings className="h-4 w-4" />
                 Settings
@@ -783,7 +783,7 @@ export const Navigation = () => {
               variant="ghost" 
               size="sm" 
               onClick={handleSignOut}
-              className="w-full justify-start gap-2 text-muted-foreground hover:text-primary-foreground hover:bg-destructive/10 hover:text-destructive mt-1"
+              className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 mt-1"
             >
               <LogOut className="h-4 w-4" />
               {t('platform.auth.signOut', 'Sign Out')}
