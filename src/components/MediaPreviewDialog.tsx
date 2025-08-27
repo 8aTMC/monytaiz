@@ -131,7 +131,7 @@ export const MediaPreviewDialog = ({
     }
   };
 
-  // Enhanced loading with caching and preloading
+  // Enhanced loading with instant cache checking
   useEffect(() => {
     const loadSecureUrl = async () => {
       if (!open || !item) return;
@@ -139,32 +139,35 @@ export const MediaPreviewDialog = ({
       const storagePath = getItemStoragePath(item);
       if (!storagePath) return;
 
+      console.log('MediaPreviewDialog: Loading for path:', storagePath);
+
+      // Always check cache first for instant loading
+      const cachedUrl = getCachedUrl(storagePath, { quality: 85 });
+      if (cachedUrl) {
+        console.log('MediaPreviewDialog: Using cached URL instantly');
+        setSecureUrl(cachedUrl);
+        setLoading(false);
+        setFullImageLoaded(false); // Will be set to true when image loads
+        return;
+      }
+
+      // If not cached, show loading and preload
+      console.log('MediaPreviewDialog: No cached URL, starting preload');
+      setLoading(true);
+      setSecureUrl(null);
+      setFullImageLoaded(false);
+      
       try {
-        setLoading(true);
-        setSecureUrl(null);
-        setFullImageLoaded(false);
-        
-        // Check if we have a cached URL first (instant loading!)
-        const cachedUrl = getCachedUrl(storagePath, { quality: 85 });
-        if (cachedUrl) {
-          console.log('Using cached URL for instant loading');
-          setSecureUrl(cachedUrl);
-          setLoading(false);
-          return;
-        }
-        
-        // If not cached, preload with high priority
-        console.log('Preloading image with high priority');
         const url = await preloadImage(storagePath, { quality: 85, priority: 'high' });
         
         if (url) {
-          console.log('Image preloaded successfully');
+          console.log('MediaPreviewDialog: Preload complete, setting URL');
           setSecureUrl(url);
         } else {
-          console.error('No secure URL returned from preloader');
+          console.error('MediaPreviewDialog: No secure URL returned from preloader');
         }
       } catch (error) {
-        console.error('Error loading secure URL:', error);
+        console.error('MediaPreviewDialog: Error loading secure URL:', error);
       } finally {
         setLoading(false);
       }

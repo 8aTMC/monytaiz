@@ -22,7 +22,7 @@ import { useMediaOperations } from '@/hooks/useMediaOperations';
 import { MediaPreviewDialog } from '@/components/MediaPreviewDialog';
 import { MediaThumbnail } from '@/components/MediaThumbnail';
 import { useToast } from '@/hooks/use-toast';
-import { useMediaPreloader } from '@/hooks/useMediaPreloader';
+import { useAdvancedPreloader } from '@/hooks/useAdvancedPreloader';
 
 interface MediaItem {
   id: string;
@@ -87,16 +87,40 @@ const ContentLibrary = () => {
   
   const { copyToCollection, removeFromCollection, deleteMediaHard, createCollection, loading: operationLoading } = useMediaOperations();
   const { toast } = useToast();
+  const { preloadImage, preloadMultiResolution } = useAdvancedPreloader();
   
+  // Aggressive preloading when content changes
+  useEffect(() => {
+    if (!loadingContent && content.length > 0) {
+      console.log('ContentLibrary: Starting aggressive preloading for', content.length, 'items');
+      
+      // Preload first 10 images immediately
+      const imageItems = content.filter(item => item.type === 'image').slice(0, 10);
+      
+      imageItems.forEach((item, index) => {
+        // Preload thumbnails immediately
+        preloadImage(item.storage_path, { width: 300, height: 300, quality: 70 })
+          .then(() => {
+            console.log(`Preloaded thumbnail ${index + 1}/${imageItems.length}`);
+          })
+          .catch(console.error);
+        
+        // Preload full resolution for first 3 items
+        if (index < 3) {
+          preloadImage(item.storage_path, { quality: 85 })
+            .then(() => {
+              console.log(`Preloaded full res ${index + 1}/3`);
+            })
+            .catch(console.error);
+        }
+      });
+    }
+  }, [content, loadingContent, preloadImage]);
+
   // User roles state
   const [userRoles, setUserRoles] = useState<string[]>([]);
-  
-  // Disabled preloading to fix connection issues
-  // const { preloadMore } = useMediaPreloader(content, {
-  //   initialBatchSize: 10,
-  //   scrollBatchSize: 5,
-  //   preloadDelay: 500
-  // });
+
+  // Removed old preloader - now using advanced preloader above
 
   // Intersection observer for scroll-based preloading
   const gridContainerRef = useRef<HTMLDivElement>(null);

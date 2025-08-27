@@ -15,9 +15,12 @@ interface PreloadItem {
   reject: (error: Error) => void;
 }
 
+// Global cache that persists across component re-renders
+const globalUrlCache = new Map<string, string>();
+const globalPreloadCache = new Map<string, Promise<string>>();
+
 export const useAdvancedPreloader = () => {
   const { getSecureUrl } = useSecureMedia();
-  const preloadCacheRef = useRef<Map<string, Promise<string>>>(new Map());
   const queueRef = useRef<PreloadItem[]>([]);
   const processingRef = useRef(false);
 
@@ -33,7 +36,7 @@ export const useAdvancedPreloader = () => {
     if (processingRef.current || queueRef.current.length === 0) return;
     
     processingRef.current = true;
-    const batch = queueRef.current.splice(0, 3); // Process 3 at a time
+    const batch = queueRef.current.splice(0, 5); // Increased to 5 for faster processing
 
     // Sort by priority (high -> medium -> low)
     batch.sort((a, b) => {
@@ -50,17 +53,35 @@ export const useAdvancedPreloader = () => {
             height: item.options.height
           } : undefined;
 
+          const cacheKey = getCacheKey(item.path, item.options);
+          console.log('Preloading item with cache key:', cacheKey);
+
           const url = await getSecureUrl(item.path, transforms);
           if (url) {
-            // Preload using Image constructor for browser caching
+            // Store in global cache for instant access
+            globalUrlCache.set(cacheKey, url);
+            console.log('Cached URL for key:', cacheKey, '-> URL length:', url.length);
+            
+            // Preload using Image constructor for browser caching with optimizations
             const img = new Image();
-            img.onload = () => item.resolve(url);
-            img.onerror = () => item.reject(new Error('Failed to preload image'));
+            img.crossOrigin = 'anonymous';
+            img.decoding = 'async';
+            img.loading = 'eager'; // Load immediately for preloading
+            img.onload = () => {
+              console.log('Image successfully preloaded and cached:', cacheKey);
+              item.resolve(url);
+            };
+            img.onerror = (e) => {
+              console.error('Failed to preload image:', cacheKey, e);
+              item.reject(new Error('Failed to preload image'));
+            };
             img.src = url;
           } else {
+            console.error('No secure URL returned for:', item.path);
             item.reject(new Error('No secure URL returned'));
           }
         } catch (error) {
+          console.error('Error in preload processing:', error);
           item.reject(error as Error);
         }
       })
@@ -68,28 +89,38 @@ export const useAdvancedPreloader = () => {
 
     processingRef.current = false;
     
-    // Continue processing if more items in queue
+    // Continue processing immediately if more items in queue
     if (queueRef.current.length > 0) {
-      setTimeout(processQueue, 100);
+      setTimeout(processQueue, 50); // Reduced delay for faster processing
     }
   }, [getSecureUrl]);
 
   // Preload single image with caching
   const preloadImage = useCallback((path: string, options?: PreloadOptions): Promise<string> => {
     const cacheKey = getCacheKey(path, options);
+    console.log('preloadImage called for:', cacheKey);
+    
+    // Check global cache first for instant return
+    if (globalUrlCache.has(cacheKey)) {
+      const cachedUrl = globalUrlCache.get(cacheKey)!;
+      console.log('Returning cached URL immediately:', cacheKey);
+      return Promise.resolve(cachedUrl);
+    }
     
     // Return cached promise if exists
-    if (preloadCacheRef.current.has(cacheKey)) {
-      return preloadCacheRef.current.get(cacheKey)!;
+    if (globalPreloadCache.has(cacheKey)) {
+      console.log('Returning cached promise:', cacheKey);
+      return globalPreloadCache.get(cacheKey)!;
     }
 
     // Create new promise and cache it
+    console.log('Creating new preload promise:', cacheKey);
     const promise = new Promise<string>((resolve, reject) => {
       queueRef.current.push({ path, options, resolve, reject });
       setTimeout(processQueue, 0);
     });
 
-    preloadCacheRef.current.set(cacheKey, promise);
+    globalPreloadCache.set(cacheKey, promise);
     return promise;
   }, [processQueue]);
 
@@ -108,18 +139,17 @@ export const useAdvancedPreloader = () => {
     );
   }, [preloadImage]);
 
-  // Get cached URL if available
+  // Get cached URL if available (synchronous)
   const getCachedUrl = useCallback((path: string, options?: PreloadOptions): string | null => {
     const cacheKey = getCacheKey(path, options);
-    const cachedPromise = preloadCacheRef.current.get(cacheKey);
+    const cachedUrl = globalUrlCache.get(cacheKey);
     
-    // This is a synchronous check - only returns if promise is already resolved
-    if (cachedPromise) {
-      let result: string | null = null;
-      cachedPromise.then(url => { result = url; }).catch(() => {});
-      return result;
+    if (cachedUrl) {
+      console.log('getCachedUrl: Found cached URL for', cacheKey);
+      return cachedUrl;
     }
     
+    console.log('getCachedUrl: No cached URL for', cacheKey);
     return null;
   }, []);
 

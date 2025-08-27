@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Image, Video, FileAudio } from 'lucide-react';
-import { useSecureMedia } from '@/hooks/useSecureMedia';
+import { useAdvancedPreloader } from '@/hooks/useAdvancedPreloader';
 
 interface MediaThumbnailProps {
   item: {
@@ -20,7 +20,7 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
   const [imageLoaded, setImageLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [secureUrl, setSecureUrl] = useState<string | null>(null);
-  const { getSecureUrl } = useSecureMedia();
+  const { preloadImage, getCachedUrl } = useAdvancedPreloader();
 
   // Helper to get type from either format
   const getItemType = () => item.type || item.content_type || 'unknown';
@@ -44,20 +44,31 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
   const itemType = getItemType();
   const storagePath = getStoragePath();
 
-  // Load secure URL for images
+  // Load secure URL for images using advanced preloader
   useEffect(() => {
     if (itemType === 'image' && storagePath) {
-      getSecureUrl(storagePath, { width: 256, height: 256, quality: 75 })
+      console.log('MediaThumbnail: Loading thumbnail for', storagePath);
+      
+      // Check cache first for instant loading
+      const cachedUrl = getCachedUrl(storagePath, { width: 300, height: 300, quality: 70 });
+      if (cachedUrl) {
+        console.log('MediaThumbnail: Using cached thumbnail URL');
+        setSecureUrl(cachedUrl);
+        return;
+      }
+      
+      // If not cached, preload
+      preloadImage(storagePath, { width: 300, height: 300, quality: 70, priority: 'low' })
         .then(url => {
-          if (url) {
-            setSecureUrl(url);
-          } else {
-            setHasError(true);
-          }
+          console.log('MediaThumbnail: Preloaded thumbnail successfully');
+          setSecureUrl(url);
         })
-        .catch(() => setHasError(true));
+        .catch(error => {
+          console.error('MediaThumbnail: Failed to preload thumbnail:', error);
+          setHasError(true);
+        });
     }
-  }, [itemType, storagePath, getSecureUrl]);
+  }, [itemType, storagePath, preloadImage, getCachedUrl]);
 
   // For non-image types, show icon
   if (itemType !== 'image') {
