@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Image, Video, FileAudio } from 'lucide-react';
-import { useProgressiveMediaLoading } from '@/hooks/useProgressiveMediaLoading';
+import { useInstantMedia } from '@/hooks/useInstantMedia';
 
 interface MediaThumbnailProps {
   item: {
@@ -18,9 +18,7 @@ interface MediaThumbnailProps {
 
 export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) => {
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const [secureUrl, setSecureUrl] = useState<string | null>(null);
-  const { loadProgressiveMedia, getCurrentUrl } = useProgressiveMediaLoading();
+  const { loadInstantMedia, currentUrl, placeholder, error, enhanceQuality } = useInstantMedia();
 
   // Helper to get type from either format
   const getItemType = () => item.type || item.content_type || 'unknown';
@@ -44,18 +42,12 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
   const itemType = getItemType();
   const storagePath = getStoragePath();
 
-  // Load thumbnail with progressive loading
+  // Load media with instant placeholders
   useEffect(() => {
-    const loadMedia = async () => {
-      if (itemType === 'image' && storagePath) {
-        // Start progressive loading for thumbnails
-        await loadProgressiveMedia(storagePath, item.tiny_placeholder);
-        setImageLoaded(true);
-      }
-    };
-
-    loadMedia();
-  }, [itemType, storagePath, loadProgressiveMedia, item.tiny_placeholder]);
+    if (itemType === 'image' && storagePath) {
+      loadInstantMedia(storagePath, item.tiny_placeholder);
+    }
+  }, [itemType, storagePath, loadInstantMedia, item.tiny_placeholder]);
 
   // For non-image types, show icon
   if (itemType !== 'image') {
@@ -71,8 +63,8 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
     );
   }
 
-  // Use progressive URL if available
-  if (!getCurrentUrl() && !hasError) {
+  // Show loading state only if no placeholder and no error
+  if (!currentUrl && !error) {
     return (
       <div className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}>
         <div className="animate-pulse">
@@ -87,39 +79,29 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
   const aspectHeight = item.height ? Math.round((aspectWidth / (item.width ?? 1)) * (item.height ?? 256)) : 256;
 
   return (
-    <div className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}>
-      {/* Tiny placeholder for instant loading */}
-      {item.tiny_placeholder && !imageLoaded && !hasError && (
+    <div 
+      className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}
+      onMouseEnter={enhanceQuality}
+    >
+      {/* Always show current URL (instant placeholder first, then better quality) */}
+      {currentUrl && (
         <img
-          src={item.tiny_placeholder}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover blur-md transition-all duration-300"
-          style={{ filter: 'blur(8px)' }}
-        />
-      )}
-      
-      {/* Main thumbnail - loads from progressive endpoint */}
-      {getCurrentUrl() && (
-        <img
-          src={getCurrentUrl()}
+          src={currentUrl}
           alt={item.title || 'Thumbnail'}
           className={`w-full h-full object-cover transition-all duration-300 ${
-            imageLoaded ? 'opacity-100 blur-0' : 'opacity-0'
+            currentUrl === placeholder ? 'filter blur-sm' : 'filter-none'
           }`}
           loading="lazy"
           decoding="async"
           width={aspectWidth}
           height={aspectHeight}
           onLoad={() => setImageLoaded(true)}
-          onError={() => {
-            console.error('Failed to load secure thumbnail');
-            setHasError(true);
-          }}
+          onError={() => console.error('Failed to load thumbnail')}
         />
       )}
 
       {/* Error state */}
-      {hasError && (
+      {error && (
         <div className="flex flex-col items-center gap-2">
           {getContentTypeIcon('image')}
           <span className="text-xs text-muted-foreground">Failed to load</span>
