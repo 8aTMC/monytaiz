@@ -133,7 +133,7 @@ export const MediaPreviewDialog = ({
     }
   };
 
-  // Progressive loading with proper aspect ratio preservation
+  // Lightning-fast loading with persistent caching
   useEffect(() => {
     const loadSecureUrl = async () => {
       if (!open || !item) return;
@@ -141,57 +141,70 @@ export const MediaPreviewDialog = ({
       const storagePath = getItemStoragePath(item);
       if (!storagePath) return;
 
-      console.log('MediaPreviewDialog: Loading for path:', storagePath);
+      console.log('🔥 MediaPreviewDialog: LIGHTNING LOAD for:', storagePath);
 
-      // Reset all states
+      // Reset states but check cache FIRST
       setLoading(true);
       setSecureUrl(null);
       setMediumUrl(null);
       setFullImageLoaded(false);
       setMediumImageLoaded(false);
 
-      // Step 1: Check for cached medium quality (NO width constraints to avoid cropping)
-      const cachedMediumUrl = getCachedUrl(storagePath, { quality: 75 });
-      if (cachedMediumUrl) {
-        console.log('MediaPreviewDialog: Using cached medium URL instantly');
-        setMediumUrl(cachedMediumUrl);
-        setMediumImageLoaded(true);
-        setLoading(false);
-      }
-
-      // Step 2: Check for cached full quality
+      // PRIORITY 1: Check for cached full quality (INSTANT!)
       const cachedFullUrl = getCachedUrl(storagePath, { quality: 85 });
       if (cachedFullUrl) {
-        console.log('MediaPreviewDialog: Using cached full URL instantly');
+        console.log('🚀 INSTANT FULL QUALITY load!');
         setSecureUrl(cachedFullUrl);
         setFullImageLoaded(true);
         setLoading(false);
+        return; // DONE! Instant loading achieved
+      }
+
+      // PRIORITY 2: Check for cached medium quality (INSTANT!)
+      const cachedMediumUrl = getCachedUrl(storagePath, { quality: 75 });
+      if (cachedMediumUrl) {
+        console.log('🚀 INSTANT MEDIUM QUALITY load!');
+        setMediumUrl(cachedMediumUrl);
+        setMediumImageLoaded(true);
+        setLoading(false);
+        
+        // Still try to get full quality in background
+        preloadImage(storagePath, { quality: 85, priority: 'high' })
+          .then(fullUrl => {
+            if (fullUrl) {
+              console.log('⚡ Upgraded to full quality');
+              setSecureUrl(fullUrl);
+              setFullImageLoaded(true);
+            }
+          })
+          .catch(console.error);
         return;
       }
 
+      // FALLBACK: Load with high priority (should be fast due to aggressive preloading)
+      console.log('⏳ Loading fresh (should be fast due to preloading)');
+      
       try {
-        // Step 3: If no medium cached, load medium quality first (NO width/height constraints)
-        if (!cachedMediumUrl) {
-          console.log('MediaPreviewDialog: Loading medium quality first (no size constraints)');
-          const mediumUrlResult = await preloadImage(storagePath, { quality: 75, priority: 'high' });
-          if (mediumUrlResult) {
-            console.log('MediaPreviewDialog: Medium quality loaded');
-            setMediumUrl(mediumUrlResult);
-            setMediumImageLoaded(true);
-            setLoading(false);
-          }
+        // Load both qualities in parallel for speed
+        const [mediumUrl, fullUrl] = await Promise.allSettled([
+          preloadImage(storagePath, { quality: 75, priority: 'high' }),
+          preloadImage(storagePath, { quality: 85, priority: 'high' })
+        ]);
+
+        if (mediumUrl.status === 'fulfilled' && mediumUrl.value) {
+          console.log('📸 Medium quality loaded');
+          setMediumUrl(mediumUrl.value);
+          setMediumImageLoaded(true);
+          setLoading(false);
         }
 
-        // Step 4: Load full quality in background (NO width/height constraints)
-        console.log('MediaPreviewDialog: Loading full quality in background (no size constraints)');
-        const fullUrlResult = await preloadImage(storagePath, { quality: 85, priority: 'medium' });
-        if (fullUrlResult) {
-          console.log('MediaPreviewDialog: Full quality loaded');
-          setSecureUrl(fullUrlResult);
+        if (fullUrl.status === 'fulfilled' && fullUrl.value) {
+          console.log('🎯 Full quality loaded');
+          setSecureUrl(fullUrl.value);
           setFullImageLoaded(true);
         }
       } catch (error) {
-        console.error('MediaPreviewDialog: Error loading images:', error);
+        console.error('❌ Error loading images:', error);
         setLoading(false);
       }
     };

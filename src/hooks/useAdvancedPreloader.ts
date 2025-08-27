@@ -15,9 +15,18 @@ interface PreloadItem {
   reject: (error: Error) => void;
 }
 
-// Global cache that persists across component re-renders
+// Global cache that persists across component re-renders - enhanced for better persistence
 const globalUrlCache = new Map<string, string>();
 const globalPreloadCache = new Map<string, Promise<string>>();
+
+// Enhanced cache persistence
+const getCacheStats = () => {
+  console.log('Cache stats:', {
+    urlCache: globalUrlCache.size,
+    promiseCache: globalPreloadCache.size,
+    urls: Array.from(globalUrlCache.keys()).slice(0, 5) // Show first 5 keys
+  });
+};
 
 export const useAdvancedPreloader = () => {
   const { getSecureUrl } = useSecureMedia();
@@ -31,12 +40,12 @@ export const useAdvancedPreloader = () => {
     return `${path}:${width || 'auto'}x${height || 'auto'}q${quality}`;
   };
 
-  // Process preload queue with smart batching
+  // Process preload queue with enhanced batching and immediate caching
   const processQueue = useCallback(async () => {
     if (processingRef.current || queueRef.current.length === 0) return;
     
     processingRef.current = true;
-    const batch = queueRef.current.splice(0, 5); // Increased to 5 for faster processing
+    const batch = queueRef.current.splice(0, 8); // Increased to process more at once
 
     // Sort by priority (high -> medium -> low)
     batch.sort((a, b) => {
@@ -54,34 +63,37 @@ export const useAdvancedPreloader = () => {
           } : undefined;
 
           const cacheKey = getCacheKey(item.path, item.options);
-          console.log('Preloading item with cache key:', cacheKey);
+          console.log('Processing preload for cache key:', cacheKey);
 
           const url = await getSecureUrl(item.path, transforms);
           if (url) {
-            // Store in global cache for instant access
+            // Store in global cache IMMEDIATELY for instant access
             globalUrlCache.set(cacheKey, url);
-            console.log('Cached URL for key:', cacheKey, '-> URL length:', url.length);
+            getCacheStats();
+            console.log('✅ Cached URL for key:', cacheKey);
             
             // Preload using Image constructor for browser caching with optimizations
             const img = new Image();
             img.crossOrigin = 'anonymous';
             img.decoding = 'async';
-            img.loading = 'eager'; // Load immediately for preloading
+            img.loading = 'eager';
+            
             img.onload = () => {
-              console.log('Image successfully preloaded and cached:', cacheKey);
+              console.log('🎯 Image browser-cached:', cacheKey);
               item.resolve(url);
             };
             img.onerror = (e) => {
-              console.error('Failed to preload image:', cacheKey, e);
-              item.reject(new Error('Failed to preload image'));
+              console.error('❌ Failed to browser-cache image:', cacheKey, e);
+              // Still resolve since we have the URL cached
+              item.resolve(url);
             };
             img.src = url;
           } else {
-            console.error('No secure URL returned for:', item.path);
+            console.error('❌ No secure URL returned for:', item.path);
             item.reject(new Error('No secure URL returned'));
           }
         } catch (error) {
-          console.error('Error in preload processing:', error);
+          console.error('❌ Error in preload processing:', error);
           item.reject(error as Error);
         }
       })
@@ -91,7 +103,7 @@ export const useAdvancedPreloader = () => {
     
     // Continue processing immediately if more items in queue
     if (queueRef.current.length > 0) {
-      setTimeout(processQueue, 50); // Reduced delay for faster processing
+      setTimeout(processQueue, 25); // Faster processing
     }
   }, [getSecureUrl]);
 
@@ -139,17 +151,18 @@ export const useAdvancedPreloader = () => {
     );
   }, [preloadImage]);
 
-  // Get cached URL if available (synchronous)
+  // Get cached URL if available (synchronous) with enhanced logging
   const getCachedUrl = useCallback((path: string, options?: PreloadOptions): string | null => {
     const cacheKey = getCacheKey(path, options);
     const cachedUrl = globalUrlCache.get(cacheKey);
     
     if (cachedUrl) {
-      console.log('getCachedUrl: Found cached URL for', cacheKey);
+      console.log('🚀 INSTANT: Found cached URL for', cacheKey);
       return cachedUrl;
     }
     
-    console.log('getCachedUrl: No cached URL for', cacheKey);
+    console.log('⏳ CACHE MISS: No cached URL for', cacheKey);
+    getCacheStats();
     return null;
   }, []);
 

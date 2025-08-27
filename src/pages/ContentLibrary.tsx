@@ -89,39 +89,39 @@ const ContentLibrary = () => {
   const { toast } = useToast();
   const { preloadImage, preloadMultiResolution } = useAdvancedPreloader();
   
-  // Aggressive preloading when content changes (NO width/height constraints)
+  // SUPER aggressive preloading when content changes - load everything instantly
   useEffect(() => {
     if (!loadingContent && content.length > 0) {
-      console.log('ContentLibrary: Starting aggressive preloading for', content.length, 'items');
+      console.log('🚀 ContentLibrary: SUPER aggressive preloading for', content.length, 'items');
       
-      // Preload first 10 images immediately with quality compression only
-      const imageItems = content.filter(item => item.type === 'image').slice(0, 10);
+      // Preload first 20 images immediately (increased from 10)
+      const imageItems = content.filter(item => item.type === 'image').slice(0, 20);
       
       imageItems.forEach((item, index) => {
-        // Preload thumbnails with low quality but no size constraints
-        preloadImage(item.storage_path, { quality: 60 })
+        // Preload medium quality IMMEDIATELY for first 10 items
+        if (index < 10) {
+          preloadImage(item.storage_path, { quality: 75, priority: 'high' })
+            .then(() => {
+              console.log(`✅ Medium quality cached ${index + 1}/10`);
+            })
+            .catch(console.error);
+        }
+        
+        // Preload full quality IMMEDIATELY for first 5 items  
+        if (index < 5) {
+          preloadImage(item.storage_path, { quality: 85, priority: 'high' })
+            .then(() => {
+              console.log(`✅ Full quality cached ${index + 1}/5`);
+            })
+            .catch(console.error);
+        }
+
+        // Preload lower quality for remaining items (for thumbnails)
+        preloadImage(item.storage_path, { quality: 60, priority: 'low' })
           .then(() => {
-            console.log(`Preloaded thumbnail ${index + 1}/${imageItems.length}`);
+            console.log(`✅ Thumbnail quality cached ${index + 1}/${imageItems.length}`);
           })
           .catch(console.error);
-        
-        // Preload medium quality for first 5 items
-        if (index < 5) {
-          preloadImage(item.storage_path, { quality: 75 })
-            .then(() => {
-              console.log(`Preloaded medium res ${index + 1}/5`);
-            })
-            .catch(console.error);
-        }
-        
-        // Preload full quality for first 2 items only
-        if (index < 2) {
-          preloadImage(item.storage_path, { quality: 85 })
-            .then(() => {
-              console.log(`Preloaded full res ${index + 1}/2`);
-            })
-            .catch(console.error);
-        }
       });
     }
   }, [content, loadingContent, preloadImage]);
