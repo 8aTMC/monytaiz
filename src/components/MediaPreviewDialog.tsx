@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Image, Video, FileAudio, FileText, X, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { useSidebar } from '@/components/Navigation';
-import { useAdvancedPreloader } from '@/hooks/useAdvancedPreloader';
+import { useDirectMedia } from '@/hooks/useDirectMedia';
 import { useIntersectionPreloader } from '@/hooks/useIntersectionPreloader';
 
 // Use the MediaItem interface from ContentLibrary
@@ -52,7 +52,7 @@ export const MediaPreviewDialog = ({
   const [mediumUrl, setMediumUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const sidebar = useSidebar();
-  const { preloadImage, getCachedUrl } = useAdvancedPreloader();
+  const { getDirectUrl } = useDirectMedia();
   const { preloadForNavigation } = useIntersectionPreloader(allItems);
   
   // Disabled preloader for media preview
@@ -133,52 +133,29 @@ export const MediaPreviewDialog = ({
     }
   };
 
-  // Fast loading with smart caching and minimal logs  
+  // Instant loading with direct CDN URLs
   useEffect(() => {
-    const loadSecureUrl = async () => {
-      if (!open || !item) return;
-      
-      const storagePath = getItemStoragePath(item);
-      if (!storagePath) return;
+    if (!open || !item) return;
+    
+    const storagePath = getItemStoragePath(item);
+    if (!storagePath) return;
 
-      // Check cache first - if found, instant load
-      const cachedUrl = getCachedUrl(storagePath, { quality: 85 }) || 
-                       getCachedUrl(storagePath, { quality: 75 });
-      
-      if (cachedUrl) {
-        setSecureUrl(cachedUrl);
-        setFullImageLoaded(true);
-        setLoading(false);
-        return;
-      }
-
-      // If not cached, load with priority and preload adjacent items
-      setLoading(true);
-      
-      try {
-        const url = await preloadImage(storagePath, { quality: 85, priority: 'high' });
-        if (url) {
-          setSecureUrl(url);
-          setFullImageLoaded(true);
-        }
-      } catch (error) {
-        // Try medium quality as fallback
-        try {
-          const mediumUrl = await preloadImage(storagePath, { quality: 75, priority: 'high' });
-          if (mediumUrl) {
-            setMediumUrl(mediumUrl);
-            setMediumImageLoaded(true);
-          }
-        } catch (e) {
-          console.error('Failed to load image');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadSecureUrl();
-  }, [open, item, preloadImage, getCachedUrl]);
+    setLoading(false);
+    
+    // Get direct CDN URL - instant!
+    const directUrl = getDirectUrl(storagePath, { quality: 85 });
+    if (directUrl) {
+      setSecureUrl(directUrl);
+      setFullImageLoaded(true);
+    }
+    
+    // Also get medium quality for progressive enhancement
+    const mediumDirectUrl = getDirectUrl(storagePath, { quality: 75 });
+    if (mediumDirectUrl) {
+      setMediumUrl(mediumDirectUrl);
+      setMediumImageLoaded(true);
+    }
+  }, [open, item, getDirectUrl]);
 
   // Preload adjacent items when dialog opens
   useEffect(() => {

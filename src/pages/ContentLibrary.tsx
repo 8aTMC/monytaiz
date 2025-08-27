@@ -22,7 +22,7 @@ import { useMediaOperations } from '@/hooks/useMediaOperations';
 import { MediaPreviewDialog } from '@/components/MediaPreviewDialog';
 import { MediaThumbnail } from '@/components/MediaThumbnail';
 import { useToast } from '@/hooks/use-toast';
-import { useAdvancedPreloader } from '@/hooks/useAdvancedPreloader';
+import { useDirectMedia } from '@/hooks/useDirectMedia';
 
 interface MediaItem {
   id: string;
@@ -87,23 +87,7 @@ const ContentLibrary = () => {
   
   const { copyToCollection, removeFromCollection, deleteMediaHard, createCollection, loading: operationLoading } = useMediaOperations();
   const { toast } = useToast();
-  const { preloadImage, preloadMultiResolution } = useAdvancedPreloader();
-  
-  // Lightweight preloading - only newest 3 images with minimal delay
-  useEffect(() => {
-    if (!loadingContent && content.length > 0) {
-      // Only preload first 3 newest images (what user sees first)
-      const imageItems = content.filter(item => item.type === 'image').slice(0, 3);
-      
-      imageItems.forEach((item, index) => {
-        // Very light staggering to avoid blocking
-        setTimeout(() => {
-          preloadImage(item.storage_path, { quality: 80, priority: 'high' })
-            .catch(() => {}); // Silent fail
-        }, index * 50); // Much faster staggering
-      });
-    }
-  }, [content, loadingContent, preloadImage]);
+  const { getDirectUrl } = useDirectMedia();
 
   // User roles state
   const [userRoles, setUserRoles] = useState<string[]>([]);
