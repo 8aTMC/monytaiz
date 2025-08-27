@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Image, Video, FileAudio, FileText, X, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { useSidebar } from '@/components/Navigation';
-import { useOptimizedSecureMedia } from '@/hooks/useOptimizedSecureMedia';
+import { usePersistentMediaCache } from '@/hooks/usePersistentMediaCache';
 import { useIntersectionPreloader } from '@/hooks/useIntersectionPreloader';
 
 // Use the MediaItem interface from ContentLibrary
@@ -52,7 +52,7 @@ export const MediaPreviewDialog = ({
   const [mediumUrl, setMediumUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const sidebar = useSidebar();
-  const { getOptimizedSecureUrl, getCachedUrl } = useOptimizedSecureMedia();
+  const { getSecureMediaUrl, getCachedMediaUrl } = usePersistentMediaCache();
   const { preloadForNavigation } = useIntersectionPreloader(allItems);
   
   // Disabled preloader for media preview
@@ -141,7 +141,7 @@ export const MediaPreviewDialog = ({
       const storagePath = getItemStoragePath(item);
       if (!storagePath) return;
 
-      // Reset all states when item changes
+      // Reset all states when item changes - show loading immediately
       setFullImageLoaded(false);
       setMediumImageLoaded(false);
       setSecureUrl(null);
@@ -149,8 +149,8 @@ export const MediaPreviewDialog = ({
       setLoading(true);
       
       // Check cache first for instant loading
-      const cachedFullUrl = getCachedUrl(storagePath, { quality: 85 });
-      const cachedMediumUrl = getCachedUrl(storagePath, { quality: 75 });
+      const cachedFullUrl = getCachedMediaUrl(storagePath, { quality: 85 });
+      const cachedMediumUrl = getCachedMediaUrl(storagePath, { quality: 75 });
       
       if (cachedFullUrl) {
         setSecureUrl(cachedFullUrl);
@@ -166,7 +166,7 @@ export const MediaPreviewDialog = ({
 
       try {
         // Load high quality
-        const fullUrl = await getOptimizedSecureUrl(storagePath, { quality: 85 });
+        const fullUrl = await getSecureMediaUrl(storagePath, { quality: 85 });
         if (fullUrl) {
           setSecureUrl(fullUrl);
           setFullImageLoaded(true);
@@ -176,7 +176,7 @@ export const MediaPreviewDialog = ({
         
         // Fallback to medium quality
         try {
-          const mediumUrl = await getOptimizedSecureUrl(storagePath, { quality: 75 });
+          const mediumUrl = await getSecureMediaUrl(storagePath, { quality: 75 });
           if (mediumUrl) {
             setMediumUrl(mediumUrl);
             setMediumImageLoaded(true);
@@ -190,7 +190,7 @@ export const MediaPreviewDialog = ({
     };
 
     loadSecureMedia();
-  }, [open, item, getOptimizedSecureUrl, getCachedUrl]);
+  }, [open, item, getSecureMediaUrl, getCachedMediaUrl]);
 
   // Preload adjacent items when dialog opens
   useEffect(() => {
@@ -266,9 +266,13 @@ export const MediaPreviewDialog = ({
 
               {getItemStoragePath(item) && (
                 <>
-                  {loading && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/60"></div>
+                  {/* Show loading overlay when switching items or loading */}
+                  {(loading || (!fullImageLoaded && !mediumImageLoaded && !item.tiny_placeholder)) && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-muted/10 rounded z-10">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/60"></div>
+                        <p className="text-sm text-muted-foreground">Loading...</p>
+                      </div>
                     </div>
                   )}
 
@@ -315,12 +319,6 @@ export const MediaPreviewDialog = ({
                         />
                       )}
 
-                      {/* Loading overlay only if no images loaded yet */}
-                      {loading && !item.tiny_placeholder && !mediumImageLoaded && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-muted/20 rounded">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/60"></div>
-                        </div>
-                      )}
                     </div>
                   )}
 

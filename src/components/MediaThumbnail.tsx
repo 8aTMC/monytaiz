@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Image, Video, FileAudio } from 'lucide-react';
-import { useOptimizedSecureMedia } from '@/hooks/useOptimizedSecureMedia';
+import { usePersistentMediaCache } from '@/hooks/usePersistentMediaCache';
 
 interface MediaThumbnailProps {
   item: {
@@ -20,7 +20,7 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
   const [imageLoaded, setImageLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [secureUrl, setSecureUrl] = useState<string | null>(null);
-  const { getOptimizedSecureUrl, getCachedUrl } = useOptimizedSecureMedia();
+  const { getSecureMediaUrl, getCachedMediaUrl } = usePersistentMediaCache();
 
   // Helper to get type from either format
   const getItemType = () => item.type || item.content_type || 'unknown';
@@ -46,28 +46,41 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
 
   // Load thumbnail with optimized secure URLs
   useEffect(() => {
-    if (itemType === 'image' && storagePath) {
-      // Check cache first for instant loading
-      const cachedUrl = getCachedUrl(storagePath, { width: 300, height: 300, quality: 70 });
-      if (cachedUrl) {
-        setSecureUrl(cachedUrl);
-        return;
-      }
-      
-      // If not cached, load securely
-      getOptimizedSecureUrl(storagePath, { width: 300, height: 300, quality: 70 })
-        .then(url => {
+    const loadMedia = async () => {
+      if (itemType === 'image' && storagePath) {
+        // Check cache first for instant loading
+        const cachedUrl = getCachedMediaUrl(storagePath, { 
+          width: 300, 
+          height: 300, 
+          quality: 75 
+        });
+        
+        if (cachedUrl) {
+          setSecureUrl(cachedUrl);
+          setImageLoaded(true);
+          return;
+        }
+
+        try {
+          const url = await getSecureMediaUrl(storagePath, { 
+            width: 300, 
+            height: 300, 
+            quality: 75 
+          });
+          
           if (url) {
             setSecureUrl(url);
           } else {
             setHasError(true);
           }
-        })
-        .catch(() => {
+        } catch (error) {
           setHasError(true);
-        });
-    }
-  }, [itemType, storagePath, getOptimizedSecureUrl, getCachedUrl]);
+        }
+      }
+    };
+
+    loadMedia();
+  }, [itemType, storagePath, getSecureMediaUrl, getCachedMediaUrl]);
 
   // For non-image types, show icon
   if (itemType !== 'image') {
