@@ -85,19 +85,6 @@ const ContentLibrary = () => {
     errorMessage: ''
   });
   
-  const { copyToCollection, removeFromCollection, deleteMediaHard, createCollection, loading: operationLoading } = useMediaOperations();
-  const { toast } = useToast();
-  const { getOptimizedSecureUrl } = useOptimizedSecureMedia();
-
-  // User roles state
-  const [userRoles, setUserRoles] = useState<string[]>([]);
-
-  // Removed old preloader - now using advanced preloader above
-
-  // Intersection observer for scroll-based preloading
-  const gridContainerRef = useRef<HTMLDivElement>(null);
-  const preloadObserverRef = useRef<IntersectionObserver | null>(null);
-  
   const [defaultCategories] = useState([
     { id: 'all-files', label: 'All Files', icon: Grid, description: 'All uploaded content', isDefault: true },
     { id: 'stories', label: 'Stories', icon: BookOpen, description: 'Content uploaded to stories', isDefault: true },
@@ -116,97 +103,9 @@ const ContentLibrary = () => {
   
   // Store counts for all categories
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
-  
-  // Click handling state for single/double click detection
-  const [lastClickTime, setLastClickTime] = useState<number>(0);
-  const [clickTimeout, setClickTimeout] = useState<NodeJS.Timeout | null>(null);
-  
-  // Range selection state for shift+click
-  const [lastSelectedIndex, setLastSelectedIndex] = useState<number>(-1);
-  
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-
-  const { isCollapsed, isNarrowScreen } = useSidebar();
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (!session?.user) {
-          navigate('/');
-        } else {
-          setLoading(false);
-          // Fetch user roles
-          fetchUserRoles(session.user.id);
-        }
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (!session?.user) {
-        navigate('/');
-      } else {
-        setLoading(false);
-        // Fetch user roles
-        fetchUserRoles(session.user.id);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  // Fetch user roles function
-  const fetchUserRoles = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId);
-      
-      if (error) {
-        console.error('Error fetching user roles:', error);
-      } else {
-        const roles = data?.map(item => item.role) || [];
-        setUserRoles(roles);
-      }
-    } catch (error) {
-      console.error('Error fetching user roles:', error);
-    }
-  };
-
-  // Auto-collapse sidebar on narrow screens
-  useEffect(() => {
-    const handleResize = () => {
-      const screenWidth = window.innerWidth;
-      // Auto-collapse when screen width is less than 1200px to preserve responsiveness
-      if (screenWidth < 1200 && !isCollapsed) {
-        // Only auto-collapse, don't auto-expand to avoid interference with user preference
-        const navigation = document.querySelector('[data-auto-collapse]');
-        if (navigation) {
-          // Trigger collapse through Navigation component
-          const collapseButton = navigation.querySelector('[data-collapse-trigger]');
-          if (collapseButton) {
-            (collapseButton as HTMLElement).click();
-          }
-        }
-      }
-    };
-
-    // Set up resize listener
-    window.addEventListener('resize', handleResize);
-    // Check on initial load
-    handleResize();
-
-    return () => window.removeEventListener('resize', handleResize);
-  }, [isCollapsed]);
 
   // Function to calculate counts for all categories without filters
-  const calculateCategoryCounts = async () => {
+  const calculateCategoryCounts = useCallback(async () => {
     try {
       const counts: Record<string, number> = {};
       
@@ -270,10 +169,10 @@ const ContentLibrary = () => {
     } catch (error) {
       console.error('Error calculating category counts:', error);
     }
-  };
+  }, [customFolders]);
 
   // Separate refetch function that can be called from anywhere
-  const refetchContent = async () => {
+  const refetchContent = useCallback(async () => {
     try {
       let combinedData: any[] = [];
 
@@ -442,7 +341,113 @@ const ContentLibrary = () => {
     } catch (error) {
       console.error('Error fetching content:', error);
     }
+  }, [selectedCategory, searchQuery, selectedFilter, sortBy, calculateCategoryCounts]);
+
+  const { copyToCollection, removeFromCollection, deleteMediaHard, createCollection, loading: operationLoading } = useMediaOperations({
+    onRefreshNeeded: refetchContent,
+    onCountsRefreshNeeded: calculateCategoryCounts
+  });
+  const { toast } = useToast();
+  const { getOptimizedSecureUrl } = useOptimizedSecureMedia();
+
+  // User roles state
+  const [userRoles, setUserRoles] = useState<string[]>([]);
+
+  // Removed old preloader - now using advanced preloader above
+
+  // Intersection observer for scroll-based preloading
+  const gridContainerRef = useRef<HTMLDivElement>(null);
+  const preloadObserverRef = useRef<IntersectionObserver | null>(null);
+  
+  
+  // Click handling state for single/double click detection
+  const [lastClickTime, setLastClickTime] = useState<number>(0);
+  const [clickTimeout, setClickTimeout] = useState<NodeJS.Timeout | null>(null);
+  
+  // Range selection state for shift+click
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<number>(-1);
+  
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const { isCollapsed, isNarrowScreen } = useSidebar();
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (!session?.user) {
+          navigate('/');
+        } else {
+          setLoading(false);
+          // Fetch user roles
+          fetchUserRoles(session.user.id);
+        }
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (!session?.user) {
+        navigate('/');
+      } else {
+        setLoading(false);
+        // Fetch user roles
+        fetchUserRoles(session.user.id);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  // Fetch user roles function
+  const fetchUserRoles = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+      
+      if (error) {
+        console.error('Error fetching user roles:', error);
+      } else {
+        const roles = data?.map(item => item.role) || [];
+        setUserRoles(roles);
+      }
+    } catch (error) {
+      console.error('Error fetching user roles:', error);
+    }
   };
+
+  // Auto-collapse sidebar on narrow screens
+  useEffect(() => {
+    const handleResize = () => {
+      const screenWidth = window.innerWidth;
+      // Auto-collapse when screen width is less than 1200px to preserve responsiveness
+      if (screenWidth < 1200 && !isCollapsed) {
+        // Only auto-collapse, don't auto-expand to avoid interference with user preference
+        const navigation = document.querySelector('[data-auto-collapse]');
+        if (navigation) {
+          // Trigger collapse through Navigation component
+          const collapseButton = navigation.querySelector('[data-collapse-trigger]');
+          if (collapseButton) {
+            (collapseButton as HTMLElement).click();
+          }
+        }
+      }
+    };
+
+    // Set up resize listener
+    window.addEventListener('resize', handleResize);
+    // Check on initial load
+    handleResize();
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isCollapsed]);
+
 
   useEffect(() => {
     const fetchContent = async () => {

@@ -17,7 +17,10 @@ export interface Collection {
   system_key?: string
 }
 
-export const useMediaOperations = () => {
+export const useMediaOperations = (callbacks?: {
+  onRefreshNeeded?: () => void;
+  onCountsRefreshNeeded?: () => void;
+}) => {
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
 
@@ -38,6 +41,10 @@ export const useMediaOperations = () => {
         title: "Success",
         description: data.message || `Copied ${mediaIds.length} items to collection`
       })
+
+      // Trigger refresh of content and counts
+      callbacks?.onRefreshNeeded?.()
+      callbacks?.onCountsRefreshNeeded?.()
 
       return data
     } catch (error: any) {
@@ -70,6 +77,10 @@ export const useMediaOperations = () => {
         title: "Success",
         description: data.message || `Removed ${mediaIds.length} items from collection`
       })
+
+      // Trigger refresh of content and counts
+      callbacks?.onRefreshNeeded?.()
+      callbacks?.onCountsRefreshNeeded?.()
 
       return data
     } catch (error: any) {
@@ -122,6 +133,10 @@ export const useMediaOperations = () => {
         description: `Permanently deleted ${totalFiles} files`
       })
 
+      // Trigger refresh of content and counts
+      callbacks?.onRefreshNeeded?.()
+      callbacks?.onCountsRefreshNeeded?.()
+
       return { success: true, deleted_count: totalFiles };
     } catch (error: any) {
       console.error('Delete media error:', error)
@@ -152,6 +167,10 @@ export const useMediaOperations = () => {
         title: "Success",
         description: data.message || `Created collection "${name}"`
       })
+
+      // Trigger refresh of content and counts for new collection
+      callbacks?.onRefreshNeeded?.()
+      callbacks?.onCountsRefreshNeeded?.()
 
       return data.collection
     } catch (error: any) {
