@@ -26,6 +26,7 @@ import FanListDetail from "./pages/FanListDetail";
 import FanDashboard from "./pages/FanDashboard";
 import ManagementMessages from "./pages/ManagementMessages";
 import { AIManagement } from "./pages/AIManagement";
+import TagManagement from "./pages/TagManagement";
 import NotFound from "./pages/NotFound";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 
@@ -155,6 +156,13 @@ const App = () => (
               <ProtectedRoute>
                 <Layout>
                   <AIManagement />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/tags" element={
+              <ProtectedRoute>
+                <Layout>
+                  <TagManagement />
                 </Layout>
               </ProtectedRoute>
             } />

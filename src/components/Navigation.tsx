@@ -40,7 +40,6 @@ import {
 } from 'lucide-react';
 import { ContentIcon } from './icons/ContentIcon';
 import { CreatorProfileDialog } from '@/components/CreatorProfileDialog';
-import { TagManagementDialog } from '@/components/TagManagementDialog';
 // Force hot reload to fix cache issue
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -162,7 +161,7 @@ export const Navigation = () => {
   // Determine which section should be open based on current route
   const getCurrentSection = (): 'fans' | 'content' | 'management' | null => {
     if (location.pathname.startsWith('/fans')) return 'fans';
-    if (location.pathname === '/library' || location.pathname === '/upload') return 'content';
+    if (location.pathname === '/library' || location.pathname === '/upload' || location.pathname === '/tags') return 'content';
     if (location.pathname.startsWith('/management')) return 'management';
     return null;
   };
@@ -241,7 +240,7 @@ export const Navigation = () => {
       case 'fans':
         return location.pathname.startsWith('/fans');
       case 'content':
-        return location.pathname === '/library' || location.pathname === '/upload';
+        return location.pathname === '/library' || location.pathname === '/upload' || location.pathname === '/tags';
       case 'management':
         return location.pathname.startsWith('/management');
       default:
@@ -537,12 +536,17 @@ export const Navigation = () => {
                       <Upload className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/upload' ? '' : 'group-hover:scale-110'}`} />
                       <span className="font-medium">Upload</span>
                     </Link>
-                    <TagManagementDialog>
-                      <button className="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] w-full text-left text-muted-foreground hover:text-foreground hover:bg-accent/80 hover:shadow-sm">
-                        <Tags className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
-                        <span className="font-medium">Tags</span>
-                      </button>
-                    </TagManagementDialog>
+                    <Link
+                      to="/tags"
+                      className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
+                        location.pathname === '/tags'
+                          ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-accent/80 hover:shadow-sm'
+                      }`}
+                    >
+                      <Tags className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/tags' ? '' : 'group-hover:scale-110'}`} />
+                      <span className="font-medium">Tags</span>
+                    </Link>
                  </div>
                </HoverCardContent>
               </HoverCard>
@@ -589,12 +593,17 @@ export const Navigation = () => {
                       <Upload className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/upload' ? '' : 'group-hover:scale-110'}`} />
                       <span className="font-medium">Upload</span>
                     </Link>
-                    <TagManagementDialog>
-                      <button className="group flex items-center gap-3 px-6 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] text-muted-foreground hover:text-foreground hover:bg-accent/80 hover:shadow-sm w-full text-left">
-                        <Tags className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
-                        <span className="font-medium">Tags</span>
-                      </button>
-                    </TagManagementDialog>
+                    <Link
+                      to="/tags"
+                      className={`group flex items-center gap-3 px-6 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
+                        location.pathname === '/tags'
+                          ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-accent/80 hover:shadow-sm'
+                      }`}
+                    >
+                      <Tags className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/tags' ? '' : 'group-hover:scale-110'}`} />
+                      <span className="font-medium">Tags</span>
+                    </Link>
                   </CollapsibleContent>
                </Collapsible>
             )}
