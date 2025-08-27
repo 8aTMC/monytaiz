@@ -141,6 +141,11 @@ export const MediaPreviewDialog = ({
       const storagePath = getItemStoragePath(item);
       if (!storagePath) return;
 
+      // Reset all states when item changes
+      setFullImageLoaded(false);
+      setMediumImageLoaded(false);
+      setSecureUrl(null);
+      setMediumUrl(null);
       setLoading(true);
       
       // Check cache first for instant loading
