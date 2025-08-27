@@ -94,7 +94,7 @@ const ContentLibrary = () => {
     if (!loadingContent && content.length > 0) {
       console.log('ContentLibrary: Starting aggressive preloading for', content.length, 'items');
       
-      // Preload first 10 images immediately
+      // Preload first 10 images immediately with multiple resolutions
       const imageItems = content.filter(item => item.type === 'image').slice(0, 10);
       
       imageItems.forEach((item, index) => {
@@ -105,11 +105,20 @@ const ContentLibrary = () => {
           })
           .catch(console.error);
         
-        // Preload full resolution for first 3 items
-        if (index < 3) {
-          preloadImage(item.storage_path, { quality: 85 })
+        // Preload medium resolution for first 5 items (fast preview quality)
+        if (index < 5) {
+          preloadImage(item.storage_path, { width: 800, quality: 80 })
             .then(() => {
-              console.log(`Preloaded full res ${index + 1}/3`);
+              console.log(`Preloaded medium res ${index + 1}/5`);
+            })
+            .catch(console.error);
+        }
+        
+        // Preload full resolution for first 2 items only (to avoid overwhelming)
+        if (index < 2) {
+          preloadImage(item.storage_path, { width: 1200, quality: 85 })
+            .then(() => {
+              console.log(`Preloaded full res ${index + 1}/2`);
             })
             .catch(console.error);
         }

@@ -47,7 +47,9 @@ export const MediaPreviewDialog = ({
   onItemChange,
 }: MediaPreviewDialogProps) => {
   const [fullImageLoaded, setFullImageLoaded] = useState(false);
+  const [mediumImageLoaded, setMediumImageLoaded] = useState(false);
   const [secureUrl, setSecureUrl] = useState<string | null>(null);
+  const [mediumUrl, setMediumUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const sidebar = useSidebar();
   const { preloadImage, getCachedUrl } = useAdvancedPreloader();
@@ -131,7 +133,7 @@ export const MediaPreviewDialog = ({
     }
   };
 
-  // Enhanced loading with instant cache checking
+  // Progressive loading with instant placeholders
   useEffect(() => {
     const loadSecureUrl = async () => {
       if (!open || !item) return;
@@ -141,34 +143,55 @@ export const MediaPreviewDialog = ({
 
       console.log('MediaPreviewDialog: Loading for path:', storagePath);
 
-      // Always check cache first for instant loading
-      const cachedUrl = getCachedUrl(storagePath, { quality: 85 });
-      if (cachedUrl) {
-        console.log('MediaPreviewDialog: Using cached URL instantly');
-        setSecureUrl(cachedUrl);
+      // Reset all states
+      setLoading(true);
+      setSecureUrl(null);
+      setMediumUrl(null);
+      setFullImageLoaded(false);
+      setMediumImageLoaded(false);
+
+      // Step 1: Check for cached medium quality (800px) - this loads fast
+      const cachedMediumUrl = getCachedUrl(storagePath, { width: 800, quality: 80 });
+      if (cachedMediumUrl) {
+        console.log('MediaPreviewDialog: Using cached medium URL instantly');
+        setMediumUrl(cachedMediumUrl);
+        setMediumImageLoaded(true);
         setLoading(false);
-        setFullImageLoaded(false); // Will be set to true when image loads
+      }
+
+      // Step 2: Check for cached full quality
+      const cachedFullUrl = getCachedUrl(storagePath, { width: 1200, quality: 85 });
+      if (cachedFullUrl) {
+        console.log('MediaPreviewDialog: Using cached full URL instantly');
+        setSecureUrl(cachedFullUrl);
+        setFullImageLoaded(true);
+        setLoading(false);
         return;
       }
 
-      // If not cached, show loading and preload
-      console.log('MediaPreviewDialog: No cached URL, starting preload');
-      setLoading(true);
-      setSecureUrl(null);
-      setFullImageLoaded(false);
-      
       try {
-        const url = await preloadImage(storagePath, { quality: 85, priority: 'high' });
-        
-        if (url) {
-          console.log('MediaPreviewDialog: Preload complete, setting URL');
-          setSecureUrl(url);
-        } else {
-          console.error('MediaPreviewDialog: No secure URL returned from preloader');
+        // Step 3: If no medium cached, load medium quality first (much faster)
+        if (!cachedMediumUrl) {
+          console.log('MediaPreviewDialog: Loading medium quality first');
+          const mediumUrlResult = await preloadImage(storagePath, { width: 800, quality: 80, priority: 'high' });
+          if (mediumUrlResult) {
+            console.log('MediaPreviewDialog: Medium quality loaded');
+            setMediumUrl(mediumUrlResult);
+            setMediumImageLoaded(true);
+            setLoading(false);
+          }
+        }
+
+        // Step 4: Load full quality in background (limited to 1200px for reasonable size)
+        console.log('MediaPreviewDialog: Loading full quality in background');
+        const fullUrlResult = await preloadImage(storagePath, { width: 1200, quality: 85, priority: 'medium' });
+        if (fullUrlResult) {
+          console.log('MediaPreviewDialog: Full quality loaded');
+          setSecureUrl(fullUrlResult);
+          setFullImageLoaded(true);
         }
       } catch (error) {
-        console.error('MediaPreviewDialog: Error loading secure URL:', error);
-      } finally {
+        console.error('MediaPreviewDialog: Error loading images:', error);
         setLoading(false);
       }
     };
@@ -258,35 +281,59 @@ export const MediaPreviewDialog = ({
 
                   {typeValue === 'image' && (
                     <div className="relative w-full">
-                      {/* Show tiny placeholder first for instant loading */}
-                      {item.tiny_placeholder && !fullImageLoaded && !loading && (
+                      {/* Tiny placeholder - shows immediately for instant feedback */}
+                      {item.tiny_placeholder && (
                         <img 
                           src={item.tiny_placeholder} 
                           alt=""
-                          className="w-full h-auto object-contain rounded blur-sm opacity-60"
+                          className={`w-full h-auto object-contain rounded transition-opacity duration-300 ${
+                            mediumImageLoaded || fullImageLoaded ? 'opacity-30' : 'opacity-100'
+                          }`}
                         />
                       )}
                       
-                      {/* High quality preview using secure URL */}
+                      {/* Medium quality image - loads first and fast */}
+                      {mediumUrl && (
+                        <img 
+                          src={mediumUrl}
+                          alt={item.title || 'Preview'} 
+                          onLoad={() => setMediumImageLoaded(true)}
+                          onError={(e) => {
+                            console.error('Failed to load medium image:', e);
+                          }}
+                          className={`w-full h-auto object-contain rounded transition-opacity duration-300 ${
+                            mediumImageLoaded && !fullImageLoaded ? 'opacity-100' : 'opacity-0'
+                          } ${item.tiny_placeholder ? 'absolute inset-0' : ''}`}
+                        />
+                      )}
+                      
+                      {/* Full quality image - loads last for best quality */}
                       {secureUrl && (
                         <img 
                           src={secureUrl}
                           alt={item.title || 'Preview'} 
                           onLoad={() => setFullImageLoaded(true)}
                           onError={(e) => {
-                            console.error('Failed to load secure image:', e);
+                            console.error('Failed to load full image:', e);
                           }}
-                          className={`w-full h-auto object-contain rounded transition-opacity duration-300 ${
+                          className={`w-full h-auto object-contain rounded transition-opacity duration-500 ${
                             fullImageLoaded ? 'opacity-100' : 'opacity-0'
-                          } ${!fullImageLoaded && item.tiny_placeholder ? 'absolute inset-0' : ''}`}
+                          } ${item.tiny_placeholder || mediumUrl ? 'absolute inset-0' : ''}`}
                         />
+                      )}
+
+                      {/* Loading overlay only if no images loaded yet */}
+                      {loading && !item.tiny_placeholder && !mediumImageLoaded && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-muted/20 rounded">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/60"></div>
+                        </div>
                       )}
                     </div>
                   )}
 
-                  {typeValue === 'video' && secureUrl && (
+                  {typeValue === 'video' && (mediumUrl || secureUrl) && (
                     <video 
-                      src={secureUrl}
+                      src={secureUrl || mediumUrl}
                       controls 
                       className="w-full h-auto object-contain rounded"
                       preload="metadata"
@@ -298,11 +345,11 @@ export const MediaPreviewDialog = ({
                     </video>
                   )}
 
-                  {typeValue === 'audio' && secureUrl && (
+                  {typeValue === 'audio' && (mediumUrl || secureUrl) && (
                     <div className="flex flex-col items-center gap-4 p-8">
                       <FileAudio className="h-16 w-16 text-muted-foreground" />
                       <audio 
-                        src={secureUrl} 
+                        src={secureUrl || mediumUrl} 
                         controls 
                         className="w-full max-w-md" 
                         preload="metadata"
