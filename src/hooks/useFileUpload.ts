@@ -15,7 +15,7 @@ export interface FileUploadItem {
 }
 
 const FILE_LIMITS = {
-  video: 6 * 1024 * 1024 * 1024, // 6GB
+  video: 50 * 1024 * 1024, // 50MB (Supabase storage limit)
   image: 50 * 1024 * 1024, // 50MB
   audio: 10 * 1024 * 1024, // 10MB
   document: 10 * 1024 * 1024, // 10MB
@@ -71,9 +71,7 @@ export const useFileUpload = () => {
       const maxSize = FILE_LIMITS[fileType];
       
       if (file.size > maxSize) {
-        const sizeLabel = fileType === 'video' 
-          ? `${(maxSize / (1024 * 1024 * 1024)).toFixed(0)}GB`
-          : `${(maxSize / (1024 * 1024)).toFixed(0)}MB`;
+        const sizeLabel = `${(maxSize / (1024 * 1024)).toFixed(0)}MB`;
         throw new Error(`File too large. Max size for ${fileType}: ${sizeLabel}`);
       }
       
