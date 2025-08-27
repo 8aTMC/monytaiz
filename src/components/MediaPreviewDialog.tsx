@@ -286,7 +286,7 @@ export const MediaPreviewDialog = ({
                         <img 
                           src={item.tiny_placeholder} 
                           alt=""
-                          className={`w-full max-h-[70vh] object-contain rounded transition-opacity duration-300 ${
+                          className={`max-w-full max-h-[70vh] object-contain rounded transition-opacity duration-300 ${
                             mediumImageLoaded || fullImageLoaded ? 'opacity-30 blur-sm' : 'opacity-100 blur-sm'
                           }`}
                         />
@@ -301,9 +301,9 @@ export const MediaPreviewDialog = ({
                           onError={(e) => {
                             console.error('Failed to load medium image:', e);
                           }}
-                          className={`w-full max-h-[70vh] object-contain rounded transition-opacity duration-300 ${
+                          className={`max-w-full max-h-[70vh] object-contain rounded transition-opacity duration-300 ${
                             mediumImageLoaded && !fullImageLoaded ? 'opacity-100' : 'opacity-0'
-                          } ${item.tiny_placeholder ? 'absolute inset-0' : ''}`}
+                          } ${item.tiny_placeholder ? 'absolute inset-0 m-auto' : ''}`}
                         />
                       )}
                       
@@ -316,9 +316,9 @@ export const MediaPreviewDialog = ({
                           onError={(e) => {
                             console.error('Failed to load full image:', e);
                           }}
-                          className={`w-full max-h-[70vh] object-contain rounded transition-opacity duration-500 ${
+                          className={`max-w-full max-h-[70vh] object-contain rounded transition-opacity duration-500 ${
                             fullImageLoaded ? 'opacity-100' : 'opacity-0'
-                          } ${item.tiny_placeholder || mediumUrl ? 'absolute inset-0' : ''}`}
+                          } ${item.tiny_placeholder || mediumUrl ? 'absolute inset-0 m-auto' : ''}`}
                         />
                       )}
 
