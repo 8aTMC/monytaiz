@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Image, Video, FileAudio } from 'lucide-react';
-import { useDirectMedia } from '@/hooks/useDirectMedia';
 
 interface MediaThumbnailProps {
   item: {
@@ -17,9 +16,9 @@ interface MediaThumbnailProps {
 }
 
 export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) => {
-  const [imageLoaded, setImageLoaded] = useState(false);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
-  const { getDirectUrl } = useDirectMedia();
+  const [isLoading, setIsLoading] = useState(true);
 
   // Helper to get type from either format
   const getItemType = () => item.type || item.content_type || 'unknown';
@@ -42,11 +41,32 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
 
   const itemType = getItemType();
   const storagePath = getStoragePath();
-  
-  // Get direct thumbnail URL for images
-  const thumbnailUrl = itemType === 'image' && storagePath 
-    ? getDirectUrl(storagePath, { width: 256, height: 256, quality: 80 })
-    : null;
+
+  // Load thumbnails using simple public URLs
+  useEffect(() => {
+    if (itemType === 'image' && storagePath) {
+      setIsLoading(true);
+      setImageError(false);
+      
+      // Try direct public URL first
+      const publicUrl = `https://alzyzfjzwvofmjccirjq.supabase.co/storage/v1/object/public/content/${storagePath}`;
+      
+      // Test if the image loads
+      const imgElement = new globalThis.Image();
+      imgElement.onload = () => {
+        setThumbnailUrl(publicUrl);
+        setIsLoading(false);
+      };
+      imgElement.onerror = () => {
+        // If public URL fails, show placeholder
+        setImageError(true);
+        setIsLoading(false);
+      };
+      imgElement.src = publicUrl;
+    } else {
+      setIsLoading(false);
+    }
+  }, [itemType, storagePath]);
 
   // For non-image types, show icon
   if (itemType !== 'image') {
@@ -62,8 +82,8 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
     );
   }
 
-  // Show loading state for images without URL
-  if (itemType === 'image' && !thumbnailUrl && !imageError) {
+  // Show loading state for images
+  if (isLoading) {
     return (
       <div className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}>
         <div className="animate-pulse">
@@ -89,13 +109,12 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
           decoding="async"
           width={aspectWidth}
           height={aspectHeight}
-          onLoad={() => setImageLoaded(true)}
           onError={() => setImageError(true)}
         />
       )}
 
       {/* Error state or fallback */}
-      {(imageError || (itemType === 'image' && !thumbnailUrl)) && (
+      {(imageError || !thumbnailUrl) && (
         <div className="flex flex-col items-center gap-2">
           {getContentTypeIcon('image')}
           <span className="text-xs text-muted-foreground">Image</span>
