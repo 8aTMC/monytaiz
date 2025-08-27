@@ -210,7 +210,7 @@ const ContentLibrary = () => {
     try {
       const counts: Record<string, number> = {};
       
-      // Calculate All Files count
+      // Calculate All Files count (avoiding double counting)
       const [allMediaResults, allContentResults] = await Promise.all([
         supabase
           .from('media')
@@ -225,7 +225,24 @@ const ContentLibrary = () => {
           .gt('file_size', 0)
       ]);
       
-      counts['all-files'] = (allMediaResults.count || 0) + (allContentResults.count || 0);
+      // Get unique files - avoid counting files that exist in both tables
+      const { data: mediaIds } = await supabase
+        .from('media')
+        .select('id');
+      
+      const { data: contentFileIds } = await supabase
+        .from('content_files')
+        .select('id')
+        .eq('is_active', true)
+        .not('content_type', 'is', null)
+        .not('file_path', 'is', null)
+        .not('file_path', 'eq', '')
+        .gt('file_size', 0);
+      
+      const mediaIdSet = new Set((mediaIds || []).map(item => item.id));
+      const uniqueContentFiles = (contentFileIds || []).filter(item => !mediaIdSet.has(item.id));
+      
+      counts['all-files'] = (allMediaResults.count || 0) + uniqueContentFiles.length;
       
       // Calculate Messages count (only media with message/chat origin)
       const { count: messagesCount } = await supabase
