@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Image, Video, FileAudio, FileText, X, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { useSidebar } from '@/components/Navigation';
-import { usePersistentMediaCache } from '@/hooks/usePersistentMediaCache';
+import { useProgressiveMediaLoading } from '@/hooks/useProgressiveMediaLoading';
 import { useIntersectionPreloader } from '@/hooks/useIntersectionPreloader';
 
 // Use the MediaItem interface from ContentLibrary
@@ -46,13 +46,15 @@ export const MediaPreviewDialog = ({
   onToggleSelection,
   onItemChange,
 }: MediaPreviewDialogProps) => {
-  const [fullImageLoaded, setFullImageLoaded] = useState(false);
-  const [mediumImageLoaded, setMediumImageLoaded] = useState(false);
-  const [secureUrl, setSecureUrl] = useState<string | null>(null);
-  const [mediumUrl, setMediumUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const sidebar = useSidebar();
-  const { getSecureMediaUrl, getCachedMediaUrl } = usePersistentMediaCache();
+  const { 
+    loadProgressiveMedia, 
+    enhanceQuality, 
+    getCurrentUrl, 
+    currentQuality,
+    loadingQuality,
+    isLoading 
+  } = useProgressiveMediaLoading();
   const { preloadForNavigation } = useIntersectionPreloader(allItems);
   
   // Disabled preloader for media preview
@@ -133,64 +135,23 @@ export const MediaPreviewDialog = ({
     }
   };
 
-  // Fast loading with secure access control
+  // Progressive loading with instant feedback
   useEffect(() => {
-    const loadSecureMedia = async () => {
-      if (!open || !item) return;
-      
-      const storagePath = getItemStoragePath(item);
-      if (!storagePath) return;
+    if (!open || !item) return;
+    
+    const storagePath = getItemStoragePath(item);
+    if (!storagePath) return;
 
-      // Reset all states when item changes - show loading immediately
-      setFullImageLoaded(false);
-      setMediumImageLoaded(false);
-      setSecureUrl(null);
-      setMediumUrl(null);
-      setLoading(true);
-      
-      // Check cache first for instant loading
-      const cachedFullUrl = getCachedMediaUrl(storagePath, { quality: 85 });
-      const cachedMediumUrl = getCachedMediaUrl(storagePath, { quality: 75 });
-      
-      if (cachedFullUrl) {
-        setSecureUrl(cachedFullUrl);
-        setFullImageLoaded(true);
-        setLoading(false);
-        return;
-      }
-      
-      if (cachedMediumUrl) {
-        setMediumUrl(cachedMediumUrl);
-        setMediumImageLoaded(true);
-      }
+    // Start progressive loading immediately
+    loadProgressiveMedia(storagePath, item.tiny_placeholder);
+    
+    // Enhance quality when user stays on the image
+    const enhanceTimer = setTimeout(() => {
+      enhanceQuality();
+    }, 1500);
 
-      try {
-        // Load high quality
-        const fullUrl = await getSecureMediaUrl(storagePath, { quality: 85 });
-        if (fullUrl) {
-          setSecureUrl(fullUrl);
-          setFullImageLoaded(true);
-        }
-      } catch (error) {
-        console.error('Failed to load full quality:', error);
-        
-        // Fallback to medium quality
-        try {
-          const mediumUrl = await getSecureMediaUrl(storagePath, { quality: 75 });
-          if (mediumUrl) {
-            setMediumUrl(mediumUrl);
-            setMediumImageLoaded(true);
-          }
-        } catch (e) {
-          console.error('Failed to load medium quality:', e);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadSecureMedia();
-  }, [open, item, getSecureMediaUrl, getCachedMediaUrl]);
+    return () => clearTimeout(enhanceTimer);
+  }, [open, item, loadProgressiveMedia, enhanceQuality]);
 
   // Preload adjacent items when dialog opens
   useEffect(() => {
@@ -266,8 +227,8 @@ export const MediaPreviewDialog = ({
 
               {getItemStoragePath(item) && (
                 <>
-                  {/* Show loading overlay when switching items or loading */}
-                  {(loading || (!fullImageLoaded && !mediumImageLoaded && !item.tiny_placeholder)) && (
+                  {/* Show loading overlay only if no media available yet */}
+                  {(isLoading && !getCurrentUrl()) && (
                     <div className="absolute inset-0 flex items-center justify-center bg-muted/10 rounded z-10">
                       <div className="flex flex-col items-center gap-2">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/60"></div>
@@ -277,54 +238,45 @@ export const MediaPreviewDialog = ({
                   )}
 
                   {typeValue === 'image' && (
-                    <div className="relative w-full">
-                      {/* Tiny placeholder - shows immediately for instant feedback */}
-                      {item.tiny_placeholder && (
+                    <div className="relative w-full" onClick={enhanceQuality}>
+                      {/* Progressive image loading */}
+                      {getCurrentUrl() ? (
                         <img 
-                          src={item.tiny_placeholder} 
-                          alt=""
-                          className={`w-full h-auto object-contain rounded transition-opacity duration-300 ${
-                            mediumImageLoaded || fullImageLoaded ? 'opacity-30 blur-sm' : 'opacity-100 blur-sm'
-                          }`}
+                          src={getCurrentUrl()}
+                          alt={item.title || 'Preview'} 
+                          className="w-full h-auto object-contain rounded transition-all duration-300"
+                          onError={(e) => {
+                            console.error('Failed to load image:', e);
+                          }}
                         />
+                      ) : (
+                        <div className="flex items-center justify-center h-64 bg-muted/20 rounded">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/60"></div>
+                        </div>
                       )}
                       
-                      {/* Medium quality image - loads first and fast */}
-                      {mediumUrl && (
-                        <img 
-                          src={mediumUrl}
-                          alt={item.title || 'Preview'} 
-                          onLoad={() => setMediumImageLoaded(true)}
-                          onError={(e) => {
-                            console.error('Failed to load medium image:', e);
-                          }}
-                          className={`w-full h-auto object-contain rounded transition-opacity duration-300 ${
-                            mediumImageLoaded && !fullImageLoaded ? 'opacity-100' : 'opacity-0'
-                          } ${item.tiny_placeholder ? 'absolute inset-0' : ''}`}
-                        />
+                      {/* Quality indicator */}
+                      {getCurrentUrl() && (
+                        <div className="absolute top-2 left-2 z-10">
+                          <div className="flex items-center gap-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
+                            <div className={`w-2 h-2 rounded-full ${
+                              currentQuality === 'high' ? 'bg-green-400' :
+                              currentQuality === 'medium' ? 'bg-yellow-400' :
+                              currentQuality === 'low' ? 'bg-orange-400' : 'bg-red-400'
+                            }`} />
+                            {currentQuality.toUpperCase()}
+                            {loadingQuality && (
+                              <div className="animate-spin w-3 h-3 border border-white/30 border-t-white rounded-full ml-1" />
+                            )}
+                          </div>
+                        </div>
                       )}
-                      
-                      {/* Full quality image - loads last for best quality */}
-                      {secureUrl && (
-                        <img 
-                          src={secureUrl}
-                          alt={item.title || 'Preview'} 
-                          onLoad={() => setFullImageLoaded(true)}
-                          onError={(e) => {
-                            console.error('Failed to load full image:', e);
-                          }}
-                          className={`w-full h-auto object-contain rounded transition-opacity duration-500 ${
-                            fullImageLoaded ? 'opacity-100' : 'opacity-0'
-                          } ${item.tiny_placeholder || mediumUrl ? 'absolute inset-0' : ''}`}
-                        />
-                      )}
-
                     </div>
                   )}
 
-                  {typeValue === 'video' && (mediumUrl || secureUrl) && (
+                  {typeValue === 'video' && getCurrentUrl() && (
                     <video 
-                      src={secureUrl || mediumUrl}
+                      src={getCurrentUrl()}
                       controls 
                       className="w-full h-auto object-contain rounded"
                       preload="metadata"
@@ -336,11 +288,11 @@ export const MediaPreviewDialog = ({
                     </video>
                   )}
 
-                  {typeValue === 'audio' && (mediumUrl || secureUrl) && (
+                  {typeValue === 'audio' && getCurrentUrl() && (
                     <div className="flex flex-col items-center gap-4 p-8">
                       <FileAudio className="h-16 w-16 text-muted-foreground" />
                       <audio 
-                        src={secureUrl || mediumUrl} 
+                        src={getCurrentUrl()} 
                         controls 
                         className="w-full max-w-md" 
                         preload="metadata"

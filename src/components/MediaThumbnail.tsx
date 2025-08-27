@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Image, Video, FileAudio } from 'lucide-react';
-import { usePersistentMediaCache } from '@/hooks/usePersistentMediaCache';
+import { useProgressiveMediaLoading } from '@/hooks/useProgressiveMediaLoading';
 
 interface MediaThumbnailProps {
   item: {
@@ -20,7 +20,7 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
   const [imageLoaded, setImageLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [secureUrl, setSecureUrl] = useState<string | null>(null);
-  const { getSecureMediaUrl, getCachedMediaUrl } = usePersistentMediaCache();
+  const { loadProgressiveMedia, getCurrentUrl } = useProgressiveMediaLoading();
 
   // Helper to get type from either format
   const getItemType = () => item.type || item.content_type || 'unknown';
@@ -44,43 +44,18 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
   const itemType = getItemType();
   const storagePath = getStoragePath();
 
-  // Load thumbnail with optimized secure URLs
+  // Load thumbnail with progressive loading
   useEffect(() => {
     const loadMedia = async () => {
       if (itemType === 'image' && storagePath) {
-        // Check cache first for instant loading
-        const cachedUrl = getCachedMediaUrl(storagePath, { 
-          width: 300, 
-          height: 300, 
-          quality: 75 
-        });
-        
-        if (cachedUrl) {
-          setSecureUrl(cachedUrl);
-          setImageLoaded(true);
-          return;
-        }
-
-        try {
-          const url = await getSecureMediaUrl(storagePath, { 
-            width: 300, 
-            height: 300, 
-            quality: 75 
-          });
-          
-          if (url) {
-            setSecureUrl(url);
-          } else {
-            setHasError(true);
-          }
-        } catch (error) {
-          setHasError(true);
-        }
+        // Start progressive loading for thumbnails
+        await loadProgressiveMedia(storagePath, item.tiny_placeholder);
+        setImageLoaded(true);
       }
     };
 
     loadMedia();
-  }, [itemType, storagePath, getSecureMediaUrl, getCachedMediaUrl]);
+  }, [itemType, storagePath, loadProgressiveMedia, item.tiny_placeholder]);
 
   // For non-image types, show icon
   if (itemType !== 'image') {
@@ -96,8 +71,8 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
     );
   }
 
-  // Use secure URL if available
-  if (!secureUrl && !hasError) {
+  // Use progressive URL if available
+  if (!getCurrentUrl() && !hasError) {
     return (
       <div className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}>
         <div className="animate-pulse">
@@ -123,10 +98,10 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
         />
       )}
       
-      {/* Main thumbnail - loads from secure endpoint */}
-      {secureUrl && (
+      {/* Main thumbnail - loads from progressive endpoint */}
+      {getCurrentUrl() && (
         <img
-          src={secureUrl}
+          src={getCurrentUrl()}
           alt={item.title || 'Thumbnail'}
           className={`w-full h-full object-cover transition-all duration-300 ${
             imageLoaded ? 'opacity-100 blur-0' : 'opacity-0'
