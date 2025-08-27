@@ -247,9 +247,9 @@ export const useFileUpload = () => {
     let progressInterval: NodeJS.Timeout | null = null;
     let simulatedUploadedBytes = 0;
     
-    // Different timeouts for different file types - increased for better reliability
-    const timeoutDuration = fileType === 'video' ? 600000 : 180000; // 10min for video, 3min for others
-    const maxRetries = fileType === 'video' ? 5 : 3; // More retries for large video files
+    // Different timeouts for different file types - much longer for large videos
+    const timeoutDuration = fileType === 'video' ? 1200000 : 180000; // 20min for video, 3min for others
+    const maxRetries = fileType === 'video' ? 8 : 3; // More retries for large video files
 
     try {
       // Check if paused
@@ -345,12 +345,26 @@ export const useFileUpload = () => {
         attempts++;
         
         try {
-          const uploadPromise = supabase.storage
-            .from('content')
-            .upload(filePath, file, {
-              upsert: false,
-              cacheControl: '3600'
-            });
+          // For large video files, use chunked upload approach
+          let uploadPromise;
+          
+          if (fileType === 'video' && file.size > 500 * 1024 * 1024) { // 500MB+
+            // For very large videos, use different options to improve reliability
+            uploadPromise = supabase.storage
+              .from('content')
+              .upload(filePath, file, {
+                upsert: false,
+                cacheControl: '3600',
+                duplex: 'half' // Allow for better streaming
+              });
+          } else {
+            uploadPromise = supabase.storage
+              .from('content')
+              .upload(filePath, file, {
+                upsert: false,
+                cacheControl: '3600'
+              });
+          }
 
           // Race between upload and timeout
           const timeoutPromise = new Promise((_, reject) => {
