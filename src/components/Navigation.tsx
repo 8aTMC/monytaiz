@@ -552,10 +552,10 @@ export const Navigation = () => {
               </HoverCard>
             ) : (
               <Collapsible open={openSection === 'content'} onOpenChange={() => handleSectionToggle('content')}>
-                <CollapsibleTrigger className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
+                <CollapsibleTrigger className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 hover:scale-[1.02] ${
                   isSectionActive('content') 
-                    ? 'bg-primary/10 text-primary border border-primary/20' 
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                    ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/80 hover:shadow-sm'
                 }`}>
                   <div className="flex items-center gap-3 flex-1">
                     <ContentIcon className="h-5 w-5" />
