@@ -41,6 +41,7 @@ import {
 import { ContentIcon } from './icons/ContentIcon';
 import { CreatorProfileDialog } from '@/components/CreatorProfileDialog';
 import { TagManagementDialog } from '@/components/TagManagementDialog';
+// Force hot reload to fix cache issue
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
