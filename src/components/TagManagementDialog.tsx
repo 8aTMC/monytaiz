@@ -16,10 +16,11 @@ interface Tag {
 }
 
 interface TagsDialogProps {
+  children?: React.ReactNode;
   onTagsUpdated?: () => void;
 }
 
-export function TagManagementDialog({ onTagsUpdated }: TagsDialogProps) {
+export function TagManagementDialog({ children, onTagsUpdated }: TagsDialogProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -203,10 +204,12 @@ export function TagManagementDialog({ onTagsUpdated }: TagsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Tags className="h-4 w-4 mr-2" />
-          Tags
-        </Button>
+        {children || (
+          <Button variant="outline" size="sm">
+            <Tags className="h-4 w-4 mr-2" />
+            Tags
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] flex flex-col">
         <DialogHeader>

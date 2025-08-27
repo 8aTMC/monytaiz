@@ -265,13 +265,14 @@ export const Navigation = () => {
 
 
   return (
-    <nav 
-      className={`fixed left-0 top-0 ${isNarrowScreen && !isCollapsed ? 'z-50' : 'z-[60]'} bg-card border-r border-border flex flex-col transition-all duration-300 ${
-        isCollapsed ? 'w-16' : 'w-64'
-      } ${isNarrowScreen && !isCollapsed ? 'shadow-2xl' : ''} h-screen`}
-      data-auto-collapse
-      {...(isNarrowScreen && !isCollapsed ? { 'data-manually-opened': 'true' } : {})}
-    >
+    <>
+      <nav 
+        className={`fixed left-0 top-0 ${isNarrowScreen && !isCollapsed ? 'z-50' : 'z-[60]'} bg-card border-r border-border flex flex-col transition-all duration-300 ${
+          isCollapsed ? 'w-16' : 'w-64'
+        } ${isNarrowScreen && !isCollapsed ? 'shadow-2xl' : ''} h-screen`}
+        data-auto-collapse
+        {...(isNarrowScreen && !isCollapsed ? { 'data-manually-opened': 'true' } : {})}
+      >
       {isCollapsed ? (
         /* Collapsed state - logo centered with arrow on right edge */
         <>
@@ -536,7 +537,12 @@ export const Navigation = () => {
                      <Upload className="h-4 w-4" />
                      <span>Upload</span>
                    </Link>
-                   <TagManagementDialog />
+                   <TagManagementDialog>
+                     <button className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth w-full text-left text-muted-foreground hover:text-foreground hover:bg-secondary/50">
+                       <Tags className="h-4 w-4" />
+                       <span>Tags</span>
+                     </button>
+                   </TagManagementDialog>
                  </div>
                </HoverCardContent>
               </HoverCard>
@@ -579,11 +585,16 @@ export const Navigation = () => {
                         ? 'bg-primary/3 text-primary/90'
                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                     }`}
-                  >
+                   >
                      <Upload className="h-4 w-4" />
                      <span>Upload</span>
                    </Link>
-                   <TagManagementDialog />
+                   <TagManagementDialog>
+                     <button className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth text-muted-foreground hover:text-foreground hover:bg-secondary/50`}>
+                       <Tags className="h-4 w-4" />
+                       <span>Tags</span>
+                     </button>
+                   </TagManagementDialog>
                  </CollapsibleContent>
                </Collapsible>
             )}
@@ -772,5 +783,6 @@ export const Navigation = () => {
         </Popover>
       </div>
     </nav>
+  </>
   );
 };
