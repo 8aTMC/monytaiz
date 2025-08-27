@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Image, Video, FileAudio } from 'lucide-react';
+import { useInstantMedia } from '@/hooks/useInstantMedia';
 
 interface MediaThumbnailProps {
   item: {
@@ -16,9 +17,8 @@ interface MediaThumbnailProps {
 }
 
 export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) => {
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-  const [imageError, setImageError] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const { loadInstantMedia, currentUrl, placeholder, error, enhanceQuality } = useInstantMedia();
 
   // Helper to get type from either format
   const getItemType = () => item.type || item.content_type || 'unknown';
@@ -42,31 +42,12 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
   const itemType = getItemType();
   const storagePath = getStoragePath();
 
-  // Load thumbnails using simple public URLs
+  // Load media with instant placeholders
   useEffect(() => {
     if (itemType === 'image' && storagePath) {
-      setIsLoading(true);
-      setImageError(false);
-      
-      // Try direct public URL first
-      const publicUrl = `https://alzyzfjzwvofmjccirjq.supabase.co/storage/v1/object/public/content/${storagePath}`;
-      
-      // Test if the image loads
-      const imgElement = new globalThis.Image();
-      imgElement.onload = () => {
-        setThumbnailUrl(publicUrl);
-        setIsLoading(false);
-      };
-      imgElement.onerror = () => {
-        // If public URL fails, show placeholder
-        setImageError(true);
-        setIsLoading(false);
-      };
-      imgElement.src = publicUrl;
-    } else {
-      setIsLoading(false);
+      loadInstantMedia(storagePath, item.tiny_placeholder);
     }
-  }, [itemType, storagePath]);
+  }, [itemType, storagePath, loadInstantMedia, item.tiny_placeholder]);
 
   // For non-image types, show icon
   if (itemType !== 'image') {
@@ -82,8 +63,8 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
     );
   }
 
-  // Show loading state for images
-  if (isLoading) {
+  // Show loading state only if no placeholder and no error
+  if (!currentUrl && !error) {
     return (
       <div className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}>
         <div className="animate-pulse">
@@ -98,26 +79,32 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
   const aspectHeight = item.height ? Math.round((aspectWidth / (item.width ?? 1)) * (item.height ?? 256)) : 256;
 
   return (
-    <div className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}>
-      {/* Show thumbnail for images */}
-      {thumbnailUrl && !imageError && (
+    <div 
+      className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}
+      onMouseEnter={enhanceQuality}
+    >
+      {/* Always show current URL (instant placeholder first, then better quality) */}
+      {currentUrl && (
         <img
-          src={thumbnailUrl}
+          src={currentUrl}
           alt={item.title || 'Thumbnail'}
-          className="w-full h-full object-cover transition-all duration-300"
+          className={`w-full h-full object-cover transition-all duration-300 ${
+            currentUrl === placeholder ? 'filter blur-sm' : 'filter-none'
+          }`}
           loading="lazy"
           decoding="async"
           width={aspectWidth}
           height={aspectHeight}
-          onError={() => setImageError(true)}
+          onLoad={() => setImageLoaded(true)}
+          onError={() => console.error('Failed to load thumbnail')}
         />
       )}
 
-      {/* Error state or fallback */}
-      {(imageError || !thumbnailUrl) && (
+      {/* Error state */}
+      {error && (
         <div className="flex flex-col items-center gap-2">
           {getContentTypeIcon('image')}
-          <span className="text-xs text-muted-foreground">Image</span>
+          <span className="text-xs text-muted-foreground">Failed to load</span>
         </div>
       )}
     </div>

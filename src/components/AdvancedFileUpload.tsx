@@ -119,14 +119,7 @@ export const AdvancedFileUpload = () => {
                   </Button>
                   <Button
                     size="sm"
-                    onClick={() => {
-                      console.log('🚀 Start Upload button clicked');
-                      console.log('📋 Upload queue:', uploadQueue.length, 'files');
-                      console.log('📝 Queue state:', uploadQueue.map(f => ({ id: f.id, status: f.status, name: f.file.name })));
-                      console.log('🔒 Button disabled?', uploadQueue.length === 0);
-                      console.log('📤 Is uploading?', isUploading);
-                      startUpload();
-                    }}
+                    onClick={startUpload}
                     disabled={uploadQueue.length === 0}
                   >
                     <Play className="w-4 h-4 mr-2" />
