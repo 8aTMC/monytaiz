@@ -133,7 +133,7 @@ export const MediaPreviewDialog = ({
     }
   };
 
-  // Progressive loading with instant placeholders
+  // Progressive loading with proper aspect ratio preservation
   useEffect(() => {
     const loadSecureUrl = async () => {
       if (!open || !item) return;
@@ -150,8 +150,8 @@ export const MediaPreviewDialog = ({
       setFullImageLoaded(false);
       setMediumImageLoaded(false);
 
-      // Step 1: Check for cached medium quality (800px) - this loads fast
-      const cachedMediumUrl = getCachedUrl(storagePath, { width: 800, quality: 80 });
+      // Step 1: Check for cached medium quality (NO width constraints to avoid cropping)
+      const cachedMediumUrl = getCachedUrl(storagePath, { quality: 75 });
       if (cachedMediumUrl) {
         console.log('MediaPreviewDialog: Using cached medium URL instantly');
         setMediumUrl(cachedMediumUrl);
@@ -160,7 +160,7 @@ export const MediaPreviewDialog = ({
       }
 
       // Step 2: Check for cached full quality
-      const cachedFullUrl = getCachedUrl(storagePath, { width: 1200, quality: 85 });
+      const cachedFullUrl = getCachedUrl(storagePath, { quality: 85 });
       if (cachedFullUrl) {
         console.log('MediaPreviewDialog: Using cached full URL instantly');
         setSecureUrl(cachedFullUrl);
@@ -170,10 +170,10 @@ export const MediaPreviewDialog = ({
       }
 
       try {
-        // Step 3: If no medium cached, load medium quality first (much faster)
+        // Step 3: If no medium cached, load medium quality first (NO width/height constraints)
         if (!cachedMediumUrl) {
-          console.log('MediaPreviewDialog: Loading medium quality first');
-          const mediumUrlResult = await preloadImage(storagePath, { width: 800, quality: 80, priority: 'high' });
+          console.log('MediaPreviewDialog: Loading medium quality first (no size constraints)');
+          const mediumUrlResult = await preloadImage(storagePath, { quality: 75, priority: 'high' });
           if (mediumUrlResult) {
             console.log('MediaPreviewDialog: Medium quality loaded');
             setMediumUrl(mediumUrlResult);
@@ -182,9 +182,9 @@ export const MediaPreviewDialog = ({
           }
         }
 
-        // Step 4: Load full quality in background (limited to 1200px for reasonable size)
-        console.log('MediaPreviewDialog: Loading full quality in background');
-        const fullUrlResult = await preloadImage(storagePath, { width: 1200, quality: 85, priority: 'medium' });
+        // Step 4: Load full quality in background (NO width/height constraints)
+        console.log('MediaPreviewDialog: Loading full quality in background (no size constraints)');
+        const fullUrlResult = await preloadImage(storagePath, { quality: 85, priority: 'medium' });
         if (fullUrlResult) {
           console.log('MediaPreviewDialog: Full quality loaded');
           setSecureUrl(fullUrlResult);
@@ -280,13 +280,13 @@ export const MediaPreviewDialog = ({
                   )}
 
                   {typeValue === 'image' && (
-                    <div className="relative w-full flex items-center justify-center">
+                    <div className="relative w-full">
                       {/* Tiny placeholder - shows immediately for instant feedback */}
                       {item.tiny_placeholder && (
                         <img 
                           src={item.tiny_placeholder} 
                           alt=""
-                          className={`max-w-full max-h-[70vh] object-contain rounded transition-opacity duration-300 ${
+                          className={`w-full h-auto object-contain rounded transition-opacity duration-300 ${
                             mediumImageLoaded || fullImageLoaded ? 'opacity-30 blur-sm' : 'opacity-100 blur-sm'
                           }`}
                         />
@@ -301,9 +301,9 @@ export const MediaPreviewDialog = ({
                           onError={(e) => {
                             console.error('Failed to load medium image:', e);
                           }}
-                          className={`max-w-full max-h-[70vh] object-contain rounded transition-opacity duration-300 ${
+                          className={`w-full h-auto object-contain rounded transition-opacity duration-300 ${
                             mediumImageLoaded && !fullImageLoaded ? 'opacity-100' : 'opacity-0'
-                          } ${item.tiny_placeholder ? 'absolute inset-0 m-auto' : ''}`}
+                          } ${item.tiny_placeholder ? 'absolute inset-0' : ''}`}
                         />
                       )}
                       
@@ -316,9 +316,9 @@ export const MediaPreviewDialog = ({
                           onError={(e) => {
                             console.error('Failed to load full image:', e);
                           }}
-                          className={`max-w-full max-h-[70vh] object-contain rounded transition-opacity duration-500 ${
+                          className={`w-full h-auto object-contain rounded transition-opacity duration-500 ${
                             fullImageLoaded ? 'opacity-100' : 'opacity-0'
-                          } ${item.tiny_placeholder || mediumUrl ? 'absolute inset-0 m-auto' : ''}`}
+                          } ${item.tiny_placeholder || mediumUrl ? 'absolute inset-0' : ''}`}
                         />
                       )}
 

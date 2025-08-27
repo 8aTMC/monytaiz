@@ -89,34 +89,34 @@ const ContentLibrary = () => {
   const { toast } = useToast();
   const { preloadImage, preloadMultiResolution } = useAdvancedPreloader();
   
-  // Aggressive preloading when content changes
+  // Aggressive preloading when content changes (NO width/height constraints)
   useEffect(() => {
     if (!loadingContent && content.length > 0) {
       console.log('ContentLibrary: Starting aggressive preloading for', content.length, 'items');
       
-      // Preload first 10 images immediately with multiple resolutions
+      // Preload first 10 images immediately with quality compression only
       const imageItems = content.filter(item => item.type === 'image').slice(0, 10);
       
       imageItems.forEach((item, index) => {
-        // Preload thumbnails immediately
-        preloadImage(item.storage_path, { width: 300, height: 300, quality: 70 })
+        // Preload thumbnails with low quality but no size constraints
+        preloadImage(item.storage_path, { quality: 60 })
           .then(() => {
             console.log(`Preloaded thumbnail ${index + 1}/${imageItems.length}`);
           })
           .catch(console.error);
         
-        // Preload medium resolution for first 5 items (fast preview quality)
+        // Preload medium quality for first 5 items
         if (index < 5) {
-          preloadImage(item.storage_path, { width: 800, quality: 80 })
+          preloadImage(item.storage_path, { quality: 75 })
             .then(() => {
               console.log(`Preloaded medium res ${index + 1}/5`);
             })
             .catch(console.error);
         }
         
-        // Preload full resolution for first 2 items only (to avoid overwhelming)
+        // Preload full quality for first 2 items only
         if (index < 2) {
-          preloadImage(item.storage_path, { width: 1200, quality: 85 })
+          preloadImage(item.storage_path, { quality: 85 })
             .then(() => {
               console.log(`Preloaded full res ${index + 1}/2`);
             })
