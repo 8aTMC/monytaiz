@@ -132,16 +132,16 @@ export const AdvancedFileUpload = () => {
         )}
 
         {/* Upload Status */}
-        {isUploading && (
+        {isUploading && uploadQueue.length > 0 && (
           <div className="bg-muted/20 border border-border rounded-lg p-4 mb-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">Uploading files...</span>
               <span className="text-sm text-muted-foreground">
-                {currentUploadIndex + 1} of {totalCount}
+                {Math.min(currentUploadIndex + 1, totalCount)} of {totalCount}
               </span>
             </div>
             <Progress 
-              value={((currentUploadIndex + 1) / totalCount) * 100} 
+              value={totalCount > 0 ? (Math.min(currentUploadIndex + 1, totalCount) / totalCount) * 100 : 0} 
               className="h-2"
             />
           </div>

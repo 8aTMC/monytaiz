@@ -130,13 +130,30 @@ export const useFileUpload = () => {
   }, [uploadQueue.length, validateFile, toast]);
 
   const removeFile = useCallback((id: string) => {
+    const wasUploading = uploadQueue.find(item => item.id === id)?.status === 'uploading';
+    
     setUploadQueue(prev => prev.filter(item => item.id !== id));
     setPausedUploads(prev => {
       const newSet = new Set(prev);
       newSet.delete(id);
       return newSet;
     });
-  }, []);
+
+    // If we removed the currently uploading file and there are still pending files, continue upload
+    if (wasUploading && isUploading) {
+      const remainingFiles = uploadQueue.filter(item => item.id !== id && item.status === 'pending');
+      if (remainingFiles.length === 0) {
+        // No more files to upload, stop uploading state
+        setIsUploading(false);
+      }
+    }
+    
+    // If no files left at all, stop uploading state
+    const remainingCount = uploadQueue.filter(item => item.id !== id).length;
+    if (remainingCount === 0) {
+      setIsUploading(false);
+    }
+  }, [uploadQueue, isUploading]);
 
   const pauseUpload = useCallback((id: string) => {
     setPausedUploads(prev => new Set(prev).add(id));
@@ -157,6 +174,8 @@ export const useFileUpload = () => {
   }, []);
 
   const cancelUpload = useCallback((id: string) => {
+    const wasCurrent = uploadQueue.find(item => item.id === id)?.status === 'uploading';
+    
     setUploadQueue(prev => prev.map(item => 
       item.id === id ? { ...item, status: 'cancelled' as const } : item
     ));
@@ -168,9 +187,26 @@ export const useFileUpload = () => {
     
     // Remove cancelled file after short delay
     setTimeout(() => {
-      setUploadQueue(prev => prev.filter(item => item.id !== id));
+      setUploadQueue(prev => {
+        const newQueue = prev.filter(item => item.id !== id);
+        
+        // If this was the current uploading file and there are still pending files
+        if (wasCurrent && isUploading) {
+          const remainingPending = newQueue.filter(item => item.status === 'pending');
+          if (remainingPending.length === 0) {
+            setIsUploading(false);
+          }
+        }
+        
+        // If no files left at all, stop uploading state
+        if (newQueue.length === 0) {
+          setIsUploading(false);
+        }
+        
+        return newQueue;
+      });
     }, 1000);
-  }, []);
+  }, [uploadQueue, isUploading]);
 
   const uploadFile = useCallback(async (item: FileUploadItem) => {
     const { file } = item;
@@ -578,6 +614,8 @@ export const useFileUpload = () => {
   const clearQueue = useCallback(() => {
     setUploadQueue([]);
     setCurrentUploadIndex(0);
+    setIsUploading(false); // Stop uploading state when queue is cleared
+    setPausedUploads(new Set()); // Clear paused uploads set
   }, []);
 
   const cancelAllUploads = useCallback(() => {
