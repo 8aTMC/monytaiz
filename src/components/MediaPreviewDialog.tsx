@@ -133,7 +133,7 @@ export const MediaPreviewDialog = ({
     }
   };
 
-  // Lightning-fast loading with persistent caching
+  // INSTANT loading - check cache first, NO progressive loading
   useEffect(() => {
     const loadSecureUrl = async () => {
       if (!open || !item) return;
@@ -141,70 +141,72 @@ export const MediaPreviewDialog = ({
       const storagePath = getItemStoragePath(item);
       if (!storagePath) return;
 
-      console.log('🔥 MediaPreviewDialog: LIGHTNING LOAD for:', storagePath);
+      console.log('⚡ INSTANT CHECK for:', storagePath);
 
-      // Reset states but check cache FIRST
-      setLoading(true);
-      setSecureUrl(null);
-      setMediumUrl(null);
-      setFullImageLoaded(false);
-      setMediumImageLoaded(false);
-
-      // PRIORITY 1: Check for cached full quality (INSTANT!)
+      // INSTANT cache check - no loading states until we're sure it's not cached
       const cachedFullUrl = getCachedUrl(storagePath, { quality: 85 });
       if (cachedFullUrl) {
-        console.log('🚀 INSTANT FULL QUALITY load!');
+        console.log('🚀🚀🚀 INSTANT FULL QUALITY!');
         setSecureUrl(cachedFullUrl);
         setFullImageLoaded(true);
         setLoading(false);
-        return; // DONE! Instant loading achieved
+        return; // DONE - TRUE INSTANT LOADING!
       }
 
-      // PRIORITY 2: Check for cached medium quality (INSTANT!)
       const cachedMediumUrl = getCachedUrl(storagePath, { quality: 75 });
       if (cachedMediumUrl) {
-        console.log('🚀 INSTANT MEDIUM QUALITY load!');
+        console.log('🚀🚀 INSTANT MEDIUM QUALITY!');
         setMediumUrl(cachedMediumUrl);
         setMediumImageLoaded(true);
         setLoading(false);
         
-        // Still try to get full quality in background
+        // Get full quality in background
         preloadImage(storagePath, { quality: 85, priority: 'high' })
           .then(fullUrl => {
             if (fullUrl) {
-              console.log('⚡ Upgraded to full quality');
               setSecureUrl(fullUrl);
               setFullImageLoaded(true);
             }
-          })
-          .catch(console.error);
+          });
         return;
       }
 
-      // FALLBACK: Load with high priority (should be fast due to aggressive preloading)
-      console.log('⏳ Loading fresh (should be fast due to preloading)');
-      
-      try {
-        // Load both qualities in parallel for speed
-        const [mediumUrl, fullUrl] = await Promise.allSettled([
+      const cachedLowUrl = getCachedUrl(storagePath, { quality: 60 });
+      if (cachedLowUrl) {
+        console.log('🚀 INSTANT LOW QUALITY!');
+        setMediumUrl(cachedLowUrl);
+        setMediumImageLoaded(true);
+        setLoading(false);
+        
+        // Get better quality in background
+        Promise.allSettled([
           preloadImage(storagePath, { quality: 75, priority: 'high' }),
           preloadImage(storagePath, { quality: 85, priority: 'high' })
-        ]);
+        ]).then(([medium, full]) => {
+          if (medium.status === 'fulfilled' && medium.value) {
+            setMediumUrl(medium.value);
+          }
+          if (full.status === 'fulfilled' && full.value) {
+            setSecureUrl(full.value);
+            setFullImageLoaded(true);
+          }
+        });
+        return;
+      }
 
-        if (mediumUrl.status === 'fulfilled' && mediumUrl.value) {
-          console.log('📸 Medium quality loaded');
-          setMediumUrl(mediumUrl.value);
+      // If NOTHING cached, show loading (this should be rare due to aggressive preloading)
+      console.log('😱 NOT CACHED - loading fresh');
+      setLoading(true);
+      
+      try {
+        const url = await preloadImage(storagePath, { quality: 75, priority: 'high' });
+        if (url) {
+          setMediumUrl(url);
           setMediumImageLoaded(true);
           setLoading(false);
         }
-
-        if (fullUrl.status === 'fulfilled' && fullUrl.value) {
-          console.log('🎯 Full quality loaded');
-          setSecureUrl(fullUrl.value);
-          setFullImageLoaded(true);
-        }
       } catch (error) {
-        console.error('❌ Error loading images:', error);
+        console.error('Failed to load:', error);
         setLoading(false);
       }
     };

@@ -89,37 +89,38 @@ const ContentLibrary = () => {
   const { toast } = useToast();
   const { preloadImage, preloadMultiResolution } = useAdvancedPreloader();
   
-  // SUPER aggressive preloading when content changes - load everything instantly
+  // INSTANT aggressive preloading - preload EVERYTHING immediately
   useEffect(() => {
     if (!loadingContent && content.length > 0) {
-      console.log('🚀 ContentLibrary: SUPER aggressive preloading for', content.length, 'items');
+      console.log('🔥 INSTANT PRELOAD: Loading ALL images immediately for instant access');
       
-      // Preload first 20 images immediately (increased from 10)
-      const imageItems = content.filter(item => item.type === 'image').slice(0, 20);
+      // Preload ALL images immediately (not just first 20)
+      const imageItems = content.filter(item => item.type === 'image');
       
+      // Load EVERYTHING at once for true instant access
       imageItems.forEach((item, index) => {
-        // Preload medium quality IMMEDIATELY for first 10 items
-        if (index < 10) {
-          preloadImage(item.storage_path, { quality: 75, priority: 'high' })
+        // High priority for first 15 items (full quality)
+        if (index < 15) {
+          preloadImage(item.storage_path, { quality: 85, priority: 'high' })
             .then(() => {
-              console.log(`✅ Medium quality cached ${index + 1}/10`);
+              console.log(`🚀 INSTANT-READY: ${index + 1}/15 full quality`);
             })
             .catch(console.error);
         }
         
-        // Preload full quality IMMEDIATELY for first 5 items  
-        if (index < 5) {
-          preloadImage(item.storage_path, { quality: 85, priority: 'high' })
-            .then(() => {
-              console.log(`✅ Full quality cached ${index + 1}/5`);
-            })
-            .catch(console.error);
-        }
-
-        // Preload lower quality for remaining items (for thumbnails)
-        preloadImage(item.storage_path, { quality: 60, priority: 'low' })
+        // Medium quality for all items (for immediate display)
+        preloadImage(item.storage_path, { quality: 75, priority: 'high' })
           .then(() => {
-            console.log(`✅ Thumbnail quality cached ${index + 1}/${imageItems.length}`);
+            console.log(`⚡ FAST-READY: ${index + 1}/${imageItems.length} medium quality`);
+          })
+          .catch(console.error);
+      });
+      
+      // Also preload lower quality versions for super fast thumbnails
+      imageItems.slice(0, 30).forEach((item, index) => {
+        preloadImage(item.storage_path, { quality: 60, priority: 'medium' })
+          .then(() => {
+            console.log(`📸 THUMB-READY: ${index + 1}/30 thumbnails`);
           })
           .catch(console.error);
       });

@@ -40,12 +40,12 @@ export const useAdvancedPreloader = () => {
     return `${path}:${width || 'auto'}x${height || 'auto'}q${quality}`;
   };
 
-  // Process preload queue with enhanced batching and immediate caching
+  // Process preload queue with MAXIMUM speed and instant browser caching
   const processQueue = useCallback(async () => {
     if (processingRef.current || queueRef.current.length === 0) return;
     
     processingRef.current = true;
-    const batch = queueRef.current.splice(0, 8); // Increased to process more at once
+    const batch = queueRef.current.splice(0, 15); // MASSIVE batch processing
 
     // Sort by priority (high -> medium -> low)
     batch.sort((a, b) => {
@@ -63,37 +63,34 @@ export const useAdvancedPreloader = () => {
           } : undefined;
 
           const cacheKey = getCacheKey(item.path, item.options);
-          console.log('Processing preload for cache key:', cacheKey);
 
           const url = await getSecureUrl(item.path, transforms);
           if (url) {
-            // Store in global cache IMMEDIATELY for instant access
+            // Store in global cache IMMEDIATELY
             globalUrlCache.set(cacheKey, url);
-            getCacheStats();
-            console.log('✅ Cached URL for key:', cacheKey);
             
-            // Preload using Image constructor for browser caching with optimizations
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.decoding = 'async';
-            img.loading = 'eager';
+            // CRITICAL: Force immediate browser cache with fetch + cache headers
+            try {
+              const response = await fetch(url, { 
+                cache: 'force-cache',
+                mode: 'no-cors' 
+              });
+              console.log(`💾 BROWSER-CACHED: ${cacheKey}`);
+            } catch (e) {
+              // Fallback to Image constructor if fetch fails
+              const img = new Image();
+              img.crossOrigin = 'anonymous';
+              img.src = url;
+              console.log(`🖼️ IMG-CACHED: ${cacheKey}`);
+            }
             
-            img.onload = () => {
-              console.log('🎯 Image browser-cached:', cacheKey);
-              item.resolve(url);
-            };
-            img.onerror = (e) => {
-              console.error('❌ Failed to browser-cache image:', cacheKey, e);
-              // Still resolve since we have the URL cached
-              item.resolve(url);
-            };
-            img.src = url;
+            item.resolve(url);
           } else {
-            console.error('❌ No secure URL returned for:', item.path);
+            console.error('❌ No URL for:', item.path);
             item.reject(new Error('No secure URL returned'));
           }
         } catch (error) {
-          console.error('❌ Error in preload processing:', error);
+          console.error('❌ Preload error:', error);
           item.reject(error as Error);
         }
       })
@@ -101,9 +98,9 @@ export const useAdvancedPreloader = () => {
 
     processingRef.current = false;
     
-    // Continue processing immediately if more items in queue
+    // Continue processing IMMEDIATELY
     if (queueRef.current.length > 0) {
-      setTimeout(processQueue, 25); // Faster processing
+      setTimeout(processQueue, 5); // SUPER fast processing
     }
   }, [getSecureUrl]);
 
