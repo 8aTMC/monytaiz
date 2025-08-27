@@ -123,6 +123,8 @@ export const AdvancedFileUpload = () => {
                       console.log('🚀 Start Upload button clicked');
                       console.log('📋 Upload queue:', uploadQueue.length, 'files');
                       console.log('📝 Queue state:', uploadQueue.map(f => ({ id: f.id, status: f.status, name: f.file.name })));
+                      console.log('🔒 Button disabled?', uploadQueue.length === 0);
+                      console.log('📤 Is uploading?', isUploading);
                       startUpload();
                     }}
                     disabled={uploadQueue.length === 0}

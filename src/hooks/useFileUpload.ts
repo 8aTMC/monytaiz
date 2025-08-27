@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -55,23 +55,6 @@ export const useFileUpload = () => {
   const [currentUploadIndex, setCurrentUploadIndex] = useState(0);
   const [pausedUploads, setPausedUploads] = useState<Set<string>>(new Set());
   const { toast } = useToast();
-  
-  // Use ref to get current queue state in async operations
-  const queueRef = useRef<FileUploadItem[]>([]);
-  const pausedRef = useRef<Set<string>>(new Set());
-  const uploadingRef = useRef(false);
-  
-  useEffect(() => {
-    queueRef.current = uploadQueue;
-  }, [uploadQueue]);
-
-  useEffect(() => {
-    pausedRef.current = pausedUploads;
-  }, [pausedUploads]);
-
-  useEffect(() => {
-    uploadingRef.current = isUploading;
-  }, [isUploading]);
 
   const validateFile = useCallback((file: File) => {
     try {
@@ -439,25 +422,6 @@ export const useFileUpload = () => {
     }
   }, [pausedUploads, toast]);
 
-  // Helper function to continue upload process
-  const continueUploadProcess = useCallback(() => {
-    if (!uploadingRef.current) return;
-    
-    // Use a small delay to allow state updates to complete
-    setTimeout(() => {
-      // Trigger a re-evaluation of the upload queue
-      // This will be handled by the main upload loop's while condition
-      const nextPendingFile = queueRef.current.find(item => 
-        item.status === 'pending' && !pausedRef.current.has(item.id)
-      );
-      
-      if (!nextPendingFile) {
-        // No more files to upload
-        setIsUploading(false);
-      }
-    }, 100);
-  }, []);
-
   const addFiles = useCallback((files: File[]) => {
     if (uploadQueue.length + files.length > 100) {
       toast({
@@ -507,36 +471,26 @@ export const useFileUpload = () => {
   }, [uploadQueue.length, validateFile, toast]);
 
   const removeFile = useCallback((id: string) => {
-    const wasUploading = uploadQueue.find(item => item.id === id)?.status === 'uploading';
-    
     setUploadQueue(prev => prev.filter(item => item.id !== id));
     setPausedUploads(prev => {
       const newSet = new Set(prev);
       newSet.delete(id);
       return newSet;
     });
-
-    // If we removed the currently uploading file, trigger continuation
-    if (wasUploading && isUploading) {
-      continueUploadProcess();
-    }
     
     // If no files left at all, stop uploading state
     const remainingCount = uploadQueue.filter(item => item.id !== id).length;
     if (remainingCount === 0) {
       setIsUploading(false);
     }
-  }, [uploadQueue, isUploading, continueUploadProcess]);
+  }, [uploadQueue]);
 
   const pauseUpload = useCallback((id: string) => {
     setPausedUploads(prev => new Set(prev).add(id));
     setUploadQueue(prev => prev.map(item => 
       item.id === id ? { ...item, status: 'paused' as const, isPaused: true } : item
     ));
-    
-    // Trigger continuation of upload process if this was the current file
-    continueUploadProcess();
-  }, [continueUploadProcess]);
+  }, []);
 
   const resumeUpload = useCallback((id: string) => {
     setPausedUploads(prev => {
@@ -587,12 +541,12 @@ export const useFileUpload = () => {
   const startUpload = useCallback(async () => {
     console.log('🎬 startUpload called');
     console.log('📊 Current state:', { 
-      queueLength: queueRef.current.length, 
-      isUploading: uploadingRef.current,
-      pausedCount: pausedRef.current.size 
+      queueLength: uploadQueue.length, 
+      isUploading,
+      pausedCount: pausedUploads.size 
     });
     
-    if (queueRef.current.length === 0 || isUploading) {
+    if (uploadQueue.length === 0 || isUploading) {
       console.log('⏹️ Early return - no files or already uploading');
       return;
     }
@@ -603,55 +557,43 @@ export const useFileUpload = () => {
 
     let successCount = 0;
     let errorCount = 0;
+    let currentIndex = 0;
 
-    // Keep processing files until none are left
-    while (uploadingRef.current) {
-      // Always get fresh queue state to handle removed files
-      const currentQueue = queueRef.current.filter(item => 
-        item.status === 'pending' && !pausedRef.current.has(item.id)
+    // Process files sequentially
+    const pendingFiles = uploadQueue.filter(item => 
+      item.status === 'pending' && !pausedUploads.has(item.id)
+    );
+
+    console.log('📋 Files to upload:', pendingFiles.length);
+
+    for (let i = 0; i < pendingFiles.length; i++) {
+      const nextFile = pendingFiles[i];
+      
+      console.log('📤 Processing file:', nextFile.file.name, `(${i + 1}/${pendingFiles.length})`);
+      setCurrentUploadIndex(i);
+
+      // Double-check file is still pending and not paused
+      const currentQueue = uploadQueue.filter(item => 
+        item.status === 'pending' && !pausedUploads.has(item.id)
       );
       
-      console.log('🔄 Processing queue:', { 
-        totalInQueue: queueRef.current.length,
-        pendingFiles: currentQueue.length,
-        pausedFiles: pausedRef.current.size
-      });
+      const fileStillPending = currentQueue.find(item => item.id === nextFile.id);
+      if (!fileStillPending) {
+        console.log('🗑️ File no longer pending, skipping');
+        continue;
+      }
+
+      const result = await uploadFile(nextFile);
       
-      if (currentQueue.length === 0) {
-        console.log('🏁 No more pending files, breaking loop');
-        break; // No more pending files that aren't paused
-      }
-
-      const nextFile = currentQueue[0];
-      if (!nextFile) {
-        console.log('❌ No next file found, breaking');
-        break;
-      }
-
-      console.log('📤 Processing file:', nextFile.file.name);
-
-      // Check if this file still exists in the queue (wasn't removed)
-      const fileStillExists = queueRef.current.some(item => item.id === nextFile.id);
-      if (!fileStillExists) {
-        console.log('🗑️ File was removed, continuing to next');
-        continue; // File was removed, check for next one
-      }
-
-      // Only upload if file is still pending and not paused
-      if (nextFile.status === 'pending' && !pausedRef.current.has(nextFile.id)) {
-        const result = await uploadFile(nextFile);
-        
-        if (result?.success) {
-          successCount++;
-          console.log('✅ File uploaded successfully:', nextFile.file.name);
-        } else if (result?.error !== 'Upload paused') {
-          // Only count as error if it wasn't paused
-          errorCount++;
-          console.log('❌ File upload failed:', nextFile.file.name, result?.error);
-        }
+      if (result?.success) {
+        successCount++;
+        console.log('✅ File uploaded successfully:', nextFile.file.name);
+      } else if (result?.error !== 'Upload paused') {
+        errorCount++;
+        console.log('❌ File upload failed:', nextFile.file.name, result?.error);
       }
       
-      // Small delay to allow UI updates and queue changes
+      // Small delay between uploads
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
@@ -666,7 +608,7 @@ export const useFileUpload = () => {
         variant: successCount > errorCount ? "success" : "destructive",
       });
     }
-  }, [isUploading, uploadFile, toast]);
+  }, [uploadQueue, isUploading, pausedUploads, uploadFile, toast]);
 
   const clearQueue = useCallback(() => {
     setUploadQueue([]);
