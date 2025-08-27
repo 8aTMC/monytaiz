@@ -585,8 +585,19 @@ export const useFileUpload = () => {
   }, [uploadQueue, isUploading]);
 
   const startUpload = useCallback(async () => {
-    if (queueRef.current.length === 0 || isUploading) return;
+    console.log('🎬 startUpload called');
+    console.log('📊 Current state:', { 
+      queueLength: queueRef.current.length, 
+      isUploading: uploadingRef.current,
+      pausedCount: pausedRef.current.size 
+    });
+    
+    if (queueRef.current.length === 0 || isUploading) {
+      console.log('⏹️ Early return - no files or already uploading');
+      return;
+    }
 
+    console.log('✅ Starting upload process');
     setIsUploading(true);
     setCurrentUploadIndex(0);
 
@@ -600,18 +611,29 @@ export const useFileUpload = () => {
         item.status === 'pending' && !pausedRef.current.has(item.id)
       );
       
+      console.log('🔄 Processing queue:', { 
+        totalInQueue: queueRef.current.length,
+        pendingFiles: currentQueue.length,
+        pausedFiles: pausedRef.current.size
+      });
+      
       if (currentQueue.length === 0) {
+        console.log('🏁 No more pending files, breaking loop');
         break; // No more pending files that aren't paused
       }
 
       const nextFile = currentQueue[0];
       if (!nextFile) {
+        console.log('❌ No next file found, breaking');
         break;
       }
+
+      console.log('📤 Processing file:', nextFile.file.name);
 
       // Check if this file still exists in the queue (wasn't removed)
       const fileStillExists = queueRef.current.some(item => item.id === nextFile.id);
       if (!fileStillExists) {
+        console.log('🗑️ File was removed, continuing to next');
         continue; // File was removed, check for next one
       }
 
@@ -621,9 +643,11 @@ export const useFileUpload = () => {
         
         if (result?.success) {
           successCount++;
+          console.log('✅ File uploaded successfully:', nextFile.file.name);
         } else if (result?.error !== 'Upload paused') {
           // Only count as error if it wasn't paused
           errorCount++;
+          console.log('❌ File upload failed:', nextFile.file.name, result?.error);
         }
       }
       
@@ -631,6 +655,7 @@ export const useFileUpload = () => {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
+    console.log('🏆 Upload process complete:', { successCount, errorCount });
     setIsUploading(false);
     
     // Show completion toast with results
