@@ -515,34 +515,34 @@ export const Navigation = () => {
                     <div className="px-2 py-1 text-sm font-medium text-foreground border-b border-border mb-2">
                       Content
                     </div>
-                    <Link
-                      to="/library"
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
-                        location.pathname === '/library'
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                      }`}
-                    >
-                      <Library className="h-4 w-4" />
-                      <span>Library</span>
+                     <Link
+                       to="/library"
+                       className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
+                         location.pathname === '/library'
+                           ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
+                           : 'text-muted-foreground hover:text-foreground hover:bg-accent/80 hover:shadow-sm'
+                       }`}
+                     >
+                       <Library className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/library' ? '' : 'group-hover:scale-110'}`} />
+                       <span className="font-medium">Library</span>
+                     </Link>
+                     <Link
+                       to="/upload"
+                       className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
+                         location.pathname === '/upload'
+                           ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
+                           : 'text-muted-foreground hover:text-foreground hover:bg-accent/80 hover:shadow-sm'
+                       }`}
+                     >
+                      <Upload className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/upload' ? '' : 'group-hover:scale-110'}`} />
+                      <span className="font-medium">Upload</span>
                     </Link>
-                    <Link
-                      to="/upload"
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
-                        location.pathname === '/upload'
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                      }`}
-                    >
-                     <Upload className="h-4 w-4" />
-                     <span>Upload</span>
-                   </Link>
-                   <TagManagementDialog>
-                     <button className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth w-full text-left text-muted-foreground hover:text-foreground hover:bg-secondary/50">
-                       <Tags className="h-4 w-4" />
-                       <span>Tags</span>
-                     </button>
-                   </TagManagementDialog>
+                    <TagManagementDialog>
+                      <button className="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] w-full text-left text-muted-foreground hover:text-foreground hover:bg-accent/80 hover:shadow-sm">
+                        <Tags className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
+                        <span className="font-medium">Tags</span>
+                      </button>
+                    </TagManagementDialog>
                  </div>
                </HoverCardContent>
               </HoverCard>
@@ -566,36 +566,36 @@ export const Navigation = () => {
                   </div>
                 </CollapsibleTrigger>
                 
-                <CollapsibleContent className="mt-1 space-y-1">
-                  <Link
-                    to="/library"
-                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
-                      location.pathname === '/library'
-                        ? 'bg-primary/3 text-primary/90'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                    }`}
-                  >
-                    <Library className="h-4 w-4" />
-                    <span>Library</span>
-                  </Link>
-                  <Link
-                    to="/upload"
-                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
-                      location.pathname === '/upload'
-                        ? 'bg-primary/3 text-primary/90'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                    }`}
+                 <CollapsibleContent className="mt-1 space-y-1">
+                   <Link
+                     to="/library"
+                     className={`group flex items-center gap-3 px-6 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
+                       location.pathname === '/library'
+                         ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
+                         : 'text-muted-foreground hover:text-foreground hover:bg-accent/80 hover:shadow-sm'
+                     }`}
                    >
-                     <Upload className="h-4 w-4" />
-                     <span>Upload</span>
+                     <Library className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/library' ? '' : 'group-hover:scale-110'}`} />
+                     <span className="font-medium">Library</span>
                    </Link>
-                   <TagManagementDialog>
-                     <button className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth text-muted-foreground hover:text-foreground hover:bg-secondary/50`}>
-                       <Tags className="h-4 w-4" />
-                       <span>Tags</span>
-                     </button>
-                   </TagManagementDialog>
-                 </CollapsibleContent>
+                   <Link
+                     to="/upload"
+                     className={`group flex items-center gap-3 px-6 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
+                       location.pathname === '/upload'
+                         ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
+                         : 'text-muted-foreground hover:text-foreground hover:bg-accent/80 hover:shadow-sm'
+                     }`}
+                    >
+                      <Upload className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/upload' ? '' : 'group-hover:scale-110'}`} />
+                      <span className="font-medium">Upload</span>
+                    </Link>
+                    <TagManagementDialog>
+                      <button className="group flex items-center gap-3 px-6 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] text-muted-foreground hover:text-foreground hover:bg-accent/80 hover:shadow-sm w-full text-left">
+                        <Tags className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
+                        <span className="font-medium">Tags</span>
+                      </button>
+                    </TagManagementDialog>
+                  </CollapsibleContent>
                </Collapsible>
             )}
           </li>
