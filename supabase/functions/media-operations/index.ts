@@ -124,9 +124,9 @@ async function copyToCollection(supabaseClient: any, userId: string, collectionI
         .from('media')
         .select('id, creator_id')
         .in('id', mediaIds),
-      supabaseClient
+        supabaseClient
         .from('content_files')
-        .select('id, creator_id')
+        .select('id, creator_id, title, content_type, file_path, file_size, mime_type')
         .in('id', mediaIds)
         .eq('is_active', true)
     ])
@@ -168,19 +168,22 @@ async function copyToCollection(supabaseClient: any, userId: string, collectionI
         // Get the content file details
         const contentFile = (contentResults.data || []).find((item: any) => item.id === id)
         if (contentFile) {
-          // First create a minimal media record
+          // First create a media record with proper content_file data
           const { error: mediaInsertError } = await supabaseClient
             .from('media')
             .insert({
               id: id,
               creator_id: contentFile.creator_id,
-              title: `Content File ${id.substring(0, 8)}`,
-              type: 'document', // Default type
-              storage_path: `content_files/${id}`,
+              title: contentFile.title || `Content File ${id.substring(0, 8)}`,
+              type: contentFile.content_type === 'image' ? 'image' : 
+                    contentFile.content_type === 'video' ? 'video' :
+                    contentFile.content_type === 'audio' ? 'audio' : 'document',
+              storage_path: contentFile.file_path,
               bucket: 'content',
-              mime: 'application/octet-stream',
-              size_bytes: 0,
-              origin: 'content_files',
+              path: contentFile.file_path,
+              mime: contentFile.mime_type || 'application/octet-stream',
+              size_bytes: contentFile.file_size || 0,
+              origin: 'upload',
               created_by: contentFile.creator_id
             })
 
