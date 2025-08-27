@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Image, Video, FileAudio, FileText, X, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { useSidebar } from '@/components/Navigation';
-import { useSecureMedia } from '@/hooks/useSecureMedia';
-import { useMediaPreloader } from '@/hooks/useMediaPreloader';
+import { useAdvancedPreloader } from '@/hooks/useAdvancedPreloader';
+import { useIntersectionPreloader } from '@/hooks/useIntersectionPreloader';
 
 // Use the MediaItem interface from ContentLibrary
 interface MediaItem {
@@ -50,7 +50,8 @@ export const MediaPreviewDialog = ({
   const [secureUrl, setSecureUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const sidebar = useSidebar();
-  const { getSecureUrl } = useSecureMedia();
+  const { preloadImage, getCachedUrl } = useAdvancedPreloader();
+  const { preloadForNavigation } = useIntersectionPreloader(allItems);
   
   // Disabled preloader for media preview
   // const { preloadMore } = useMediaPreloader(allItems, {
@@ -69,6 +70,8 @@ export const MediaPreviewDialog = ({
     if (currentIndex > 0 && onItemChange) {
       const previousItem = allItems[currentIndex - 1];
       onItemChange(previousItem);
+      // Preload navigation items for instant switching
+      preloadForNavigation(previousItem.id, 'both');
     }
   };
 
@@ -77,6 +80,8 @@ export const MediaPreviewDialog = ({
     if (currentIndex < allItems.length - 1 && onItemChange) {
       const nextItem = allItems[currentIndex + 1];
       onItemChange(nextItem);
+      // Preload navigation items for instant switching
+      preloadForNavigation(nextItem.id, 'both');
     }
   };
 
@@ -126,35 +131,54 @@ export const MediaPreviewDialog = ({
     }
   };
 
-  // Load secure URL when dialog opens
+  // Enhanced loading with caching and preloading
   useEffect(() => {
-    if (open && item) {
+    const loadSecureUrl = async () => {
+      if (!open || !item) return;
+      
       const storagePath = getItemStoragePath(item);
-      if (storagePath) {
+      if (!storagePath) return;
+
+      try {
         setLoading(true);
         setSecureUrl(null);
         setFullImageLoaded(false);
         
-        // Request optimized image with quality compression only
-        const transforms = {
-          quality: 85   // Good quality but compressed, maintain original aspect ratio
-        };
+        // Check if we have a cached URL first (instant loading!)
+        const cachedUrl = getCachedUrl(storagePath, { quality: 85 });
+        if (cachedUrl) {
+          console.log('Using cached URL for instant loading');
+          setSecureUrl(cachedUrl);
+          setLoading(false);
+          return;
+        }
         
-        console.log('Loading preview image with transforms:', transforms);
+        // If not cached, preload with high priority
+        console.log('Preloading image with high priority');
+        const url = await preloadImage(storagePath, { quality: 85, priority: 'high' });
         
-        getSecureUrl(storagePath, transforms)
-          .then(url => {
-            setSecureUrl(url);
-          })
-          .catch(err => {
-            console.error('Failed to get secure URL:', err);
-          })
-          .finally(() => {
-            setLoading(false);
-          });
+        if (url) {
+          console.log('Image preloaded successfully');
+          setSecureUrl(url);
+        } else {
+          console.error('No secure URL returned from preloader');
+        }
+      } catch (error) {
+        console.error('Error loading secure URL:', error);
+      } finally {
+        setLoading(false);
       }
+    };
+
+    loadSecureUrl();
+  }, [open, item, preloadImage, getCachedUrl]);
+
+  // Preload adjacent items when dialog opens
+  useEffect(() => {
+    if (open && item) {
+      preloadForNavigation(item.id, 'both');
     }
-  }, [open, item, getSecureUrl]);
+  }, [open, item, preloadForNavigation]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';

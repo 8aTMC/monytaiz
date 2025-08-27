@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { useSecureMedia } from './useSecureMedia';
+import { useAdvancedPreloader } from './useAdvancedPreloader';
 
 interface MediaItem {
   id: string;
@@ -23,35 +23,42 @@ export const useMediaPreloader = (
     preloadDelay = 100
   } = options;
 
-  const { getSecureUrl } = useSecureMedia();
+  const { preloadImage, preloadMultiResolution } = useAdvancedPreloader();
   const preloadedIndexRef = useRef(0);
   const isPreloadingRef = useRef(false);
   const preloadQueueRef = useRef<MediaItem[]>([]);
   const processQueueTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Process preload queue with delay to avoid overwhelming the server
+  // Process preload queue with enhanced multi-resolution preloading
   const processPreloadQueue = useCallback(async () => {
     if (isPreloadingRef.current || preloadQueueRef.current.length === 0) {
       return;
     }
 
     isPreloadingRef.current = true;
-    const batch = preloadQueueRef.current.splice(0, 2); // Reduced to 2 at a time
+    const batch = preloadQueueRef.current.splice(0, 3); // Increased to 3 with better handling
 
     try {
-      // Process items sequentially instead of in parallel to avoid overwhelming the server
-      for (const item of batch) {
-        try {
-          // Only preload thumbnail size to reduce server load
-          await getSecureUrl(item.storage_path, { width: 300, height: 300, quality: 70 });
+      // Use advanced preloader for better performance
+      await Promise.allSettled(
+        batch.map(async (item, index) => {
+          if (item.type !== 'image') return;
           
-          // Add delay between each request
-          await new Promise(resolve => setTimeout(resolve, 200));
-        } catch (error) {
-          console.error('Error preloading single item:', error);
-          // Continue with next item even if one fails
-        }
-      }
+          try {
+            // Preload multiple resolutions based on position in batch
+            if (index === 0) {
+              // First item gets full multi-resolution treatment
+              await preloadMultiResolution(item.storage_path);
+            } else {
+              // Others get thumbnail + medium resolution
+              await preloadImage(item.storage_path, { width: 300, height: 300, quality: 70 });
+              await preloadImage(item.storage_path, { width: 800, quality: 80 });
+            }
+          } catch (error) {
+            console.error('Error preloading item:', item.id, error);
+          }
+        })
+      );
     } catch (error) {
       console.error('Error preloading media batch:', error);
     } finally {
@@ -62,7 +69,7 @@ export const useMediaPreloader = (
         processQueueTimeoutRef.current = setTimeout(processPreloadQueue, preloadDelay);
       }
     }
-  }, [getSecureUrl, preloadDelay]);
+  }, [preloadImage, preloadMultiResolution, preloadDelay]);
 
   // Add items to preload queue
   const queuePreload = useCallback((itemsToQueue: MediaItem[]) => {
