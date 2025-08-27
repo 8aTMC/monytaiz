@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Image, Video, FileAudio } from 'lucide-react';
-import { useInstantMedia } from '@/hooks/useInstantMedia';
+import { useDirectMedia } from '@/hooks/useDirectMedia';
 
 interface MediaThumbnailProps {
   item: {
@@ -18,7 +18,8 @@ interface MediaThumbnailProps {
 
 export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) => {
   const [imageLoaded, setImageLoaded] = useState(false);
-  const { loadInstantMedia, currentUrl, placeholder, error, enhanceQuality } = useInstantMedia();
+  const [imageError, setImageError] = useState(false);
+  const { getDirectUrl } = useDirectMedia();
 
   // Helper to get type from either format
   const getItemType = () => item.type || item.content_type || 'unknown';
@@ -41,13 +42,11 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
 
   const itemType = getItemType();
   const storagePath = getStoragePath();
-
-  // Load media with instant placeholders
-  useEffect(() => {
-    if (itemType === 'image' && storagePath) {
-      loadInstantMedia(storagePath, item.tiny_placeholder);
-    }
-  }, [itemType, storagePath, loadInstantMedia, item.tiny_placeholder]);
+  
+  // Get direct thumbnail URL for images
+  const thumbnailUrl = itemType === 'image' && storagePath 
+    ? getDirectUrl(storagePath, { width: 256, height: 256, quality: 80 })
+    : null;
 
   // For non-image types, show icon
   if (itemType !== 'image') {
@@ -63,8 +62,8 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
     );
   }
 
-  // Show loading state only if no placeholder and no error
-  if (!currentUrl && !error) {
+  // Show loading state for images without URL
+  if (itemType === 'image' && !thumbnailUrl && !imageError) {
     return (
       <div className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}>
         <div className="animate-pulse">
@@ -79,32 +78,27 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
   const aspectHeight = item.height ? Math.round((aspectWidth / (item.width ?? 1)) * (item.height ?? 256)) : 256;
 
   return (
-    <div 
-      className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}
-      onMouseEnter={enhanceQuality}
-    >
-      {/* Always show current URL (instant placeholder first, then better quality) */}
-      {currentUrl && (
+    <div className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}>
+      {/* Show thumbnail for images */}
+      {thumbnailUrl && !imageError && (
         <img
-          src={currentUrl}
+          src={thumbnailUrl}
           alt={item.title || 'Thumbnail'}
-          className={`w-full h-full object-cover transition-all duration-300 ${
-            currentUrl === placeholder ? 'filter blur-sm' : 'filter-none'
-          }`}
+          className="w-full h-full object-cover transition-all duration-300"
           loading="lazy"
           decoding="async"
           width={aspectWidth}
           height={aspectHeight}
           onLoad={() => setImageLoaded(true)}
-          onError={() => console.error('Failed to load thumbnail')}
+          onError={() => setImageError(true)}
         />
       )}
 
-      {/* Error state */}
-      {error && (
+      {/* Error state or fallback */}
+      {(imageError || (itemType === 'image' && !thumbnailUrl)) && (
         <div className="flex flex-col items-center gap-2">
           {getContentTypeIcon('image')}
-          <span className="text-xs text-muted-foreground">Failed to load</span>
+          <span className="text-xs text-muted-foreground">Image</span>
         </div>
       )}
     </div>
