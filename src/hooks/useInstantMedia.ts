@@ -80,7 +80,7 @@ export const useInstantMedia = () => {
       let placeholderUrl = dbPlaceholder;
       if (!placeholderUrl) {
         // Generate tiny base64 placeholder if not in DB
-        placeholderUrl = await generateTinyPlaceholder(storagePath);
+        placeholderUrl = generateTinyPlaceholder(storagePath);
       }
 
       // Set placeholder immediately for instant loading
@@ -88,41 +88,48 @@ export const useInstantMedia = () => {
         ...prev,
         placeholder: placeholderUrl,
         currentUrl: placeholderUrl,
-        isLoading: true
+        isLoading: false // Set to false for thumbnails - no loading spinner
       }));
 
-      // Step 2: Get auth session once
+      // Step 2: Load only low quality for thumbnails first (staggered loading)
       const session = await supabase.auth.getSession();
       if (!session.data.session?.access_token) {
         throw new Error('No auth session');
       }
 
-      // Step 3: Load both qualities in parallel with optimized endpoint
-      const [lowQualityUrl, highQualityUrl] = await Promise.all([
-        getOptimizedUrl(storagePath, session.data.session.access_token, 45, 256),
-        getOptimizedUrl(storagePath, session.data.session.access_token, 85, 1024)
-      ]);
+      // Load low quality first (for thumbnails)
+      setTimeout(async () => {
+        try {
+          const lowQualityUrl = await getOptimizedUrl(storagePath, session.data.session.access_token, 60, 256);
+          
+          if (lowQualityUrl) {
+            setMediaState(prev => ({
+              ...prev,
+              lowQuality: lowQualityUrl,
+              currentUrl: lowQualityUrl || prev.placeholder,
+              isLoading: false
+            }));
 
-      const finalState = {
-        placeholder: placeholderUrl,
-        lowQuality: lowQualityUrl,
-        highQuality: highQualityUrl,
-        currentUrl: highQualityUrl || lowQualityUrl || placeholderUrl,
-        isLoading: false,
-        error: false
-      };
-
-      setMediaState(finalState);
-      
-      // Cache the result
-      saveToCache(cacheKey, finalState);
+            // Cache low quality result
+            saveToCache(cacheKey, {
+              placeholder: placeholderUrl,
+              lowQuality: lowQualityUrl,
+              highQuality: null,
+            });
+          }
+        } catch (error) {
+          console.warn('Failed to load low quality:', error);
+          // Don't show error for thumbnails, just keep placeholder
+        }
+      }, Math.random() * 200); // Random delay to prevent simultaneous requests
 
     } catch (error) {
       console.error('Failed to load instant media:', error);
+      // For thumbnails, don't show error state, just keep placeholder
       setMediaState(prev => ({
         ...prev,
         isLoading: false,
-        error: true,
+        error: false, // Don't show errors for thumbnails
         currentUrl: prev.placeholder || null
       }));
     } finally {
@@ -162,7 +169,7 @@ export const useInstantMedia = () => {
 };
 
 // Generate a tiny base64 placeholder from the image
-const generateTinyPlaceholder = async (storagePath: string): Promise<string> => {
+const generateTinyPlaceholder = (storagePath: string): string => {
   try {
     // Create a tiny 8x8 colored rectangle as placeholder
     const canvas = document.createElement('canvas');
@@ -196,37 +203,50 @@ const hashCode = (str: string): number => {
   return hash;
 };
 
-// Optimized URL fetching with better caching
+// Optimized URL fetching with retries and better error handling
 const getOptimizedUrl = async (
   path: string, 
   token: string, 
   quality: number, 
-  maxSize: number
+  maxSize: number,
+  retries: number = 2
 ): Promise<string | null> => {
-  try {
-    const params = new URLSearchParams({ 
-      path, 
-      quality: quality.toString(),
-      width: maxSize.toString(),
-      height: maxSize.toString()
-    });
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const params = new URLSearchParams({ 
+        path, 
+        quality: quality.toString(),
+        width: maxSize.toString(),
+        height: maxSize.toString()
+      });
 
-    const response = await fetch(
-      `https://alzyzfjzwvofmjccirjq.supabase.co/functions/v1/fast-secure-media?${params.toString()}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      const response = await fetch(
+        `https://alzyzfjzwvofmjccirjq.supabase.co/functions/v1/fast-secure-media?${params.toString()}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          // Add timeout to prevent hanging requests
+          signal: AbortSignal.timeout(10000) // 10 second timeout
         }
-      }
-    );
+      );
 
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    
-    const result = await response.json();
-    return result.error ? null : result.url;
-  } catch (error) {
-    console.error('Failed to get optimized URL:', error);
-    return null;
+      if (!response.ok) {
+        if (attempt === retries) throw new Error(`HTTP ${response.status}`);
+        continue; // Retry on HTTP errors
+      }
+      
+      const result = await response.json();
+      return result.error ? null : result.url;
+    } catch (error) {
+      if (attempt === retries) {
+        console.warn(`Failed to get optimized URL after ${retries + 1} attempts:`, error);
+        return null;
+      }
+      // Wait before retry with exponential backoff
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 500));
+    }
   }
+  return null;
 };
