@@ -45,60 +45,79 @@ serve(async (req) => {
     // Get user ID from JWT (fastest auth check)
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) {
+      console.error('Auth error:', userError)
       return new Response(
         JSON.stringify({ error: 'Invalid token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Simplified access - skip role checks for faster loading
-    // All authenticated users can access media for now
+    // Fast role check for basic access control
+    const { data: roles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .limit(1)
+
+    // Allow access for authenticated users (basic check)
+    const hasRole = roles && roles.length > 0
+    if (!hasRole) {
+      console.error('No role found for user:', user.id)
+      return new Response(
+        JSON.stringify({ error: 'Access denied - no role' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     console.log(`Generating signed URL for user ${user.id}, path: ${path}`)
 
-    // Generate optimized signed URL with aggressive caching
+    // Generate optimized signed URL
     const supabaseService = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const transformOptions: any = {
-      expiresIn: 14400, // 4 hours for better caching
+    // Build transform options
+    let transformOptions: any = {
+      expiresIn: 7200, // 2 hours
     }
 
-    // Add optimized transforms
+    // Add transforms if specified
     if (width || height || quality) {
       transformOptions.transform = {
         width: width ? Math.min(parseInt(width), 1920) : undefined,
         height: height ? Math.min(parseInt(height), 1920) : undefined,
         quality: Math.min(parseInt(quality), 95),
-        resize: 'cover',
-        format: 'webp' // Use WebP for better compression
+        resize: 'cover'
+        // Removed format: 'webp' as it might cause issues
       }
     }
 
     const { data: urlData, error: urlError } = await supabaseService.storage
       .from('content')
-      .createSignedUrl(path, 14400, transformOptions)
+      .createSignedUrl(path, 7200, transformOptions)
 
     if (urlError) {
-      console.error('Signed URL error:', urlError)
+      console.error('Signed URL error for path:', path, 'Error:', urlError)
       return new Response(
-        JSON.stringify({ error: 'Failed to generate secure URL' }),
+        JSON.stringify({ error: 'Failed to generate secure URL', details: urlError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    console.log('Successfully generated signed URL for:', path)
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         url: urlData.signedUrl,
-        expires_at: new Date(Date.now() + 14400 * 1000).toISOString()
+        expires_at: new Date(Date.now() + 7200 * 1000).toISOString()
       }),
       { 
         headers: { 
           ...corsHeaders, 
           'Content-Type': 'application/json',
-          'Cache-Control': 'public, max-age=7200, s-maxage=14400' // Aggressive caching
+          'Cache-Control': 'public, max-age=3600'
         }
       }
     )
@@ -106,7 +125,11 @@ serve(async (req) => {
   } catch (error) {
     console.error('Fast secure media error:', error)
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ 
+        error: 'Internal server error',
+        message: error.message,
+        stack: error.stack
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
