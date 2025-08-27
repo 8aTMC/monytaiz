@@ -58,10 +58,39 @@ export const useFileUpload = () => {
   
   // Use ref to get current queue state in async operations
   const queueRef = useRef<FileUploadItem[]>([]);
+  const pausedRef = useRef<Set<string>>(new Set());
+  const uploadingRef = useRef(false);
   
   useEffect(() => {
     queueRef.current = uploadQueue;
   }, [uploadQueue]);
+
+  useEffect(() => {
+    pausedRef.current = pausedUploads;
+  }, [pausedUploads]);
+
+  useEffect(() => {
+    uploadingRef.current = isUploading;
+  }, [isUploading]);
+
+  // Helper function to continue upload process
+  const continueUploadProcess = useCallback(() => {
+    if (!uploadingRef.current) return;
+    
+    // Use a small delay to allow state updates to complete
+    setTimeout(() => {
+      // Trigger a re-evaluation of the upload queue
+      // This will be handled by the main upload loop's while condition
+      const nextPendingFile = queueRef.current.find(item => 
+        item.status === 'pending' && !pausedRef.current.has(item.id)
+      );
+      
+      if (!nextPendingFile) {
+        // No more files to upload
+        setIsUploading(false);
+      }
+    }, 100);
+  }, []);
 
   const validateFile = useCallback((file: File) => {
     try {
@@ -139,13 +168,9 @@ export const useFileUpload = () => {
       return newSet;
     });
 
-    // If we removed the currently uploading file and there are still pending files, continue upload
+    // If we removed the currently uploading file, trigger continuation
     if (wasUploading && isUploading) {
-      const remainingFiles = uploadQueue.filter(item => item.id !== id && item.status === 'pending');
-      if (remainingFiles.length === 0) {
-        // No more files to upload, stop uploading state
-        setIsUploading(false);
-      }
+      continueUploadProcess();
     }
     
     // If no files left at all, stop uploading state
@@ -153,14 +178,17 @@ export const useFileUpload = () => {
     if (remainingCount === 0) {
       setIsUploading(false);
     }
-  }, [uploadQueue, isUploading]);
+  }, [uploadQueue, isUploading, continueUploadProcess]);
 
   const pauseUpload = useCallback((id: string) => {
     setPausedUploads(prev => new Set(prev).add(id));
     setUploadQueue(prev => prev.map(item => 
       item.id === id ? { ...item, status: 'paused' as const, isPaused: true } : item
     ));
-  }, []);
+    
+    // Trigger continuation of upload process if this was the current file
+    continueUploadProcess();
+  }, [continueUploadProcess]);
 
   const resumeUpload = useCallback((id: string) => {
     setPausedUploads(prev => {
@@ -223,9 +251,9 @@ export const useFileUpload = () => {
     const maxRetries = fileType === 'video' ? 5 : 3; // More retries for large video files
 
     try {
-      // Check if paused
+      // Check if paused before starting upload process
       if (pausedUploads.has(item.id)) {
-        return;
+        return { success: false, error: 'Upload paused' };
       }
 
       // Update status to uploading
@@ -566,12 +594,14 @@ export const useFileUpload = () => {
     let errorCount = 0;
 
     // Keep processing files until none are left
-    while (true) {
+    while (uploadingRef.current) {
       // Always get fresh queue state to handle removed files
-      const currentQueue = queueRef.current.filter(item => item.status === 'pending');
+      const currentQueue = queueRef.current.filter(item => 
+        item.status === 'pending' && !pausedRef.current.has(item.id)
+      );
       
       if (currentQueue.length === 0) {
-        break; // No more pending files
+        break; // No more pending files that aren't paused
       }
 
       const nextFile = currentQueue[0];
@@ -585,12 +615,14 @@ export const useFileUpload = () => {
         continue; // File was removed, check for next one
       }
 
-      if (!pausedUploads.has(nextFile.id)) {
+      // Only upload if file is still pending and not paused
+      if (nextFile.status === 'pending' && !pausedRef.current.has(nextFile.id)) {
         const result = await uploadFile(nextFile);
         
         if (result?.success) {
           successCount++;
-        } else {
+        } else if (result?.error !== 'Upload paused') {
+          // Only count as error if it wasn't paused
           errorCount++;
         }
       }
@@ -609,7 +641,7 @@ export const useFileUpload = () => {
         variant: successCount > errorCount ? "success" : "destructive",
       });
     }
-  }, [isUploading, uploadFile, pausedUploads, toast]);
+  }, [isUploading, uploadFile, toast]);
 
   const clearQueue = useCallback(() => {
     setUploadQueue([]);
