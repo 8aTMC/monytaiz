@@ -53,26 +53,28 @@ export default function SimpleLibrary() {
     // TODO: Implement folder update refresh  
   }, []);
 
-  // Convert SimpleMediaItem to the format expected by LibraryGrid
-  const convertToLibraryFormat = useCallback((items: SimpleMediaItem[]) => {
-    return items.map(item => ({
+  // Convert SimpleMediaItem to the format expected by LibraryGrid - memoized by media array
+  const convertedMedia = useMemo(() => {
+    if (!media || !Array.isArray(media)) return [];
+    
+    return media.map(item => ({
       id: item.id,
       title: item.title,
       origin: 'upload' as const,
-      storage_path: item.processed_path || '', // Use processed_path, fallback to empty string
+      storage_path: item.processed_path || '',
       mime: item.mime_type,
       type: item.media_type as 'image' | 'video' | 'audio',
       size_bytes: item.optimized_size_bytes || item.original_size_bytes,
       tags: item.tags || [],
       suggested_price_cents: 0,
       notes: item.description || null,
-      creator_id: '', // Not available in SimpleMediaItem, use empty string
+      creator_id: '',
       created_at: item.created_at,
-      updated_at: item.created_at, // Use created_at since updated_at not available
+      updated_at: item.created_at,
       width: item.width,
       height: item.height
     }));
-  }, []);
+  }, [media]);
 
   // Filter media based on current filters
   const filteredMedia = useMemo(() => {
@@ -81,18 +83,18 @@ export default function SimpleLibrary() {
       return [];
     }
     
-    // Safety check for media array
-    if (!media || !Array.isArray(media) || media.length === 0) {
+    // Safety check for converted media
+    if (!convertedMedia || convertedMedia.length === 0) {
       return [];
     }
     
-    let filtered = [...media];
+    let filtered = [...convertedMedia];
     
     // Apply search filter
     if (searchQuery) {
       filtered = filtered.filter(item => 
         item?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item?.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item?.notes?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item?.tags?.some(tag => tag?.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
@@ -101,9 +103,9 @@ export default function SimpleLibrary() {
     if (selectedFilter !== 'All') {
       filtered = filtered.filter(item => {
         switch (selectedFilter) {
-          case 'Photo': return item?.media_type === 'image';
-          case 'Video': return item?.media_type === 'video';
-          case 'Audio': return item?.media_type === 'audio';
+          case 'Photo': return item?.type === 'image';
+          case 'Video': return item?.type === 'video';
+          case 'Audio': return item?.type === 'audio';
           default: return true;
         }
       });
@@ -123,8 +125,8 @@ export default function SimpleLibrary() {
       }
     });
     
-    return convertToLibraryFormat(filtered);
-  }, [media, searchQuery, selectedFilter, sortBy, convertToLibraryFormat, selectedCategory]);
+    return filtered;
+  }, [convertedMedia, searchQuery, selectedFilter, sortBy, selectedCategory]);
 
   // Default categories for sidebar - memoized to prevent re-renders
   const defaultCategories = useMemo(() => [
