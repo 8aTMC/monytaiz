@@ -57,14 +57,15 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
   // Load optimized media on mount with stable dependencies
   useEffect(() => {
     if (stableMediaItem.type && (stableMediaItem.storage_path || stableMediaItem.path)) {
-      loadOptimizedMedia(stableMediaItem, isPublic);
+      // Always treat content as private since content bucket is private
+      loadOptimizedMedia(stableMediaItem, false);
     }
 
     // Cleanup function
     return () => {
       clearMedia();
     };
-  }, [stableMediaItem.id, stableMediaItem.type, stableMediaItem.storage_path, stableMediaItem.path, isPublic]);
+  }, [stableMediaItem.id, stableMediaItem.type, stableMediaItem.storage_path, stableMediaItem.path]);
 
   // For non-image types, show icon
   if (item.type !== 'image') {

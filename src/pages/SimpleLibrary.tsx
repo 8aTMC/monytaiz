@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSimpleMedia, SimpleMediaItem } from '@/hooks/useSimpleMedia';
-import { SimpleMediaPreview } from '@/components/SimpleMediaPreview';
+import { SimpleMediaPreviewAsync } from '@/components/SimpleMediaPreviewAsync';
 import { LibrarySidebar } from '@/components/LibrarySidebar';
 import { LibraryGrid } from '@/components/LibraryGrid';
 import { LibrarySelectionToolbar } from '@/components/LibrarySelectionToolbar';
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Database, MessageSquare, Zap, FileImage, Search } from 'lucide-react';
 
 export default function SimpleLibrary() {
-  const { media, loading, error, fetchMedia, getThumbnailUrl, getFullUrl } = useSimpleMedia();
+  const { media, loading, error, fetchMedia, getFullUrlAsync } = useSimpleMedia();
   const [selectedItem, setSelectedItem] = useState<SimpleMediaItem | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
@@ -369,11 +369,11 @@ export default function SimpleLibrary() {
         </div>
 
         {/* Preview Modal */}
-        <SimpleMediaPreview
+        <SimpleMediaPreviewAsync
           item={selectedItem}
           isOpen={isPreviewOpen}
           onClose={handlePreviewClose}
-          getFullUrl={getFullUrl}
+          getFullUrlAsync={getFullUrlAsync}
         />
       </div>
     </Layout>

@@ -171,39 +171,27 @@ export const useOptimizedMediaDisplay = () => {
 
       let finalUrl: string | null = null;
 
-      if (isPublic) {
-        // For public files, use direct transform URL
-        finalUrl = getTransformUrl(bestPath, {
-          quality: 85,
-          ...(item.type === 'image' && {
-            width: 512,
-            height: 512,
-            resize: 'cover'
-          })
-        });
-      } else {
-        // For private files, get signed URL
-        finalUrl = await getSignedTransformUrl(bestPath, {
-          quality: 85,
-          ...(item.type === 'image' && {
-            width: 512,
-            height: 512,
-            resize: 'cover'
-          })
-        });
+      // Always use signed URLs since content bucket is private
+      finalUrl = await getSignedTransformUrl(bestPath, {
+        quality: 85,
+        ...(item.type === 'image' && {
+          width: 512,
+          height: 512,
+          resize: 'cover'
+        })
+      });
 
-        // If processed version fails, try original path as fallback
-        if (!finalUrl && (item.path || item.storage_path)) {
-          const fallbackPath = item.path || item.storage_path!;
-          finalUrl = await getSignedTransformUrl(fallbackPath, {
-            quality: 85,
-            ...(item.type === 'image' && {
-              width: 512,
-              height: 512,
-              resize: 'cover'
-            })
-          });
-        }
+      // If processed version fails, try original path as fallback
+      if (!finalUrl && (item.path || item.storage_path)) {
+        const fallbackPath = item.path || item.storage_path!;
+        finalUrl = await getSignedTransformUrl(fallbackPath, {
+          quality: 85,
+          ...(item.type === 'image' && {
+            width: 512,
+            height: 512,
+            resize: 'cover'
+          })
+        });
       }
 
       // Final abort check before setting state

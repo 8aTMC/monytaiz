@@ -60,19 +60,53 @@ export const useSimpleMedia = () => {
     }
   }, []);
 
-  const getMediaUrl = useCallback((path: string | undefined) => {
+  const getMediaUrl = useCallback(async (path: string | undefined) => {
     if (!path) return null;
     
-    const baseUrl = 'https://alzyzfjzwvofmjccirjq.supabase.co/storage/v1/object/public/content';
-    return `${baseUrl}/${path}`;
+    try {
+      // Since content bucket is private, use signed URLs
+      const { data, error } = await supabase.storage
+        .from('content')
+        .createSignedUrl(path, 3600, {
+          transform: {
+            width: 512,
+            height: 512,
+            quality: 85,
+            resize: 'cover'
+          }
+        });
+
+      if (error || !data.signedUrl) {
+        console.error('Failed to get signed URL for:', path, error);
+        return null;
+      }
+      
+      return data.signedUrl;
+    } catch (error) {
+      console.error('Error generating signed URL:', error);
+      return null;
+    }
   }, []);
 
   const getThumbnailUrl = useCallback((item: SimpleMediaItem) => {
-    return getMediaUrl(item.thumbnail_path) || getMediaUrl(item.processed_path);
-  }, [getMediaUrl]);
+    // Return null initially, components should handle async loading
+    return null;
+  }, []);
 
   const getFullUrl = useCallback((item: SimpleMediaItem) => {
-    return getMediaUrl(item.processed_path);
+    // Return null initially, components should handle async loading  
+    return null;
+  }, []);
+
+  // Async versions for when needed
+  const getThumbnailUrlAsync = useCallback(async (item: SimpleMediaItem) => {
+    const thumbnailUrl = await getMediaUrl(item.thumbnail_path);
+    if (thumbnailUrl) return thumbnailUrl;
+    return await getMediaUrl(item.processed_path);
+  }, [getMediaUrl]);
+
+  const getFullUrlAsync = useCallback(async (item: SimpleMediaItem) => {
+    return await getMediaUrl(item.processed_path);
   }, [getMediaUrl]);
 
   return {
@@ -81,6 +115,8 @@ export const useSimpleMedia = () => {
     error,
     fetchMedia,
     getThumbnailUrl,
-    getFullUrl
+    getFullUrl,
+    getThumbnailUrlAsync,
+    getFullUrlAsync
   };
 };
