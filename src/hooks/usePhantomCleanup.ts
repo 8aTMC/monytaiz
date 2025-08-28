@@ -9,16 +9,19 @@ export const usePhantomCleanup = () => {
   const cleanPhantomFolders = async (bucket: string, phantomFolders: string[]) => {
     setIsCleaningPhantoms(true);
     try {
+      // Ensure clean JSON-serializable payload
       const payload = {
-        bucket,
-        prefixes: phantomFolders, // Send as prefixes (function handles both)
+        bucket: String(bucket),
+        prefixes: phantomFolders.filter(folder => typeof folder === 'string' && folder.length > 0),
         dryRun: false
       };
 
-      console.log('Sending phantom cleanup payload:', payload);
+      // Sanity check - ensure payload is JSON-serializable
+      const cleanPayload = JSON.parse(JSON.stringify(payload));
+      console.log('Sending phantom cleanup payload:', cleanPayload);
 
       const { data, error } = await supabase.functions.invoke('admin-phantom-cleanup', {
-        body: payload,
+        body: cleanPayload,
         headers: { 'Content-Type': 'application/json' },
       });
 
@@ -28,7 +31,7 @@ export const usePhantomCleanup = () => {
         // Try to get more details if available
         if (error.context) {
           try {
-            const errorBody = await error.context.text();
+            const errorBody = await error.context.clone().text();
             console.error('Server error details:', errorBody);
           } catch (e) {
             console.error('Could not read error context:', e);

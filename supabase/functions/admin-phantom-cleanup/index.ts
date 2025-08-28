@@ -31,11 +31,22 @@ Deno.serve(async (req) => {
     return json({ error: 'Method not allowed' }, 405);
   }
 
+  // Robust body parser
   let body: any;
-  try { 
-    body = await req.json(); 
-  } catch { 
-    return json({ error: 'Invalid JSON body' }, 400); 
+  const contentType = req.headers.get('content-type') || '';
+  try {
+    if (contentType.includes('application/json')) {
+      body = await req.json();
+    } else {
+      const text = await req.text();
+      body = text ? JSON.parse(text) : {};
+    }
+  } catch (parseError) {
+    console.error('JSON parsing failed:', parseError);
+    return json({ 
+      error: 'Invalid JSON body', 
+      details: `Could not parse request body as JSON. Content-Type: ${contentType}` 
+    }, 400); 
   }
 
   const bucket = body?.bucket;
