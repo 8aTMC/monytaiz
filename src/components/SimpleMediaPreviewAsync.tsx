@@ -27,6 +27,12 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
     }
 
     const loadUrl = async () => {
+      if (!getFullUrlAsync || typeof getFullUrlAsync !== 'function') {
+        console.error('getFullUrlAsync is not a function:', typeof getFullUrlAsync);
+        setFullUrl(null);
+        return;
+      }
+
       setLoading(true);
       try {
         const url = await getFullUrlAsync(item);
@@ -59,7 +65,10 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden">
+      <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden" aria-describedby="media-preview-description">
+        <div id="media-preview-description" className="sr-only">
+          Preview dialog for media file: {item.title || item.original_filename}
+        </div>
         <DialogHeader className="p-4 border-b">
           <div className="flex items-center justify-between">
             <DialogTitle className="truncate pr-4">
@@ -91,7 +100,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
               </div>
             ) : fullUrl ? (
               <div className="w-full h-full flex items-center justify-center">
-                {item.media_type === 'image' && (
+                {item?.media_type === 'image' && (
                   <img
                     src={fullUrl}
                     alt={item.title || item.original_filename}
@@ -107,7 +116,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                     }}
                   />
                 )}
-                {item.media_type === 'video' && (
+                {item?.media_type === 'video' && (
                   <video
                     src={fullUrl}
                     controls
@@ -124,7 +133,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                     Your browser does not support video playback.
                   </video>
                 )}
-                {item.media_type === 'audio' && (
+                {item?.media_type === 'audio' && (
                   <div className="w-full max-w-md p-8">
                     <audio
                       src={fullUrl}
