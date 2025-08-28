@@ -29,18 +29,20 @@ import { AIManagement } from "./pages/AIManagement";
 import TagManagement from "./pages/TagManagement";
 import NotFound from "./pages/NotFound";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <PWAInstallPrompt />
-        <BrowserRouter>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <Toaster />
+          <Sonner />
+          <PWAInstallPrompt />
+          <BrowserRouter>
           <SidebarProvider>
             <Routes>
               {/* Public routes - no layout */}
@@ -189,6 +191,7 @@ const App = () => (
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
