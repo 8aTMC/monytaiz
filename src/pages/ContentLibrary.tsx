@@ -405,23 +405,26 @@ const ContentLibrary = () => {
             </div>
           </div>
 
-          {/* Selection Toolbar */}
-          {selecting && (
-            <LibrarySelectionToolbar
-              selectedCount={selectedItems.size}
-              totalCount={content.length}
-              currentView={categoryLabel}
-              isCustomFolder={isCustomFolder}
-              onClearSelection={handleClearSelection}
-              onSelectAll={handleSelectAll}
-              onCopy={handleCopy}
-              onDelete={handleDelete}
-              disabled={operationLoading || loadingContent}
-            />
-          )}
-
-          {/* Content Grid */}
+          {/* Content Area */}
           <div className="flex-1 overflow-y-auto p-6">
+            {/* Selection Toolbar - positioned right above content grid */}
+            {selecting && (
+              <div className="mb-4">
+                <LibrarySelectionToolbar
+                  selectedCount={selectedItems.size}
+                  totalCount={content.length}
+                  currentView={categoryLabel}
+                  isCustomFolder={isCustomFolder}
+                  onClearSelection={handleClearSelection}
+                  onSelectAll={handleSelectAll}
+                  onCopy={handleCopy}
+                  onDelete={handleDelete}
+                  disabled={operationLoading || loadingContent}
+                />
+              </div>
+            )}
+
+            {/* Content Grid */}
             <LibraryGrid
               content={content}
               selectedItems={selectedItems}

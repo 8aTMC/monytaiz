@@ -135,30 +135,31 @@ export const MediaPreviewDialog = ({
     }
   };
 
-  // Progressive loading with instant feedback
+  // Stable media loading - prevent infinite loops
   useEffect(() => {
     if (!open || !item) return;
     
     const storagePath = getItemStoragePath(item);
     if (!storagePath) return;
 
-    // Start progressive loading immediately
-    loadProgressiveMedia(storagePath, item.tiny_placeholder);
+    let isMounted = true;
     
-    // Enhance quality when user stays on the image
-    const enhanceTimer = setTimeout(() => {
-      enhanceQuality();
-    }, 1500);
+    const loadMedia = async () => {
+      try {
+        if (isMounted) {
+          await loadProgressiveMedia(storagePath, item.tiny_placeholder);
+        }
+      } catch (error) {
+        console.error('Failed to load media:', error);
+      }
+    };
 
-    return () => clearTimeout(enhanceTimer);
-  }, [open, item, loadProgressiveMedia, enhanceQuality]);
+    loadMedia();
 
-  // Preload adjacent items when dialog opens
-  useEffect(() => {
-    if (open && item) {
-      preloadForNavigation(item.id, 'both');
-    }
-  }, [open, item, preloadForNavigation]);
+    return () => {
+      isMounted = false;
+    };
+  }, [open, item?.id, item?.storage_path]); // Only depend on stable values
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';

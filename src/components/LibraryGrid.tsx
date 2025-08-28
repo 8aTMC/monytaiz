@@ -44,7 +44,7 @@ const LibraryGridComponent = ({
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="aspect-square bg-muted/20 rounded-lg animate-pulse"></div>
         ))}
@@ -59,7 +59,7 @@ const LibraryGridComponent = ({
   return (
     <div 
       ref={gridContainerRef}
-      className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1 select-none"
+      className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 select-none"
     >
       {content.map((item, index) => {
         // Create stable click handlers for each item
@@ -74,22 +74,26 @@ const LibraryGridComponent = ({
         return (
           <Card 
             key={`${item.id}-${index}`}
-            className={`group cursor-pointer border border-border hover:border-primary/50 transition-colors ${
-              selectedItems.has(item.id) ? 'ring-1 ring-primary border-primary' : ''
+            className={`group cursor-pointer border border-border hover:border-primary/50 transition-colors relative ${
+              selectedItems.has(item.id) ? 'ring-2 ring-primary border-primary' : ''
             }`}
             onClick={handleItemClick}
           >
-            {/* Selection checkbox */}
+            {/* Selection checkbox - always visible */}
             <div className="absolute top-2 right-2 z-10">
               <div 
-                className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                className={`w-6 h-6 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${
                   selectedItems.has(item.id) 
-                    ? 'bg-primary border-primary text-primary-foreground' 
-                    : 'bg-background/80 border-muted-foreground backdrop-blur-sm'
+                    ? 'bg-primary border-primary text-primary-foreground shadow-lg' 
+                    : 'bg-background/90 border-border hover:border-primary/50 backdrop-blur-sm'
                 }`}
-                onClick={handleCheckboxClick}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleCheckboxClick(e);
+                }}
               >
-                {selectedItems.has(item.id) && <Check className="h-3 w-3" />}
+                {selectedItems.has(item.id) && <Check className="h-4 w-4" />}
               </div>
             </div>
 
