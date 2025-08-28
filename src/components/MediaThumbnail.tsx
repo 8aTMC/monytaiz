@@ -1,33 +1,40 @@
 import { useState, useEffect } from 'react';
 import { Image, Video, FileAudio } from 'lucide-react';
-import { useInstantMedia } from '@/hooks/useInstantMedia';
+import { useOptimizedMediaDisplay } from '@/hooks/useOptimizedMediaDisplay';
 
 interface MediaThumbnailProps {
   item: {
-    type?: string;
-    content_type?: string;
+    id?: string;
+    type: 'image' | 'video' | 'audio';
     storage_path?: string;
     file_path?: string;
+    path?: string;
     title: string | null;
     tiny_placeholder?: string;
     width?: number;
     height?: number;
+    renditions?: {
+      video_1080?: string;
+      video_720?: string;
+    };
   };
   className?: string;
+  isPublic?: boolean;
 }
 
-export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) => {
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const { loadInstantMedia, currentUrl, placeholder, error, enhanceQuality } = useInstantMedia();
+export const MediaThumbnail = ({ item, className = "", isPublic = false }: MediaThumbnailProps) => {
+  const { loadOptimizedMedia, currentUrl, tinyPlaceholder, enhanceQuality, error } = useOptimizedMediaDisplay();
 
-  // Helper to get type from either format
-  const getItemType = () => item.type || item.content_type || 'unknown';
-  
-  // Helper to get storage path from either format  
-  const getStoragePath = () => {
-    const path = item.storage_path || item.file_path || '';
-    // Remove content/ prefix if exists since we'll add it in the URL
-    return path.startsWith('content/') ? path.substring(8) : path;
+  // Convert item to the expected format
+  const mediaItem = {
+    id: item.id || crypto.randomUUID(),
+    type: item.type,
+    storage_path: item.storage_path || item.file_path,
+    path: item.path,
+    tiny_placeholder: item.tiny_placeholder,
+    width: item.width,
+    height: item.height,
+    renditions: item.renditions
   };
 
   const getContentTypeIcon = (type: string) => {
@@ -39,31 +46,28 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
     }
   };
 
-  const itemType = getItemType();
-  const storagePath = getStoragePath();
-
-  // Load media with instant placeholders
+  // Load optimized media on mount
   useEffect(() => {
-    if (itemType === 'image' && storagePath) {
-      loadInstantMedia(storagePath, item.tiny_placeholder);
+    if (mediaItem.type && (mediaItem.storage_path || mediaItem.path)) {
+      loadOptimizedMedia(mediaItem, isPublic);
     }
-  }, [itemType, storagePath, loadInstantMedia, item.tiny_placeholder]);
+  }, [mediaItem.type, mediaItem.storage_path, mediaItem.path, loadOptimizedMedia, isPublic]);
 
   // For non-image types, show icon
-  if (itemType !== 'image') {
+  if (mediaItem.type !== 'image') {
     return (
       <div className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}>
         <div className="flex flex-col items-center gap-2">
-          {getContentTypeIcon(itemType)}
+          {getContentTypeIcon(mediaItem.type)}
           <span className="text-xs text-muted-foreground capitalize">
-            {itemType}
+            {mediaItem.type}
           </span>
         </div>
       </div>
     );
   }
 
-  // Show loading state only if no placeholder and no error
+  // Show loading state only if no current URL and no error
   if (!currentUrl && !error) {
     return (
       <div className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}>
@@ -75,27 +79,26 @@ export const MediaThumbnail = ({ item, className = "" }: MediaThumbnailProps) =>
   }
 
   // Calculate aspect ratio for layout stability
-  const aspectWidth = item.width ? Math.min(item.width, 256) : 256;
-  const aspectHeight = item.height ? Math.round((aspectWidth / (item.width ?? 1)) * (item.height ?? 256)) : 256;
+  const aspectWidth = mediaItem.width ? Math.min(mediaItem.width, 256) : 256;
+  const aspectHeight = mediaItem.height ? Math.round((aspectWidth / (mediaItem.width ?? 1)) * (mediaItem.height ?? 256)) : 256;
 
   return (
     <div 
       className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}
       onMouseEnter={enhanceQuality}
     >
-      {/* Always show current URL (instant placeholder first, then better quality) */}
+      {/* Show current URL (progressive: tiny placeholder → thumbnail → higher quality) */}
       {currentUrl && (
         <img
           src={currentUrl}
-          alt={item.title || 'Thumbnail'}
+          alt={item.title || 'Media thumbnail'}
           className={`w-full h-full object-cover transition-all duration-300 ${
-            currentUrl === placeholder ? 'filter blur-sm' : 'filter-none'
+            currentUrl === tinyPlaceholder ? 'filter blur-sm' : 'filter-none'
           }`}
           loading="lazy"
           decoding="async"
           width={aspectWidth}
           height={aspectHeight}
-          onLoad={() => setImageLoaded(true)}
           onError={() => console.error('Failed to load thumbnail')}
         />
       )}

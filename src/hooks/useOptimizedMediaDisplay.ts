@@ -91,8 +91,7 @@ export const useOptimizedMediaDisplay = () => {
             width: transforms.width,
             height: transforms.height,
             quality: transforms.quality || 80,
-            resize: transforms.resize || 'cover',
-            format: transforms.format
+            resize: transforms.resize || 'cover'
           } : undefined
         });
 
@@ -149,21 +148,18 @@ export const useOptimizedMediaDisplay = () => {
             width: 256,
             height: 256,
             resize: 'cover',
-            quality: 70,
-            format: 'webp'
+            quality: 70
           });
           
           previewUrl = getTransformUrl(mediaPath, {
             width: 1280,
             height: 720,
             resize: 'contain',
-            quality: 80,
-            format: 'webp'
+            quality: 80
           });
 
           fullUrl = getTransformUrl(mediaPath, {
-            quality: 90,
-            format: 'webp'
+            quality: 90
           });
         } else {
           // Private images need signed URLs
@@ -171,21 +167,18 @@ export const useOptimizedMediaDisplay = () => {
             width: 256,
             height: 256,
             resize: 'cover',
-            quality: 70,
-            format: 'webp'
+            quality: 70
           });
           
           previewUrl = await getSignedTransformUrl(mediaPath, {
             width: 1280,
             height: 720,
             resize: 'contain',
-            quality: 80,
-            format: 'webp'
+            quality: 80
           });
 
           fullUrl = await getSignedTransformUrl(mediaPath, {
-            quality: 90,
-            format: 'webp'
+            quality: 90
           });
         }
 
@@ -210,8 +203,7 @@ export const useOptimizedMediaDisplay = () => {
             width: 256,
             height: 256,
             resize: 'cover',
-            quality: 70,
-            format: 'webp'
+            quality: 70
           });
           
           fullUrl = getTransformUrl(videoPath);
@@ -220,8 +212,7 @@ export const useOptimizedMediaDisplay = () => {
             width: 256,
             height: 256,
             resize: 'cover',
-            quality: 70,
-            format: 'webp'
+            quality: 70
           });
           
           fullUrl = await getSignedTransformUrl(videoPath);
