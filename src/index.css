@@ -199,23 +199,28 @@ div[aria-label="Chat messages"]::-webkit-scrollbar {
   scrollbar-color: hsl(var(--muted-foreground) / 0.3) hsl(var(--muted));
 }
 
-/* Media preview overlay - ensure it covers everything */
-.media-preview-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.8);
-  z-index: 9999;
-  pointer-events: auto;
+/* Media preview overlay - ensure it covers everything including sidebar */
+.media-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  z-index: 9999 !important;
+  pointer-events: auto !important;
 }
 
 /* Media preview dialog - highest z-index */
-.media-preview-dialog {
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 10000;
-  pointer-events: auto;
+.media-dialog {
+  position: fixed !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 10000 !important;
+  pointer-events: auto !important;
 }
 
 /* Responsive sidebar auto-collapse - force collapse on narrow screens only when collapsed */

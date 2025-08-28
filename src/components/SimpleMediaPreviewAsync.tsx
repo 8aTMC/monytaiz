@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X, Download, Info } from 'lucide-react';
 import { SimpleMediaItem } from '@/hooks/useSimpleMedia';
@@ -63,21 +62,26 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
   };
 
+  if (!isOpen) return null;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      {/* Custom overlay with highest z-index to cover everything including sidebar */}
-      {isOpen && (
-        <div 
-          className="media-preview-overlay" 
-          onClick={onClose}
-        />
-      )}
+    <>
+      {/* Custom overlay that covers EVERYTHING including sidebar */}
+      <div 
+        className="media-overlay"
+        onClick={onClose}
+      />
       
-      {/* Dialog content with even higher z-index */}
-      <div className={`media-preview-dialog grid w-full max-w-4xl max-h-[90vh] gap-4 border bg-background p-0 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg overflow-hidden ${isOpen ? 'block' : 'hidden'}`}>
+      {/* Dialog content positioned above everything */}
+      <div 
+        className="media-dialog w-full max-w-4xl max-h-[90vh] border bg-background shadow-lg rounded-lg overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sr-only" id="media-preview-description">
           Preview dialog for media file: {item?.title || item?.original_filename || 'Unknown file'}
         </div>
+        
+        {/* Header */}
         <div className="p-4 border-b">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold truncate pr-4">
@@ -99,6 +103,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
           </div>
         </div>
 
+        {/* Content */}
         <div className="flex-1 overflow-auto">
           {/* Media Display */}
           <div className="flex items-center justify-center bg-muted/20" style={{ minHeight: '400px' }}>
@@ -167,59 +172,25 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
             )}
           </div>
 
-          {/* Media Info */}
-          <div className="p-4 border-t bg-muted/10">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <span className="font-medium text-muted-foreground">Type:</span>
-                <p className="capitalize">{item.media_type}</p>
-              </div>
-              
-              <div>
-                <span className="font-medium text-muted-foreground">Size:</span>
-                <p>{formatFileSize(item.optimized_size_bytes || item.original_size_bytes)}</p>
-              </div>
-              
-              {item.width && item.height && (
+          {/* Footer with file info */}
+          {item && (
+            <div className="p-4 border-t bg-muted/20">
+              <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="font-medium text-muted-foreground">Dimensions:</span>
-                  <p>{item.width}×{item.height}</p>
+                  <span className="font-medium text-muted-foreground">Type:</span>
+                  <br />
+                  <span className="capitalize">{item.media_type || 'Unknown'}</span>
                 </div>
-              )}
-              
-              {item.duration_seconds && (
                 <div>
-                  <span className="font-medium text-muted-foreground">Duration:</span>
-                  <p>{Math.round(item.duration_seconds)}s</p>
+                  <span className="font-medium text-muted-foreground">Size:</span>
+                  <br />
+                  <span>{formatFileSize(item.original_size_bytes || 0)}</span>
                 </div>
-              )}
+              </div>
             </div>
-            
-            {item.description && (
-              <div className="mt-4">
-                <span className="font-medium text-muted-foreground">Description:</span>
-                <p className="mt-1">{item.description}</p>
-              </div>
-            )}
-            
-            {item.tags.length > 0 && (
-              <div className="mt-4">
-                <span className="font-medium text-muted-foreground">Tags:</span>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {item.tags.map((tag, index) => (
-                    <span
-                      key={index}
-                      className="px-2 py-1 bg-primary/10 text-primary text-xs rounded"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
-    </Dialog>
+    </>
   );
 };
