@@ -213,6 +213,25 @@ export const MediaPreviewDialog = ({
             </DialogTitle>
           </DialogHeader>
 
+          {/* Media Actions Bar */}
+          <div className="flex flex-wrap gap-2 pb-4 border-b border-border">
+            <Button variant="outline" size="sm">
+              @ Mentions
+            </Button>
+            <Button variant="outline" size="sm">
+              Tags
+            </Button>
+            <Button variant="outline" size="sm">
+              Folders
+            </Button>
+            <Button variant="outline" size="sm">
+              Description
+            </Button>
+            <Button variant="outline" size="sm">
+              Price: ${(item.suggested_price_cents / 100).toFixed(2)}
+            </Button>
+          </div>
+
           <div className="flex-1">
             <div className="flex items-center justify-center w-full bg-muted/20 rounded-lg overflow-hidden">
               {/* Error handling */}

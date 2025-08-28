@@ -376,7 +376,7 @@ const ContentLibrary = () => {
                 ))}
               </div>
 
-              {/* Search and Sort Controls */}
+                {/* Search and Sort Controls */}
               <div className="flex items-center gap-3 order-1 lg:order-2">
                 {/* Search */}
                 <div className="relative">
@@ -401,29 +401,43 @@ const ContentLibrary = () => {
                     <SelectItem value="price_low">Price: Low to High</SelectItem>
                   </SelectContent>
                 </Select>
+
+                {/* Select Toggle Button */}
+                <Button
+                  variant={selecting ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setSelecting(!selecting);
+                    if (selecting) {
+                      setSelectedItems(new Set());
+                    }
+                  }}
+                >
+                  Select
+                </Button>
               </div>
             </div>
           </div>
 
+          {/* Selection Toolbar - positioned between controls and content */}
+          {selecting && (
+            <div className="bg-card border-b border-border p-4">
+              <LibrarySelectionToolbar
+                selectedCount={selectedItems.size}
+                totalCount={content.length}
+                currentView={categoryLabel}
+                isCustomFolder={isCustomFolder}
+                onClearSelection={handleClearSelection}
+                onSelectAll={handleSelectAll}
+                onCopy={handleCopy}
+                onDelete={handleDelete}
+                disabled={operationLoading || loadingContent}
+              />
+            </div>
+          )}
+
           {/* Content Area */}
           <div className="flex-1 overflow-y-auto p-6">
-            {/* Selection Toolbar - positioned right above content grid */}
-            {selecting && (
-              <div className="mb-4">
-                <LibrarySelectionToolbar
-                  selectedCount={selectedItems.size}
-                  totalCount={content.length}
-                  currentView={categoryLabel}
-                  isCustomFolder={isCustomFolder}
-                  onClearSelection={handleClearSelection}
-                  onSelectAll={handleSelectAll}
-                  onCopy={handleCopy}
-                  onDelete={handleDelete}
-                  disabled={operationLoading || loadingContent}
-                />
-              </div>
-            )}
-
             {/* Content Grid */}
             <LibraryGrid
               content={content}

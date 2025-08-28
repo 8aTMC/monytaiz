@@ -59,15 +59,29 @@ const LibraryGridComponent = ({
   return (
     <div 
       ref={gridContainerRef}
-      className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 select-none"
+      className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 select-none"
     >
       {content.map((item, index) => {
         // Create stable click handlers for each item
         const handleItemClick = (event: React.MouseEvent) => {
-          onItemClick(item, event, index);
+          if (selecting) {
+            // In selection mode: single click selects/unselects, double click previews
+            if (event.detail === 2) {
+              onItemClick(item, event, index);
+            } else {
+              onCheckboxClick(item.id, index, event);
+            }
+          } else {
+            // Default mode: single click previews
+            onItemClick(item, event, index);
+          }
         };
         
         const handleCheckboxClick = (event?: React.MouseEvent) => {
+          if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
           onCheckboxClick(item.id, index, event);
         };
 
@@ -79,19 +93,15 @@ const LibraryGridComponent = ({
             }`}
             onClick={handleItemClick}
           >
-            {/* Selection checkbox - always visible */}
+            {/* Selection checkbox - transparent overlay */}
             <div className="absolute top-2 right-2 z-10">
               <div 
-                className={`w-6 h-6 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${
+                className={`w-6 h-6 rounded border flex items-center justify-center cursor-pointer transition-all ${
                   selectedItems.has(item.id) 
                     ? 'bg-primary border-primary text-primary-foreground shadow-lg' 
-                    : 'bg-background/90 border-border hover:border-primary/50 backdrop-blur-sm'
+                    : 'bg-black/20 border-white/30 hover:bg-black/40 backdrop-blur-sm'
                 }`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleCheckboxClick(e);
-                }}
+                onClick={handleCheckboxClick}
               >
                 {selectedItems.has(item.id) && <Check className="h-4 w-4" />}
               </div>
