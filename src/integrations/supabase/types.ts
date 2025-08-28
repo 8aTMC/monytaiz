@@ -178,13 +178,6 @@ export type Database = {
             foreignKeyName: "collection_items_media_id_fkey"
             columns: ["media_id"]
             isOneToOne: false
-            referencedRelation: "fan_my_media"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "collection_items_media_id_fkey"
-            columns: ["media_id"]
-            isOneToOne: false
             referencedRelation: "media"
             referencedColumns: ["id"]
           },
@@ -477,13 +470,6 @@ export type Database = {
           price_cents?: number | null
         }
         Relationships: [
-          {
-            foreignKeyName: "fan_media_grants_media_id_fkey"
-            columns: ["media_id"]
-            isOneToOne: false
-            referencedRelation: "fan_my_media"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "fan_media_grants_media_id_fkey"
             columns: ["media_id"]
@@ -1486,69 +1472,7 @@ export type Database = {
       }
     }
     Views: {
-      ai_jobs_ready: {
-        Row: {
-          conversation_id: string | null
-          created_at: string | null
-          creator_id: string | null
-          fan_id: string | null
-          id: string | null
-          last_error: string | null
-          message_id: string | null
-          result_text: string | null
-          status: string | null
-          tries: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          conversation_id?: string | null
-          created_at?: string | null
-          creator_id?: string | null
-          fan_id?: string | null
-          id?: string | null
-          last_error?: string | null
-          message_id?: string | null
-          result_text?: string | null
-          status?: string | null
-          tries?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          conversation_id?: string | null
-          created_at?: string | null
-          creator_id?: string | null
-          fan_id?: string | null
-          id?: string | null
-          last_error?: string | null
-          message_id?: string | null
-          result_text?: string | null
-          status?: string | null
-          tries?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      fan_my_media: {
-        Row: {
-          created_at: string | null
-          creator_id: string | null
-          grant_type: string | null
-          granted_at: string | null
-          id: string | null
-          mime: string | null
-          notes: string | null
-          origin: string | null
-          price_cents: number | null
-          size_bytes: number | null
-          storage_path: string | null
-          suggested_price_cents: number | null
-          tags: string[] | null
-          title: string | null
-          type: string | null
-          updated_at: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       assign_initial_owner_role: {
@@ -1590,6 +1514,22 @@ export type Database = {
       generate_temp_username: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_ai_jobs_ready: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          conversation_id: string
+          created_at: string
+          creator_id: string
+          fan_id: string
+          id: string
+          last_error: string
+          message_id: string
+          result_text: string
+          status: string
+          tries: number
+          updated_at: string
+        }[]
       }
       get_content_discovery: {
         Args: Record<PropertyKey, never>
