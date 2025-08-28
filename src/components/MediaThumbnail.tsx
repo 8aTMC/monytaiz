@@ -87,13 +87,16 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
       className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}
       onMouseEnter={enhanceQuality}
     >
-      {/* Show current URL (progressive: tiny placeholder → thumbnail → higher quality) */}
+      {/* Show current URL (no blur for processed files, they're already optimized) */}
       {currentUrl && (
         <img
           src={currentUrl}
           alt={item.title || 'Media thumbnail'}
           className={`w-full h-full object-cover transition-all duration-300 ${
-            currentUrl === tinyPlaceholder ? 'filter blur-[2px] scale-105' : 'filter-none scale-100'
+            // Only blur tiny placeholders for unprocessed files
+            currentUrl === tinyPlaceholder && !mediaItem.storage_path?.includes('processed/') && !mediaItem.path?.includes('processed/') 
+              ? 'filter blur-[2px] scale-105' 
+              : 'filter-none scale-100'
           }`}
           loading="lazy"
           decoding="async"

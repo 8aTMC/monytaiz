@@ -126,11 +126,12 @@ export const useOptimizedMediaDisplay = () => {
         throw new Error('No storage path available');
       }
 
-      // Step 1: Start loading proper image immediately (skip tiny placeholder for faster loading)
-      let initialUrl: string | null = null;
+      // For processed files, load at full quality directly since they're highly optimized
+      const isProcessed = mediaPath.includes('processed/');
       
-      if (item.tiny_placeholder && !mediaPath.includes('processed/')) {
-        // Only use tiny placeholder for unprocessed files
+      // Skip tiny placeholder for processed files - load full quality directly
+      let initialUrl: string | null = null;
+      if (item.tiny_placeholder && !isProcessed) {
         initialUrl = item.tiny_placeholder;
       }
 
@@ -140,52 +141,67 @@ export const useOptimizedMediaDisplay = () => {
       let fullUrl: string | null = null;
 
       if (item.type === 'image') {
-        if (isPublic) {
-          // Public images use direct transform URLs
-          thumbnailUrl = getTransformUrl(mediaPath, {
-            width: 256,
-            height: 256,
-            resize: 'cover',
-            quality: 70
-          });
+        if (isProcessed) {
+          // Processed files are already optimized - load at full quality directly
+          if (isPublic) {
+            fullUrl = getTransformUrl(mediaPath);
+          } else {
+            fullUrl = await getSignedTransformUrl(mediaPath);
+          }
           
-          previewUrl = getTransformUrl(mediaPath, {
-            width: 1280,
-            height: 720,
-            resize: 'contain',
-            quality: 80
-          });
-
-          fullUrl = getTransformUrl(mediaPath, {
-            quality: 90
-          });
+          // Use full quality for all sizes since processed files are small and optimized
+          thumbnailUrl = fullUrl;
+          previewUrl = fullUrl;
+          
         } else {
-          // Private images need signed URLs
-          thumbnailUrl = await getSignedTransformUrl(mediaPath, {
-            width: 256,
-            height: 256,
-            resize: 'cover',
-            quality: 70
-          });
-          
-          previewUrl = await getSignedTransformUrl(mediaPath, {
-            width: 1280,
-            height: 720,
-            resize: 'contain',
-            quality: 80
-          });
+          // Legacy files need progressive loading
+          if (isPublic) {
+            thumbnailUrl = getTransformUrl(mediaPath, {
+              width: 256,
+              height: 256,
+              resize: 'cover',
+              quality: 70
+            });
+            
+            previewUrl = getTransformUrl(mediaPath, {
+              width: 1280,
+              height: 720,
+              resize: 'contain',
+              quality: 80
+            });
 
-          fullUrl = await getSignedTransformUrl(mediaPath, {
-            quality: 90
-          });
+            fullUrl = getTransformUrl(mediaPath, {
+              quality: 90
+            });
+          } else {
+            thumbnailUrl = await getSignedTransformUrl(mediaPath, {
+              width: 256,
+              height: 256,
+              resize: 'cover',
+              quality: 70
+            });
+            
+            previewUrl = await getSignedTransformUrl(mediaPath, {
+              width: 1280,
+              height: 720,
+              resize: 'contain',
+              quality: 80
+            });
+
+            fullUrl = await getSignedTransformUrl(mediaPath, {
+              quality: 90
+            });
+          }
         }
 
-        // Load thumbnail immediately for processed images
-        if (thumbnailUrl) {
+        // Load immediately
+        if (fullUrl || thumbnailUrl) {
           setMediaState(prev => ({
             ...prev,
             thumbnailUrl,
-            currentUrl: thumbnailUrl,
+            previewUrl,
+            fullUrl,
+            currentUrl: fullUrl || thumbnailUrl,
             tinyPlaceholder: initialUrl,
             isLoading: false
           }));
@@ -195,54 +211,54 @@ export const useOptimizedMediaDisplay = () => {
         // For videos, use renditions or fall back to original
         const videoPath = item.renditions?.video_720 || item.renditions?.video_1080 || mediaPath;
         
-        if (isPublic) {
-          thumbnailUrl = getTransformUrl(videoPath, {
-            width: 256,
-            height: 256,
-            resize: 'cover',
-            quality: 70
-          });
-          
-          fullUrl = getTransformUrl(videoPath);
+        if (isProcessed) {
+          // Processed videos are already optimized
+          if (isPublic) {
+            fullUrl = getTransformUrl(videoPath);
+          } else {
+            fullUrl = await getSignedTransformUrl(videoPath);
+          }
+          thumbnailUrl = fullUrl;
         } else {
-          thumbnailUrl = await getSignedTransformUrl(videoPath, {
-            width: 256,
-            height: 256,
-            resize: 'cover',
-            quality: 70
-          });
-          
-          fullUrl = await getSignedTransformUrl(videoPath);
+          // Legacy video handling
+          if (isPublic) {
+            thumbnailUrl = getTransformUrl(videoPath, {
+              width: 256,
+              height: 256,
+              resize: 'cover',
+              quality: 70
+            });
+            
+            fullUrl = getTransformUrl(videoPath);
+          } else {
+            thumbnailUrl = await getSignedTransformUrl(videoPath, {
+              width: 256,
+              height: 256,
+              resize: 'cover',
+              quality: 70
+            });
+            
+            fullUrl = await getSignedTransformUrl(videoPath);
+          }
         }
 
-        if (thumbnailUrl) {
+        if (thumbnailUrl || fullUrl) {
           setMediaState(prev => ({
             ...prev,
             thumbnailUrl,
-            currentUrl: thumbnailUrl,
+            currentUrl: fullUrl || thumbnailUrl,
             tinyPlaceholder: initialUrl,
             isLoading: false
           }));
         }
 
       } else if (item.type === 'audio') {
-        // Audio files don't have visual thumbnails, but we can create a waveform or use icon
+        // Audio files don't have visual thumbnails
         setMediaState(prev => ({
           ...prev,
           isLoading: false
         }));
       }
-
-      // Update state with all URLs - prefer actual image over placeholder
-      setMediaState(prev => ({
-        ...prev,
-        thumbnailUrl,
-        previewUrl,
-        fullUrl,
-        currentUrl: thumbnailUrl || fullUrl || prev.currentUrl || initialUrl,
-        tinyPlaceholder: initialUrl,
-        isLoading: false
-      }));
 
     } catch (error) {
       console.error('Failed to load optimized media:', error);
