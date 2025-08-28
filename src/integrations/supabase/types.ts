@@ -1486,7 +1486,7 @@ export type Database = {
       }
     }
     Views: {
-      ai_jobs_ready: {
+      ai_jobs_ready_secure: {
         Row: {
           conversation_id: string | null
           created_at: string | null
@@ -1499,32 +1499,6 @@ export type Database = {
           status: string | null
           tries: number | null
           updated_at: string | null
-        }
-        Insert: {
-          conversation_id?: string | null
-          created_at?: string | null
-          creator_id?: string | null
-          fan_id?: string | null
-          id?: string | null
-          last_error?: string | null
-          message_id?: string | null
-          result_text?: string | null
-          status?: string | null
-          tries?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          conversation_id?: string | null
-          created_at?: string | null
-          creator_id?: string | null
-          fan_id?: string | null
-          id?: string | null
-          last_error?: string | null
-          message_id?: string | null
-          result_text?: string | null
-          status?: string | null
-          tries?: number | null
-          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1590,6 +1564,22 @@ export type Database = {
       generate_temp_username: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_ai_jobs_ready: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          conversation_id: string
+          created_at: string
+          creator_id: string
+          fan_id: string
+          id: string
+          last_error: string
+          message_id: string
+          result_text: string
+          status: string
+          tries: number
+          updated_at: string
+        }[]
       }
       get_content_discovery: {
         Args: Record<PropertyKey, never>
