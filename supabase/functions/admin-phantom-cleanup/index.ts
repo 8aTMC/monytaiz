@@ -33,7 +33,6 @@ async function cleanPhantomFolders(bucket: string, folderPaths: string[]) {
 
       console.log(`List result for ${folderPath}:`, { listData, listError, count: listData?.length });
 
-      // Try multiple cleanup approaches
       const cleanupResults = [];
 
       // Approach 1: If folder has files, try to remove all files first
@@ -52,96 +51,68 @@ async function cleanPhantomFolders(bucket: string, folderPaths: string[]) {
         });
       }
 
-      // Approach 2: Try to remove the folder path directly
-      const { error: removeError1 } = await supabaseAdmin.storage
-        .from(bucket)
-        .remove([folderPath]);
-      
-      cleanupResults.push({
-        method: 'direct_remove',
-        error: removeError1?.message || null
-      });
-
-      // Approach 3: Try to remove with trailing slash
-      const { error: removeError2 } = await supabaseAdmin.storage
-        .from(bucket)
-        .remove([`${folderPath}/`]);
-      
-      cleanupResults.push({
-        method: 'trailing_slash_remove',
-        error: removeError2?.message || null
-      });
-
-      // Approach 4: Try to create and immediately delete a temp file in the folder
-      const tempFileName = `${folderPath}/.temp_cleanup_${Date.now()}`;
-      
-      const { error: uploadError } = await supabaseAdmin.storage
-        .from(bucket)
-        .upload(tempFileName, new Blob(['temp']), { upsert: true });
-
-      if (!uploadError) {
-        const { error: deleteError } = await supabaseAdmin.storage
-          .from(bucket)
-          .remove([tempFileName, folderPath]);
-        
-        cleanupResults.push({
-          method: 'temp_file_cleanup',
-          error: deleteError?.message || null
-        });
-      } else {
-        cleanupResults.push({
-          method: 'temp_file_cleanup',
-          error: `Upload failed: ${uploadError.message}`
-        });
-      }
-
-      // Approach 5: Aggressive cleanup - try to remove with various path patterns
+      // Approach 2: Try multiple path variations for removal
       const pathVariations = [
         folderPath,
         `${folderPath}/`,
         `./${folderPath}`,
-        `./${folderPath}/`,
-        `/${folderPath}`,
-        `/${folderPath}/`
+        `./${folderPath}/`
       ];
 
       for (const variation of pathVariations) {
-        const { error: variationError } = await supabaseAdmin.storage
-          .from(bucket)
-          .remove([variation]);
-        
-        if (!variationError) {
+        try {
+          const { error: variationError } = await supabaseAdmin.storage
+            .from(bucket)
+            .remove([variation]);
+          
           cleanupResults.push({
-            method: `path_variation_${variation}`,
-            error: null
+            method: `remove_${variation.replace(/[./]/g, '_')}`,
+            error: variationError?.message || null
           });
-          break; // If one works, no need to try others
+        } catch (err) {
+          cleanupResults.push({
+            method: `remove_${variation.replace(/[./]/g, '_')}`,
+            error: err.message
+          });
         }
       }
 
-      // Approach 6: Database cleanup - remove any references from storage.objects
+      // Approach 3: Force cleanup by uploading and deleting temp file
       try {
-        const { error: dbCleanupError } = await supabaseAdmin
-          .from('objects')
-          .delete()
-          .in('name', [`${folderPath}`, `${folderPath}/`])
-          .eq('bucket_id', bucket);
+        const tempFileName = `${folderPath}/.temp_cleanup_${Date.now()}`;
+        
+        const { error: uploadError } = await supabaseAdmin.storage
+          .from(bucket)
+          .upload(tempFileName, new Blob(['temp']), { upsert: true });
 
+        if (!uploadError) {
+          // Now try to delete both the temp file and the folder
+          const { error: deleteError } = await supabaseAdmin.storage
+            .from(bucket)
+            .remove([tempFileName, folderPath, `${folderPath}/`]);
+          
+          cleanupResults.push({
+            method: 'temp_file_force_cleanup',
+            error: deleteError?.message || null
+          });
+        } else {
+          cleanupResults.push({
+            method: 'temp_file_force_cleanup',
+            error: `Upload failed: ${uploadError.message}`
+          });
+        }
+      } catch (tempError) {
         cleanupResults.push({
-          method: 'database_cleanup',
-          error: dbCleanupError?.message || null
-        });
-      } catch (dbError) {
-        cleanupResults.push({
-          method: 'database_cleanup',
-          error: `DB access error: ${dbError.message}`
+          method: 'temp_file_force_cleanup',
+          error: `Exception: ${tempError.message}`
         });
       }
 
       results.push({
         folder: folderPath,
         cleanupResults,
-        success: cleanupResults.some(r => !r.error)
+        success: cleanupResults.some(r => !r.error),
+        totalAttempts: cleanupResults.length
       });
 
     } catch (error) {
@@ -149,7 +120,8 @@ async function cleanPhantomFolders(bucket: string, folderPaths: string[]) {
       results.push({
         folder: folderPath,
         error: error.message,
-        success: false
+        success: false,
+        totalAttempts: 0
       });
     }
   }
