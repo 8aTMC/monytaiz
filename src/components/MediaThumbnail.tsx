@@ -54,7 +54,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
       };
       loadOptimizedMedia(mediaItem, isPublic);
     }
-  }, [itemId, itemType, storagePath, itemPath, isPublic]); // Removed dependencies that cause infinite loops
+  }, [itemId, itemType, storagePath, itemPath, isPublic, loadOptimizedMedia]); // Now safe since loadOptimizedMedia is stable
 
   // For non-image types, show icon
   if (itemType !== 'image') {

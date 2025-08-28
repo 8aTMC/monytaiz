@@ -55,7 +55,7 @@ export const useOptimizedMediaDisplay = () => {
     const baseUrl = `${SUPABASE_PROJECT_URL}/storage/v1/object/public/content/${path}`;
     
     return queryString ? `${baseUrl}?${queryString}` : baseUrl;
-  }, []);
+  }, []); // No dependencies - this function is pure
 
   // Get signed URL with transforms for private content
   const getSignedTransformUrl = useCallback(async (
@@ -99,7 +99,7 @@ export const useOptimizedMediaDisplay = () => {
       // Silent error handling to prevent console spam
       return null;
     }
-  }, []);
+  }, []); // No dependencies - uses external supabase client and cache
 
   // Simplified media loading with flat file structure priority
   const loadOptimizedMedia = useCallback(async (item: MediaItem, isPublic: boolean = false) => {
@@ -194,7 +194,7 @@ export const useOptimizedMediaDisplay = () => {
     } finally {
       loadingRef.current = false;
     }
-  }, [getTransformUrl, getSignedTransformUrl]);
+  }, []); // No dependencies - this function is self-contained and uses refs/state
 
   // Simple quality enhancement (no-op since we load at full quality)
   const enhanceQuality = useCallback(() => {
