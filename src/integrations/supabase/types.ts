@@ -178,13 +178,6 @@ export type Database = {
             foreignKeyName: "collection_items_media_id_fkey"
             columns: ["media_id"]
             isOneToOne: false
-            referencedRelation: "fan_my_media"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "collection_items_media_id_fkey"
-            columns: ["media_id"]
-            isOneToOne: false
             referencedRelation: "media"
             referencedColumns: ["id"]
           },
@@ -477,13 +470,6 @@ export type Database = {
           price_cents?: number | null
         }
         Relationships: [
-          {
-            foreignKeyName: "fan_media_grants_media_id_fkey"
-            columns: ["media_id"]
-            isOneToOne: false
-            referencedRelation: "fan_my_media"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "fan_media_grants_media_id_fkey"
             columns: ["media_id"]
@@ -1617,6 +1603,27 @@ export type Database = {
           is_pack: boolean
           thumbnail_url: string
           title: string
+        }[]
+      }
+      get_fan_my_media: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          creator_id: string
+          grant_type: string
+          granted_at: string
+          id: string
+          mime: string
+          notes: string
+          origin: string
+          price_cents: number
+          size_bytes: number
+          storage_path: string
+          suggested_price_cents: number
+          tags: string[]
+          title: string
+          type: string
+          updated_at: string
         }[]
       }
       get_secure_media_url: {
