@@ -60,21 +60,25 @@ export const useSimpleMedia = () => {
     }
   }, []);
 
-  const getMediaUrl = useCallback(async (path: string | undefined) => {
+  const getMediaUrl = useCallback(async (path: string | undefined, useTransforms = false) => {
     if (!path) return null;
     
     try {
       // Since content bucket is private, use signed URLs
+      const options: any = {};
+      
+      if (useTransforms) {
+        options.transform = {
+          width: 512,
+          height: 512,
+          quality: 85,
+          resize: 'cover'
+        };
+      }
+      
       const { data, error } = await supabase.storage
         .from('content')
-        .createSignedUrl(path, 3600, {
-          transform: {
-            width: 512,
-            height: 512,
-            quality: 85,
-            resize: 'cover'
-          }
-        });
+        .createSignedUrl(path, 3600, options);
 
       if (error || !data.signedUrl) {
         console.error('Failed to get signed URL for:', path, error);
@@ -100,13 +104,13 @@ export const useSimpleMedia = () => {
 
   // Async versions for when needed
   const getThumbnailUrlAsync = useCallback(async (item: SimpleMediaItem) => {
-    const thumbnailUrl = await getMediaUrl(item.thumbnail_path);
+    const thumbnailUrl = await getMediaUrl(item.thumbnail_path, true);
     if (thumbnailUrl) return thumbnailUrl;
-    return await getMediaUrl(item.processed_path);
+    return await getMediaUrl(item.processed_path, true);
   }, [getMediaUrl]);
 
   const getFullUrlAsync = useCallback(async (item: SimpleMediaItem) => {
-    return await getMediaUrl(item.processed_path);
+    return await getMediaUrl(item.processed_path, false);
   }, [getMediaUrl]);
 
   return {
