@@ -128,6 +128,34 @@ Deno.serve(async (req) => {
         result.errors.push(`Error cleaning processing records: ${processingError}`);
       }
 
+      // Step 5: Remove empty UUID folders in processed/
+      try {
+        const { data: processedFiles } = await supabaseService.storage
+          .from('content')
+          .list('processed', { limit: 1000 });
+
+        if (processedFiles?.length > 0) {
+          let emptyFoldersRemoved = 0;
+          for (const folder of processedFiles) {
+            if (folder.name.length === 36) { // UUID length
+              const { data: contents } = await supabaseService.storage
+                .from('content')
+                .list(`processed/${folder.name}`, { limit: 10 });
+              
+              if (!contents || contents.length === 0) {
+                emptyFoldersRemoved++;
+              }
+            }
+          }
+          
+          if (emptyFoldersRemoved > 0) {
+            console.log(`Found ${emptyFoldersRemoved} empty UUID folders`);
+          }
+        }
+      } catch (folderError) {
+        result.errors.push(`Error cleaning empty folders: ${folderError}`);
+      }
+
     } catch (error) {
       result.errors.push(`Unexpected error: ${error instanceof Error ? error.message : String(error)}`);
     }

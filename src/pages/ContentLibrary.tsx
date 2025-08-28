@@ -22,7 +22,8 @@ import { useMediaOperations } from '@/hooks/useMediaOperations';
 import { MediaPreviewDialog } from '@/components/MediaPreviewDialog';
 import { MediaThumbnail } from '@/components/MediaThumbnail';
 import { useToast } from '@/hooks/use-toast';
-import { useOptimizedSecureMedia } from '@/hooks/useOptimizedSecureMedia';
+import { useStorageCleanup } from '@/hooks/useStorageCleanup';
+import { Recycle, HardDrive } from 'lucide-react';
 
 interface MediaItem {
   id: string;
@@ -348,7 +349,7 @@ const ContentLibrary = () => {
     onCountsRefreshNeeded: calculateCategoryCounts
   });
   const { toast } = useToast();
-  const { getOptimizedSecureUrl } = useOptimizedSecureMedia();
+  const { optimizeStorage, isCleaningUp } = useStorageCleanup();
 
   // User roles state
   const [userRoles, setUserRoles] = useState<string[]>([]);
@@ -990,19 +991,46 @@ const ContentLibrary = () => {
         <div className="border-t border-border my-4"></div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2 mb-4">
-          <NewFolderDialog onFolderCreated={refreshCustomFolders} />
+        <div className="flex flex-col gap-2 mb-4">
+          <div className="flex items-center gap-2">
+            <NewFolderDialog onFolderCreated={refreshCustomFolders} />
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleStartReorder}
+              disabled={customFolders.length === 0}
+            >
+              <ArrowUpDown className="h-4 w-4 mr-2" />
+              Reorder Folders
+            </Button>
+          </div>
           
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleStartReorder}
-            disabled={customFolders.length === 0}
-          >
-            <ArrowUpDown className="h-4 w-4 mr-2" />
-            Reorder Folders
-          </Button>
-
+          {/* Admin Storage Controls */}
+          {userRoles.includes('admin') && (
+            <div className="flex items-center gap-2 pt-2 border-t border-border">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={optimizeStorage}
+                disabled={isCleaningUp}
+                className="flex items-center gap-2"
+              >
+                <HardDrive className="h-4 w-4" />
+                {isCleaningUp ? 'Optimizing...' : 'Optimize Storage'}
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCleanupCorruptedMedia}
+                className="flex items-center gap-2"
+              >
+                <Recycle className="h-4 w-4" />
+                Clean Database
+              </Button>
+            </div>
+          )}
         </div>
 
             {/* Custom Folders */}
@@ -1125,18 +1153,6 @@ const ContentLibrary = () => {
                 <h1 className="text-lg font-semibold text-foreground flex items-center gap-2">
                   {defaultCategories.find(c => c.id === selectedCategory)?.label || 
                    customFolders.find(c => c.id === selectedCategory)?.label || 'Library'}
-                  
-                  {/* Admin cleanup button */}
-                  {userRoles.includes('admin') && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCleanupCorruptedMedia}
-                      className="ml-auto"
-                    >
-                      Clean Up Corrupted Files
-                    </Button>
-                  )}
                 </h1>
                 
               </div>

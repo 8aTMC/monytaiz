@@ -108,20 +108,27 @@ Deno.serve(async (req) => {
     bucket
   };
 
-  // Set main path and renditions based on what was processed
+  // Generate optimized flat structure paths
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  
+  // Set main path and renditions based on what was processed using flat structure
   if (imageKey) {
-    updateData.path = imageKey;
-    updateData.storage_path = imageKey; // Set the storage_path to the processed image
+    const flatImagePath = `processed/images/${year}/${month}/${id}.webp`;
+    updateData.path = flatImagePath;
+    updateData.storage_path = flatImagePath;
   } else if (video1080Key) {
-    updateData.path = video1080Key;
-    updateData.storage_path = video1080Key; // Set the storage_path to the processed video
+    const flatVideoPath = `processed/videos/${year}/${month}/${id}-1080p.mp4`;
+    updateData.path = flatVideoPath;
+    updateData.storage_path = flatVideoPath;
   }
 
-  // Always store renditions if we have any video
+  // Always store renditions if we have any video using flat structure
   if (video1080Key || video720Key) {
     updateData.renditions = {
-      ...(video1080Key && { video_1080: video1080Key }),
-      ...(video720Key && { video_720: video720Key })
+      ...(video1080Key && { video_1080: `processed/videos/${year}/${month}/${id}-1080p.mp4` }),
+      ...(video720Key && { video_720: `processed/videos/${year}/${month}/${id}-720p.mp4` })
     };
   }
 

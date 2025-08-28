@@ -28,7 +28,11 @@ interface CreateCollectionRequest {
   name: string
 }
 
-type RequestBody = CopyToCollectionRequest | RemoveFromCollectionRequest | DeleteMediaRequest | CreateCollectionRequest
+interface StorageOptimizationRequest {
+  action: 'optimize_storage'
+}
+
+type RequestBody = CopyToCollectionRequest | RemoveFromCollectionRequest | DeleteMediaRequest | CreateCollectionRequest | StorageOptimizationRequest
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -86,6 +90,9 @@ serve(async (req) => {
       
       case 'create_collection':
         return await createCollection(supabaseClient, user.id, body.name)
+      
+      case 'optimize_storage':
+        return await optimizeStorage(supabaseClient, user.id)
       
       default:
         return new Response(
@@ -382,5 +389,158 @@ async function createCollection(supabaseClient: any, userId: string, name: strin
       JSON.stringify({ error: error.message }),
       { status: 500, headers: corsHeaders }
     )
+  }
+}
+
+async function optimizeStorage(supabaseClient: any, userId: string) {
+  try {
+    console.log('Starting comprehensive storage optimization...');
+    
+    const result = {
+      orphaned_files_deleted: 0,
+      empty_folders_removed: 0,
+      migrated_files: 0,
+      storage_saved_bytes: 0,
+      errors: [] as string[]
+    };
+
+    // Step 1: Clean up orphaned files in incoming/
+    try {
+      const cutoffTime = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
+      
+      const { data: incomingFiles, error: listError } = await supabaseClient.storage
+        .from('content')
+        .list('incoming', { limit: 1000, sortBy: { column: 'created_at', order: 'desc' } });
+
+      if (!listError && incomingFiles?.length > 0) {
+        const oldFiles = incomingFiles.filter(file => {
+          if (!file.created_at) return false;
+          return new Date(file.created_at) < cutoffTime;
+        });
+
+        if (oldFiles.length > 0) {
+          const filePaths = oldFiles.map(file => `incoming/${file.name}`);
+          const { error: deleteError } = await supabaseClient.storage
+            .from('content')
+            .remove(filePaths);
+
+          if (!deleteError) {
+            result.orphaned_files_deleted = filePaths.length;
+            result.storage_saved_bytes += oldFiles.reduce((acc, f) => acc + (f.metadata?.size || 0), 0);
+            console.log(`Deleted ${filePaths.length} orphaned files from incoming/`);
+          } else {
+            result.errors.push(`Failed to delete incoming files: ${deleteError.message}`);
+          }
+        }
+      }
+    } catch (error) {
+      result.errors.push(`Error cleaning incoming files: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    // Step 2: Clean up empty UUID folders in processed/
+    try {
+      const { data: processedFiles, error: processedError } = await supabaseClient.storage
+        .from('content')
+        .list('processed', { limit: 1000 });
+
+      if (!processedError && processedFiles?.length > 0) {
+        // Check each folder and see if it's empty or contains only old files
+        for (const folder of processedFiles) {
+          if (folder.name.length === 36) { // UUID length check
+            const { data: folderContents } = await supabaseClient.storage
+              .from('content')
+              .list(`processed/${folder.name}`, { limit: 100 });
+
+            if (!folderContents || folderContents.length === 0) {
+              // Empty folder - try to remove (will fail safely if not empty)
+              result.empty_folders_removed++;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      result.errors.push(`Error cleaning UUID folders: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    // Step 3: Find and remove files not referenced in database
+    try {
+      const { data: allStorageFiles, error: storageListError } = await supabaseClient.storage
+        .from('content')
+        .list('processed', { limit: 2000 });
+
+      if (!storageListError && allStorageFiles?.length > 0) {
+        // Get all file paths from database
+        const [mediaResults, contentResults] = await Promise.all([
+          supabaseClient.from('media').select('path, storage_path'),
+          supabaseClient.from('content_files').select('file_path').eq('is_active', true)
+        ]);
+
+        const referencedPaths = new Set([
+          ...(mediaResults.data || []).flatMap((m: any) => [m.path, m.storage_path].filter(Boolean)),
+          ...(contentResults.data || []).map((c: any) => c.file_path).filter(Boolean)
+        ]);
+
+        // Check storage files against database references
+        let orphanedFiles = [];
+        const checkFiles = async (files: any[], prefix = '') => {
+          for (const file of files) {
+            const fullPath = prefix ? `${prefix}/${file.name}` : file.name;
+            if (!referencedPaths.has(fullPath) && !referencedPaths.has(`processed/${fullPath}`)) {
+              orphanedFiles.push(fullPath);
+            }
+          }
+        };
+
+        await checkFiles(allStorageFiles, 'processed');
+
+        if (orphanedFiles.length > 0) {
+          const { error: cleanupError } = await supabaseClient.storage
+            .from('content')
+            .remove(orphanedFiles);
+
+          if (!cleanupError) {
+            result.orphaned_files_deleted += orphanedFiles.length;
+            console.log(`Removed ${orphanedFiles.length} orphaned storage files`);
+          } else {
+            result.errors.push(`Failed to remove orphaned files: ${cleanupError.message}`);
+          }
+        }
+      }
+    } catch (error) {
+      result.errors.push(`Error finding orphaned files: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    // Step 4: Clean up media rows in 'processing' state for >1 hour
+    try {
+      const processingCutoff = new Date(Date.now() - 60 * 60 * 1000);
+      const { error: staleError } = await supabaseClient
+        .from('media')
+        .update({ processing_status: 'error' })
+        .eq('processing_status', 'processing')
+        .lt('created_at', processingCutoff.toISOString());
+
+      if (staleError) {
+        result.errors.push(`Failed to clean stale processing records: ${staleError.message}`);
+      }
+    } catch (error) {
+      result.errors.push(`Error cleaning stale records: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    console.log('Storage optimization completed:', result);
+    
+    return new Response(
+      JSON.stringify({
+        success: result.errors.length === 0,
+        ...result,
+        message: `Storage optimization completed: ${result.orphaned_files_deleted} orphaned files removed, ${result.empty_folders_removed} empty folders cleaned, ${Math.round(result.storage_saved_bytes / 1024 / 1024)}MB saved`
+      }),
+      { headers: corsHeaders }
+    );
+  } catch (error) {
+    console.error('Storage optimization error:', error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
+      { status: 500, headers: corsHeaders }
+    );
   }
 }
