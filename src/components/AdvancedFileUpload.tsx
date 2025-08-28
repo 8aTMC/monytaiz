@@ -4,9 +4,9 @@ import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Upload, X, Play, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
-import { useOptimizedUpload } from '@/hooks/useOptimizedUpload';
-import { OptimizedFileUploadRow } from './OptimizedFileUploadRow';
+import { Upload, X, Play, CheckCircle, AlertCircle, RefreshCw, Pause, Clock } from 'lucide-react';
+import { useFileUpload } from '@/hooks/useFileUpload';
+import { FileUploadRow } from './FileUploadRow';
 import { cn } from '@/lib/utils';
 
 export const AdvancedFileUpload = () => {
@@ -15,15 +15,15 @@ export const AdvancedFileUpload = () => {
     uploadQueue,
     isUploading,
     currentUploadIndex,
-    isProcessing,
-    processingProgress,
     addFiles,
     startUpload,
-    cancelUpload,
     removeFile,
-    clearCompleted,
-    retryProcessing
-  } = useOptimizedUpload();
+    pauseUpload,
+    resumeUpload,
+    cancelUpload,
+    clearQueue,
+    cancelAllUploads
+  } = useFileUpload();
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -59,17 +59,16 @@ export const AdvancedFileUpload = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'complete':
+      case 'completed':
         return <CheckCircle className="w-4 h-4 text-green-500" />;
       case 'error':
         return <AlertCircle className="w-4 h-4 text-red-500" />;
-      case 'needs_retry':
-        return <RefreshCw className="w-4 h-4 text-yellow-500" />;
-      case 'processing':
-      case 'uploading_original':
-      case 'uploading_processed':
-      case 'finalizing':
+      case 'uploading':
         return <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />;
+      case 'paused':
+        return <Pause className="w-4 h-4 text-orange-500" />;
+      case 'pending':
+        return <Clock className="w-4 h-4 text-muted-foreground" />;
       default:
         return null;
     }
@@ -77,14 +76,12 @@ export const AdvancedFileUpload = () => {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'queued': return 'Queued';
-      case 'processing': return 'Processing';
-      case 'uploading_original': return 'Uploading original';
-      case 'uploading_processed': return 'Uploading processed';
-      case 'finalizing': return 'Finalizing';
-      case 'complete': return 'Complete';
+      case 'pending': return 'Pending';
+      case 'uploading': return 'Uploading';
+      case 'completed': return 'Completed';
       case 'error': return 'Error';
-      case 'needs_retry': return 'Needs optimization';
+      case 'paused': return 'Paused';
+      case 'cancelled': return 'Cancelled';
       default: return status;
     }
   };
@@ -92,42 +89,25 @@ export const AdvancedFileUpload = () => {
   return (
     <Card className="w-full h-[calc(100vh-140px)]">
       <CardContent className="p-6 h-full flex flex-col">
-        {/* Processing Status */}
-        {isProcessing && (
-          <div className="bg-muted/20 border border-border rounded-lg p-4 mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">{processingProgress.message}</span>
-              <span className="text-sm text-muted-foreground">
-                {processingProgress.progress}%
-              </span>
-            </div>
-            <Progress value={processingProgress.progress} className="h-2" />
-            <p className="text-xs text-muted-foreground mt-2">
-              Phase: {processingProgress.phase}
-            </p>
-          </div>
-        )}
-
         {/* Top Controls Row */}
         {uploadQueue.length > 0 && (
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <Badge variant="secondary">
-                {uploadQueue.filter(i => i.status === 'complete').length}/{uploadQueue.length} complete
+                {uploadQueue.filter(i => i.status === 'completed').length}/{uploadQueue.length} complete
               </Badge>
-              {uploadQueue.filter(i => i.status === 'needs_retry').length > 0 && (
-                <Badge variant="outline" className="text-yellow-600">
-                  {uploadQueue.filter(i => i.status === 'needs_retry').length} need optimization
+              {uploadQueue.filter(i => i.status === 'error').length > 0 && (
+                <Badge variant="destructive">
+                  {uploadQueue.filter(i => i.status === 'error').length} errors
                 </Badge>
               )}
             </div>
             <div className="flex items-center gap-2">
-              {uploadQueue.length < 100 && !isProcessing && (
+              {uploadQueue.length < 100 && !isUploading && (
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
                   className="flex items-center gap-2"
                 >
                   <Upload className="h-4 w-4" />
@@ -138,25 +118,25 @@ export const AdvancedFileUpload = () => {
                 <Button
                   variant="destructive"
                   size="sm"
-                  onClick={cancelUpload}
+                  onClick={cancelAllUploads}
                 >
                   <X className="w-4 h-4 mr-2" />
-                  Cancel
+                  Cancel All
                 </Button>
               ) : (
                 <>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={clearCompleted}
-                    disabled={uploadQueue.filter(i => i.status === 'complete').length === 0}
+                    onClick={clearQueue}
+                    disabled={uploadQueue.filter(i => i.status === 'completed').length === 0}
                   >
-                    Clear Complete
+                    Clear Completed
                   </Button>
                   <Button
                     size="sm"
                     onClick={startUpload}
-                    disabled={uploadQueue.filter(i => i.status === 'queued' || i.status === 'error').length === 0}
+                    disabled={uploadQueue.filter(i => i.status === 'pending' || i.status === 'error').length === 0}
                   >
                     <Play className="w-4 h-4 mr-2" />
                     Start Upload
@@ -195,15 +175,14 @@ export const AdvancedFileUpload = () => {
             onDrop={handleDrop}
           >
             <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">Upload Your Content</h3>
+            <h3 className="text-lg font-medium mb-2">Drag & drop files here, or click to browse</h3>
             <p className="text-muted-foreground mb-4">
-              Drag and drop files here or click to browse
+              Supports images, videos, and audio files
             </p>
             <Button 
               variant="outline" 
               size="sm"
               onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
               className="px-4 py-2 h-10 w-auto min-w-0"
             >
               Select Files
@@ -216,31 +195,32 @@ export const AdvancedFileUpload = () => {
               className="hidden"
               accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.mov,.webm,.avi,.mkv,.mp3,.wav,.aac,.ogg,.pdf,.doc,.docx,.txt,.rtf"
             />
-            <div className="mt-4 text-xs text-muted-foreground space-y-1">
-              <p><strong>Optimized Processing:</strong></p>
-              <p>📸 Images: Auto-converted to WebP for faster loading</p>
-              <p>🎥 Videos: Encoded to H.264 (1080p/720p) for streaming</p>
-              <p>🎵 Audio: Optimized to AAC for quality & size</p>
-              <p>💡 Files are processed in your browser for speed & privacy</p>
-              <p className="font-medium">Max 50MB per file, 100 files per batch</p>
-            </div>
+          </div>
+        )}
+
+        {/* Files List Header */}
+        {uploadQueue.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold">Files</h3>
           </div>
         )}
 
         {/* Upload Queue - Takes remaining height */}
         {uploadQueue.length > 0 && (
           <div className="flex-1 flex flex-col min-h-0">
-            <ScrollArea className="flex-1 border rounded-lg p-4">
-              <div className="space-y-3">
+            <ScrollArea className="flex-1">
+              <div className="space-y-2">
                 {uploadQueue.map((item, index) => (
-                  <OptimizedFileUploadRow
+                  <FileUploadRow
                     key={item.id}
                     item={item}
                     index={index}
                     currentUploadIndex={currentUploadIndex}
                     isUploading={isUploading}
                     onRemove={removeFile}
-                    onRetry={retryProcessing}
+                    onPause={pauseUpload}
+                    onResume={resumeUpload}
+                    onCancel={cancelUpload}
                     getStatusIcon={getStatusIcon}
                     formatFileSize={formatFileSize}
                   />
