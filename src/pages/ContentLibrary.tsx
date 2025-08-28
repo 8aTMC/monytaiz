@@ -323,7 +323,7 @@ const ContentLibrary = () => {
     }
   }, [user?.id, updateFolderCount]); // Stable dependencies
 
-  const handleCardClick = (item: MediaItem, event: React.MouseEvent, itemIndex: number) => {
+  const handleCardClick = useCallback((item: MediaItem, event: React.MouseEvent, itemIndex: number) => {
     const currentTime = Date.now();
     const timeDiff = currentTime - lastClickTime;
 
@@ -354,9 +354,9 @@ const ContentLibrary = () => {
     }, 300);
 
     setClickTimeout(timeout);
-  };
+  }, [lastClickTime, selecting, lastSelectedIndex, clickTimeout]); // Stable dependencies
 
-  const handleCheckboxClick = (itemId: string, itemIndex: number, event?: React.MouseEvent) => {
+  const handleCheckboxClick = useCallback((itemId: string, itemIndex: number, event?: React.MouseEvent) => {
     if ((event?.shiftKey || event?.altKey) && selecting && lastSelectedIndex >= 0) {
       event?.preventDefault();
       handleRangeSelection(lastSelectedIndex, itemIndex);
@@ -364,13 +364,13 @@ const ContentLibrary = () => {
     }
 
     handleToggleItem(itemId, itemIndex);
-  };
+  }, [selecting, lastSelectedIndex]); // Stable dependencies
 
-  const handleCategorySelect = (categoryId: string) => {
+  const handleCategorySelect = useCallback((categoryId: string) => {
     setSelectedCategory(categoryId);
     setSelectedFilter('all');
     handleClearSelection();
-  };
+  }, []); // No dependencies needed
 
   const isCustomFolder = selectedCategory !== 'all-files' && 
     !['stories', 'livestreams', 'messages'].includes(selectedCategory);

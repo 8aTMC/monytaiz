@@ -194,7 +194,7 @@ export const useOptimizedMediaDisplay = () => {
     } finally {
       loadingRef.current = false;
     }
-  }, []); // No dependencies - this function is self-contained and uses refs/state
+  }, [getTransformUrl, getSignedTransformUrl]); // Include stable dependencies
 
   // Simple quality enhancement (no-op since we load at full quality)
   const enhanceQuality = useCallback(() => {
