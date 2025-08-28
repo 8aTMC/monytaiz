@@ -127,24 +127,22 @@ Deno.serve(async (req) => {
     ...(processedSize && { size_bytes: processedSize }) // Update with processed size if available
   };
 
-  // Generate optimized flat structure paths - simplified flat structure
+  // Use actual processed file paths where files are stored
   
-  // Set main path and renditions based on what was processed using flat structure
+  // Set main path and renditions based on actual processed file locations
   if (imageKey) {
-    const flatImagePath = `processed/${id}.webp`;
-    updateData.path = flatImagePath;
-    updateData.storage_path = flatImagePath;
+    updateData.path = imageKey;
+    updateData.storage_path = imageKey;
   } else if (video1080Key) {
-    const flatVideoPath = `processed/${id}.mp4`;
-    updateData.path = flatVideoPath;
-    updateData.storage_path = flatVideoPath;
+    updateData.path = video1080Key;
+    updateData.storage_path = video1080Key;
   }
 
-  // Always store renditions if we have any video using flat structure
+  // Store renditions using actual processed paths
   if (video1080Key || video720Key) {
     updateData.renditions = {
-      ...(video1080Key && { video_1080: `processed/${id}-1080p.mp4` }),
-      ...(video720Key && { video_720: `processed/${id}-720p.mp4` })
+      ...(video1080Key && { video_1080: video1080Key }),
+      ...(video720Key && { video_720: video720Key })
     };
   }
 
