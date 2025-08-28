@@ -166,8 +166,19 @@ const ContentLibrary = () => {
           })) || [];
           setCustomFolders(folders);
           
-          // Update counts for custom folders
-          folders.forEach(folder => updateFolderCount(folder.id));
+          // Update counts for custom folders - use async updates to avoid blocking
+          folders.forEach(folder => {
+            supabase
+              .from('collection_items')
+              .select('media_id', { count: 'exact' })
+              .eq('collection_id', folder.id)
+              .then(({ count }) => {
+                // Only update if component is still mounted and user is still the same
+                if (user && user.id) {
+                  updateFolderCount(folder.id);
+                }
+              });
+          });
         }
       } catch (error) {
         console.error('Error fetching collections:', error);
@@ -177,7 +188,7 @@ const ContentLibrary = () => {
     if (user) {
       fetchCustomCollections();
     }
-  }, [user, updateFolderCount]);
+  }, [user]); // Remove updateFolderCount from dependencies to break the loop
 
   // Selection handlers
   const handleToggleItem = (itemId: string, itemIndex?: number) => {

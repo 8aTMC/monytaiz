@@ -244,11 +244,11 @@ export const useLibraryData = ({
 
   useEffect(() => {
     fetchContent();
-  }, [fetchContent]);
+  }, [selectedCategory, searchQuery, selectedFilter, sortBy]);
 
   useEffect(() => {
     fetchCategoryCounts();
-  }, [fetchCategoryCounts]);
+  }, []);
 
   return {
     content,
