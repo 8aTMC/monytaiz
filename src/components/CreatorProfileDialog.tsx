@@ -6,8 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Upload, Save, User } from 'lucide-react';
+import { Save, User } from 'lucide-react';
+import { AvatarCropper } from '@/components/AvatarCropper';
 
 interface CreatorProfile {
   id: string;
@@ -177,24 +177,12 @@ export const CreatorProfileDialog = ({ children }: CreatorProfileDialogProps) =>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Avatar Preview */}
-          <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16">
-              <AvatarImage src={formData.avatar_url} />
-              <AvatarFallback>
-                {formData.display_name ? formData.display_name[0].toUpperCase() : 'C'}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <Label>Avatar URL</Label>
-              <Input
-                value={formData.avatar_url}
-                onChange={(e) => handleInputChange('avatar_url', e.target.value)}
-                placeholder="https://example.com/avatar.jpg"
-                className="mt-1"
-              />
-            </div>
-          </div>
+          {/* Avatar Upload with Cropping */}
+          <AvatarCropper
+            currentAvatarUrl={formData.avatar_url}
+            onAvatarChange={(url) => handleInputChange('avatar_url', url)}
+            fallbackText={formData.display_name}
+          />
 
           {/* Display Name */}
           <div>
