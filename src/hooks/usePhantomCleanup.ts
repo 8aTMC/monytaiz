@@ -9,20 +9,28 @@ export const usePhantomCleanup = () => {
   const cleanPhantomFolders = async (bucket: string, phantomFolders: string[]) => {
     setIsCleaningPhantoms(true);
     try {
-      // Ensure clean JSON-serializable payload
+      // Build JSON-safe payload - keys must be strings relative to bucket, no undefined values
       const payload = {
-        bucket: String(bucket),
-        prefixes: phantomFolders.filter(folder => typeof folder === 'string' && folder.length > 0),
+        bucket: 'content',
+        prefixes: phantomFolders
+          .filter(folder => folder && typeof folder === 'string' && folder.length > 0)
+          .map(folder => {
+            // Normalize to relative paths (remove bucket prefix if present)
+            const normalized = folder.replace(/^content\//, '').replace(/^\/+/, '');
+            // Ensure ends with / for folder prefixes
+            return normalized.endsWith('/') ? normalized : `${normalized}/`;
+          }),
         dryRun: false
       };
 
-      // Sanity check - ensure payload is JSON-serializable
-      const cleanPayload = JSON.parse(JSON.stringify(payload));
-      console.log('Sending phantom cleanup payload:', cleanPayload);
+      // Strip anything non-JSON (throws if not serializable)
+      const safeBody = JSON.parse(JSON.stringify(payload));
+      console.log('Sending phantom cleanup payload:', safeBody);
 
       const { data, error } = await supabase.functions.invoke('admin-phantom-cleanup', {
-        body: cleanPayload,
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: safeBody, // pass the PLAIN object; invoke will JSON-encode it
       });
 
       if (error) {
