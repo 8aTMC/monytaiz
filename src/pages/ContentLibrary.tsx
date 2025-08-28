@@ -349,7 +349,6 @@ const ContentLibrary = () => {
     onCountsRefreshNeeded: calculateCategoryCounts
   });
   const { toast } = useToast();
-  const { optimizeStorage, cleanOrphanedRecords, forceDeleteGhostFiles, cleanPhantomFolders, isCleaningUp } = useStorageCleanup();
 
   // User roles state
   const [userRoles, setUserRoles] = useState<string[]>([]);
@@ -1005,69 +1004,6 @@ const ContentLibrary = () => {
               Reorder Folders
             </Button>
           </div>
-          
-          {/* Admin Storage Controls */}
-          {(userRoles.includes('admin') || userRoles.includes('owner')) && (
-            <div className="flex flex-col gap-2 pt-2 border-t border-border">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={optimizeStorage}
-                  disabled={isCleaningUp}
-                  className="flex items-center gap-2"
-                >
-                  <HardDrive className="h-4 w-4" />
-                  {isCleaningUp ? 'Optimizing...' : 'Optimize Storage'}
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCleanupCorruptedMedia}
-                  className="flex items-center gap-2"
-                >
-                  <Recycle className="h-4 w-4" />
-                  Clean Database
-                </Button>
-              </div>
-              
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={cleanOrphanedRecords}
-                disabled={isCleaningUp}
-                className="flex items-center gap-2"
-              >
-                <Recycle className="h-4 w-4" />
-                {isCleaningUp ? 'Cleaning...' : 'Force Clean Ghost Files'}
-              </Button>
-              
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => forceDeleteGhostFiles()}
-                disabled={isCleaningUp}
-                className="flex items-center gap-2 bg-red-600 hover:bg-red-700"
-              >
-                <Recycle className="h-4 w-4" />
-                {isCleaningUp ? 'Purging...' : 'FORCE PURGE ALL GHOSTS'}
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => cleanPhantomFolders('content', ['ff395f9e-2cdb-436c-a928-ab82efe24d67', 'photos'])}
-                disabled={isCleaningUp}
-                className="flex items-center gap-2 bg-orange-100 hover:bg-orange-200 border-orange-300"
-              >
-                <Recycle className="h-4 w-4" />
-                {isCleaningUp ? 'Cleaning...' : 'Clean Phantom Folders'}
-              </Button>
-              
-              <ForceLogoutButton />
-            </div>
-          )}
         </div>
 
             {/* Custom Folders */}

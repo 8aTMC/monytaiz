@@ -13,7 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import Messages from "./pages/Messages";
 import Fans from "./pages/Fans";
 import ContentLibrary from "./pages/ContentLibrary";
-import AdminDashboard from "./pages/AdminDashboard";
+import Admin from "./pages/Admin";
 import Users from "./pages/Users";
 import Profile from "./pages/Profile";
 import Upload from "./pages/Upload";
@@ -117,13 +117,13 @@ const App = () => (
                   </Layout>
                 </ProtectedRoute>
               } />
-              <Route path="/admin" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <AdminDashboard />
-                  </Layout>
-                </ProtectedRoute>
-              } />
+               <Route path="/admin" element={
+                 <ProtectedRoute>
+                   <Layout>
+                     <Admin />
+                   </Layout>
+                 </ProtectedRoute>
+               } />
               <Route path="/management/users" element={
                 <ProtectedRoute>
                   <Layout>

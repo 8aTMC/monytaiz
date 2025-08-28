@@ -36,7 +36,8 @@ import {
   List,
   Settings,
   Brain,
-  Tags
+  Tags,
+  Shield
 } from 'lucide-react';
 import { ContentIcon } from './icons/ContentIcon';
 import { CreatorProfileDialog } from '@/components/CreatorProfileDialog';
@@ -165,7 +166,7 @@ export const Navigation = ({ role }: NavigationProps) => {
   // Determine which section should be open based on current route
   const getCurrentSection = (): 'fans' | 'content' | 'management' | null => {
     if (location.pathname.startsWith('/fans')) return 'fans';
-    if (location.pathname === '/library' || location.pathname === '/upload' || location.pathname === '/tags') return 'content';
+    if (location.pathname === '/library' || location.pathname === '/upload' || location.pathname === '/tags' || location.pathname === '/admin') return 'content';
     if (location.pathname.startsWith('/management')) return 'management';
     return null;
   };
@@ -251,7 +252,7 @@ export const Navigation = ({ role }: NavigationProps) => {
       case 'fans':
         return location.pathname.startsWith('/fans');
       case 'content':
-        return location.pathname === '/library' || location.pathname === '/upload' || location.pathname === '/tags';
+        return location.pathname === '/library' || location.pathname === '/upload' || location.pathname === '/tags' || location.pathname === '/admin';
       case 'management':
         return location.pathname.startsWith('/management');
       default:
@@ -547,17 +548,30 @@ export const Navigation = ({ role }: NavigationProps) => {
                       <Upload className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/upload' ? '' : 'group-hover:scale-110'}`} />
                       <span className="font-medium">Upload</span>
                     </Link>
-                    <Link
-                      to="/tags"
-                       className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
-                         location.pathname === '/tags'
-                           ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
-                           : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
-                       }`}
-                    >
-                      <Tags className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/tags' ? '' : 'group-hover:scale-110'}`} />
-                      <span className="font-medium">Tags</span>
-                    </Link>
+                     <Link
+                       to="/tags"
+                        className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
+                          location.pathname === '/tags'
+                            ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+                        }`}
+                     >
+                       <Tags className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/tags' ? '' : 'group-hover:scale-110'}`} />
+                       <span className="font-medium">Tags</span>
+                     </Link>
+                     {(userRoles.includes('owner') || userRoles.includes('superadmin')) && (
+                       <Link
+                         to="/admin"
+                          className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
+                            location.pathname === '/admin'
+                              ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+                          }`}
+                       >
+                         <Shield className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/admin' ? '' : 'group-hover:scale-110'}`} />
+                         <span className="font-medium">Admin</span>
+                       </Link>
+                     )}
                  </div>
                </HoverCardContent>
               </HoverCard>
@@ -604,17 +618,30 @@ export const Navigation = ({ role }: NavigationProps) => {
                       <Upload className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/upload' ? '' : 'group-hover:scale-110'}`} />
                       <span className="font-medium">Upload</span>
                     </Link>
-                    <Link
-                      to="/tags"
-                     className={`group flex items-center gap-3 px-6 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
-                         location.pathname === '/tags'
-                           ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
-                           : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
-                       }`}
-                    >
-                      <Tags className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/tags' ? '' : 'group-hover:scale-110'}`} />
-                      <span className="font-medium">Tags</span>
-                    </Link>
+                     <Link
+                       to="/tags"
+                      className={`group flex items-center gap-3 px-6 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
+                          location.pathname === '/tags'
+                            ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+                        }`}
+                     >
+                       <Tags className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/tags' ? '' : 'group-hover:scale-110'}`} />
+                       <span className="font-medium">Tags</span>
+                     </Link>
+                     {(userRoles.includes('owner') || userRoles.includes('superadmin')) && (
+                       <Link
+                         to="/admin"
+                          className={`group flex items-center gap-3 px-6 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
+                            location.pathname === '/admin'
+                              ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+                          }`}
+                       >
+                         <Shield className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/admin' ? '' : 'group-hover:scale-110'}`} />
+                         <span className="font-medium">Admin</span>
+                       </Link>
+                     )}
                   </CollapsibleContent>
                </Collapsible>
             )}
