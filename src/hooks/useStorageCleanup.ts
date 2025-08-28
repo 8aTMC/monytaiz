@@ -102,9 +102,59 @@ export const useStorageCleanup = () => {
     }
   };
 
+  const forceDeleteGhostFiles = async (specificMediaIds?: string[]) => {
+    setIsCleaningUp(true);
+    
+    try {
+      console.log('Starting force delete of ghost files...');
+      
+      const { data, error } = await supabase.functions.invoke('media-operations', {
+        body: {
+          action: 'force_delete_ghost_files',
+          media_ids: specificMediaIds
+        }
+      });
+
+      if (error) {
+        console.error('Force delete ghost files error:', error);
+        throw error;
+      }
+
+      console.log('Force delete ghost files result:', data);
+
+      toast({
+        title: "Ghost files force deleted",
+        description: data.message || `${data.deleted_media_records + data.deleted_content_records} ghost records removed`,
+        variant: "success"
+      });
+
+      if (data.errors && data.errors.length > 0) {
+        console.warn('Force delete errors:', data.errors);
+        toast({
+          title: "Some deletion errors occurred",
+          description: `${data.errors.length} issues found. Check console for details.`,
+          variant: "destructive"
+        });
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Force delete ghost files failed:', error);
+      toast({
+        title: "Force deletion failed",
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: "destructive"
+      });
+      throw error;
+    } finally {
+      setIsCleaningUp(false);
+    }
+  };
+
   return {
     optimizeStorage,
     cleanOrphanedRecords,
+    forceDeleteGhostFiles,
     isCleaningUp
   };
 };

@@ -36,7 +36,12 @@ interface CleanOrphanedRecordsRequest {
   action: 'clean_orphaned_records'
 }
 
-type RequestBody = CopyToCollectionRequest | RemoveFromCollectionRequest | DeleteMediaRequest | CreateCollectionRequest | StorageOptimizationRequest | CleanOrphanedRecordsRequest
+interface ForceDeleteGhostFilesRequest {
+  action: 'force_delete_ghost_files'
+  media_ids?: string[]
+}
+
+type RequestBody = CopyToCollectionRequest | RemoveFromCollectionRequest | DeleteMediaRequest | CreateCollectionRequest | StorageOptimizationRequest | CleanOrphanedRecordsRequest | ForceDeleteGhostFilesRequest
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -100,6 +105,9 @@ serve(async (req) => {
       
       case 'clean_orphaned_records':
         return await cleanOrphanedRecords(supabaseClient, user.id)
+      
+      case 'force_delete_ghost_files':
+        return await forceDeleteGhostFiles(supabaseClient, user.id, body.media_ids)
       
       default:
         return new Response(
@@ -547,6 +555,157 @@ async function optimizeStorage(supabaseClient: any, userId: string) {
               // If all files were orphaned, the folder is now empty
               if (orphanedPhotos.length === photoFiles.length) {
                 result.empty_folders_removed++;
+              }
+            } else {
+              result.errors.push(`Failed to delete photos files: ${deletePhotosError.message}`);
+            }
+          }
+        }
+      } catch (photosError) {
+        result.errors.push(`Error cleaning photos folder: ${photosError instanceof Error ? photosError.message : String(photosError)}`);
+      }
+
+    } catch (error) {
+      result.errors.push(`Error cleaning folders: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    // Step 3: Remove database records pointing to non-existent files
+    try {
+      // Find media records with missing storage files
+      const { data: mediaRecords } = await supabaseClient
+        .from('media')
+        .select('id, path, storage_path, original_path');
+
+      if (mediaRecords?.length > 0) {
+        const filesToCheck = [];
+        const recordsToUpdate = [];
+
+        for (const record of mediaRecords) {
+          const paths = [record.path, record.storage_path, record.original_path].filter(Boolean);
+          for (const path of paths) {
+            filesToCheck.push({ recordId: record.id, path, field: 'storage' });
+          }
+        }
+
+        // Check which files actually exist in storage
+        let clearedRecords = 0;
+        for (const check of filesToCheck.slice(0, 50)) { // Limit to avoid timeout
+          try {
+            const { error: headError } = await supabaseClient.storage
+              .from('content')
+              .list(check.path.includes('/') ? check.path.substring(0, check.path.lastIndexOf('/')) : '', {
+                limit: 1000,
+                search: check.path.includes('/') ? check.path.substring(check.path.lastIndexOf('/') + 1) : check.path
+              });
+
+            if (headError) {
+              // File doesn't exist - clear the database reference
+              await supabaseClient
+                .from('media')
+                .update({ 
+                  path: null, 
+                  storage_path: null,
+                  processing_status: 'error' 
+                })
+                .eq('id', check.recordId);
+              
+              clearedRecords++;
+            }
+          } catch (checkError) {
+            // File doesn't exist
+            clearedRecords++;
+          }
+        }
+
+        if (clearedRecords > 0) {
+          result.migrated_files = clearedRecords;
+          console.log(`Cleared ${clearedRecords} database references to missing files`);
+        }
+      }
+    } catch (error) {
+      result.errors.push(`Error cleaning database references: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    // Step 4: Find and remove files not referenced in database
+    try {
+      const { data: allStorageFiles, error: storageListError } = await supabaseClient.storage
+        .from('content')
+        .list('processed', { limit: 2000 });
+
+      if (!storageListError && allStorageFiles?.length > 0) {
+        // Get all file paths from database
+        const [mediaResults, contentResults] = await Promise.all([
+          supabaseClient.from('media').select('path, storage_path'),
+          supabaseClient.from('content_files').select('file_path').eq('is_active', true)
+        ]);
+
+        const referencedPaths = new Set([
+          ...(mediaResults.data || []).flatMap((m: any) => [m.path, m.storage_path].filter(Boolean)),
+          ...(contentResults.data || []).map((c: any) => c.file_path).filter(Boolean)
+        ]);
+
+        // Check storage files against database references
+        let orphanedFiles = [];
+        const checkFiles = async (files: any[], prefix = '') => {
+          for (const file of files) {
+            const fullPath = prefix ? `${prefix}/${file.name}` : file.name;
+            if (!referencedPaths.has(fullPath) && !referencedPaths.has(`processed/${fullPath}`)) {
+              orphanedFiles.push(fullPath);
+            }
+          }
+        };
+
+        await checkFiles(allStorageFiles, 'processed');
+
+        if (orphanedFiles.length > 0) {
+          const { error: cleanupError } = await supabaseClient.storage
+            .from('content')
+            .remove(orphanedFiles);
+
+          if (!cleanupError) {
+            result.orphaned_files_deleted += orphanedFiles.length;
+            console.log(`Removed ${orphanedFiles.length} orphaned storage files`);
+          } else {
+            result.errors.push(`Failed to remove orphaned files: ${cleanupError.message}`);
+          }
+        }
+      }
+    } catch (error) {
+      result.errors.push(`Error finding orphaned files: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    // Step 5: Clean up media rows in 'processing' state for >1 hour
+    try {
+      const processingCutoff = new Date(Date.now() - 60 * 60 * 1000);
+      const { error: staleError } = await supabaseClient
+        .from('media')
+        .update({ processing_status: 'error' })
+        .eq('processing_status', 'processing')
+        .lt('created_at', processingCutoff.toISOString());
+
+      if (staleError) {
+        result.errors.push(`Failed to clean stale processing records: ${staleError.message}`);
+      }
+    } catch (error) {
+      result.errors.push(`Error cleaning stale records: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    console.log('Storage optimization completed:', result);
+    
+    return new Response(
+      JSON.stringify({
+        success: result.errors.length === 0,
+        ...result,
+        message: `Storage optimization completed: ${result.orphaned_files_deleted} orphaned files removed, ${result.empty_folders_removed} empty folders cleaned, ${Math.round(result.storage_saved_bytes / 1024 / 1024)}MB saved`
+      }),
+      { headers: corsHeaders }
+    );
+  } catch (error) {
+    console.error('Storage optimization error:', error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
+      { status: 500, headers: corsHeaders }
+    );
   }
 }
 
@@ -698,149 +857,176 @@ async function cleanOrphanedRecords(supabaseClient: any, userId: string) {
     );
   }
 }
-          }
-        }
-      } catch (photosError) {
-        result.errors.push(`Error cleaning photos folder: ${photosError instanceof Error ? photosError.message : String(photosError)}`);
-      }
 
-    } catch (error) {
-      result.errors.push(`Error cleaning folders: ${error instanceof Error ? error.message : String(error)}`);
-    }
+async function forceDeleteGhostFiles(supabaseClient: any, userId: string, mediaIds?: string[]) {
+  try {
+    console.log('Starting force delete of ghost files...');
+    
+    const result = {
+      deleted_media_records: 0,
+      deleted_content_records: 0,
+      deleted_collection_items: 0,
+      deleted_grants: 0,
+      errors: [] as string[]
+    };
 
-    // Step 3: Remove database records pointing to non-existent files
-    try {
-      // Find media records with missing storage files
+    let recordsToDelete: string[] = [];
+
+    if (mediaIds && mediaIds.length > 0) {
+      // Delete specific media IDs provided
+      recordsToDelete = mediaIds;
+      console.log(`Force deleting specific media IDs: ${mediaIds.join(', ')}`);
+    } else {
+      // Find all records where storage files don't exist (scan all records)
+      console.log('Scanning for all ghost files...');
+      
       const { data: mediaRecords } = await supabaseClient
         .from('media')
         .select('id, path, storage_path, original_path');
 
-      if (mediaRecords?.length > 0) {
-        const filesToCheck = [];
-        const recordsToUpdate = [];
+      const { data: contentRecords } = await supabaseClient
+        .from('content_files')
+        .select('id, file_path')
+        .eq('is_active', true);
 
-        for (const record of mediaRecords) {
-          const paths = [record.path, record.storage_path, record.original_path].filter(Boolean);
-          for (const path of paths) {
-            filesToCheck.push({ recordId: record.id, path, field: 'storage' });
-          }
-        }
+      // Check which files actually exist in storage by attempting to get file info
+      for (const record of mediaRecords || []) {
+        const pathsToCheck = [record.path, record.storage_path, record.original_path].filter(Boolean);
+        let fileExists = false;
 
-        // Check which files actually exist in storage
-        let clearedRecords = 0;
-        for (const check of filesToCheck.slice(0, 50)) { // Limit to avoid timeout
+        for (const filePath of pathsToCheck) {
+          if (!filePath) continue;
           try {
-            const { error: headError } = await supabaseClient.storage
+            const { data: fileInfo, error: fileError } = await supabaseClient.storage
               .from('content')
-              .list(check.path.includes('/') ? check.path.substring(0, check.path.lastIndexOf('/')) : '', {
+              .list(filePath.includes('/') ? filePath.substring(0, filePath.lastIndexOf('/')) : '', {
                 limit: 1000,
-                search: check.path.includes('/') ? check.path.substring(check.path.lastIndexOf('/') + 1) : check.path
+                search: filePath.includes('/') ? filePath.substring(filePath.lastIndexOf('/') + 1) : filePath
               });
 
-            if (headError) {
-              // File doesn't exist - clear the database reference
-              await supabaseClient
-                .from('media')
-                .update({ 
-                  path: null, 
-                  storage_path: null,
-                  processing_status: 'error' 
-                })
-                .eq('id', check.recordId);
-              
-              clearedRecords++;
+            if (!fileError && fileInfo?.length > 0) {
+              const fileName = filePath.includes('/') ? filePath.substring(filePath.lastIndexOf('/') + 1) : filePath;
+              const fileFound = fileInfo.some(f => f.name === fileName);
+              if (fileFound) {
+                fileExists = true;
+                break;
+              }
             }
           } catch (checkError) {
-            // File doesn't exist
-            clearedRecords++;
+            // File doesn't exist - continue to check other paths
           }
         }
 
-        if (clearedRecords > 0) {
-          result.migrated_files = clearedRecords;
-          console.log(`Cleared ${clearedRecords} database references to missing files`);
+        if (!fileExists) {
+          recordsToDelete.push(record.id);
         }
       }
-    } catch (error) {
-      result.errors.push(`Error cleaning database references: ${error instanceof Error ? error.message : String(error)}`);
-    }
 
-    // Step 4: Find and remove files not referenced in database
-    try {
-      const { data: allStorageFiles, error: storageListError } = await supabaseClient.storage
-        .from('content')
-        .list('processed', { limit: 2000 });
+      // Check content_files as well
+      for (const record of contentRecords || []) {
+        if (!record.file_path) continue;
 
-      if (!storageListError && allStorageFiles?.length > 0) {
-        // Get all file paths from database
-        const [mediaResults, contentResults] = await Promise.all([
-          supabaseClient.from('media').select('path, storage_path'),
-          supabaseClient.from('content_files').select('file_path').eq('is_active', true)
-        ]);
+        try {
+          const { data: fileInfo, error: fileError } = await supabaseClient.storage
+            .from('content')
+            .list(record.file_path.includes('/') ? record.file_path.substring(0, record.file_path.lastIndexOf('/')) : '', {
+              limit: 1000,
+              search: record.file_path.includes('/') ? record.file_path.substring(record.file_path.lastIndexOf('/') + 1) : record.file_path
+            });
 
-        const referencedPaths = new Set([
-          ...(mediaResults.data || []).flatMap((m: any) => [m.path, m.storage_path].filter(Boolean)),
-          ...(contentResults.data || []).map((c: any) => c.file_path).filter(Boolean)
-        ]);
-
-        // Check storage files against database references
-        let orphanedFiles = [];
-        const checkFiles = async (files: any[], prefix = '') => {
-          for (const file of files) {
-            const fullPath = prefix ? `${prefix}/${file.name}` : file.name;
-            if (!referencedPaths.has(fullPath) && !referencedPaths.has(`processed/${fullPath}`)) {
-              orphanedFiles.push(fullPath);
+          if (fileError || !fileInfo?.length) {
+            recordsToDelete.push(record.id);
+          } else {
+            const fileName = record.file_path.includes('/') ? record.file_path.substring(record.file_path.lastIndexOf('/') + 1) : record.file_path;
+            const fileFound = fileInfo.some(f => f.name === fileName);
+            if (!fileFound) {
+              recordsToDelete.push(record.id);
             }
           }
-        };
-
-        await checkFiles(allStorageFiles, 'processed');
-
-        if (orphanedFiles.length > 0) {
-          const { error: cleanupError } = await supabaseClient.storage
-            .from('content')
-            .remove(orphanedFiles);
-
-          if (!cleanupError) {
-            result.orphaned_files_deleted += orphanedFiles.length;
-            console.log(`Removed ${orphanedFiles.length} orphaned storage files`);
-          } else {
-            result.errors.push(`Failed to remove orphaned files: ${cleanupError.message}`);
-          }
+        } catch (checkError) {
+          recordsToDelete.push(record.id);
         }
       }
-    } catch (error) {
-      result.errors.push(`Error finding orphaned files: ${error instanceof Error ? error.message : String(error)}`);
     }
 
-    // Step 5: Clean up media rows in 'processing' state for >1 hour
-    try {
-      const processingCutoff = new Date(Date.now() - 60 * 60 * 1000);
-      const { error: staleError } = await supabaseClient
-        .from('media')
-        .update({ processing_status: 'error' })
-        .eq('processing_status', 'processing')
-        .lt('created_at', processingCutoff.toISOString());
-
-      if (staleError) {
-        result.errors.push(`Failed to clean stale processing records: ${staleError.message}`);
-      }
-    } catch (error) {
-      result.errors.push(`Error cleaning stale records: ${error instanceof Error ? error.message : String(error)}`);
+    if (recordsToDelete.length === 0) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          ...result,
+          message: 'No ghost files found to delete'
+        }),
+        { headers: corsHeaders }
+      );
     }
 
-    console.log('Storage optimization completed:', result);
+    console.log(`Found ${recordsToDelete.length} ghost files to delete`);
+
+    // Delete related records first to avoid foreign key constraints
+    // 1. Delete collection items
+    const { error: collectionItemsError } = await supabaseClient
+      .from('collection_items')
+      .delete()
+      .in('media_id', recordsToDelete);
+
+    if (collectionItemsError) {
+      console.error('Error deleting collection items:', collectionItemsError);
+      result.errors.push(`Failed to delete collection items: ${collectionItemsError.message}`);
+    } else {
+      result.deleted_collection_items = recordsToDelete.length; // Approximate
+    }
+
+    // 2. Delete fan media grants
+    const { error: grantsError } = await supabaseClient
+      .from('fan_media_grants')
+      .delete()
+      .in('media_id', recordsToDelete);
+
+    if (grantsError) {
+      console.error('Error deleting grants:', grantsError);
+      result.errors.push(`Failed to delete grants: ${grantsError.message}`);
+    } else {
+      result.deleted_grants = recordsToDelete.length; // Approximate
+    }
+
+    // 3. Delete from media table
+    const { error: deleteMediaError } = await supabaseClient
+      .from('media')
+      .delete()
+      .in('id', recordsToDelete);
+
+    if (deleteMediaError) {
+      console.error('Error deleting media records:', deleteMediaError);
+      result.errors.push(`Failed to delete media records: ${deleteMediaError.message}`);
+    } else {
+      result.deleted_media_records = recordsToDelete.length;
+    }
+
+    // 4. Delete from content_files table
+    const { error: deleteContentError } = await supabaseClient
+      .from('content_files')
+      .delete()
+      .in('id', recordsToDelete);
+
+    if (deleteContentError) {
+      console.error('Error deleting content records:', deleteContentError);
+      result.errors.push(`Failed to delete content records: ${deleteContentError.message}`);
+    } else {
+      result.deleted_content_records = recordsToDelete.length;
+    }
+
+    console.log('Force delete ghost files completed:', result);
     
     return new Response(
       JSON.stringify({
         success: result.errors.length === 0,
         ...result,
-        message: `Storage optimization completed: ${result.orphaned_files_deleted} orphaned files removed, ${result.empty_folders_removed} empty folders cleaned, ${Math.round(result.storage_saved_bytes / 1024 / 1024)}MB saved`
+        message: `Force deleted ${recordsToDelete.length} ghost files and all related records`
       }),
       { headers: corsHeaders }
     );
   } catch (error) {
-    console.error('Storage optimization error:', error);
+    console.error('Force delete ghost files error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       { status: 500, headers: corsHeaders }
