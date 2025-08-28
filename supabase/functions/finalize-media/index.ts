@@ -127,18 +127,15 @@ Deno.serve(async (req) => {
     ...(processedSize && { size_bytes: processedSize }) // Update with processed size if available
   };
 
-  // Generate optimized flat structure paths
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
+  // Generate optimized flat structure paths - simplified flat structure
   
   // Set main path and renditions based on what was processed using flat structure
   if (imageKey) {
-    const flatImagePath = `processed/images/${year}/${month}/${id}.webp`;
+    const flatImagePath = `processed/${id}.webp`;
     updateData.path = flatImagePath;
     updateData.storage_path = flatImagePath;
   } else if (video1080Key) {
-    const flatVideoPath = `processed/videos/${year}/${month}/${id}-1080p.mp4`;
+    const flatVideoPath = `processed/${id}.mp4`;
     updateData.path = flatVideoPath;
     updateData.storage_path = flatVideoPath;
   }
@@ -146,8 +143,8 @@ Deno.serve(async (req) => {
   // Always store renditions if we have any video using flat structure
   if (video1080Key || video720Key) {
     updateData.renditions = {
-      ...(video1080Key && { video_1080: `processed/videos/${year}/${month}/${id}-1080p.mp4` }),
-      ...(video720Key && { video_720: `processed/videos/${year}/${month}/${id}-720p.mp4` })
+      ...(video1080Key && { video_1080: `processed/${id}-1080p.mp4` }),
+      ...(video720Key && { video_720: `processed/${id}-720p.mp4` })
     };
   }
 

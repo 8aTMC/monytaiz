@@ -129,8 +129,9 @@ export const useOptimizedMediaDisplay = () => {
         throw new Error('No storage path available');
       }
 
-      // Check if this is a processed file path
-      const isProcessedPath = mediaPath.includes('processed/');
+      // Check if processed version exists - try processed path first for new media
+      const processedPath = `processed/${item.id}.webp`;
+      const isLegacyPath = !mediaPath.includes('processed/');
       
       // Use tiny placeholder for initial display if available
       let initialUrl: string | null = null;
@@ -144,67 +145,99 @@ export const useOptimizedMediaDisplay = () => {
       let fullUrl: string | null = null;
 
       if (item.type === 'image') {
-        // For all files, try direct loading first (processed files should load instantly)
+        // Try processed version first for better performance
+        const pathToUse = isLegacyPath ? processedPath : mediaPath;
+        
         if (isPublic) {
-          fullUrl = getTransformUrl(mediaPath, { quality: 90 });
-          thumbnailUrl = getTransformUrl(mediaPath, {
+          fullUrl = getTransformUrl(pathToUse, { quality: 90 });
+          thumbnailUrl = getTransformUrl(pathToUse, {
             width: 256,
             height: 256,
             resize: 'cover',
             quality: 70
           });
-          previewUrl = getTransformUrl(mediaPath, {
+          previewUrl = getTransformUrl(pathToUse, {
             width: 1280,
             height: 720,
             resize: 'contain',
             quality: 80
           });
         } else {
-          // For private files, use the original path without assuming processed versions exist
+          // For private files, try processed version first, fallback to original
           try {
-            fullUrl = await getSignedTransformUrl(mediaPath, { quality: 90 });
-            thumbnailUrl = await getSignedTransformUrl(mediaPath, {
+            fullUrl = await getSignedTransformUrl(pathToUse, { quality: 90 });
+            thumbnailUrl = await getSignedTransformUrl(pathToUse, {
               width: 256,
               height: 256,
               resize: 'cover',
               quality: 70
             });
-            previewUrl = await getSignedTransformUrl(mediaPath, {
+            previewUrl = await getSignedTransformUrl(pathToUse, {
               width: 1280,
               height: 720,
               resize: 'contain',
               quality: 80
             });
           } catch (error) {
-            console.warn('Failed to generate signed URLs for:', mediaPath, error);
-            // Set error state and stop trying
-            setMediaState(prev => ({
-              ...prev,
-              isLoading: false,
-              error: true
-            }));
-            loadingRef.current = false;
-            return;
+            // If processed version fails and we were trying processed, try original path
+            if (isLegacyPath && pathToUse === processedPath) {
+              try {
+                fullUrl = await getSignedTransformUrl(mediaPath, { quality: 90 });
+                thumbnailUrl = await getSignedTransformUrl(mediaPath, {
+                  width: 256,
+                  height: 256,
+                  resize: 'cover',
+                  quality: 70
+                });
+                previewUrl = await getSignedTransformUrl(mediaPath, {
+                  width: 1280,
+                  height: 720,
+                  resize: 'contain',
+                  quality: 80
+                });
+              } catch (fallbackError) {
+                console.warn('Failed to generate URLs for both processed and original:', item.id);
+                setMediaState(prev => ({
+                  ...prev,
+                  isLoading: false,
+                  error: true
+                }));
+                loadingRef.current = false;
+                return;
+              }
+            } else {
+              console.warn('Failed to generate signed URLs for:', pathToUse, error);
+              setMediaState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: true
+              }));
+              loadingRef.current = false;
+              return;
+            }
           }
         }
 
-        // Set URLs immediately - processed files load instantly, others use progressive loading
+        // Set URLs immediately - processed files load instantly
         setMediaState(prev => ({
           ...prev,
           thumbnailUrl,
           previewUrl,
           fullUrl,
-          // Use full quality for processed files, thumbnail for others initially
-          currentUrl: isProcessedPath ? fullUrl : (thumbnailUrl || fullUrl),
+          // Use full quality directly for better performance
+          currentUrl: fullUrl || thumbnailUrl,
           tinyPlaceholder: initialUrl,
           isLoading: false
         }));
 
       } else if (item.type === 'video') {
-        // For videos, use the original path
+        // Try processed version first for videos too
+        const processedVideoPath = `processed/${item.id}.mp4`;
+        const videoPathToUse = isLegacyPath ? processedVideoPath : mediaPath;
+        
         if (isPublic) {
-          fullUrl = getTransformUrl(mediaPath);
-          thumbnailUrl = getTransformUrl(mediaPath, {
+          fullUrl = getTransformUrl(videoPathToUse);
+          thumbnailUrl = getTransformUrl(videoPathToUse, {
             width: 256,
             height: 256,
             resize: 'cover',
@@ -212,22 +245,44 @@ export const useOptimizedMediaDisplay = () => {
           });
         } else {
           try {
-            fullUrl = await getSignedTransformUrl(mediaPath);
-            thumbnailUrl = await getSignedTransformUrl(mediaPath, {
+            fullUrl = await getSignedTransformUrl(videoPathToUse);
+            thumbnailUrl = await getSignedTransformUrl(videoPathToUse, {
               width: 256,
               height: 256,
               resize: 'cover',
               quality: 70
             });
           } catch (error) {
-            console.warn('Failed to generate video URLs for:', mediaPath, error);
-            setMediaState(prev => ({
-              ...prev,
-              isLoading: false,
-              error: true
-            }));
-            loadingRef.current = false;
-            return;
+            // If processed version fails and we were trying processed, try original
+            if (isLegacyPath && videoPathToUse === processedVideoPath) {
+              try {
+                fullUrl = await getSignedTransformUrl(mediaPath);
+                thumbnailUrl = await getSignedTransformUrl(mediaPath, {
+                  width: 256,
+                  height: 256,
+                  resize: 'cover',
+                  quality: 70
+                });
+              } catch (fallbackError) {
+                console.warn('Failed to generate video URLs for both processed and original:', item.id);
+                setMediaState(prev => ({
+                  ...prev,
+                  isLoading: false,
+                  error: true
+                }));
+                loadingRef.current = false;
+                return;
+              }
+            } else {
+              console.warn('Failed to generate video URLs for:', videoPathToUse, error);
+              setMediaState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: true
+              }));
+              loadingRef.current = false;
+              return;
+            }
           }
         }
 
