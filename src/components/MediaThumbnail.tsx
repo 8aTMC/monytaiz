@@ -40,7 +40,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     }
   };
 
-  // Load optimized media on mount with primitive dependencies
+  // Load optimized media on mount with stable dependencies
   useEffect(() => {
     if (itemType && (storagePath || itemPath)) {
       const mediaItem = {
@@ -54,7 +54,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
       };
       loadOptimizedMedia(mediaItem, isPublic);
     }
-  }, [itemId, itemType, storagePath, itemPath, isPublic, loadOptimizedMedia, item.tiny_placeholder, item.width, item.height]);
+  }, [itemId, itemType, storagePath, itemPath, isPublic]); // Removed dependencies that cause infinite loops
 
   // For non-image types, show icon
   if (itemType !== 'image') {
