@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { usePhantomCleanup } from './usePhantomCleanup';
 
 export const useStorageCleanup = () => {
   const [isCleaningUp, setIsCleaningUp] = useState(false);
   const { toast } = useToast();
+  const { cleanPhantomFolders, isCleaningPhantoms } = usePhantomCleanup();
 
   const optimizeStorage = async () => {
     setIsCleaningUp(true);
@@ -155,6 +157,7 @@ export const useStorageCleanup = () => {
     optimizeStorage,
     cleanOrphanedRecords,
     forceDeleteGhostFiles,
-    isCleaningUp
+    cleanPhantomFolders,
+    isCleaningUp: isCleaningUp || isCleaningPhantoms
   };
 };
