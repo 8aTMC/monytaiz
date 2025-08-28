@@ -49,7 +49,9 @@ Deno.serve(async (req) => {
     // Parse request body
     let body: FinalizeRequest;
     try {
+      console.log('Raw request body type:', typeof req.body);
       body = await req.json();
+      console.log('Parsed request body:', body);
     } catch (parseError) {
       console.error('Failed to parse request body:', parseError);
       return json({ error: "Invalid JSON in request body" }, 400);
@@ -59,10 +61,15 @@ Deno.serve(async (req) => {
 
     // Validate required fields
     if (!id || !bucket || !original_path) {
-      return json({ error: "Missing required fields: id, bucket, original_path" }, 400);
+      console.error('Missing required fields:', { id, bucket, original_path, processed, meta });
+      return json({ 
+        error: "Missing required fields: id, bucket, original_path",
+        received: { id, bucket, original_path, processed_keys: Object.keys(processed || {}), meta }
+      }, 400);
     }
 
     console.log(`Finalizing media ${id}: original=${original_path}, processed=${JSON.stringify(processed)}`);
+    console.log('Full request body received:', JSON.stringify(body, null, 2));
 
     // Step 1: Update media row with processed paths and metadata
     const updateData: any = {

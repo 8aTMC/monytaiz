@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Upload, X, Play, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { useOptimizedUpload } from '@/hooks/useOptimizedUpload';
+import { OptimizedFileUploadRow } from './OptimizedFileUploadRow';
 import { cn } from '@/lib/utils';
 
 export const AdvancedFileUpload = () => {
@@ -232,70 +233,17 @@ export const AdvancedFileUpload = () => {
             <ScrollArea className="flex-1 border rounded-lg p-4">
               <div className="space-y-3">
                 {uploadQueue.map((item, index) => (
-                  <div key={item.id} className="flex items-center gap-3 p-3 border rounded-lg">
-                    <div className="flex-shrink-0">
-                      {getStatusIcon(item.status)}
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium truncate">
-                          {item.originalFile.name}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatFileSize(item.originalFile.size)}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="outline" className="text-xs">
-                          {getStatusText(item.status)}
-                        </Badge>
-                        {item.processed && (
-                          <Badge variant="secondary" className="text-xs">
-                            Processed ({item.processed.metadata.format})
-                          </Badge>
-                        )}
-                        {item.retryable && (
-                          <Badge variant="outline" className="text-xs text-yellow-600">
-                            Needs optimization
-                          </Badge>
-                        )}
-                      </div>
-                      
-                      {item.progress > 0 && item.status !== 'complete' && (
-                        <Progress value={item.progress} className="h-1 mb-1" />
-                      )}
-                      
-                      {item.error && (
-                        <p className="text-xs text-red-500 mt-1">{item.error}</p>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center gap-1">
-                      {item.status === 'needs_retry' && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => retryProcessing(item.id)}
-                          className="px-2 py-1 h-auto text-xs"
-                        >
-                          <RefreshCw className="w-3 h-3 mr-1" />
-                          Retry
-                        </Button>
-                      )}
-                      
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => removeFile(item.id)}
-                        disabled={item.status === 'uploading_original' || item.status === 'uploading_processed'}
-                        className="px-2 py-1 h-auto"
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
+                  <OptimizedFileUploadRow
+                    key={item.id}
+                    item={item}
+                    index={index}
+                    currentUploadIndex={currentUploadIndex}
+                    isUploading={isUploading}
+                    onRemove={removeFile}
+                    onRetry={retryProcessing}
+                    getStatusIcon={getStatusIcon}
+                    formatFileSize={formatFileSize}
+                  />
                 ))}
               </div>
             </ScrollArea>
