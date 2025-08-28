@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface MediaItem {
@@ -37,22 +37,9 @@ export const useLibraryData = ({
   const [content, setContent] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
-  
-  // Add abort controller to prevent memory leaks
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const [lastCategoryChange, setLastCategoryChange] = useState<string>('');
 
   const fetchContent = useCallback(async () => {
-    // Cancel previous request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    
-    // Create new abort controller
-    abortControllerRef.current = new AbortController();
-    
     setLoading(true);
-    
     try {
       let combinedData: any[] = [];
 
@@ -183,17 +170,8 @@ export const useLibraryData = ({
           height: item.height || undefined
         }));
 
-      // Check if request was aborted
-      if (abortControllerRef.current?.signal.aborted) {
-        return;
-      }
-
       setContent(validMediaItems);
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.log('Fetch aborted:', error.message);
-        return;
-      }
       console.error('Error fetching content:', error);
     } finally {
       setLoading(false);
@@ -264,32 +242,13 @@ export const useLibraryData = ({
     }
   }, []);
 
-  // Debounced category change effect
+  // Simple effect that doesn't depend on fetchContent to prevent loops
   useEffect(() => {
-    if (selectedCategory !== lastCategoryChange) {
-      setLastCategoryChange(selectedCategory);
-      
-      const timeoutId = setTimeout(() => {
-        fetchContent();
-      }, 100); // Small debounce to prevent rapid category switching issues
-      
-      return () => clearTimeout(timeoutId);
-    } else {
-      fetchContent();
-    }
-  }, [selectedCategory, searchQuery, selectedFilter, sortBy, fetchContent, lastCategoryChange]);
+    fetchContent();
+  }, [selectedCategory, searchQuery, selectedFilter, sortBy]);
 
   useEffect(() => {
     fetchCategoryCounts();
-  }, [fetchCategoryCounts]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
   }, []);
 
   return {

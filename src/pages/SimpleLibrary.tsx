@@ -213,14 +213,9 @@ export default function SimpleLibrary() {
   }, [handleToggleItem]);
 
   const handleCategorySelect = useCallback((categoryId: string) => {
-    console.log('SimpleLibrary category changing from', selectedCategory, 'to', categoryId);
-    
-    // Batch state updates and add small delay to prevent rapid switching issues
-    React.startTransition(() => {
-      setSelectedCategory(categoryId);
-      handleClearSelection();
-    });
-  }, [selectedCategory, handleClearSelection]);
+    setSelectedCategory(categoryId);
+    handleClearSelection();
+  }, [handleClearSelection]);
 
   const handleCopy = useCallback((collectionIds: string[]) => {
     // TODO: Implement copy functionality

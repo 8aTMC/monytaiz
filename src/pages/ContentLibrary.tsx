@@ -1,6 +1,6 @@
 
-import { useEffect, useState, useCallback } from 'react';
 import React from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Navigation, useSidebar } from '@/components/Navigation';
@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { LibraryGrid } from '@/components/LibraryGrid';
 import { LibrarySidebar } from '@/components/LibrarySidebar';
 import { useLibraryData } from '@/hooks/useLibraryData';
+import { LibraryErrorBoundary } from '@/components/LibraryErrorBoundary';
 
 interface MediaItem {
   id: string;
@@ -368,15 +369,10 @@ const ContentLibrary = () => {
   }, [selecting, lastSelectedIndex]); // Stable dependencies
 
   const handleCategorySelect = useCallback((categoryId: string) => {
-    console.log('Category changing from', selectedCategory, 'to', categoryId);
-    
-    // Batch state updates to prevent multiple re-renders
-    React.startTransition(() => {
-      setSelectedCategory(categoryId);
-      setSelectedFilter('all');
-      handleClearSelection();
-    });
-  }, [selectedCategory, handleClearSelection]); // Include dependencies for proper memoization
+    setSelectedCategory(categoryId);
+    setSelectedFilter('all');
+    handleClearSelection();
+  }, [handleClearSelection]);
 
   const isCustomFolder = selectedCategory !== 'all-files' && 
     !['stories', 'livestreams', 'messages'].includes(selectedCategory);
@@ -423,136 +419,138 @@ const ContentLibrary = () => {
   }
 
   return (
-    <div className="h-full flex overflow-hidden -m-6 -mt-4">
-      {/* Sidebar */}
-      <LibrarySidebar
-        defaultCategories={defaultCategories}
-        customFolders={customFolders}
-        selectedCategory={selectedCategory}
-        categoryCounts={categoryCounts}
-        onCategorySelect={handleCategorySelect}
-        onFolderCreated={refreshCustomFolders}
-        onFolderUpdated={refreshCustomFolders}
-      />
+    <LibraryErrorBoundary>
+      <div className="h-full flex overflow-hidden -m-6 -mt-4">
+        {/* Sidebar */}
+        <LibrarySidebar
+          defaultCategories={defaultCategories}
+          customFolders={customFolders}
+          selectedCategory={selectedCategory}
+          categoryCounts={categoryCounts}
+          onCategorySelect={handleCategorySelect}
+          onFolderCreated={refreshCustomFolders}
+          onFolderUpdated={refreshCustomFolders}
+        />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="bg-card border-b border-border p-6 pb-4">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              {defaultCategories.find(c => c.id === selectedCategory)?.label || 
-               customFolders.find(c => c.id === selectedCategory)?.label || 'Library'}
-            </h1>
-          </div>
-
-          {/* Controls and Filters */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            {/* Filter Tabs */}
-            <div className="flex items-center gap-2 flex-wrap order-2 lg:order-1">
-              {[
-                { id: 'all', label: 'All' },
-                { id: 'image', label: 'Photo' },
-                { id: 'video', label: 'Video' },
-                { id: 'audio', label: 'Audio' }
-              ].map((filter) => (
-                <Button
-                  key={filter.id}
-                  variant={selectedFilter === filter.id ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedFilter(filter.id)}
-                  className="whitespace-nowrap"
-                >
-                  {filter.label}
-                </Button>
-              ))}
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <div className="bg-card border-b border-border p-6 pb-4">
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                {defaultCategories.find(c => c.id === selectedCategory)?.label || 
+                 customFolders.find(c => c.id === selectedCategory)?.label || 'Library'}
+              </h1>
             </div>
 
-            {/* Search and Sort Controls */}
-            <div className="flex items-center gap-3 order-1 lg:order-2">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search content..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-40 focus:w-64 transition-all duration-200"
-                />
+            {/* Controls and Filters */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              {/* Filter Tabs */}
+              <div className="flex items-center gap-2 flex-wrap order-2 lg:order-1">
+                {[
+                  { id: 'all', label: 'All' },
+                  { id: 'image', label: 'Photo' },
+                  { id: 'video', label: 'Video' },
+                  { id: 'audio', label: 'Audio' }
+                ].map((filter) => (
+                  <Button
+                    key={filter.id}
+                    variant={selectedFilter === filter.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedFilter(filter.id)}
+                    className="whitespace-nowrap"
+                  >
+                    {filter.label}
+                  </Button>
+                ))}
               </div>
 
-              {/* Sort By */}
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-36">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Newest First</SelectItem>
-                  <SelectItem value="oldest">Oldest First</SelectItem>
-                  <SelectItem value="price_high">Price: High to Low</SelectItem>
-                  <SelectItem value="price_low">Price: Low to High</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Search and Sort Controls */}
+              <div className="flex items-center gap-3 order-1 lg:order-2">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search content..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 w-40 focus:w-64 transition-all duration-200"
+                  />
+                </div>
+
+                {/* Sort By */}
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-36">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="oldest">Oldest First</SelectItem>
+                    <SelectItem value="price_high">Price: High to Low</SelectItem>
+                    <SelectItem value="price_low">Price: Low to High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Selection Toolbar */}
-        {selecting && (
-          <LibrarySelectionToolbar
-            selectedCount={selectedItems.size}
-            totalCount={content.length}
-            currentView={defaultCategories.find(c => c.id === selectedCategory)?.label || 
-              customFolders.find(c => c.id === selectedCategory)?.label || 'Library'}
-            isCustomFolder={isCustomFolder}
-            onClearSelection={handleClearSelection}
-            onSelectAll={handleSelectAll}
-            onCopy={handleCopy}
-            onDelete={handleDelete}
-            disabled={operationLoading || loadingContent}
-          />
-        )}
+          {/* Selection Toolbar */}
+          {selecting && (
+            <LibrarySelectionToolbar
+              selectedCount={selectedItems.size}
+              totalCount={content.length}
+              currentView={defaultCategories.find(c => c.id === selectedCategory)?.label || 
+                customFolders.find(c => c.id === selectedCategory)?.label || 'Library'}
+              isCustomFolder={isCustomFolder}
+              onClearSelection={handleClearSelection}
+              onSelectAll={handleSelectAll}
+              onCopy={handleCopy}
+              onDelete={handleDelete}
+              disabled={operationLoading || loadingContent}
+            />
+          )}
 
-        {/* Content Grid */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <LibraryGrid
-            content={content}
-            selectedItems={selectedItems}
-            selecting={selecting}
-            onItemClick={handleCardClick}
-            onCheckboxClick={handleCheckboxClick}
-            loading={loadingContent}
-          />
+          {/* Content Grid */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <LibraryGrid
+              content={content}
+              selectedItems={selectedItems}
+              selecting={selecting}
+              onItemClick={handleCardClick}
+              onCheckboxClick={handleCheckboxClick}
+              loading={loadingContent}
+            />
+          </div>
         </div>
+        
+        <DeletionProgressDialog
+          open={deletionProgress.open}
+          totalFiles={deletionProgress.totalFiles}
+          deletedFiles={deletionProgress.deletedFiles}
+          isComplete={deletionProgress.isComplete}
+          isError={deletionProgress.isError}
+          errorMessage={deletionProgress.errorMessage}
+          onClose={() => setDeletionProgress({
+            open: false,
+            totalFiles: 0,
+            deletedFiles: 0,
+            isComplete: false,
+            isError: false,
+            errorMessage: ''
+          })}
+        />
+        
+        <MediaPreviewDialog
+          open={!!previewItem}
+          onOpenChange={(open) => !open && setPreviewItem(null)}
+          item={previewItem}
+          allItems={content}
+          selectedItems={selectedItems}
+          onToggleSelection={(itemId: string) => handleToggleItem(itemId)}
+          onItemChange={(item) => setPreviewItem(item)}
+        />
       </div>
-      
-      <DeletionProgressDialog
-        open={deletionProgress.open}
-        totalFiles={deletionProgress.totalFiles}
-        deletedFiles={deletionProgress.deletedFiles}
-        isComplete={deletionProgress.isComplete}
-        isError={deletionProgress.isError}
-        errorMessage={deletionProgress.errorMessage}
-        onClose={() => setDeletionProgress({
-          open: false,
-          totalFiles: 0,
-          deletedFiles: 0,
-          isComplete: false,
-          isError: false,
-          errorMessage: ''
-        })}
-      />
-      
-      <MediaPreviewDialog
-        open={!!previewItem}
-        onOpenChange={(open) => !open && setPreviewItem(null)}
-        item={previewItem}
-        allItems={content}
-        selectedItems={selectedItems}
-        onToggleSelection={(itemId: string) => handleToggleItem(itemId)}
-        onItemChange={(item) => setPreviewItem(item)}
-      />
-    </div>
+    </LibraryErrorBoundary>
   );
 };
 
