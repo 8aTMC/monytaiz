@@ -1486,7 +1486,7 @@ export type Database = {
       }
     }
     Views: {
-      ai_jobs_ready_secure: {
+      ai_jobs_ready: {
         Row: {
           conversation_id: string | null
           created_at: string | null
