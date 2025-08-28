@@ -23,8 +23,6 @@ const Admin = () => {
 
   const { 
     optimizeStorage, 
-    cleanOrphanedRecords, 
-    forceDeleteGhostFiles, 
     cleanPhantomFolders, 
     isCleaningUp 
   } = useStorageCleanup();
@@ -207,45 +205,10 @@ const Admin = () => {
                 <Recycle className="h-4 w-4" />
                 Clean Database
               </Button>
-              
-              <Button
-                variant="destructive"
-                onClick={cleanOrphanedRecords}
-                disabled={isCleaningUp}
-                className="w-full flex items-center gap-2"
-              >
-                <Recycle className="h-4 w-4" />
-                {isCleaningUp ? 'Cleaning...' : 'Force Clean Ghost Files'}
-              </Button>
             </CardContent>
           </Card>
 
-          {/* Dangerous Operations */}
-          <Card className="border-destructive">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-destructive">
-                <Shield className="h-5 w-5" />
-                Dangerous Operations
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button
-                variant="destructive"
-                onClick={() => forceDeleteGhostFiles()}
-                disabled={isCleaningUp}
-                className="w-full flex items-center gap-2 bg-red-600 hover:bg-red-700"
-              >
-                <Recycle className="h-4 w-4" />
-                {isCleaningUp ? 'Purging...' : 'FORCE PURGE ALL GHOSTS'}
-              </Button>
-              
-              <div className="pt-2 border-t border-border">
-                <ForceLogoutButton />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* System Status */}
+          {/* System Information */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -272,6 +235,10 @@ const Admin = () => {
                     {isCleaningUp ? 'Running' : 'Idle'}
                   </span>
                 </div>
+              </div>
+              
+              <div className="pt-4 border-t border-border">
+                <ForceLogoutButton />
               </div>
             </CardContent>
           </Card>
