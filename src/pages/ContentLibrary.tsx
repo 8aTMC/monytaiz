@@ -154,8 +154,9 @@ const ContentLibrary = () => {
       counts['stories'] = 0;
       counts['livestreams'] = 0;
       
-      // Calculate custom folder counts
-      for (const folder of customFolders) {
+      // Calculate custom folder counts using current state
+      const currentFolders = customFolders;
+      for (const folder of currentFolders) {
         const { count: folderCount } = await supabase
           .from('collection_items')
           .select('media_id', { count: 'exact' })
@@ -168,7 +169,7 @@ const ContentLibrary = () => {
     } catch (error) {
       console.error('Error calculating category counts:', error);
     }
-  }, [customFolders]);
+  }, [customFolders]); // Add customFolders back but manage carefully
 
   // Separate refetch function that can be called from anywhere
   const refetchContent = useCallback(async () => {
@@ -334,13 +335,10 @@ const ContentLibrary = () => {
         }));
 
       setContent(validMediaItems);
-      
-      // Update category counts after content changes
-      await calculateCategoryCounts();
     } catch (error) {
       console.error('Error fetching content:', error);
     }
-  }, [selectedCategory, searchQuery, selectedFilter, sortBy, calculateCategoryCounts]);
+  }, [selectedCategory, searchQuery, selectedFilter, sortBy]); // Remove calculateCategoryCounts dependency
 
   const { copyToCollection, removeFromCollection, deleteMediaHard, createCollection, loading: operationLoading } = useMediaOperations({
     onRefreshNeeded: refetchContent,
@@ -487,8 +485,7 @@ const ContentLibrary = () => {
             count: 0
           })) || [];
           setCustomFolders(folders);
-          // Calculate counts after folders are loaded
-          await calculateCategoryCounts();
+          // Remove direct call - let the other useEffect handle count calculation
         }
       } catch (error) {
         console.error('Error fetching collections:', error);
@@ -500,12 +497,17 @@ const ContentLibrary = () => {
     }
   }, [user]);
 
-  // Update counts when custom folders change
+  // Update counts only when folders are first loaded, not on every change
   useEffect(() => {
-    if (user && customFolders.length > 0) {
-      calculateCategoryCounts();
+    if (user && customFolders.length >= 0) {
+      // Only calculate counts when folders are actually loaded, not on every change
+      const timeoutId = setTimeout(() => {
+        calculateCategoryCounts();
+      }, 100); // Small delay to batch updates
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [customFolders.length]);
+  }, [user, customFolders.length]); // Remove calculateCategoryCounts from deps
 
   // Disabled intersection observer to fix connection issues
   // useEffect(() => {
@@ -767,8 +769,7 @@ const ContentLibrary = () => {
           count: 0
         }));
         setCustomFolders(folders);
-        // Update counts after folder changes
-        await calculateCategoryCounts();
+        // Remove direct call - let the other useEffect handle count calculation
       }
     } catch (error) {
       console.error('Error fetching collections:', error);
