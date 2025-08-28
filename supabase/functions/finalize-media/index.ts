@@ -49,11 +49,7 @@ Deno.serve(async (req) => {
     // Parse request body
     let body: FinalizeRequest;
     try {
-      const text = await req.text();
-      if (!text.trim()) {
-        return json({ error: "Request body is empty" }, 400);
-      }
-      body = JSON.parse(text);
+      body = await req.json();
     } catch (parseError) {
       console.error('Failed to parse request body:', parseError);
       return json({ error: "Invalid JSON in request body" }, 400);
