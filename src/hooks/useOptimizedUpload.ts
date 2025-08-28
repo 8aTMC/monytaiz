@@ -265,7 +265,7 @@ export const useOptimizedUpload = () => {
     item: OptimizedUploadItem,
     userId: string,
     index: number
-  ) => {
+  ): Promise<boolean> => { // Return success status
     const updateStatus = (status: OptimizedUploadItem['status'], progress: number, error?: string) => {
       setUploadQueue(prev => prev.map((queueItem, idx) => 
         idx === index ? { ...queueItem, status, progress, error } : queueItem
@@ -310,10 +310,12 @@ export const useOptimizedUpload = () => {
         );
         
         updateStatus('complete', 100);
+        return true; // Success
       } else {
         // No processed files - mark as needs retry or complete original upload
         if (item.retryable) {
           updateStatus('needs_retry', 50, 'Processing not supported on this device');
+          return false; // Not completed successfully
         } else {
           // Just update the media row to mark as done
           await supabase
@@ -328,12 +330,14 @@ export const useOptimizedUpload = () => {
             .eq('id', mediaRowId);
           
           updateStatus('complete', 100);
+          return true; // Success
         }
       }
 
     } catch (error) {
       console.error('Upload error:', error);
       updateStatus('error', 0, error instanceof Error ? error.message : 'Upload failed');
+      return false; // Failed
     }
   }, [uploadOriginal, uploadProcessed, finalizeMedia]);
 
@@ -367,21 +371,31 @@ export const useOptimizedUpload = () => {
     setCurrentUploadIndex(0);
 
     try {
+      let completedCount = 0;
+      const totalToUpload = queuedItems.length;
+
       for (let i = 0; i < queuedItems.length; i++) {
         if (abortControllerRef.current?.signal.aborted) break;
         
         setCurrentUploadIndex(i);
-        await processUploadItem(queuedItems[i], userData.user.id, i);
+        const queueIndex = uploadQueue.findIndex(item => item.id === queuedItems[i].id);
+        const success = await processUploadItem(queuedItems[i], userData.user.id, queueIndex);
+        
+        if (success) {
+          completedCount++;
+        }
       }
 
-      const completed = uploadQueue.filter(item => item.status === 'complete').length;
-      const total = uploadQueue.length;
-      
       toast({
-        title: "Upload complete",
-        description: `${completed}/${total} files uploaded successfully`,
+        title: "Upload complete!",
+        description: `${completedCount} of ${totalToUpload} files uploaded successfully`,
         variant: "success"
       });
+
+      // Auto-clear all completed files after successful upload
+      setTimeout(() => {
+        setUploadQueue(prev => prev.filter(item => item.status !== 'complete'));
+      }, 2000); // Give user time to see the completion status
 
     } catch (error) {
       console.error('Upload process error:', error);
