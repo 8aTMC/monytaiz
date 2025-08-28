@@ -26,17 +26,33 @@ async function cleanPhantomFolders(bucket: string, folderPaths: string[]) {
     console.log(`Attempting to clean phantom folder: ${folderPath}`);
     
     try {
-      // Try to list the folder to see if it has any metadata
+      // Try to list all files in the folder first
       const { data: listData, error: listError } = await supabaseAdmin.storage
         .from(bucket)
-        .list(folderPath, { limit: 1 });
+        .list(folderPath, { limit: 1000, sortBy: { column: 'name', order: 'asc' } });
 
-      console.log(`List result for ${folderPath}:`, { listData, listError });
+      console.log(`List result for ${folderPath}:`, { listData, listError, count: listData?.length });
 
       // Try multiple cleanup approaches
       const cleanupResults = [];
 
-      // Approach 1: Try to remove the folder path directly
+      // Approach 1: If folder has files, try to remove all files first
+      if (listData && listData.length > 0) {
+        const filesToDelete = listData.map(file => `${folderPath}/${file.name}`);
+        console.log(`Found ${filesToDelete.length} files in folder ${folderPath}, deleting:`, filesToDelete);
+        
+        const { error: filesDeleteError } = await supabaseAdmin.storage
+          .from(bucket)
+          .remove(filesToDelete);
+        
+        cleanupResults.push({
+          method: 'delete_files_first',
+          error: filesDeleteError?.message || null,
+          filesDeleted: filesToDelete.length
+        });
+      }
+
+      // Approach 2: Try to remove the folder path directly
       const { error: removeError1 } = await supabaseAdmin.storage
         .from(bucket)
         .remove([folderPath]);
@@ -46,7 +62,7 @@ async function cleanPhantomFolders(bucket: string, folderPaths: string[]) {
         error: removeError1?.message || null
       });
 
-      // Approach 2: Try to remove with trailing slash
+      // Approach 3: Try to remove with trailing slash
       const { error: removeError2 } = await supabaseAdmin.storage
         .from(bucket)
         .remove([`${folderPath}/`]);
@@ -56,7 +72,7 @@ async function cleanPhantomFolders(bucket: string, folderPaths: string[]) {
         error: removeError2?.message || null
       });
 
-      // Approach 3: Try to create and immediately delete a temp file in the folder
+      // Approach 4: Try to create and immediately delete a temp file in the folder
       const tempFileName = `${folderPath}/.temp_cleanup_${Date.now()}`;
       
       const { error: uploadError } = await supabaseAdmin.storage
@@ -76,6 +92,49 @@ async function cleanPhantomFolders(bucket: string, folderPaths: string[]) {
         cleanupResults.push({
           method: 'temp_file_cleanup',
           error: `Upload failed: ${uploadError.message}`
+        });
+      }
+
+      // Approach 5: Aggressive cleanup - try to remove with various path patterns
+      const pathVariations = [
+        folderPath,
+        `${folderPath}/`,
+        `./${folderPath}`,
+        `./${folderPath}/`,
+        `/${folderPath}`,
+        `/${folderPath}/`
+      ];
+
+      for (const variation of pathVariations) {
+        const { error: variationError } = await supabaseAdmin.storage
+          .from(bucket)
+          .remove([variation]);
+        
+        if (!variationError) {
+          cleanupResults.push({
+            method: `path_variation_${variation}`,
+            error: null
+          });
+          break; // If one works, no need to try others
+        }
+      }
+
+      // Approach 6: Database cleanup - remove any references from storage.objects
+      try {
+        const { error: dbCleanupError } = await supabaseAdmin
+          .from('objects')
+          .delete()
+          .in('name', [`${folderPath}`, `${folderPath}/`])
+          .eq('bucket_id', bucket);
+
+        cleanupResults.push({
+          method: 'database_cleanup',
+          error: dbCleanupError?.message || null
+        });
+      } catch (dbError) {
+        cleanupResults.push({
+          method: 'database_cleanup',
+          error: `DB access error: ${dbError.message}`
         });
       }
 
