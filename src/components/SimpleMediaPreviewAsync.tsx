@@ -100,7 +100,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
         
         {/* Header */}
         <div className="p-4 border-b">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold truncate pr-4">
               {item?.title || item?.original_filename || 'Untitled'}
             </h2>
@@ -116,6 +116,22 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
               <Button variant="ghost" size="sm" onClick={onClose}>
                 <X className="w-4 h-4" />
               </Button>
+            </div>
+          </div>
+          
+          {/* File Info Tags */}
+          <div className="flex gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <span className="font-medium">Type:</span>
+              <span className="capitalize bg-muted px-2 py-1 rounded text-xs">
+                {item.media_type || 'Unknown'}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="font-medium">Size:</span>
+              <span className="bg-muted px-2 py-1 rounded text-xs">
+                {formatFileSize(item.original_size_bytes || 0)}
+              </span>
             </div>
           </div>
         </div>
@@ -205,24 +221,6 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                </div>
              )}
            </div>
-
-          {/* Footer with file info */}
-          {item && (
-            <div className="p-4 border-t bg-muted/20">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium text-muted-foreground">Type:</span>
-                  <br />
-                  <span className="capitalize">{item.media_type || 'Unknown'}</span>
-                </div>
-                <div>
-                  <span className="font-medium text-muted-foreground">Size:</span>
-                  <br />
-                  <span>{formatFileSize(item.original_size_bytes || 0)}</span>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </>
