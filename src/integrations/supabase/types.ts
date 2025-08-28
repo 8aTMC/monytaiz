@@ -1182,6 +1182,78 @@ export type Database = {
           },
         ]
       }
+      simple_media: {
+        Row: {
+          created_at: string | null
+          creator_id: string
+          description: string | null
+          duration_seconds: number | null
+          height: number | null
+          id: string
+          media_type: string
+          mime_type: string
+          optimized_size_bytes: number | null
+          original_filename: string
+          original_path: string
+          original_size_bytes: number
+          processed_at: string | null
+          processed_path: string | null
+          processing_error: string | null
+          processing_status: string | null
+          tags: string[] | null
+          thumbnail_path: string | null
+          title: string | null
+          updated_at: string | null
+          width: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          creator_id: string
+          description?: string | null
+          duration_seconds?: number | null
+          height?: number | null
+          id?: string
+          media_type: string
+          mime_type: string
+          optimized_size_bytes?: number | null
+          original_filename: string
+          original_path: string
+          original_size_bytes: number
+          processed_at?: string | null
+          processed_path?: string | null
+          processing_error?: string | null
+          processing_status?: string | null
+          tags?: string[] | null
+          thumbnail_path?: string | null
+          title?: string | null
+          updated_at?: string | null
+          width?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          creator_id?: string
+          description?: string | null
+          duration_seconds?: number | null
+          height?: number | null
+          id?: string
+          media_type?: string
+          mime_type?: string
+          optimized_size_bytes?: number | null
+          original_filename?: string
+          original_path?: string
+          original_size_bytes?: number
+          processed_at?: string | null
+          processed_path?: string | null
+          processing_error?: string | null
+          processing_status?: string | null
+          tags?: string[] | null
+          thumbnail_path?: string | null
+          title?: string | null
+          updated_at?: string | null
+          width?: number | null
+        }
+        Relationships: []
+      }
       typing_indicators: {
         Row: {
           conversation_id: string

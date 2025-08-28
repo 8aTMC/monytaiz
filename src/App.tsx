@@ -12,11 +12,11 @@ import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import Messages from "./pages/Messages";
 import Fans from "./pages/Fans";
-import ContentLibrary from "./pages/ContentLibrary";
+import SimpleLibrary from "./pages/SimpleLibrary";
 import Admin from "./pages/Admin";
 import Users from "./pages/Users";
 import Profile from "./pages/Profile";
-import Upload from "./pages/Upload";
+import SimpleUpload from "./pages/SimpleUpload";
 import FansCategories from "./pages/FansCategories";
 import FansLists from "./pages/FansLists";
 import PendingDeletions from "./pages/PendingDeletions";
@@ -107,16 +107,12 @@ const App = () => (
               } />
               <Route path="/library" element={
                 <ProtectedRoute>
-                  <Layout>
-                    <ContentLibrary />
-                  </Layout>
+                  <SimpleLibrary />
                 </ProtectedRoute>
               } />
               <Route path="/upload" element={
                 <ProtectedRoute>
-                  <Layout>
-                    <Upload />
-                  </Layout>
+                  <SimpleUpload />
                 </ProtectedRoute>
               } />
                <Route path="/admin" element={
