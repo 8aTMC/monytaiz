@@ -1007,7 +1007,7 @@ const ContentLibrary = () => {
           </div>
           
           {/* Admin Storage Controls */}
-          {userRoles.includes('admin') && (
+          {(userRoles.includes('admin') || userRoles.includes('owner')) && (
             <div className="flex flex-col gap-2 pt-2 border-t border-border">
               <div className="flex items-center gap-2">
                 <Button
