@@ -97,7 +97,25 @@ Deno.serve(async (req) => {
     meta
   });
 
-  // Update database with processed keys (store KEYS, not full URLs)
+  // Update database with processed keys and get processed file size
+  let processedSize: number | null = null;
+  
+  // Try to get processed file size from the main processed file
+  const mainProcessedKey = imageKey || video1080Key || video720Key;
+  if (mainProcessedKey) {
+    try {
+      const { data: fileList } = await supabaseService.storage
+        .from(bucket)
+        .list(mainProcessedKey.split('/').slice(0, -1).join('/'), {
+          search: mainProcessedKey.split('/').pop()
+        });
+      
+      processedSize = fileList?.[0]?.metadata?.size || null;
+    } catch (error) {
+      console.warn('Could not get processed file size:', error);
+    }
+  }
+
   const updateData: any = {
     processing_status: 'done',
     width: meta.width || null,
@@ -105,7 +123,8 @@ Deno.serve(async (req) => {
     tiny_placeholder: meta.tiny_placeholder || null,
     storage_path: null, // Clear original storage path reference
     original_path: null, // Clear original path reference
-    bucket
+    bucket,
+    ...(processedSize && { size_bytes: processedSize }) // Update with processed size if available
   };
 
   // Generate optimized flat structure paths
@@ -148,7 +167,16 @@ Deno.serve(async (req) => {
     return json({ error: `db update failed: ${updateError.message}` }, 400);
   }
 
-  console.log(`Successfully updated media row ${id}`);
+        // Also update existing records to show proper processed size
+        const { data: updatedMedia } = await supabaseService
+          .from('media')
+          .select('id, path')
+          .eq('id', id)
+          .single();
+
+        if (updatedMedia?.path && processedSize) {
+          console.log(`Updated ${id} with processed size: ${processedSize} bytes (was ${updateData.size_bytes || 'unknown'})`);
+        }
 
   // Delete original file (key relative to bucket)
   if (originalKey) {

@@ -93,7 +93,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
           src={currentUrl}
           alt={item.title || 'Media thumbnail'}
           className={`w-full h-full object-cover transition-all duration-300 ${
-            currentUrl === tinyPlaceholder ? 'filter blur-sm' : 'filter-none'
+            currentUrl === tinyPlaceholder ? 'filter blur-[2px] scale-105' : 'filter-none scale-100'
           }`}
           loading="lazy"
           decoding="async"

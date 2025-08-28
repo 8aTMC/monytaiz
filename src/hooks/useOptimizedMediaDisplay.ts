@@ -126,14 +126,12 @@ export const useOptimizedMediaDisplay = () => {
         throw new Error('No storage path available');
       }
 
-      // Step 1: Show tiny placeholder immediately
-      if (item.tiny_placeholder) {
-        setMediaState(prev => ({
-          ...prev,
-          tinyPlaceholder: item.tiny_placeholder!,
-          currentUrl: item.tiny_placeholder!,
-          isLoading: false // No loading spinner for instant content
-        }));
+      // Step 1: Start loading proper image immediately (skip tiny placeholder for faster loading)
+      let initialUrl: string | null = null;
+      
+      if (item.tiny_placeholder && !mediaPath.includes('processed/')) {
+        // Only use tiny placeholder for unprocessed files
+        initialUrl = item.tiny_placeholder;
       }
 
       // Step 2: Generate URLs based on media type and privacy
@@ -182,16 +180,15 @@ export const useOptimizedMediaDisplay = () => {
           });
         }
 
-        // Load thumbnail first
+        // Load thumbnail immediately for processed images
         if (thumbnailUrl) {
-          setTimeout(() => {
-            setMediaState(prev => ({
-              ...prev,
-              thumbnailUrl,
-              currentUrl: thumbnailUrl || prev.currentUrl,
-              isLoading: false
-            }));
-          }, Math.random() * 100); // Stagger loading
+          setMediaState(prev => ({
+            ...prev,
+            thumbnailUrl,
+            currentUrl: thumbnailUrl,
+            tinyPlaceholder: initialUrl,
+            isLoading: false
+          }));
         }
 
       } else if (item.type === 'video') {
@@ -222,7 +219,8 @@ export const useOptimizedMediaDisplay = () => {
           setMediaState(prev => ({
             ...prev,
             thumbnailUrl,
-            currentUrl: thumbnailUrl || prev.currentUrl,
+            currentUrl: thumbnailUrl,
+            tinyPlaceholder: initialUrl,
             isLoading: false
           }));
         }
@@ -235,13 +233,14 @@ export const useOptimizedMediaDisplay = () => {
         }));
       }
 
-      // Update state with all URLs
+      // Update state with all URLs - prefer actual image over placeholder
       setMediaState(prev => ({
         ...prev,
         thumbnailUrl,
         previewUrl,
         fullUrl,
-        currentUrl: thumbnailUrl || prev.currentUrl || prev.tinyPlaceholder,
+        currentUrl: thumbnailUrl || fullUrl || prev.currentUrl || initialUrl,
+        tinyPlaceholder: initialUrl,
         isLoading: false
       }));
 
