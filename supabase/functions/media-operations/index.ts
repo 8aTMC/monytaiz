@@ -437,32 +437,179 @@ async function optimizeStorage(supabaseClient: any, userId: string) {
       result.errors.push(`Error cleaning incoming files: ${error instanceof Error ? error.message : String(error)}`);
     }
 
-    // Step 2: Clean up empty UUID folders in processed/
+    // Step 2: Clean up UUID folders and legacy folders (processed/, photos/)
     try {
-      const { data: processedFiles, error: processedError } = await supabaseClient.storage
+      // Check processed/ folder for UUID folders
+      const { data: processedFiles } = await supabaseClient.storage
         .from('content')
         .list('processed', { limit: 1000 });
 
-      if (!processedError && processedFiles?.length > 0) {
-        // Check each folder and see if it's empty or contains only old files
+      if (processedFiles?.length > 0) {
         for (const folder of processedFiles) {
           if (folder.name.length === 36) { // UUID length check
-            const { data: folderContents } = await supabaseClient.storage
-              .from('content')
-              .list(`processed/${folder.name}`, { limit: 100 });
+            try {
+              const { data: folderContents } = await supabaseClient.storage
+                .from('content')
+                .list(`processed/${folder.name}`, { limit: 100 });
 
-            if (!folderContents || folderContents.length === 0) {
-              // Empty folder - try to remove (will fail safely if not empty)
-              result.empty_folders_removed++;
+              if (!folderContents || folderContents.length === 0) {
+                console.log(`Found empty UUID folder: ${folder.name}`);
+                result.empty_folders_removed++;
+              } else {
+                // Check if all files in folder are orphaned
+                const folderFiles = folderContents.map(f => `processed/${folder.name}/${f.name}`);
+                
+                // Get database references for these files
+                const [mediaRefs, contentRefs] = await Promise.all([
+                  supabaseClient.from('media').select('path, storage_path')
+                    .or(folderFiles.map(p => `path.eq.${p},storage_path.eq.${p}`).join(',')),
+                  supabaseClient.from('content_files').select('file_path')
+                    .in('file_path', folderFiles)
+                ]);
+
+                const referencedFiles = [
+                  ...(mediaRefs.data || []).flatMap(m => [m.path, m.storage_path].filter(Boolean)),
+                  ...(contentRefs.data || []).map(c => c.file_path).filter(Boolean)
+                ];
+
+                const orphanedFiles = folderFiles.filter(f => !referencedFiles.includes(f));
+                
+                if (orphanedFiles.length === folderFiles.length) {
+                  // All files are orphaned - delete the entire folder
+                  const { error: deleteFolderError } = await supabaseClient.storage
+                    .from('content')
+                    .remove(folderFiles);
+                    
+                  if (!deleteFolderError) {
+                    result.orphaned_files_deleted += folderFiles.length;
+                    result.empty_folders_removed++;
+                    console.log(`Removed orphaned UUID folder: ${folder.name} with ${folderFiles.length} files`);
+                  }
+                } else if (orphanedFiles.length > 0) {
+                  // Delete only orphaned files
+                  const { error: deleteError } = await supabaseClient.storage
+                    .from('content')
+                    .remove(orphanedFiles);
+                    
+                  if (!deleteError) {
+                    result.orphaned_files_deleted += orphanedFiles.length;
+                    console.log(`Removed ${orphanedFiles.length} orphaned files from folder: ${folder.name}`);
+                  }
+                }
+              }
+            } catch (folderError) {
+              console.log(`Error processing folder ${folder.name}: ${folderError}`);
             }
           }
         }
       }
+
+      // Step 2b: Clean up legacy 'photos' folder
+      try {
+        const { data: photosContents } = await supabaseClient.storage
+          .from('content')
+          .list('photos', { limit: 1000 });
+
+        if (photosContents?.length > 0) {
+          const photoFiles = photosContents.map(f => `photos/${f.name}`);
+          
+          // Check database references
+          const [mediaRefs, contentRefs] = await Promise.all([
+            supabaseClient.from('media').select('path, storage_path')
+              .or(photoFiles.map(p => `path.eq.${p},storage_path.eq.${p}`).join(',')),
+            supabaseClient.from('content_files').select('file_path')
+              .in('file_path', photoFiles)
+          ]);
+
+          const referencedPhotos = [
+            ...(mediaRefs.data || []).flatMap(m => [m.path, m.storage_path].filter(Boolean)),
+            ...(contentRefs.data || []).map(c => c.file_path).filter(Boolean)
+          ];
+
+          const orphanedPhotos = photoFiles.filter(f => !referencedPhotos.includes(f));
+          
+          if (orphanedPhotos.length > 0) {
+            const { error: deletePhotosError } = await supabaseClient.storage
+              .from('content')
+              .remove(orphanedPhotos);
+              
+            if (!deletePhotosError) {
+              result.orphaned_files_deleted += orphanedPhotos.length;
+              console.log(`Removed ${orphanedPhotos.length} orphaned files from photos folder`);
+              
+              // If all files were orphaned, the folder is now empty
+              if (orphanedPhotos.length === photoFiles.length) {
+                result.empty_folders_removed++;
+              }
+            }
+          }
+        }
+      } catch (photosError) {
+        result.errors.push(`Error cleaning photos folder: ${photosError instanceof Error ? photosError.message : String(photosError)}`);
+      }
+
     } catch (error) {
-      result.errors.push(`Error cleaning UUID folders: ${error instanceof Error ? error.message : String(error)}`);
+      result.errors.push(`Error cleaning folders: ${error instanceof Error ? error.message : String(error)}`);
     }
 
-    // Step 3: Find and remove files not referenced in database
+    // Step 3: Remove database records pointing to non-existent files
+    try {
+      // Find media records with missing storage files
+      const { data: mediaRecords } = await supabaseClient
+        .from('media')
+        .select('id, path, storage_path, original_path');
+
+      if (mediaRecords?.length > 0) {
+        const filesToCheck = [];
+        const recordsToUpdate = [];
+
+        for (const record of mediaRecords) {
+          const paths = [record.path, record.storage_path, record.original_path].filter(Boolean);
+          for (const path of paths) {
+            filesToCheck.push({ recordId: record.id, path, field: 'storage' });
+          }
+        }
+
+        // Check which files actually exist in storage
+        let clearedRecords = 0;
+        for (const check of filesToCheck.slice(0, 50)) { // Limit to avoid timeout
+          try {
+            const { error: headError } = await supabaseClient.storage
+              .from('content')
+              .list(check.path.includes('/') ? check.path.substring(0, check.path.lastIndexOf('/')) : '', {
+                limit: 1000,
+                search: check.path.includes('/') ? check.path.substring(check.path.lastIndexOf('/') + 1) : check.path
+              });
+
+            if (headError) {
+              // File doesn't exist - clear the database reference
+              await supabaseClient
+                .from('media')
+                .update({ 
+                  path: null, 
+                  storage_path: null,
+                  processing_status: 'error' 
+                })
+                .eq('id', check.recordId);
+              
+              clearedRecords++;
+            }
+          } catch (checkError) {
+            // File doesn't exist
+            clearedRecords++;
+          }
+        }
+
+        if (clearedRecords > 0) {
+          result.migrated_files = clearedRecords;
+          console.log(`Cleared ${clearedRecords} database references to missing files`);
+        }
+      }
+    } catch (error) {
+      result.errors.push(`Error cleaning database references: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    // Step 4: Find and remove files not referenced in database
     try {
       const { data: allStorageFiles, error: storageListError } = await supabaseClient.storage
         .from('content')
@@ -510,7 +657,7 @@ async function optimizeStorage(supabaseClient: any, userId: string) {
       result.errors.push(`Error finding orphaned files: ${error instanceof Error ? error.message : String(error)}`);
     }
 
-    // Step 4: Clean up media rows in 'processing' state for >1 hour
+    // Step 5: Clean up media rows in 'processing' state for >1 hour
     try {
       const processingCutoff = new Date(Date.now() - 60 * 60 * 1000);
       const { error: staleError } = await supabaseClient
