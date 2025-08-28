@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSimpleMedia, SimpleMediaItem } from '@/hooks/useSimpleMedia';
 import { SimpleMediaPreview } from '@/components/SimpleMediaPreview';
 import { LibrarySidebar } from '@/components/LibrarySidebar';
@@ -31,21 +31,30 @@ export default function SimpleLibrary() {
     fetchMedia();
   }, [fetchMedia]);
 
-  const handlePreviewClose = () => {
+  const handlePreviewClose = useCallback(() => {
     setIsPreviewOpen(false);
     setSelectedItem(null);
-  };
+  }, []);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     fetchMedia();
-  };
+  }, [fetchMedia]);
 
-  const handleUpload = () => {
+  const handleUpload = useCallback(() => {
     navigate('/simple-upload');
-  };
+  }, [navigate]);
+
+  // Folder management handlers - memoized empty functions to prevent re-renders
+  const handleFolderCreated = useCallback(() => {
+    // TODO: Implement folder creation refresh
+  }, []);
+
+  const handleFolderUpdated = useCallback(() => {
+    // TODO: Implement folder update refresh  
+  }, []);
 
   // Convert SimpleMediaItem to the format expected by LibraryGrid
-  const convertToLibraryFormat = (items: SimpleMediaItem[]) => {
+  const convertToLibraryFormat = useCallback((items: SimpleMediaItem[]) => {
     return items.map(item => ({
       id: item.id,
       title: item.title,
@@ -63,7 +72,7 @@ export default function SimpleLibrary() {
       width: item.width,
       height: item.height
     }));
-  };
+  }, []);
 
   // Filter media based on current filters
   const filteredMedia = useMemo(() => {
@@ -105,10 +114,10 @@ export default function SimpleLibrary() {
     });
     
     return convertToLibraryFormat(filtered);
-  }, [media, searchQuery, selectedFilter, sortBy]);
+  }, [media, searchQuery, selectedFilter, sortBy, convertToLibraryFormat]);
 
-  // Default categories for sidebar
-  const defaultCategories = [
+  // Default categories for sidebar - memoized to prevent re-renders
+  const defaultCategories = useMemo(() => [
     {
       id: 'all-files',
       label: 'All Files',
@@ -137,17 +146,18 @@ export default function SimpleLibrary() {
       description: 'Content sent in messages',
       isDefault: true
     }
-  ];
+  ], []);
 
-  const categoryCounts = {
+  // Memoized category counts to prevent re-renders
+  const categoryCounts = useMemo(() => ({
     'all-files': media.length,
     'stories': 0,
     'livestreams': 0,
     'messages': 0
-  };
+  }), [media.length]);
 
-  // Selection handlers
-  const handleToggleItem = (itemId: string) => {
+  // Selection handlers - memoized to prevent re-renders
+  const handleToggleItem = useCallback((itemId: string) => {
     setSelectedItems(prev => {
       const newSet = new Set(prev);
       if (newSet.has(itemId)) {
@@ -157,18 +167,18 @@ export default function SimpleLibrary() {
       }
       return newSet;
     });
-  };
+  }, []);
 
-  const handleClearSelection = () => {
+  const handleClearSelection = useCallback(() => {
     setSelectedItems(new Set());
     setSelecting(false);
-  };
+  }, []);
 
-  const handleSelectAll = () => {
+  const handleSelectAll = useCallback(() => {
     setSelectedItems(new Set(filteredMedia.map(item => item.id)));
-  };
+  }, [filteredMedia]);
 
-  const handleItemClick = (item: any, event: React.MouseEvent, index: number) => {
+  const handleItemClick = useCallback((item: any, event: React.MouseEvent, index: number) => {
     if (event.shiftKey || event.ctrlKey || event.metaKey) {
       handleToggleItem(item.id);
       setSelecting(true);
@@ -182,28 +192,28 @@ export default function SimpleLibrary() {
         setIsPreviewOpen(true);
       }
     }
-  };
+  }, [handleToggleItem, selecting, media]);
 
-  const handleCheckboxClick = (itemId: string, index: number, event?: React.MouseEvent) => {
+  const handleCheckboxClick = useCallback((itemId: string, index: number, event?: React.MouseEvent) => {
     event?.stopPropagation();
     handleToggleItem(itemId);
     setSelecting(true);
-  };
+  }, [handleToggleItem]);
 
-  const handleCategorySelect = (categoryId: string) => {
+  const handleCategorySelect = useCallback((categoryId: string) => {
     setSelectedCategory(categoryId);
     handleClearSelection();
-  };
+  }, [handleClearSelection]);
 
-  const handleCopy = (collectionIds: string[]) => {
+  const handleCopy = useCallback((collectionIds: string[]) => {
     // TODO: Implement copy functionality
     console.log('Copy items to collections:', collectionIds);
-  };
+  }, []);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     // TODO: Implement delete functionality
     console.log('Delete selected items');
-  };
+  }, []);
 
   return (
     <Layout>
@@ -215,8 +225,8 @@ export default function SimpleLibrary() {
           selectedCategory={selectedCategory}
           categoryCounts={categoryCounts}
           onCategorySelect={handleCategorySelect}
-          onFolderCreated={() => {}}
-          onFolderUpdated={() => {}}
+          onFolderCreated={handleFolderCreated}
+          onFolderUpdated={handleFolderUpdated}
         />
 
         {/* Main Content */}
