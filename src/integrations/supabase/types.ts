@@ -685,7 +685,10 @@ export type Database = {
           mime: string
           notes: string | null
           origin: string
+          original_path: string | null
           path: string | null
+          processing_status: string | null
+          renditions: Json | null
           sha256: string | null
           size_bytes: number
           storage_path: string
@@ -707,7 +710,10 @@ export type Database = {
           mime: string
           notes?: string | null
           origin: string
+          original_path?: string | null
           path?: string | null
+          processing_status?: string | null
+          renditions?: Json | null
           sha256?: string | null
           size_bytes: number
           storage_path: string
@@ -729,7 +735,10 @@ export type Database = {
           mime?: string
           notes?: string | null
           origin?: string
+          original_path?: string | null
           path?: string | null
+          processing_status?: string | null
+          renditions?: Json | null
           sha256?: string | null
           size_bytes?: number
           storage_path?: string

@@ -1,0 +1,448 @@
+import { useState, useCallback, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useClientMediaProcessor, ProcessedMedia } from './useClientMediaProcessor';
+
+export interface OptimizedUploadItem {
+  id: string;
+  originalFile: File;
+  processed: ProcessedMedia | null;
+  status: 'queued' | 'processing' | 'uploading_original' | 'uploading_processed' | 'finalizing' | 'complete' | 'error' | 'needs_retry';
+  progress: number;
+  error?: string;
+  mediaRowId?: string;
+  originalPath?: string;
+  processedPaths?: {
+    image?: string;
+    video_1080?: string;
+    video_720?: string;
+  };
+  retryable?: boolean;
+}
+
+export const useOptimizedUpload = () => {
+  const [uploadQueue, setUploadQueue] = useState<OptimizedUploadItem[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [currentUploadIndex, setCurrentUploadIndex] = useState(0);
+  
+  const { processFiles, isProcessing, progress: processingProgress } = useClientMediaProcessor();
+  const { toast } = useToast();
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Get file type for storage organization
+  const getFileType = useCallback((file: File): 'image' | 'video' | 'audio' | 'document' => {
+    if (file.type.startsWith('image/')) return 'image';
+    if (file.type.startsWith('video/')) return 'video';
+    if (file.type.startsWith('audio/')) return 'audio';
+    return 'document';
+  }, []);
+
+  // Add files to upload queue
+  const addFiles = useCallback(async (files: File[]) => {
+    if (isUploading || isProcessing) {
+      toast({
+        title: "Upload in progress",
+        description: "Please wait for current upload to complete",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate files
+    const validFiles = files.filter(file => {
+      const maxSize = 50 * 1024 * 1024; // 50MB limit
+      if (file.size > maxSize) {
+        toast({
+          title: "File too large",
+          description: `${file.name} exceeds 50MB limit`,
+          variant: "destructive"
+        });
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    // Create initial upload items
+    const uploadItems: OptimizedUploadItem[] = validFiles.map((file, index) => ({
+      id: `${Date.now()}-${index}`,
+      originalFile: file,
+      processed: null,
+      status: 'queued',
+      progress: 0
+    }));
+
+    setUploadQueue(prev => [...prev, ...uploadItems]);
+
+    // Start client-side processing
+    try {
+      const processedFiles = await processFiles(validFiles);
+      
+      // Update queue with processed results
+      setUploadQueue(prev => prev.map(item => {
+        const processed = processedFiles.find(p => p.originalFile.name === item.originalFile.name);
+        if (processed) {
+          return {
+            ...item,
+            processed,
+            status: processed.metadata.format === 'needs_processing' ? 'needs_retry' as const : 'queued' as const,
+            retryable: processed.metadata.format === 'needs_processing'
+          };
+        }
+        return item;
+      }));
+
+      toast({
+        title: "Files processed",
+        description: `${processedFiles.length} files ready for upload`,
+        variant: "success"
+      });
+
+    } catch (error) {
+      console.error('Processing failed:', error);
+      toast({
+        title: "Processing failed",
+        description: "Files will be uploaded as originals",
+        variant: "destructive"
+      });
+    }
+  }, [isUploading, isProcessing, processFiles, toast]);
+
+  // Upload single file (original to content/incoming/)
+  const uploadOriginal = useCallback(async (
+    file: File, 
+    userId: string,
+    signal?: AbortSignal
+  ): Promise<{ path: string; mediaRowId: string }> => {
+    const fileType = getFileType(file);
+    const fileName = `${crypto.randomUUID()}.${file.name.split('.').pop()}`;
+    const originalPath = `incoming/${fileName}`;
+
+    // Upload to temporary location
+    const { data, error } = await supabase.storage
+      .from('content')
+      .upload(originalPath, file, {
+        cacheControl: '31536000', // 1 year cache for safety
+        upsert: false,
+        contentType: file.type
+      });
+
+    if (error) throw error;
+
+    // Create media row with original path
+    const { data: mediaRow, error: dbError } = await supabase
+      .from('media')
+      .insert({
+        bucket: 'content',
+        creator_id: userId,
+        created_by: userId,
+        origin: 'upload',
+        storage_path: data.path,
+        original_path: data.path,
+        mime: file.type,
+        type: fileType,
+        size_bytes: file.size,
+        title: file.name.replace(/\.[^/.]+$/, ''),
+        processing_status: 'processing'
+      })
+      .select('id')
+      .single();
+
+    if (dbError) throw dbError;
+
+    return { path: data.path, mediaRowId: mediaRow.id };
+  }, [getFileType]);
+
+  // Upload processed files to content/processed/
+  const uploadProcessed = useCallback(async (
+    processed: ProcessedMedia,
+    mediaRowId: string,
+    signal?: AbortSignal
+  ): Promise<{ [key: string]: string }> => {
+    const uploadedPaths: { [key: string]: string } = {};
+    const baseFolder = `processed/${mediaRowId}`;
+
+    // Upload image
+    if (processed.processedFiles.image) {
+      const imagePath = `${baseFolder}/image.webp`;
+      const { data, error } = await supabase.storage
+        .from('content')
+        .upload(imagePath, processed.processedFiles.image, {
+          cacheControl: '31536000',
+          upsert: false,
+          contentType: 'image/webp'
+        });
+      
+      if (error) throw error;
+      uploadedPaths.image = data.path;
+    }
+
+    // Upload 1080p video
+    if (processed.processedFiles.video_1080) {
+      const video1080Path = `${baseFolder}/video-1080p.mp4`;
+      const { data, error } = await supabase.storage
+        .from('content')
+        .upload(video1080Path, processed.processedFiles.video_1080, {
+          cacheControl: '31536000',
+          upsert: false,
+          contentType: 'video/mp4'
+        });
+      
+      if (error) throw error;
+      uploadedPaths.video_1080 = data.path;
+    }
+
+    // Upload 720p video (if exists)
+    if (processed.processedFiles.video_720) {
+      const video720Path = `${baseFolder}/video-720p.mp4`;
+      const { data, error } = await supabase.storage
+        .from('content')
+        .upload(video720Path, processed.processedFiles.video_720, {
+          cacheControl: '31536000',
+          upsert: false,
+          contentType: 'video/mp4'
+        });
+      
+      if (error) throw error;
+      uploadedPaths.video_720 = data.path;
+    }
+
+    return uploadedPaths;
+  }, []);
+
+  // Finalize media (update DB, delete original)
+  const finalizeMedia = useCallback(async (
+    mediaRowId: string,
+    originalPath: string,
+    processedPaths: { [key: string]: string },
+    metadata: ProcessedMedia['metadata'],
+    tinyPlaceholder: string
+  ) => {
+    const { data, error } = await supabase.functions.invoke('finalize-media', {
+      body: {
+        id: mediaRowId,
+        bucket: 'content',
+        original_path: originalPath,
+        processed: processedPaths,
+        meta: {
+          width: metadata.width,
+          height: metadata.height,
+          duration: metadata.duration,
+          tiny_placeholder: tinyPlaceholder
+        }
+      },
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (error) throw error;
+    return data;
+  }, []);
+
+  // Process single upload item
+  const processUploadItem = useCallback(async (
+    item: OptimizedUploadItem,
+    userId: string,
+    index: number
+  ) => {
+    const updateStatus = (status: OptimizedUploadItem['status'], progress: number, error?: string) => {
+      setUploadQueue(prev => prev.map((queueItem, idx) => 
+        idx === index ? { ...queueItem, status, progress, error } : queueItem
+      ));
+    };
+
+    try {
+      abortControllerRef.current = new AbortController();
+      const signal = abortControllerRef.current.signal;
+
+      // Step 1: Upload original
+      updateStatus('uploading_original', 10, undefined);
+      const { path: originalPath, mediaRowId } = await uploadOriginal(
+        item.originalFile, 
+        userId, 
+        signal
+      );
+
+      setUploadQueue(prev => prev.map((queueItem, idx) => 
+        idx === index ? { ...queueItem, mediaRowId, originalPath } : queueItem
+      ));
+
+      // Step 2: Upload processed files (if available)
+      if (item.processed && Object.keys(item.processed.processedFiles).length > 0) {
+        updateStatus('uploading_processed', 40);
+        
+        const processedPaths = await uploadProcessed(item.processed, mediaRowId, signal);
+        
+        setUploadQueue(prev => prev.map((queueItem, idx) => 
+          idx === index ? { ...queueItem, processedPaths } : queueItem
+        ));
+
+        // Step 3: Finalize (update DB, delete original)
+        updateStatus('finalizing', 80);
+        
+        await finalizeMedia(
+          mediaRowId,
+          originalPath,
+          processedPaths,
+          item.processed.metadata,
+          item.processed.tinyPlaceholder
+        );
+        
+        updateStatus('complete', 100);
+      } else {
+        // No processed files - mark as needs retry or complete original upload
+        if (item.retryable) {
+          updateStatus('needs_retry', 50, 'Processing not supported on this device');
+        } else {
+          // Just update the media row to mark as done
+          await supabase
+            .from('media')
+            .update({ 
+              processing_status: 'done',
+              path: originalPath, // Use original as processed path
+              tiny_placeholder: item.processed?.tinyPlaceholder || null,
+              width: item.processed?.metadata.width || null,
+              height: item.processed?.metadata.height || null
+            })
+            .eq('id', mediaRowId);
+          
+          updateStatus('complete', 100);
+        }
+      }
+
+    } catch (error) {
+      console.error('Upload error:', error);
+      updateStatus('error', 0, error instanceof Error ? error.message : 'Upload failed');
+    }
+  }, [uploadOriginal, uploadProcessed, finalizeMedia]);
+
+  // Start upload process
+  const startUpload = useCallback(async () => {
+    const queuedItems = uploadQueue.filter(item => 
+      item.status === 'queued' || item.status === 'error'
+    );
+
+    if (queuedItems.length === 0) {
+      toast({
+        title: "No files to upload",
+        description: "Add files to the queue first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check authentication
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to upload files",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    setCurrentUploadIndex(0);
+
+    try {
+      for (let i = 0; i < queuedItems.length; i++) {
+        if (abortControllerRef.current?.signal.aborted) break;
+        
+        setCurrentUploadIndex(i);
+        await processUploadItem(queuedItems[i], userData.user.id, i);
+      }
+
+      const completed = uploadQueue.filter(item => item.status === 'complete').length;
+      const total = uploadQueue.length;
+      
+      toast({
+        title: "Upload complete",
+        description: `${completed}/${total} files uploaded successfully`,
+        variant: "success"
+      });
+
+    } catch (error) {
+      console.error('Upload process error:', error);
+      toast({
+        title: "Upload error",
+        description: error instanceof Error ? error.message : 'Upload process failed',
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+      setCurrentUploadIndex(0);
+      abortControllerRef.current = null;
+    }
+  }, [uploadQueue, processUploadItem, toast]);
+
+  // Cancel upload
+  const cancelUpload = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    setIsUploading(false);
+    setCurrentUploadIndex(0);
+  }, []);
+
+  // Remove item from queue
+  const removeFile = useCallback((id: string) => {
+    setUploadQueue(prev => prev.filter(item => item.id !== id));
+  }, []);
+
+  // Clear completed items
+  const clearCompleted = useCallback(() => {
+    setUploadQueue(prev => prev.filter(item => item.status !== 'complete'));
+  }, []);
+
+  // Retry failed/needs_retry items
+  const retryProcessing = useCallback(async (id: string) => {
+    const item = uploadQueue.find(item => item.id === id);
+    if (!item || item.status !== 'needs_retry') return;
+
+    try {
+      const processedFiles = await processFiles([item.originalFile]);
+      const processed = processedFiles[0];
+      
+      if (processed && processed.metadata.format !== 'needs_processing') {
+        setUploadQueue(prev => prev.map(queueItem => 
+          queueItem.id === id 
+            ? { ...queueItem, processed, status: 'queued', retryable: false }
+            : queueItem
+        ));
+        
+        toast({
+          title: "Processing successful",
+          description: `${item.originalFile.name} is now ready for upload`,
+          variant: "success"
+        });
+      } else {
+        toast({
+          title: "Processing still not supported",
+          description: "This device cannot process this file type",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Retry failed",
+        description: error instanceof Error ? error.message : 'Processing failed again',
+        variant: "destructive"
+      });
+    }
+  }, [uploadQueue, processFiles, toast]);
+
+  return {
+    uploadQueue,
+    isUploading,
+    currentUploadIndex,
+    isProcessing,
+    processingProgress,
+    addFiles,
+    startUpload,
+    cancelUpload,
+    removeFile,
+    clearCompleted,
+    retryProcessing
+  };
+};
