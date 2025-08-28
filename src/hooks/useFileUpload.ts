@@ -15,7 +15,7 @@ export interface FileUploadItem {
 }
 
 const FILE_LIMITS = {
-  video: 6 * 1024 * 1024 * 1024, // 6GB
+  video: 50 * 1024 * 1024, // 50MB - Supabase Free tier limit
   image: 50 * 1024 * 1024, // 50MB
   audio: 10 * 1024 * 1024, // 10MB
   document: 10 * 1024 * 1024, // 10MB
