@@ -349,7 +349,7 @@ const ContentLibrary = () => {
     onCountsRefreshNeeded: calculateCategoryCounts
   });
   const { toast } = useToast();
-  const { optimizeStorage, isCleaningUp } = useStorageCleanup();
+  const { optimizeStorage, cleanOrphanedRecords, isCleaningUp } = useStorageCleanup();
 
   // User roles state
   const [userRoles, setUserRoles] = useState<string[]>([]);
@@ -1008,26 +1008,39 @@ const ContentLibrary = () => {
           
           {/* Admin Storage Controls */}
           {userRoles.includes('admin') && (
-            <div className="flex items-center gap-2 pt-2 border-t border-border">
+            <div className="flex flex-col gap-2 pt-2 border-t border-border">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={optimizeStorage}
+                  disabled={isCleaningUp}
+                  className="flex items-center gap-2"
+                >
+                  <HardDrive className="h-4 w-4" />
+                  {isCleaningUp ? 'Optimizing...' : 'Optimize Storage'}
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCleanupCorruptedMedia}
+                  className="flex items-center gap-2"
+                >
+                  <Recycle className="h-4 w-4" />
+                  Clean Database
+                </Button>
+              </div>
+              
               <Button
-                variant="outline"
+                variant="destructive"
                 size="sm"
-                onClick={optimizeStorage}
+                onClick={cleanOrphanedRecords}
                 disabled={isCleaningUp}
                 className="flex items-center gap-2"
               >
-                <HardDrive className="h-4 w-4" />
-                {isCleaningUp ? 'Optimizing...' : 'Optimize Storage'}
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCleanupCorruptedMedia}
-                className="flex items-center gap-2"
-              >
                 <Recycle className="h-4 w-4" />
-                Clean Database
+                {isCleaningUp ? 'Cleaning...' : 'Force Clean Ghost Files'}
               </Button>
             </div>
           )}

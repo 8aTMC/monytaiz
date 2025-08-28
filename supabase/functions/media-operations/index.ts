@@ -32,7 +32,11 @@ interface StorageOptimizationRequest {
   action: 'optimize_storage'
 }
 
-type RequestBody = CopyToCollectionRequest | RemoveFromCollectionRequest | DeleteMediaRequest | CreateCollectionRequest | StorageOptimizationRequest
+interface CleanOrphanedRecordsRequest {
+  action: 'clean_orphaned_records'
+}
+
+type RequestBody = CopyToCollectionRequest | RemoveFromCollectionRequest | DeleteMediaRequest | CreateCollectionRequest | StorageOptimizationRequest | CleanOrphanedRecordsRequest
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -93,6 +97,9 @@ serve(async (req) => {
       
       case 'optimize_storage':
         return await optimizeStorage(supabaseClient, user.id)
+      
+      case 'clean_orphaned_records':
+        return await cleanOrphanedRecords(supabaseClient, user.id)
       
       default:
         return new Response(
@@ -540,8 +547,157 @@ async function optimizeStorage(supabaseClient: any, userId: string) {
               // If all files were orphaned, the folder is now empty
               if (orphanedPhotos.length === photoFiles.length) {
                 result.empty_folders_removed++;
-              }
+  }
+}
+
+async function cleanOrphanedRecords(supabaseClient: any, userId: string) {
+  try {
+    console.log('Starting cleanup of orphaned database records...');
+    
+    const result = {
+      deleted_media_records: 0,
+      deleted_content_records: 0,
+      verified_files: 0,
+      errors: [] as string[]
+    };
+
+    // Step 1: Get all media records
+    const { data: mediaRecords, error: mediaError } = await supabaseClient
+      .from('media')
+      .select('id, path, storage_path, original_path, bucket');
+
+    if (mediaError) {
+      result.errors.push(`Failed to fetch media records: ${mediaError.message}`);
+      return new Response(JSON.stringify(result), { headers: corsHeaders });
+    }
+
+    console.log(`Found ${mediaRecords?.length || 0} media records to verify`);
+
+    // Step 2: Check which files actually exist in storage
+    const recordsToDelete = [];
+    let verifiedCount = 0;
+
+    for (const record of mediaRecords || []) {
+      const pathsToCheck = [record.path, record.storage_path, record.original_path].filter(Boolean);
+      let fileExists = false;
+
+      for (const filePath of pathsToCheck) {
+        if (!filePath) continue;
+
+        try {
+          // Try to get file info to check if it exists
+          const { data: fileInfo, error: fileError } = await supabaseClient.storage
+            .from(record.bucket || 'content')
+            .list(filePath.includes('/') ? filePath.substring(0, filePath.lastIndexOf('/')) : '', {
+              limit: 1000,
+              search: filePath.includes('/') ? filePath.substring(filePath.lastIndexOf('/') + 1) : filePath
+            });
+
+          if (!fileError && fileInfo?.length > 0) {
+            const fileName = filePath.includes('/') ? filePath.substring(filePath.lastIndexOf('/') + 1) : filePath;
+            const fileFound = fileInfo.some(f => f.name === fileName);
+            if (fileFound) {
+              fileExists = true;
+              break;
             }
+          }
+        } catch (checkError) {
+          // File doesn't exist - continue to check other paths
+        }
+      }
+
+      if (!fileExists) {
+        recordsToDelete.push(record.id);
+        console.log(`Marking record ${record.id} for deletion - no storage files found`);
+      } else {
+        verifiedCount++;
+      }
+    }
+
+    result.verified_files = verifiedCount;
+
+    // Step 3: Delete orphaned media records
+    if (recordsToDelete.length > 0) {
+      const { error: deleteMediaError } = await supabaseClient
+        .from('media')
+        .delete()
+        .in('id', recordsToDelete);
+
+      if (deleteMediaError) {
+        result.errors.push(`Failed to delete media records: ${deleteMediaError.message}`);
+      } else {
+        result.deleted_media_records = recordsToDelete.length;
+        console.log(`Deleted ${recordsToDelete.length} orphaned media records`);
+      }
+    }
+
+    // Step 4: Check content_files table as well
+    const { data: contentRecords, error: contentError } = await supabaseClient
+      .from('content_files')
+      .select('id, file_path')
+      .eq('is_active', true);
+
+    if (!contentError && contentRecords?.length > 0) {
+      const contentRecordsToDelete = [];
+
+      for (const record of contentRecords) {
+        if (!record.file_path) continue;
+
+        try {
+          const { data: fileInfo, error: fileError } = await supabaseClient.storage
+            .from('content')
+            .list(record.file_path.includes('/') ? record.file_path.substring(0, record.file_path.lastIndexOf('/')) : '', {
+              limit: 1000,
+              search: record.file_path.includes('/') ? record.file_path.substring(record.file_path.lastIndexOf('/') + 1) : record.file_path
+            });
+
+          if (fileError || !fileInfo?.length) {
+            contentRecordsToDelete.push(record.id);
+          } else {
+            const fileName = record.file_path.includes('/') ? record.file_path.substring(record.file_path.lastIndexOf('/') + 1) : record.file_path;
+            const fileFound = fileInfo.some(f => f.name === fileName);
+            if (!fileFound) {
+              contentRecordsToDelete.push(record.id);
+            }
+          }
+        } catch (checkError) {
+          contentRecordsToDelete.push(record.id);
+        }
+      }
+
+      if (contentRecordsToDelete.length > 0) {
+        const { error: deleteContentError } = await supabaseClient
+          .from('content_files')
+          .delete()
+          .in('id', contentRecordsToDelete);
+
+        if (deleteContentError) {
+          result.errors.push(`Failed to delete content records: ${deleteContentError.message}`);
+        } else {
+          result.deleted_content_records = contentRecordsToDelete.length;
+          console.log(`Deleted ${contentRecordsToDelete.length} orphaned content_files records`);
+        }
+      }
+    }
+
+    console.log('Orphaned records cleanup completed:', result);
+    
+    return new Response(
+      JSON.stringify({
+        success: result.errors.length === 0,
+        ...result,
+        message: `Cleanup completed: ${result.deleted_media_records} media records and ${result.deleted_content_records} content records removed. ${result.verified_files} files verified as existing.`
+      }),
+      { headers: corsHeaders }
+    );
+  } catch (error) {
+    console.error('Clean orphaned records error:', error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
+      { status: 500, headers: corsHeaders }
+    );
+  }
+}
           }
         }
       } catch (photosError) {

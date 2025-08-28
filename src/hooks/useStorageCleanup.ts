@@ -54,8 +54,57 @@ export const useStorageCleanup = () => {
     }
   };
 
+  const cleanOrphanedRecords = async () => {
+    setIsCleaningUp(true);
+    
+    try {
+      console.log('Starting orphaned records cleanup...');
+      
+      const { data, error } = await supabase.functions.invoke('media-operations', {
+        body: {
+          action: 'clean_orphaned_records'
+        }
+      });
+
+      if (error) {
+        console.error('Orphaned records cleanup error:', error);
+        throw error;
+      }
+
+      console.log('Orphaned records cleanup result:', data);
+
+      toast({
+        title: "Database cleanup completed",
+        description: data.message || `${data.deleted_media_records + data.deleted_content_records} orphaned records removed`,
+        variant: "success"
+      });
+
+      if (data.errors && data.errors.length > 0) {
+        console.warn('Cleanup errors:', data.errors);
+        toast({
+          title: "Some cleanup errors occurred",
+          description: `${data.errors.length} issues found. Check console for details.`,
+          variant: "destructive"
+        });
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Orphaned records cleanup failed:', error);
+      toast({
+        title: "Database cleanup failed",
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: "destructive"
+      });
+      throw error;
+    } finally {
+      setIsCleaningUp(false);
+    }
+  };
+
   return {
     optimizeStorage,
+    cleanOrphanedRecords,
     isCleaningUp
   };
 };
