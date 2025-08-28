@@ -81,14 +81,19 @@ export default function SimpleLibrary() {
       return [];
     }
     
+    // Safety check for media array
+    if (!media || !Array.isArray(media) || media.length === 0) {
+      return [];
+    }
+    
     let filtered = [...media];
     
     // Apply search filter
     if (searchQuery) {
       filtered = filtered.filter(item => 
-        item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+        item?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item?.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item?.tags?.some(tag => tag?.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
     
@@ -96,9 +101,9 @@ export default function SimpleLibrary() {
     if (selectedFilter !== 'All') {
       filtered = filtered.filter(item => {
         switch (selectedFilter) {
-          case 'Photo': return item.media_type === 'image';
-          case 'Video': return item.media_type === 'video';
-          case 'Audio': return item.media_type === 'audio';
+          case 'Photo': return item?.media_type === 'image';
+          case 'Video': return item?.media_type === 'video';
+          case 'Audio': return item?.media_type === 'audio';
           default: return true;
         }
       });
@@ -108,11 +113,11 @@ export default function SimpleLibrary() {
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'newest':
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          return new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime();
         case 'oldest':
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          return new Date(a?.created_at || 0).getTime() - new Date(b?.created_at || 0).getTime();
         case 'name':
-          return (a.title || '').localeCompare(b.title || '');
+          return (a?.title || '').localeCompare(b?.title || '');
         default:
           return 0;
       }
