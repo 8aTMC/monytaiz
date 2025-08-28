@@ -291,7 +291,7 @@ export default function SimpleLibrary() {
                     placeholder="Search content..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 w-64"
+                    className="pl-10 w-48"
                   />
                 </div>
 
