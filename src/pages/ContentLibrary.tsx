@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Filter, Grid, Image, Video, FileAudio, FileText, Calendar, ArrowUpDown, BookOpen, Zap, MessageSquare, GripVertical, Edit, Check } from 'lucide-react';
+import { Search, Filter, Grid, Image, Video, FileAudio, FileText, Calendar, ArrowUpDown, BookOpen, Zap, MessageSquare, GripVertical, Edit, Check, Recycle, HardDrive } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog';
 import { NewFolderDialog } from '@/components/NewFolderDialog';
@@ -23,7 +23,7 @@ import { MediaPreviewDialog } from '@/components/MediaPreviewDialog';
 import { MediaThumbnail } from '@/components/MediaThumbnail';
 import { useToast } from '@/hooks/use-toast';
 import { useStorageCleanup } from '@/hooks/useStorageCleanup';
-import { Recycle, HardDrive } from 'lucide-react';
+import { ForceLogoutButton } from '@/components/ForceLogoutButton';
 
 interface MediaItem {
   id: string;
@@ -1042,6 +1042,8 @@ const ContentLibrary = () => {
                 <Recycle className="h-4 w-4" />
                 {isCleaningUp ? 'Cleaning...' : 'Force Clean Ghost Files'}
               </Button>
+              
+              <ForceLogoutButton />
             </div>
           )}
         </div>

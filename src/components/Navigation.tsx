@@ -147,16 +147,20 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
   );
 };
 
-export const Navigation = () => {
-  const location = useLocation();
-  const { t, loading: translationLoading } = useTranslation();
+interface NavigationProps {
+  role?: string;
+}
+
+export const Navigation = ({ role }: NavigationProps) => {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const location = useLocation();
+  const { t } = useTranslation();
+  const { user, signOut, forceSignOut } = useAuth();
+  const { isCollapsed, setIsCollapsed, isNarrowScreen } = useSidebar();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [isFan, setIsFan] = useState(false);
   const [openSection, setOpenSection] = useState<'fans' | 'content' | 'management' | null>(null);
-  const { isCollapsed, setIsCollapsed, isNarrowScreen = false } = useSidebar();
 
   // Determine which section should be open based on current route
   const getCurrentSection = (): 'fans' | 'content' | 'management' | null => {
@@ -219,8 +223,15 @@ export const Navigation = () => {
   }, [user?.id]);
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
+    try {
+      console.log('Navigation: Attempting normal logout...');
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Navigation: Normal logout failed, forcing logout...', error);
+      // If normal logout fails, use forceSignOut
+      await forceSignOut();
+    }
   };
 
   if (!user) return null;
