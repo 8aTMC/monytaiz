@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface OptimizedMediaState {
@@ -19,8 +19,38 @@ interface MediaItem {
 
 const SUPABASE_PROJECT_URL = 'https://alzyzfjzwvofmjccirjq.supabase.co';
 
-// Enhanced cache for URLs
-const urlCache = new Map();
+// Simple cache for URLs with cleanup
+class URLCache {
+  private cache = new Map<string, { url: string; expires: number }>();
+  private maxSize = 100;
+
+  get(key: string): string | null {
+    const entry = this.cache.get(key);
+    if (!entry || entry.expires <= Date.now()) {
+      this.cache.delete(key);
+      return null;
+    }
+    return entry.url;
+  }
+
+  set(key: string, url: string, expiresIn: number): void {
+    if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+    
+    this.cache.set(key, {
+      url,
+      expires: Date.now() + (expiresIn * 1000) - 60000
+    });
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+}
+
+const urlCache = new URLCache();
 
 export const useOptimizedMediaDisplay = () => {
   const [mediaState, setMediaState] = useState<OptimizedMediaState>({
@@ -29,10 +59,10 @@ export const useOptimizedMediaDisplay = () => {
     error: false
   });
 
-  const loadingRef = useRef<boolean>(false);
-  const currentItemRef = useRef<string | null>(null);
+  const loadingRef = useRef<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Generate optimized transform URL using Supabase Image Transformations
+  // Generate optimized transform URL - pure function with no dependencies
   const getTransformUrl = useCallback((
     path: string, 
     transforms: {
@@ -55,22 +85,21 @@ export const useOptimizedMediaDisplay = () => {
     const baseUrl = `${SUPABASE_PROJECT_URL}/storage/v1/object/public/content/${path}`;
     
     return queryString ? `${baseUrl}?${queryString}` : baseUrl;
-  }, []); // No dependencies - this function is pure
+  }, []);
 
-  // Get signed URL with transforms for private content
+  // Get signed URL with transforms for private content - stable function
   const getSignedTransformUrl = useCallback(async (
     path: string,
     transforms: Parameters<typeof getTransformUrl>[1] = {},
     expiresIn: number = 3600
   ): Promise<string | null> => {
-    try {
-      const cacheKey = `${path}-${JSON.stringify(transforms)}-${expiresIn}`;
-      const cached = urlCache.get(cacheKey);
-      
-      if (cached && cached.expires > Date.now()) {
-        return cached.url;
-      }
+    const cacheKey = `${path}-${JSON.stringify(transforms)}-${expiresIn}`;
+    
+    // Check cache first
+    const cached = urlCache.get(cacheKey);
+    if (cached) return cached;
 
+    try {
       // Create signed URL with transforms
       const { data, error } = await supabase.storage
         .from('content')
@@ -84,55 +113,61 @@ export const useOptimizedMediaDisplay = () => {
         });
 
       if (error || !data.signedUrl) {
-        // Silent handling for missing files
         return null;
       }
 
       // Cache the result
-      urlCache.set(cacheKey, {
-        url: data.signedUrl,
-        expires: Date.now() + (expiresIn * 1000) - 60000
-      });
-
+      urlCache.set(cacheKey, data.signedUrl, expiresIn);
       return data.signedUrl;
     } catch (error) {
-      // Silent error handling to prevent console spam
       return null;
     }
-  }, []); // No dependencies - uses external supabase client and cache
+  }, []);
 
-  // Simplified media loading with flat file structure priority
+  // Simplified media loading with abort controller
   const loadOptimizedMedia = useCallback(async (item: MediaItem, isPublic: boolean = false) => {
-    const itemId = `${item.id}-${item.type}`;
+    const itemKey = `${item.id}-${item.type}-${item.storage_path || item.path}`;
     
-    // Prevent duplicate loading of same item
-    if (loadingRef.current || currentItemRef.current === itemId) return;
+    // Prevent duplicate loading
+    if (loadingRef.current === itemKey) return;
     
-    loadingRef.current = true;
-    currentItemRef.current = itemId;
-    setMediaState(prev => ({ ...prev, isLoading: true, error: false }));
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    loadingRef.current = itemKey;
+    abortControllerRef.current = new AbortController();
+    
+    setMediaState({
+      currentUrl: null,
+      isLoading: true,
+      error: false
+    });
 
     try {
-      // Use the path from database, with fallbacks for different storage structures
+      // Check if request was aborted
+      if (abortControllerRef.current.signal.aborted) return;
+
+      // Determine best path to use
       let bestPath: string | null = null;
       
       if (item.path || item.storage_path) {
-        // Use the actual stored path from database
         bestPath = item.path || item.storage_path;
       } else if (item.type === 'image') {
-        // Fallback: try processed folder structure
         bestPath = `processed/${item.id}/image.webp`;
       } else if (item.type === 'video') {
-        // Fallback: try processed folder structure  
         bestPath = `processed/${item.id}/video.mp4`;
       } else {
-        // For audio or other types, no fallback available
         bestPath = null;
       }
 
       if (!bestPath) {
         throw new Error('No valid file path found');
       }
+
+      // Check for abort again
+      if (abortControllerRef.current.signal.aborted) return;
 
       let finalUrl: string | null = null;
 
@@ -171,47 +206,60 @@ export const useOptimizedMediaDisplay = () => {
         }
       }
 
+      // Final abort check before setting state
+      if (abortControllerRef.current.signal.aborted) return;
+
       if (!finalUrl) {
         throw new Error('Failed to generate media URL');
       }
 
-      // Set the final URL immediately - no progressive loading
-      setMediaState(prev => ({
-        ...prev,
+      // Set the final URL
+      setMediaState({
         currentUrl: finalUrl,
         isLoading: false,
         error: false
-      }));
+      });
 
-    } catch (error) {
-      // Silent error handling - just show error state
-      setMediaState(prev => ({
-        ...prev,
+    } catch (error: any) {
+      // Don't update state if request was aborted
+      if (error.name === 'AbortError' || abortControllerRef.current?.signal.aborted) {
+        return;
+      }
+      
+      setMediaState({
         currentUrl: null,
         isLoading: false,
         error: true
-      }));
+      });
     } finally {
-      loadingRef.current = false;
+      loadingRef.current = null;
     }
-  }, [getTransformUrl, getSignedTransformUrl]); // Include stable dependencies
+  }, [getTransformUrl, getSignedTransformUrl]);
 
   // Simple quality enhancement (no-op since we load at full quality)
   const enhanceQuality = useCallback(() => {
     // No-op since we already load at optimal quality
   }, []);
 
-  // Cleanup
-  useEffect(() => {
-    return () => {
-      currentItemRef.current = null;
-      loadingRef.current = false;
-    };
+  // Clear function for cleanup
+  const clearMedia = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    loadingRef.current = null;
+    
+    setMediaState({
+      currentUrl: null,
+      isLoading: false,
+      error: false
+    });
   }, []);
 
   return {
     loadOptimizedMedia,
     enhanceQuality,
+    clearMedia,
     getTransformUrl,
     getSignedTransformUrl,
     ...mediaState

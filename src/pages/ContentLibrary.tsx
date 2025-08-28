@@ -1,15 +1,14 @@
-
 import React from 'react';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Navigation, useSidebar } from '@/components/Navigation';
+import { useSidebar } from '@/components/Navigation';
 import { User, Session } from '@supabase/supabase-js';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Grid, Image, Video, FileAudio, BookOpen, Zap, MessageSquare } from 'lucide-react';
+import { Search, Grid, BookOpen, Zap, MessageSquare } from 'lucide-react';
 import { DeletionProgressDialog } from '@/components/DeletionProgressDialog';
 import { LibrarySelectionToolbar } from '@/components/LibrarySelectionToolbar';
 import { useMediaOperations } from '@/hooks/useMediaOperations';
@@ -46,7 +45,7 @@ const ContentLibrary = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // UI state - simplified with stable defaults
+  // UI state - use primitive values to prevent object recreation
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
@@ -59,16 +58,6 @@ const ContentLibrary = () => {
   // Preview state
   const [previewItem, setPreviewItem] = useState<MediaItem | null>(null);
   
-  // Custom folders state with stable initialization
-  const [customFolders] = useState<Array<{
-    id: string;
-    label: string;
-    icon: any;
-    description: string;
-    isDefault: false;
-    count?: number;
-  }>>([]);
-  
   // Deletion progress state
   const [deletionProgress, setDeletionProgress] = useState({
     open: false,
@@ -80,15 +69,25 @@ const ContentLibrary = () => {
   });
   
   // Stable default categories
-  const defaultCategories = [
+  const defaultCategories = useMemo(() => [
     { id: 'all-files', label: 'All Files', icon: Grid, description: 'All uploaded content', isDefault: true },
     { id: 'stories', label: 'Stories', icon: BookOpen, description: 'Content uploaded to stories', isDefault: true },
     { id: 'livestreams', label: 'LiveStreams', icon: Zap, description: 'Past live stream videos', isDefault: true },
     { id: 'messages', label: 'Messages', icon: MessageSquare, description: 'Content sent in messages', isDefault: true },
-  ];
+  ], []);
+
+  // Stable custom folders (empty for now)
+  const customFolders = useMemo(() => [], []);
+
+  // Create stable library parameters object
+  const libraryParams = useMemo(() => ({
+    selectedCategory,
+    searchQuery,
+    selectedFilter,
+    sortBy
+  }), [selectedCategory, searchQuery, selectedFilter, sortBy]);
 
   // Use the library data hook with stable parameters
-  const libraryParams = { selectedCategory, searchQuery, selectedFilter, sortBy };
   const { 
     content, 
     loading: loadingContent, 
@@ -97,75 +96,76 @@ const ContentLibrary = () => {
     fetchCategoryCounts 
   } = useLibraryData(libraryParams);
 
+  // Stable operation handlers
+  const onRefreshNeeded = useCallback(() => {
+    fetchContent();
+  }, [fetchContent]);
+
+  const onCountsRefreshNeeded = useCallback(() => {
+    fetchCategoryCounts();
+  }, [fetchCategoryCounts]);
+
   const { copyToCollection, removeFromCollection, deleteMediaHard, loading: operationLoading } = useMediaOperations({
-    onRefreshNeeded: fetchContent,
-    onCountsRefreshNeeded: fetchCategoryCounts
+    onRefreshNeeded,
+    onCountsRefreshNeeded
   });
   
   const { toast } = useToast();
   const { isCollapsed } = useSidebar();
 
-  // Stable event handlers
+  // Stable primitive event handlers - no dependencies on changing objects
   const handleFilterChange = useCallback((filter: string) => {
-    console.log('Filter changed to:', filter);
     setSelectedFilter(filter);
     setSelecting(false);
     setSelectedItems(new Set());
   }, []);
 
   const handleSearchChange = useCallback((value: string) => {
-    console.log('Search changed to:', value);
     setSearchQuery(value);
   }, []);
 
   const handleSortChange = useCallback((sort: string) => {
-    console.log('Sort changed to:', sort);
     setSortBy(sort);
   }, []);
 
   const handleCategorySelect = useCallback((categoryId: string) => {
-    console.log('Category changed to:', categoryId);
     setSelectedCategory(categoryId);
     setSelectedFilter('all');
     setSelecting(false);
     setSelectedItems(new Set());
   }, []);
 
-  // Stable selection handlers
+  // Stable selection handlers using functional updates
   const handleToggleItem = useCallback((itemId: string) => {
-    console.log('Toggle item:', itemId);
-    setSelectedItems(prev => {
-      const newSet = new Set(prev);
+    setSelectedItems(prevItems => {
+      const newSet = new Set(prevItems);
       if (newSet.has(itemId)) {
         newSet.delete(itemId);
       } else {
         newSet.add(itemId);
       }
-      if (newSet.size === 0) {
-        setSelecting(false);
-      } else {
-        setSelecting(true);
-      }
+      
+      // Update selecting state based on selection count
+      const hasSelection = newSet.size > 0;
+      setSelecting(hasSelection);
+      
       return newSet;
     });
   }, []);
 
   const handleClearSelection = useCallback(() => {
-    console.log('Clear selection');
     setSelecting(false);
     setSelectedItems(new Set());
   }, []);
 
   const handleSelectAll = useCallback(() => {
-    console.log('Select all');
     const allItemIds = new Set(content.map(item => item.id));
     setSelectedItems(allItemIds);
     setSelecting(true);
   }, [content]);
 
-  // Stable click handlers that prevent infinite loops
+  // Stable click handlers with no content dependencies
   const handleCardClick = useCallback((item: MediaItem, event: React.MouseEvent, itemIndex: number) => {
-    console.log('Card clicked:', item.id, itemIndex);
     event.preventDefault();
     event.stopPropagation();
     
@@ -177,7 +177,6 @@ const ContentLibrary = () => {
   }, [selecting, handleToggleItem]);
 
   const handleCheckboxClick = useCallback((itemId: string, itemIndex: number, event?: React.MouseEvent) => {
-    console.log('Checkbox clicked:', itemId, itemIndex);
     if (event) {
       event.preventDefault();
       event.stopPropagation();
@@ -185,7 +184,7 @@ const ContentLibrary = () => {
     handleToggleItem(itemId);
   }, [handleToggleItem]);
 
-  // Copy and delete handlers
+  // Operation handlers using functional state updates
   const handleCopy = useCallback(async (collectionIds: string[]) => {
     try {
       const selectedItemsArray = Array.from(selectedItems);
@@ -276,8 +275,19 @@ const ContentLibrary = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const isCustomFolder = selectedCategory !== 'all-files' && 
-    !['stories', 'livestreams', 'messages'].includes(selectedCategory);
+  // Memoized computed values
+  const isCustomFolder = useMemo(() => 
+    selectedCategory !== 'all-files' && 
+    !['stories', 'livestreams', 'messages'].includes(selectedCategory),
+    [selectedCategory]
+  );
+
+  const categoryLabel = useMemo(() => 
+    defaultCategories.find(c => c.id === selectedCategory)?.label || 
+    customFolders.find(c => c.id === selectedCategory)?.label || 
+    'Library',
+    [defaultCategories, customFolders, selectedCategory]
+  );
 
   if (loading) {
     return (
@@ -340,8 +350,7 @@ const ContentLibrary = () => {
           <div className="bg-card border-b border-border p-6 pb-4">
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                {defaultCategories.find(c => c.id === selectedCategory)?.label || 
-                 customFolders.find(c => c.id === selectedCategory)?.label || 'Library'}
+                {categoryLabel}
               </h1>
             </div>
 
@@ -401,8 +410,7 @@ const ContentLibrary = () => {
             <LibrarySelectionToolbar
               selectedCount={selectedItems.size}
               totalCount={content.length}
-              currentView={defaultCategories.find(c => c.id === selectedCategory)?.label || 
-                customFolders.find(c => c.id === selectedCategory)?.label || 'Library'}
+              currentView={categoryLabel}
               isCustomFolder={isCustomFolder}
               onClearSelection={handleClearSelection}
               onSelectAll={handleSelectAll}

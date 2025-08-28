@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Image, Video, FileAudio } from 'lucide-react';
 import { useOptimizedMediaDisplay } from '@/hooks/useOptimizedMediaDisplay';
 
@@ -23,13 +23,27 @@ interface MediaThumbnailProps {
 }
 
 export const MediaThumbnail = ({ item, className = "", isPublic = false }: MediaThumbnailProps) => {
-  const { loadOptimizedMedia, currentUrl, enhanceQuality, error } = useOptimizedMediaDisplay();
+  const { loadOptimizedMedia, currentUrl, isLoading, error, clearMedia } = useOptimizedMediaDisplay();
 
-  // Use primitive values to prevent infinite re-renders
-  const itemId = item.id || crypto.randomUUID();
-  const itemType = item.type;
-  const storagePath = item.storage_path || item.file_path;
-  const itemPath = item.path;
+  // Create stable media item object to prevent infinite re-renders
+  const stableMediaItem = useMemo(() => ({
+    id: item.id || crypto.randomUUID(),
+    type: item.type,
+    storage_path: item.storage_path || item.file_path,
+    path: item.path,
+    tiny_placeholder: item.tiny_placeholder,
+    width: item.width,
+    height: item.height
+  }), [
+    item.id, 
+    item.type, 
+    item.storage_path, 
+    item.file_path, 
+    item.path, 
+    item.tiny_placeholder, 
+    item.width, 
+    item.height
+  ]);
 
   const getContentTypeIcon = (type: string) => {
     switch (type) {
@@ -42,37 +56,32 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
 
   // Load optimized media on mount with stable dependencies
   useEffect(() => {
-    if (itemType && (storagePath || itemPath)) {
-      const mediaItem = {
-        id: itemId,
-        type: itemType,
-        storage_path: storagePath,
-        path: itemPath,
-        tiny_placeholder: item.tiny_placeholder,
-        width: item.width,
-        height: item.height
-      };
-      // Call loadOptimizedMedia directly to avoid dependency loops
-      loadOptimizedMedia(mediaItem, isPublic);
+    if (stableMediaItem.type && (stableMediaItem.storage_path || stableMediaItem.path)) {
+      loadOptimizedMedia(stableMediaItem, isPublic);
     }
-  }, [itemId, itemType, storagePath, itemPath, isPublic]); // Remove loadOptimizedMedia to prevent loops
+
+    // Cleanup function
+    return () => {
+      clearMedia();
+    };
+  }, [stableMediaItem.id, stableMediaItem.type, stableMediaItem.storage_path, stableMediaItem.path, isPublic]);
 
   // For non-image types, show icon
-  if (itemType !== 'image') {
+  if (item.type !== 'image') {
     return (
       <div className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}>
         <div className="flex flex-col items-center gap-2">
-          {getContentTypeIcon(itemType)}
+          {getContentTypeIcon(item.type)}
           <span className="text-xs text-muted-foreground capitalize">
-            {itemType}
+            {item.type}
           </span>
         </div>
       </div>
     );
   }
 
-  // Show loading state only if no current URL and no error
-  if (!currentUrl && !error) {
+  // Show loading state
+  if (isLoading && !currentUrl) {
     return (
       <div className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}>
         <div className="animate-pulse">
@@ -90,8 +99,8 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     <div 
       className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}
     >
-      {/* Show current URL - processed files load instantly at full quality */}
-      {currentUrl && (
+      {/* Show current URL if available */}
+      {currentUrl && !error && (
         <img
           src={currentUrl}
           alt={item.title || 'Media thumbnail'}
@@ -101,7 +110,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
           width={aspectWidth}
           height={aspectHeight}
           onError={(e) => {
-            // Silently handle error
+            // Hide broken image
             e.currentTarget.style.display = 'none';
           }}
         />

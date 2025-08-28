@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface MediaItem {
@@ -37,19 +36,41 @@ export const useLibraryData = ({
   const [content, setContent] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
+  
+  // Use refs to prevent infinite loops
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const lastParamsRef = useRef<string>('');
 
-  const fetchContent = useCallback(async () => {
+  const fetchContent = useCallback(async (
+    category: string,
+    search: string,
+    filter: string,
+    sort: string
+  ) => {
+    // Create stable parameter signature to prevent duplicate calls
+    const paramsSignature = `${category}|${search}|${filter}|${sort}`;
+    if (lastParamsRef.current === paramsSignature) return;
+    
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    abortControllerRef.current = new AbortController();
+    lastParamsRef.current = paramsSignature;
+    
     setLoading(true);
     try {
       let combinedData: any[] = [];
 
       // Fetch based on category
-      if (selectedCategory === 'all-files') {
+      if (category === 'all-files') {
         const [mediaResults, contentResults] = await Promise.all([
           supabase
             .from('media')
             .select('id, bucket, path, storage_path, mime, type, size_bytes, title, notes, tags, suggested_price_cents, creator_id, created_at, updated_at, tiny_placeholder, width, height, origin')
-            .order('created_at', { ascending: false }),
+            .order('created_at', { ascending: false })
+            .abortSignal(abortControllerRef.current.signal),
           supabase
             .from('content_files')
             .select('id, title, content_type, file_path, file_size, mime_type, base_price, tags, description, creator_id, created_at, updated_at, is_active')
@@ -59,6 +80,7 @@ export const useLibraryData = ({
             .not('file_path', 'eq', '')
             .gt('file_size', 0)
             .order('created_at', { ascending: false })
+            .abortSignal(abortControllerRef.current.signal)
         ]);
 
         if (mediaResults.data) {
@@ -92,17 +114,18 @@ export const useLibraryData = ({
 
           combinedData = [...combinedData, ...convertedLegacyItems];
         }
-      } else if (selectedCategory === 'messages') {
+      } else if (category === 'messages') {
         const { data: mediaResults } = await supabase
           .from('media')
           .select('id, bucket, path, storage_path, mime, type, size_bytes, title, notes, tags, suggested_price_cents, creator_id, created_at, updated_at, tiny_placeholder, width, height, origin')
           .in('origin', ['message', 'chat'])
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .abortSignal(abortControllerRef.current.signal);
 
         if (mediaResults) {
           combinedData = [...mediaResults];
         }
-      } else if (!['stories', 'livestreams'].includes(selectedCategory)) {
+      } else if (!['stories', 'livestreams'].includes(category)) {
         // Custom folder
         const { data: collectionItems } = await supabase
           .from('collection_items')
@@ -110,7 +133,8 @@ export const useLibraryData = ({
             media_id,
             media:media_id (id, bucket, path, storage_path, mime, type, size_bytes, title, notes, tags, suggested_price_cents, creator_id, created_at, updated_at, tiny_placeholder, width, height, origin)
           `)
-          .eq('collection_id', selectedCategory);
+          .eq('collection_id', category)
+          .abortSignal(abortControllerRef.current.signal);
 
         if (collectionItems) {
           combinedData = collectionItems
@@ -119,9 +143,9 @@ export const useLibraryData = ({
         }
       }
 
-      // Apply filters
-      if (searchQuery && combinedData.length > 0) {
-        const searchTerms = searchQuery.trim().split(/\s+/).map(term => term.toLowerCase());
+      // Apply search filter
+      if (search && combinedData.length > 0) {
+        const searchTerms = search.trim().split(/\s+/).map(term => term.toLowerCase());
         combinedData = combinedData.filter(item => {
           const searchableText = [
             item.title || '',
@@ -131,19 +155,20 @@ export const useLibraryData = ({
         });
       }
 
-      if (selectedFilter !== 'all' && combinedData.length > 0) {
-        combinedData = combinedData.filter(item => item.type === selectedFilter);
+      // Apply type filter
+      if (filter !== 'all' && combinedData.length > 0) {
+        combinedData = combinedData.filter(item => item.type === filter);
       }
 
       // Apply sorting
       if (combinedData.length > 0) {
-        if (sortBy === 'newest') {
+        if (sort === 'newest') {
           combinedData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        } else if (sortBy === 'oldest') {
+        } else if (sort === 'oldest') {
           combinedData.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-        } else if (sortBy === 'price_high') {
+        } else if (sort === 'price_high') {
           combinedData.sort((a, b) => (b.suggested_price_cents || 0) - (a.suggested_price_cents || 0));
-        } else if (sortBy === 'price_low') {
+        } else if (sort === 'price_low') {
           combinedData.sort((a, b) => (a.suggested_price_cents || 0) - (b.suggested_price_cents || 0));
         }
       }
@@ -171,12 +196,16 @@ export const useLibraryData = ({
         }));
 
       setContent(validMediaItems);
-    } catch (error) {
-      console.error('Error fetching content:', error);
+    } catch (error: any) {
+      // Ignore abort errors
+      if (error.name !== 'AbortError') {
+        console.error('Error fetching content:', error);
+        setContent([]);
+      }
     } finally {
       setLoading(false);
     }
-  }, [selectedCategory, searchQuery, selectedFilter, sortBy]);
+  }, []);
 
   const fetchCategoryCounts = useCallback(async () => {
     try {
@@ -242,20 +271,35 @@ export const useLibraryData = ({
     }
   }, []);
 
-  // Simple effect that doesn't depend on fetchContent to prevent loops
+  // Stable trigger function
+  const triggerFetch = useCallback(() => {
+    fetchContent(selectedCategory, searchQuery, selectedFilter, sortBy);
+  }, [fetchContent, selectedCategory, searchQuery, selectedFilter, sortBy]);
+
+  // Only trigger when parameters actually change
   useEffect(() => {
-    fetchContent();
+    triggerFetch();
   }, [selectedCategory, searchQuery, selectedFilter, sortBy]);
 
+  // Load counts only once on mount
   useEffect(() => {
     fetchCategoryCounts();
+  }, [fetchCategoryCounts]);
+
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, []);
 
   return {
     content,
     loading,
     categoryCounts,
-    fetchContent,
+    fetchContent: triggerFetch,
     fetchCategoryCounts,
     updateFolderCount
   };
