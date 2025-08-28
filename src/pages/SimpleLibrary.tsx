@@ -76,6 +76,11 @@ export default function SimpleLibrary() {
 
   // Filter media based on current filters
   const filteredMedia = useMemo(() => {
+    // For categories other than 'all-files', return empty array since we don't have data for them yet
+    if (selectedCategory !== 'all-files') {
+      return [];
+    }
+    
     let filtered = [...media];
     
     // Apply search filter
@@ -114,7 +119,7 @@ export default function SimpleLibrary() {
     });
     
     return convertToLibraryFormat(filtered);
-  }, [media, searchQuery, selectedFilter, sortBy, convertToLibraryFormat]);
+  }, [media, searchQuery, selectedFilter, sortBy, convertToLibraryFormat, selectedCategory]);
 
   // Default categories for sidebar - memoized to prevent re-renders
   const defaultCategories = useMemo(() => [
