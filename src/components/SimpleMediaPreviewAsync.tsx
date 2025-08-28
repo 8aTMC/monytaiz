@@ -62,6 +62,12 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
   };
 
+  // Determine orientation and aspect ratio
+  const isVertical = item?.width && item?.height && item.height > item.width;
+  const aspectRatio = isVertical ? '9/16' : '16/9';
+  const containerWidth = isVertical ? '400px' : '700px';
+  const containerHeight = isVertical ? '711px' : '394px';
+
   if (!isOpen) return null;
 
   return (
@@ -116,25 +122,36 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
 
         {/* Content */}
         <div className="flex-1 overflow-auto">
-           {/* Media Display */}
+           {/* Media Display with Fixed Aspect Ratio */}
            <div className="p-4">
              {loading ? (
-               <div className="text-center text-muted-foreground">
-                 <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-                 <p>Loading media...</p>
+               <div 
+                 className="flex items-center justify-center text-muted-foreground bg-muted/20 rounded-lg"
+                 style={{
+                   width: containerWidth,
+                   height: containerHeight,
+                   aspectRatio: aspectRatio
+                 }}
+               >
+                 <div className="text-center">
+                   <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                   <p>Loading media...</p>
+                 </div>
                </div>
              ) : fullUrl ? (
-               <div className="flex items-center justify-center">
+               <div 
+                 className="flex items-center justify-center bg-muted/20 rounded-lg overflow-hidden"
+                 style={{
+                   width: containerWidth,
+                   height: containerHeight,
+                   aspectRatio: aspectRatio
+                 }}
+               >
                  {item?.media_type === 'image' && (
                    <img
                      src={fullUrl}
                      alt={item.title || item.original_filename}
-                     className="block max-w-full max-h-full"
-                     style={{ 
-                       width: 'auto', 
-                       height: 'auto',
-                       objectFit: 'contain'
-                     }}
+                     className="w-full h-full object-contain"
                      onError={(e) => {
                        console.error('Failed to load image:', e);
                        setFullUrl(null);
@@ -145,12 +162,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                    <video
                      src={fullUrl}
                      controls
-                     className="block max-w-full max-h-full"
-                     style={{
-                       width: 'auto',
-                       height: 'auto',
-                       objectFit: 'contain'
-                     }}
+                     className="w-full h-full object-contain"
                      preload="metadata"
                      onError={(e) => {
                        console.error('Failed to load video:', e);
@@ -161,11 +173,11 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                    </video>
                  )}
                  {item?.media_type === 'audio' && (
-                   <div className="w-full max-w-md">
+                   <div className="flex items-center justify-center w-full h-full">
                      <audio
                        src={fullUrl}
                        controls
-                       className="w-full"
+                       className="w-3/4"
                        preload="metadata"
                        onError={(e) => {
                          console.error('Failed to load audio:', e);
@@ -178,9 +190,18 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                  )}
                </div>
              ) : (
-               <div className="text-center text-muted-foreground p-8">
-                 <Info className="w-12 h-12 mx-auto mb-4" />
-                 <p>Media not available</p>
+               <div 
+                 className="flex items-center justify-center text-muted-foreground bg-muted/20 rounded-lg"
+                 style={{
+                   width: containerWidth,
+                   height: containerHeight,
+                   aspectRatio: aspectRatio
+                 }}
+               >
+                 <div className="text-center">
+                   <Info className="w-12 h-12 mx-auto mb-4" />
+                   <p>Media not available</p>
+                 </div>
                </div>
              )}
            </div>
