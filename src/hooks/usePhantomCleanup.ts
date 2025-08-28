@@ -9,13 +9,32 @@ export const usePhantomCleanup = () => {
   const cleanPhantomFolders = async (bucket: string, phantomFolders: string[]) => {
     setIsCleaningPhantoms(true);
     try {
+      const payload = {
+        bucket,
+        prefixes: phantomFolders, // Send as prefixes (function handles both)
+        dryRun: false
+      };
+
+      console.log('Sending phantom cleanup payload:', payload);
+
       const { data, error } = await supabase.functions.invoke('admin-phantom-cleanup', {
-        body: { bucket, phantomFolders },
+        body: payload,
         headers: { 'Content-Type': 'application/json' },
       });
 
       if (error) {
         console.error('Phantom cleanup error:', error);
+        
+        // Try to get more details if available
+        if (error.context) {
+          try {
+            const errorBody = await error.context.text();
+            console.error('Server error details:', errorBody);
+          } catch (e) {
+            console.error('Could not read error context:', e);
+          }
+        }
+        
         toast({
           title: "Cleanup Failed",
           description: `Failed to clean phantom folders: ${error.message}`,
@@ -24,22 +43,22 @@ export const usePhantomCleanup = () => {
         return { success: false, error: error.message };
       }
 
-      if (data?.success) {
+      if (data?.ok) {
         console.log('Phantom cleanup completed:', data);
         toast({
           title: "Cleanup Completed",
-          description: `Successfully cleaned ${phantomFolders.length} phantom folders`,
+          description: data.message || `Successfully processed ${phantomFolders.length} phantom folders`,
           variant: "default"
         });
-        return { success: true, results: data.cleanupResults };
+        return { success: true, results: data };
       } else {
         console.warn('Phantom cleanup completed with issues:', data);
         toast({
           title: "Cleanup Completed with Issues",
-          description: "Some phantom folders may still exist. Check console for details.",
+          description: data?.message || "Some phantom folders may still exist. Check console for details.",
           variant: "default"
         });
-        return { success: false, results: data?.cleanupResults };
+        return { success: false, results: data };
       }
     } catch (error) {
       console.error('Phantom cleanup failed:', error);
