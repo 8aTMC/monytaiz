@@ -22,8 +22,6 @@ import { useMediaOperations } from '@/hooks/useMediaOperations';
 import { MediaPreviewDialog } from '@/components/MediaPreviewDialog';
 import { MediaThumbnail } from '@/components/MediaThumbnail';
 import { useToast } from '@/hooks/use-toast';
-import { useStorageCleanup } from '@/hooks/useStorageCleanup';
-import { ForceLogoutButton } from '@/components/ForceLogoutButton';
 
 interface MediaItem {
   id: string;
