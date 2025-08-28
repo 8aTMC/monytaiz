@@ -46,19 +46,26 @@ const normalizeKey = (bucket: string, maybeKey?: string | null) => {
 };
 
 Deno.serve(async (req) => {
+  console.log(`${req.method} request received`);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('CORS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
   if (req.method !== 'POST') {
+    console.log(`Invalid method: ${req.method}`);
     return json({ error: 'Method not allowed' }, 405);
   }
 
   let body: FinalizeRequest;
   try {
+    // Use req.json() directly for supabase.functions.invoke calls
     body = await req.json();
-  } catch {
+    console.log('Parsed request body successfully:', JSON.stringify(body, null, 2));
+  } catch (error) {
+    console.error('Failed to parse JSON:', error);
     return json({ error: 'Invalid JSON body' }, 400);
   }
 
@@ -66,6 +73,7 @@ Deno.serve(async (req) => {
   
   // Validate required fields
   if (!id || !bucket) {
+    console.log('Missing required fields:', { id, bucket });
     return json({ error: 'id and bucket are required' }, 400);
   }
 
@@ -76,6 +84,7 @@ Deno.serve(async (req) => {
   const video720Key = normalizeKey(bucket, processed.video_720_key || processed.video_720);
 
   if (!imageKey && !video1080Key && !video720Key) {
+    console.log('No processed keys found');
     return json({ error: 'at least one processed key is required' }, 400);
   }
 
@@ -94,6 +103,7 @@ Deno.serve(async (req) => {
     width: meta.width || null,
     height: meta.height || null,
     tiny_placeholder: meta.tiny_placeholder || null,
+    storage_path: null, // Clear original storage path reference
     original_path: null, // Clear original path reference
     bucket
   };
@@ -101,8 +111,10 @@ Deno.serve(async (req) => {
   // Set main path and renditions based on what was processed
   if (imageKey) {
     updateData.path = imageKey;
+    updateData.storage_path = imageKey; // Set the storage_path to the processed image
   } else if (video1080Key) {
     updateData.path = video1080Key;
+    updateData.storage_path = video1080Key; // Set the storage_path to the processed video
   }
 
   // Always store renditions if we have any video
@@ -117,6 +129,8 @@ Deno.serve(async (req) => {
     updateData.duration = meta.duration;
   }
 
+  console.log('Updating media record with:', JSON.stringify(updateData, null, 2));
+
   const { error: updateError } = await supabaseService
     .from('media')
     .update(updateData)
@@ -124,13 +138,14 @@ Deno.serve(async (req) => {
 
   if (updateError) {
     console.error('DB update failed:', updateError);
-    return json({ error: `db upsert failed: ${updateError.message}` }, 400);
+    return json({ error: `db update failed: ${updateError.message}` }, 400);
   }
 
   console.log(`Successfully updated media row ${id}`);
 
   // Delete original file (key relative to bucket)
   if (originalKey) {
+    console.log(`Deleting original file: ${originalKey}`);
     const { error: deleteError } = await supabaseService.storage
       .from(bucket)
       .remove([originalKey]);
@@ -146,5 +161,6 @@ Deno.serve(async (req) => {
     console.log(`Successfully deleted original file: ${originalKey}`);
   }
 
+  console.log('Finalization complete');
   return json({ ok: true });
 });

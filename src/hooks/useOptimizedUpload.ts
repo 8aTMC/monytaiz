@@ -219,28 +219,31 @@ export const useOptimizedUpload = () => {
     metadata: ProcessedMedia['metadata'],
     tinyPlaceholder: string
   ) => {
-    const { data, error } = await supabase.functions.invoke('finalize-media', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: {
-        id: mediaRowId,
-        bucket: 'content',
-        original_key: originalPath,
-        processed: {
-          image_key: processedPaths.image,
-          video_1080_key: processedPaths.video_1080,
-          video_720_key: processedPaths.video_720
-        },
-        meta: {
-          width: metadata.width,
-          height: metadata.height,
-          duration: metadata.duration,
-          tiny_placeholder: tinyPlaceholder
-        }
+    const requestBody = {
+      id: mediaRowId,
+      bucket: 'content',
+      original_key: originalPath,
+      processed: {
+        image_key: processedPaths.image,
+        video_1080_key: processedPaths.video_1080,
+        video_720_key: processedPaths.video_720
+      },
+      meta: {
+        width: metadata.width,
+        height: metadata.height,
+        duration: metadata.duration,
+        tiny_placeholder: tinyPlaceholder
       }
+    };
+
+    console.log('Sending finalize-media request:', JSON.stringify(requestBody, null, 2));
+
+    const { data, error } = await supabase.functions.invoke('finalize-media', {
+      body: requestBody
     });
 
     if (error) {
+      console.error('finalize-media error:', error);
       // Log server error message for debugging
       if (error.context) {
         try {
@@ -252,6 +255,8 @@ export const useOptimizedUpload = () => {
       }
       throw error;
     }
+    
+    console.log('finalize-media success:', data);
     return data;
   }, []);
 
