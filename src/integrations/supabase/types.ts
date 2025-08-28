@@ -178,6 +178,13 @@ export type Database = {
             foreignKeyName: "collection_items_media_id_fkey"
             columns: ["media_id"]
             isOneToOne: false
+            referencedRelation: "fan_my_media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_items_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
             referencedRelation: "media"
             referencedColumns: ["id"]
           },
@@ -470,6 +477,13 @@ export type Database = {
           price_cents?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fan_media_grants_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "fan_my_media"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fan_media_grants_media_id_fkey"
             columns: ["media_id"]
