@@ -1177,6 +1177,7 @@ export type Database = {
           height: number | null
           id: string
           media_type: string
+          mentions: string[] | null
           mime_type: string
           optimized_size_bytes: number | null
           original_filename: string
@@ -1186,6 +1187,7 @@ export type Database = {
           processed_path: string | null
           processing_error: string | null
           processing_status: string | null
+          suggested_price_cents: number | null
           tags: string[] | null
           thumbnail_path: string | null
           title: string | null
@@ -1200,6 +1202,7 @@ export type Database = {
           height?: number | null
           id?: string
           media_type: string
+          mentions?: string[] | null
           mime_type: string
           optimized_size_bytes?: number | null
           original_filename: string
@@ -1209,6 +1212,7 @@ export type Database = {
           processed_path?: string | null
           processing_error?: string | null
           processing_status?: string | null
+          suggested_price_cents?: number | null
           tags?: string[] | null
           thumbnail_path?: string | null
           title?: string | null
@@ -1223,6 +1227,7 @@ export type Database = {
           height?: number | null
           id?: string
           media_type?: string
+          mentions?: string[] | null
           mime_type?: string
           optimized_size_bytes?: number | null
           original_filename?: string
@@ -1232,6 +1237,7 @@ export type Database = {
           processed_path?: string | null
           processing_error?: string | null
           processing_status?: string | null
+          suggested_price_cents?: number | null
           tags?: string[] | null
           thumbnail_path?: string | null
           title?: string | null

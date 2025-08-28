@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { X, Download, Info } from 'lucide-react';
-import { SimpleMediaItem } from '@/hooks/useSimpleMedia';
+import { X, Download, AtSign, Hash, FolderOpen, FileText, DollarSign } from 'lucide-react';
+import { SimpleMediaItem, useSimpleMedia } from '@/hooks/useSimpleMedia';
+import { MentionsDialog } from './MentionsDialog';
+import { TagsDialog } from './TagsDialog';
+import { FolderSelectDialog } from './FolderSelectDialog';
+import { DescriptionDialog } from './DescriptionDialog';
+import { PriceDialog } from './PriceDialog';
 
 interface SimpleMediaPreviewAsyncProps {
   item: SimpleMediaItem | null;
@@ -18,10 +23,24 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
 }) => {
   const [fullUrl, setFullUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  
+  // Dialog states
+  const [mentionsDialogOpen, setMentionsDialogOpen] = useState(false);
+  const [tagsDialogOpen, setTagsDialogOpen] = useState(false);
+  const [foldersDialogOpen, setFoldersDialogOpen] = useState(false);
+  const [descriptionDialogOpen, setDescriptionDialogOpen] = useState(false);
+  const [priceDialogOpen, setPriceDialogOpen] = useState(false);
+  
+  // Folder selection state
+  const [selectedFolders, setSelectedFolders] = useState<string[]>([]);
+  
+  // Use the media hook for updates
+  const { updateMediaMetadata, addToFolders, getMediaFolders } = useSimpleMedia();
 
   useEffect(() => {
     if (!item || !isOpen) {
       setFullUrl(null);
+      setSelectedFolders([]);
       return;
     }
 
@@ -36,6 +55,12 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
       try {
         const url = await getFullUrlAsync(item);
         setFullUrl(url);
+        
+        // Load current folder assignments when opening
+        if (item.id) {
+          const folders = await getMediaFolders(item.id);
+          setSelectedFolders(folders);
+        }
       } catch (error) {
         console.error('Failed to load media URL:', error);
         setFullUrl(null);
@@ -45,7 +70,55 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
     };
 
     loadUrl();
-  }, [item, isOpen, getFullUrlAsync]);
+  }, [item, isOpen, getFullUrlAsync, getMediaFolders]);
+
+  // Metadata update handlers
+  const handleMentionsChange = async (mentions: string[]) => {
+    if (!item) return;
+    try {
+      await updateMediaMetadata(item.id, { mentions });
+    } catch (error) {
+      console.error('Error updating mentions:', error);
+    }
+  };
+
+  const handleTagsChange = async (tags: string[]) => {
+    if (!item) return;
+    try {
+      await updateMediaMetadata(item.id, { tags });
+    } catch (error) {
+      console.error('Error updating tags:', error);
+    }
+  };
+
+  const handleFoldersChange = async (folderIds: string[]) => {
+    if (!item) return;
+    try {
+      await addToFolders(item.id, folderIds);
+      setSelectedFolders(folderIds);
+    } catch (error) {
+      console.error('Error updating folders:', error);
+    }
+  };
+
+  const handleDescriptionChange = async (description: string) => {
+    if (!item) return;
+    try {
+      await updateMediaMetadata(item.id, { description });
+    } catch (error) {
+      console.error('Error updating description:', error);
+    }
+  };
+
+  const handlePriceChange = async (price: number | null) => {
+    if (!item) return;
+    try {
+      const suggested_price_cents = price ? Math.round(price * 100) : 0;
+      await updateMediaMetadata(item.id, { suggested_price_cents });
+    } catch (error) {
+      console.error('Error updating price:', error);
+    }
+  };
 
   if (!item) return null;
 
@@ -205,24 +278,140 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                    </div>
                  )}
                </div>
-             ) : (
-               <div 
-                 className="flex items-center justify-center text-muted-foreground bg-muted/20 rounded-lg"
-                 style={{
-                   width: containerWidth,
-                   height: containerHeight,
-                   aspectRatio: aspectRatio
-                 }}
-               >
-                 <div className="text-center">
-                   <Info className="w-12 h-12 mx-auto mb-4" />
-                   <p>Media not available</p>
-                 </div>
-               </div>
-             )}
-           </div>
-        </div>
+              ) : (
+                <div 
+                  className="flex items-center justify-center text-muted-foreground bg-muted/20 rounded-lg"
+                  style={{
+                    width: containerWidth,
+                    height: containerHeight,
+                    aspectRatio: aspectRatio
+                  }}
+                >
+                  <div className="text-center">
+                    <Download className="w-12 h-12 mx-auto mb-4" />
+                    <p>Media not available</p>
+                  </div>
+                </div>
+              )}
+            </div>
+         </div>
+
+        {/* Metadata Editing Menu Bar */}
+        {item && (
+          <div className="p-4 border-t bg-background">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMentionsDialogOpen(true)}
+                className="text-xs"
+              >
+                <AtSign className="w-3 h-3 mr-1" />
+                Mentions {(item.mentions?.length || 0) > 0 && `(${item.mentions?.length})`}
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setTagsDialogOpen(true)}
+                className="text-xs"
+              >
+                <Hash className="w-3 h-3 mr-1" />
+                Tags {(item.tags?.length || 0) > 0 && `(${item.tags?.length})`}
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFoldersDialogOpen(true)}
+                className="text-xs"
+              >
+                <FolderOpen className="w-3 h-3 mr-1" />
+                Folders
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDescriptionDialogOpen(true)}
+                className="text-xs"
+              >
+                <FileText className="w-3 h-3 mr-1" />
+                Description {item.description && item.description.length > 0 && '✓'}
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPriceDialogOpen(true)}
+                className="text-xs"
+              >
+                <DollarSign className="w-3 h-3 mr-1" />
+                Price {item.suggested_price_cents && item.suggested_price_cents > 0 && `($${(item.suggested_price_cents / 100).toFixed(2)})`}
+              </Button>
+            </div>
+
+            {/* Show current metadata values */}
+            <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+              {item.mentions && item.mentions.length > 0 && (
+                <div>
+                  <span className="font-medium">Mentions:</span> {item.mentions.join(', ')}
+                </div>
+              )}
+              {item.tags && item.tags.length > 0 && (
+                <div>
+                  <span className="font-medium">Tags:</span> {item.tags.join(', ')}
+                </div>
+              )}
+              {item.description && (
+                <div>
+                  <span className="font-medium">Description:</span> {item.description.length > 60 ? `${item.description.substring(0, 60)}...` : item.description}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
+      
+      {/* All the metadata editing dialogs */}
+      {item && (
+        <>
+          <MentionsDialog
+            open={mentionsDialogOpen}
+            onOpenChange={setMentionsDialogOpen}
+            mentions={item.mentions || []}
+            onMentionsChange={handleMentionsChange}
+          />
+          
+          <TagsDialog
+            open={tagsDialogOpen}
+            onOpenChange={setTagsDialogOpen}
+            tags={item.tags || []}
+            onTagsChange={handleTagsChange}
+          />
+          
+          <FolderSelectDialog
+            open={foldersDialogOpen}
+            onOpenChange={setFoldersDialogOpen}
+            selectedFolders={selectedFolders}
+            onFoldersChange={handleFoldersChange}
+          />
+          
+          <DescriptionDialog
+            open={descriptionDialogOpen}
+            onOpenChange={setDescriptionDialogOpen}
+            description={item.description || ''}
+            onDescriptionChange={handleDescriptionChange}
+          />
+          
+          <PriceDialog
+            open={priceDialogOpen}
+            onOpenChange={setPriceDialogOpen}
+            price={item.suggested_price_cents ? item.suggested_price_cents / 100 : null}
+            onPriceChange={handlePriceChange}
+          />
+        </>
+      )}
     </>
   );
 };

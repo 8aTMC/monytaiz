@@ -5,27 +5,28 @@ import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Upload, FileImage, FileVideo, FileAudio, X, CheckCircle } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-interface UploadedFile {
-  file: File;
-  id: string;
-  status: 'uploading' | 'completed' | 'error';
-  error?: string;
-}
+import { FileUploadRowWithMetadata, UploadedFileWithMetadata } from '@/components/FileUploadRowWithMetadata';
 
 export default function SimpleUpload() {
   const navigate = useNavigate();
   const { uploading, uploadFile } = useSimpleUpload();
-  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [files, setFiles] = useState<UploadedFileWithMetadata[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    const newFiles: UploadedFile[] = acceptedFiles.map(file => ({
+    const newFiles: UploadedFileWithMetadata[] = acceptedFiles.map(file => ({
       file,
       id: crypto.randomUUID(),
-      status: 'uploading' as const
+      status: 'uploading' as const,
+      metadata: {
+        mentions: [],
+        tags: [],
+        folders: [],
+        description: '',
+        suggestedPrice: null,
+      }
     }));
 
     setFiles(prev => [...prev, ...newFiles]);
@@ -68,11 +69,12 @@ export default function SimpleUpload() {
     setFiles(prev => prev.filter(f => f.id !== id));
   };
 
-  const getFileIcon = (file: File) => {
-    if (file.type.startsWith('image/')) return <FileImage className="w-8 h-8" />;
-    if (file.type.startsWith('video/')) return <FileVideo className="w-8 h-8" />;
-    if (file.type.startsWith('audio/')) return <FileAudio className="w-8 h-8" />;
-    return <FileImage className="w-8 h-8" />;
+  const handleMetadataChange = (fileId: string, metadata: Partial<UploadedFileWithMetadata['metadata']>) => {
+    setFiles(prev => prev.map(f => 
+      f.id === fileId 
+        ? { ...f, metadata: { ...f.metadata, ...metadata } }
+        : f
+    ));
   };
 
   const formatFileSize = (bytes: number) => {
@@ -151,44 +153,14 @@ export default function SimpleUpload() {
           <div className="space-y-3">
             <h3 className="text-lg font-medium">Files</h3>
             {files.map((uploadedFile) => (
-              <Card key={uploadedFile.id} className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="text-muted-foreground">
-                    {getFileIcon(uploadedFile.file)}
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{uploadedFile.file.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatFileSize(uploadedFile.file.size)}
-                    </p>
-                    {uploadedFile.error && (
-                      <p className="text-sm text-destructive mt-1">{uploadedFile.error}</p>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {uploadedFile.status === 'uploading' && (
-                      <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                    )}
-                    {uploadedFile.status === 'completed' && (
-                      <CheckCircle className="w-5 h-5 text-green-500" />
-                    )}
-                    {uploadedFile.status === 'error' && (
-                      <X className="w-5 h-5 text-destructive" />
-                    )}
-                    
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeFile(uploadedFile.id)}
-                      disabled={uploading}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </Card>
+              <FileUploadRowWithMetadata
+                key={uploadedFile.id}
+                uploadedFile={uploadedFile}
+                onRemove={removeFile}
+                onMetadataChange={handleMetadataChange}
+                disabled={uploading}
+                formatFileSize={formatFileSize}
+              />
             ))}
           </div>
         )}
