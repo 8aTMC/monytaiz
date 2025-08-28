@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSimpleMedia, SimpleMediaItem } from '@/hooks/useSimpleMedia';
 import { SimpleMediaPreview } from '@/components/SimpleMediaPreview';
@@ -8,11 +9,9 @@ import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RefreshCw, Upload, Database, MessageSquare, Zap, FileImage, Search } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Database, MessageSquare, Zap, FileImage, Search } from 'lucide-react';
 
 export default function SimpleLibrary() {
-  const navigate = useNavigate();
   const { media, loading, error, fetchMedia, getThumbnailUrl, getFullUrl } = useSimpleMedia();
   const [selectedItem, setSelectedItem] = useState<SimpleMediaItem | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -31,20 +30,29 @@ export default function SimpleLibrary() {
     fetchMedia();
   }, [fetchMedia]);
 
+  // Stable event handlers
   const handlePreviewClose = useCallback(() => {
+    console.log('Preview closed');
     setIsPreviewOpen(false);
     setSelectedItem(null);
   }, []);
 
-  const handleRefresh = useCallback(() => {
-    fetchMedia();
-  }, [fetchMedia]);
+  const handleFilterChange = useCallback((filter: string) => {
+    console.log('Filter changed to:', filter);
+    setSelectedFilter(filter);
+  }, []);
 
-  const handleUpload = useCallback(() => {
-    navigate('/simple-upload');
-  }, [navigate]);
+  const handleSearchChange = useCallback((value: string) => {
+    console.log('Search changed to:', value);
+    setSearchQuery(value);
+  }, []);
 
-  // Folder management handlers - memoized empty functions to prevent re-renders
+  const handleSortChange = useCallback((sort: string) => {
+    console.log('Sort changed to:', sort);
+    setSortBy(sort);
+  }, []);
+
+  // Folder management handlers - stable empty functions
   const handleFolderCreated = useCallback(() => {
     // TODO: Implement folder creation refresh
   }, []);
@@ -74,11 +82,10 @@ export default function SimpleLibrary() {
       width: item.width,
       height: item.height
     }));
-  }, [media?.length]); // Only depend on length to prevent unnecessary recalculations
+  }, [media]);
 
   // Filter media based on current filters - optimized dependencies
   const filteredMedia = useMemo(() => {
-    // For categories other than 'all-files', return empty array since we don't have data for them yet
     if (selectedCategory !== 'all-files') {
       return [];
     }
@@ -87,7 +94,7 @@ export default function SimpleLibrary() {
       return [];
     }
     
-    let filtered = convertedMedia.filter(Boolean); // Remove any null/undefined items
+    let filtered = convertedMedia.filter(Boolean);
     
     // Apply search filter
     if (searchQuery.trim()) {
@@ -128,7 +135,7 @@ export default function SimpleLibrary() {
     return sorted;
   }, [convertedMedia, searchQuery, selectedFilter, sortBy, selectedCategory]);
 
-  // Default categories for sidebar - memoized to prevent re-renders
+  // Default categories for sidebar - stable
   const defaultCategories = useMemo(() => [
     {
       id: 'all-files',
@@ -160,7 +167,7 @@ export default function SimpleLibrary() {
     }
   ], []);
 
-  // Memoized category counts to prevent re-renders
+  // Category counts - stable
   const categoryCounts = useMemo(() => ({
     'all-files': media.length,
     'stories': 0,
@@ -168,8 +175,9 @@ export default function SimpleLibrary() {
     'messages': 0
   }), [media.length]);
 
-  // Selection handlers - memoized to prevent re-renders
+  // Selection handlers - stable
   const handleToggleItem = useCallback((itemId: string) => {
+    console.log('Toggle item:', itemId);
     setSelectedItems(prev => {
       const newSet = new Set(prev);
       if (newSet.has(itemId)) {
@@ -182,19 +190,23 @@ export default function SimpleLibrary() {
   }, []);
 
   const handleClearSelection = useCallback(() => {
+    console.log('Clear selection');
     setSelectedItems(new Set());
     setSelecting(false);
   }, []);
 
   const handleSelectAll = useCallback(() => {
+    console.log('Select all');
     setSelectedItems(new Set(filteredMedia.map(item => item.id)));
   }, [filteredMedia]);
 
+  // Stable item click handler
   const handleItemClick = useCallback((item: any, event: React.MouseEvent, index: number) => {
-    if (event.shiftKey || event.ctrlKey || event.metaKey) {
-      handleToggleItem(item.id);
-      setSelecting(true);
-    } else if (selecting) {
+    console.log('Item clicked:', item.id, index);
+    event.preventDefault();
+    event.stopPropagation();
+    
+    if (selecting) {
       handleToggleItem(item.id);
     } else {
       // Find original item for preview
@@ -204,15 +216,20 @@ export default function SimpleLibrary() {
         setIsPreviewOpen(true);
       }
     }
-  }, [handleToggleItem, selecting, media]);
+  }, [selecting, handleToggleItem, media]);
 
   const handleCheckboxClick = useCallback((itemId: string, index: number, event?: React.MouseEvent) => {
-    event?.stopPropagation();
+    console.log('Checkbox clicked:', itemId, index);
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     handleToggleItem(itemId);
     setSelecting(true);
   }, [handleToggleItem]);
 
   const handleCategorySelect = useCallback((categoryId: string) => {
+    console.log('Category changed to:', categoryId);
     setSelectedCategory(categoryId);
     handleClearSelection();
   }, [handleClearSelection]);
@@ -268,22 +285,6 @@ export default function SimpleLibrary() {
                    selectedCategory === 'messages' ? 'Messages' : 'Library'}
                 </h1>
               </div>
-              
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleRefresh}
-                  disabled={loading}
-                >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
-                
-                <Button onClick={handleUpload}>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload
-                </Button>
-              </div>
             </div>
 
             {/* Filter Tabs and Controls */}
@@ -296,7 +297,7 @@ export default function SimpleLibrary() {
                       key={filter}
                       variant={selectedFilter === filter ? 'default' : 'ghost'}
                       size="sm"
-                      onClick={() => setSelectedFilter(filter)}
+                      onClick={() => handleFilterChange(filter)}
                       className="h-8"
                     >
                       {filter}
@@ -312,13 +313,13 @@ export default function SimpleLibrary() {
                   <Input
                     placeholder="Search content..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => handleSearchChange(e.target.value)}
                     className="pl-10 w-48"
                   />
                 </div>
 
                 {/* Sort */}
-                <Select value={sortBy} onValueChange={setSortBy}>
+                <Select value={sortBy} onValueChange={handleSortChange}>
                   <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>

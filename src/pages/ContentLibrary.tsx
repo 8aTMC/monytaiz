@@ -46,7 +46,7 @@ const ContentLibrary = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // UI state
+  // UI state - simplified with stable defaults
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
@@ -59,8 +59,8 @@ const ContentLibrary = () => {
   // Preview state
   const [previewItem, setPreviewItem] = useState<MediaItem | null>(null);
   
-  // Custom folders
-  const [customFolders, setCustomFolders] = useState<Array<{
+  // Custom folders state with stable initialization
+  const [customFolders] = useState<Array<{
     id: string;
     label: string;
     icon: any;
@@ -79,27 +79,23 @@ const ContentLibrary = () => {
     errorMessage: ''
   });
   
-  const [defaultCategories] = useState([
+  // Stable default categories
+  const defaultCategories = [
     { id: 'all-files', label: 'All Files', icon: Grid, description: 'All uploaded content', isDefault: true },
     { id: 'stories', label: 'Stories', icon: BookOpen, description: 'Content uploaded to stories', isDefault: true },
     { id: 'livestreams', label: 'LiveStreams', icon: Zap, description: 'Past live stream videos', isDefault: true },
     { id: 'messages', label: 'Messages', icon: MessageSquare, description: 'Content sent in messages', isDefault: true },
-  ]);
+  ];
 
-  // Use the new data hook
+  // Use the library data hook with stable parameters
+  const libraryParams = { selectedCategory, searchQuery, selectedFilter, sortBy };
   const { 
     content, 
     loading: loadingContent, 
     categoryCounts, 
     fetchContent, 
-    fetchCategoryCounts,
-    updateFolderCount 
-  } = useLibraryData({
-    selectedCategory,
-    searchQuery,
-    selectedFilter,
-    sortBy
-  });
+    fetchCategoryCounts 
+  } = useLibraryData(libraryParams);
 
   const { copyToCollection, removeFromCollection, deleteMediaHard, loading: operationLoading } = useMediaOperations({
     onRefreshNeeded: fetchContent,
@@ -109,131 +105,88 @@ const ContentLibrary = () => {
   const { toast } = useToast();
   const { isCollapsed } = useSidebar();
 
-  // Click handling state
-  const [lastClickTime, setLastClickTime] = useState<number>(0);
-  const [clickTimeout, setClickTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [lastSelectedIndex, setLastSelectedIndex] = useState<number>(-1);
-
-  // Auth setup
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (!session?.user) {
-          navigate('/');
-        } else {
-          setLoading(false);
-        }
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (!session?.user) {
-        navigate('/');
-      } else {
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  // Fetch custom collections
-  useEffect(() => {
-    const fetchCustomCollections = async () => {
-      if (!user) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('collections')
-          .select('*')
-          .eq('system', false)
-          .order('name', { ascending: true });
-
-        if (error) {
-          console.error('Error fetching collections:', error);
-        } else {
-          const folders = data?.map(collection => ({
-            id: collection.id,
-            label: collection.name,
-            icon: Grid,
-            description: collection.description || 'Custom folder',
-            isDefault: false as const,
-            count: 0
-          })) || [];
-          setCustomFolders(folders);
-          
-          // Update counts for custom folders - fire and forget to avoid blocking render
-          folders.forEach(folder => {
-            updateFolderCount(folder.id).catch(err => {
-              console.error('Error updating folder count:', err);
-            });
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching collections:', error);
-      }
-    };
-
-    if (user) {
-      fetchCustomCollections();
-    }
-  }, [user?.id]); // Only depend on user.id, not the whole user object
-
-  // Selection handlers
-  const handleToggleItem = (itemId: string, itemIndex?: number) => {
-    const newSelected = new Set(selectedItems);
-    if (newSelected.has(itemId)) {
-      newSelected.delete(itemId);
-      if (newSelected.size === 0) {
-        setSelecting(false);
-        setLastSelectedIndex(-1);
-      }
-    } else {
-      newSelected.add(itemId);
-      if (!selecting) {
-        setSelecting(true);
-      }
-      if (itemIndex !== undefined) {
-        setLastSelectedIndex(itemIndex);
-      }
-    }
-    setSelectedItems(newSelected);
-  };
-
-  const handleRangeSelection = (fromIndex: number, toIndex: number) => {
-    const startIndex = Math.min(fromIndex, toIndex);
-    const endIndex = Math.max(fromIndex, toIndex);
-    const newSelected = new Set(selectedItems);
-    
-    for (let i = startIndex; i <= endIndex; i++) {
-      if (content[i]) {
-        newSelected.add(content[i].id);
-      }
-    }
-    
-    setSelectedItems(newSelected);
-    setSelecting(true);
-    setLastSelectedIndex(toIndex);
-  };
-
-  const handleClearSelection = () => {
+  // Stable event handlers
+  const handleFilterChange = useCallback((filter: string) => {
+    console.log('Filter changed to:', filter);
+    setSelectedFilter(filter);
     setSelecting(false);
     setSelectedItems(new Set());
-    setLastSelectedIndex(-1);
-  };
+  }, []);
 
-  const handleSelectAll = () => {
+  const handleSearchChange = useCallback((value: string) => {
+    console.log('Search changed to:', value);
+    setSearchQuery(value);
+  }, []);
+
+  const handleSortChange = useCallback((sort: string) => {
+    console.log('Sort changed to:', sort);
+    setSortBy(sort);
+  }, []);
+
+  const handleCategorySelect = useCallback((categoryId: string) => {
+    console.log('Category changed to:', categoryId);
+    setSelectedCategory(categoryId);
+    setSelectedFilter('all');
+    setSelecting(false);
+    setSelectedItems(new Set());
+  }, []);
+
+  // Stable selection handlers
+  const handleToggleItem = useCallback((itemId: string) => {
+    console.log('Toggle item:', itemId);
+    setSelectedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
+      } else {
+        newSet.add(itemId);
+      }
+      if (newSet.size === 0) {
+        setSelecting(false);
+      } else {
+        setSelecting(true);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const handleClearSelection = useCallback(() => {
+    console.log('Clear selection');
+    setSelecting(false);
+    setSelectedItems(new Set());
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    console.log('Select all');
     const allItemIds = new Set(content.map(item => item.id));
     setSelectedItems(allItemIds);
-  };
+    setSelecting(true);
+  }, [content]);
 
-  const handleCopy = async (collectionIds: string[]) => {
+  // Stable click handlers that prevent infinite loops
+  const handleCardClick = useCallback((item: MediaItem, event: React.MouseEvent, itemIndex: number) => {
+    console.log('Card clicked:', item.id, itemIndex);
+    event.preventDefault();
+    event.stopPropagation();
+    
+    if (selecting) {
+      handleToggleItem(item.id);
+    } else {
+      setPreviewItem(item);
+    }
+  }, [selecting, handleToggleItem]);
+
+  const handleCheckboxClick = useCallback((itemId: string, itemIndex: number, event?: React.MouseEvent) => {
+    console.log('Checkbox clicked:', itemId, itemIndex);
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    handleToggleItem(itemId);
+  }, [handleToggleItem]);
+
+  // Copy and delete handlers
+  const handleCopy = useCallback(async (collectionIds: string[]) => {
     try {
       const selectedItemsArray = Array.from(selectedItems);
       
@@ -255,9 +208,9 @@ const ContentLibrary = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [selectedItems, copyToCollection, handleClearSelection, toast]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     try {
       const selectedItemsArray = Array.from(selectedItems);
       const isCustomFolder = !['all-files', 'stories', 'livestreams', 'messages'].includes(selectedCategory);
@@ -292,87 +245,36 @@ const ContentLibrary = () => {
         errorMessage: error instanceof Error ? error.message : 'Unknown error occurred'
       }));
     }
-  };
+  }, [selectedItems, selectedCategory, removeFromCollection, deleteMediaHard, handleClearSelection]);
 
-  const refreshCustomFolders = useCallback(async () => {
-    if (!user) return;
-    try {
-      const { data, error } = await supabase
-        .from('collections')
-        .select('*')
-        .eq('system', false)
-        .order('name', { ascending: true });
-      if (!error && data) {
-        const folders = data.map(collection => ({
-          id: collection.id,
-          label: collection.name,
-          icon: Grid,
-          description: collection.description || 'Custom folder',
-          isDefault: false as const,
-          count: 0
-        }));
-        setCustomFolders(folders);
+  // Auth setup
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
         
-        // Fire and forget - don't wait for count updates
-        folders.forEach(folder => {
-          updateFolderCount(folder.id).catch(err => {
-            console.error('Error updating folder count:', err);
-          });
-        });
+        if (!session?.user) {
+          navigate('/');
+        } else {
+          setLoading(false);
+        }
       }
-    } catch (error) {
-      console.error('Error fetching collections:', error);
-    }
-  }, [user?.id, updateFolderCount]); // Stable dependencies
+    );
 
-  const handleCardClick = useCallback((item: MediaItem, event: React.MouseEvent, itemIndex: number) => {
-    const currentTime = Date.now();
-    const timeDiff = currentTime - lastClickTime;
-
-    if ((event.shiftKey || event.altKey) && selecting && lastSelectedIndex >= 0) {
-      event.preventDefault();
-      handleRangeSelection(lastSelectedIndex, itemIndex);
-      return;
-    }
-
-    if (clickTimeout) {
-      clearTimeout(clickTimeout);
-      setClickTimeout(null);
-    }
-
-    if (timeDiff < 300) {
-      event.preventDefault();
-      setPreviewItem(item);
-      return;
-    }
-
-    setLastClickTime(currentTime);
-    const timeout = setTimeout(() => {
-      if (selecting) {
-        handleToggleItem(item.id, itemIndex);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (!session?.user) {
+        navigate('/');
       } else {
-        setPreviewItem(item);
+        setLoading(false);
       }
-    }, 300);
+    });
 
-    setClickTimeout(timeout);
-  }, [lastClickTime, selecting, lastSelectedIndex, clickTimeout]); // Stable dependencies
-
-  const handleCheckboxClick = useCallback((itemId: string, itemIndex: number, event?: React.MouseEvent) => {
-    if ((event?.shiftKey || event?.altKey) && selecting && lastSelectedIndex >= 0) {
-      event?.preventDefault();
-      handleRangeSelection(lastSelectedIndex, itemIndex);
-      return;
-    }
-
-    handleToggleItem(itemId, itemIndex);
-  }, [selecting, lastSelectedIndex]); // Stable dependencies
-
-  const handleCategorySelect = useCallback((categoryId: string) => {
-    setSelectedCategory(categoryId);
-    setSelectedFilter('all');
-    handleClearSelection();
-  }, [handleClearSelection]);
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const isCustomFolder = selectedCategory !== 'all-files' && 
     !['stories', 'livestreams', 'messages'].includes(selectedCategory);
@@ -428,8 +330,8 @@ const ContentLibrary = () => {
           selectedCategory={selectedCategory}
           categoryCounts={categoryCounts}
           onCategorySelect={handleCategorySelect}
-          onFolderCreated={refreshCustomFolders}
-          onFolderUpdated={refreshCustomFolders}
+          onFolderCreated={() => {}}
+          onFolderUpdated={() => {}}
         />
 
         {/* Main Content Area */}
@@ -457,7 +359,7 @@ const ContentLibrary = () => {
                     key={filter.id}
                     variant={selectedFilter === filter.id ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setSelectedFilter(filter.id)}
+                    onClick={() => handleFilterChange(filter.id)}
                     className="whitespace-nowrap"
                   >
                     {filter.label}
@@ -473,13 +375,13 @@ const ContentLibrary = () => {
                   <Input
                     placeholder="Search content..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => handleSearchChange(e.target.value)}
                     className="pl-10 w-40 focus:w-64 transition-all duration-200"
                   />
                 </div>
 
                 {/* Sort By */}
-                <Select value={sortBy} onValueChange={setSortBy}>
+                <Select value={sortBy} onValueChange={handleSortChange}>
                   <SelectTrigger className="w-36">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
@@ -546,8 +448,8 @@ const ContentLibrary = () => {
           item={previewItem}
           allItems={content}
           selectedItems={selectedItems}
-          onToggleSelection={(itemId: string) => handleToggleItem(itemId)}
-          onItemChange={(item) => setPreviewItem(item)}
+          onToggleSelection={handleToggleItem}
+          onItemChange={setPreviewItem}
         />
       </div>
     </LibraryErrorBoundary>
