@@ -142,7 +142,23 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { bucket, phantomFolders } = await req.json();
+    let requestBody;
+    
+    try {
+      const bodyText = await req.text();
+      console.log('Raw request body:', bodyText);
+      
+      if (!bodyText.trim()) {
+        return json({ error: 'Request body is empty' }, 400);
+      }
+      
+      requestBody = JSON.parse(bodyText);
+    } catch (parseError) {
+      console.error('JSON parsing error:', parseError);
+      return json({ error: `Invalid JSON: ${parseError.message}` }, 400);
+    }
+    
+    const { bucket, phantomFolders } = requestBody;
     
     if (!bucket) {
       return json({ error: 'bucket is required' }, 400);
