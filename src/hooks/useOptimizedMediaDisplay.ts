@@ -113,15 +113,15 @@ export const useOptimizedMediaDisplay = () => {
     setMediaState(prev => ({ ...prev, isLoading: true, error: false }));
 
     try {
-      // Determine best file path - prioritize processed flat structure
+      // Determine best file path - prioritize actual folder structure
       let bestPath: string | null = null;
       
       if (item.type === 'image') {
-        // Try processed flat structure first
-        bestPath = `processed/${item.id}.webp`;
+        // Try processed folder structure first (where files are actually stored)
+        bestPath = `processed/${item.id}/image.webp`;
       } else if (item.type === 'video') {
-        // Try processed flat structure first
-        bestPath = `processed/${item.id}.mp4`;
+        // Try processed folder structure first (where files are actually stored)
+        bestPath = `processed/${item.id}/video.mp4`;
       } else {
         // For audio or other types, fallback to original path
         bestPath = item.path || item.storage_path || null;
