@@ -6,8 +6,9 @@ import { User, Session } from '@supabase/supabase-js';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { HardDrive, Recycle, LogOut, Shield, Database, Folder } from 'lucide-react';
+import { HardDrive, Recycle, LogOut, Shield, Database, Folder, FolderPlus } from 'lucide-react';
 import { useStorageCleanup } from '@/hooks/useStorageCleanup';
+import { useFolderRecreation } from '@/hooks/useFolderRecreation';
 import { useToast } from '@/hooks/use-toast';
 import { ForceLogoutButton } from '@/components/ForceLogoutButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -26,6 +27,11 @@ const Admin = () => {
     cleanPhantomFolders, 
     isCleaningUp 
   } = useStorageCleanup();
+
+  const {
+    recreateFolders,
+    isRecreatingFolders
+  } = useFolderRecreation();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -169,7 +175,7 @@ const Admin = () => {
               <Button
                 variant="outline"
                 onClick={optimizeStorage}
-                disabled={isCleaningUp}
+                disabled={isCleaningUp || isRecreatingFolders}
                 className="w-full flex items-center gap-2"
               >
                 <HardDrive className="h-4 w-4" />
@@ -179,11 +185,21 @@ const Admin = () => {
               <Button
                 variant="outline"
                 onClick={handleCleanPhantomFolders}
-                disabled={isCleaningUp}
+                disabled={isCleaningUp || isRecreatingFolders}
                 className="w-full flex items-center gap-2 bg-orange-50 hover:bg-orange-100 border-orange-200"
               >
                 <Folder className="h-4 w-4" />
                 {isCleaningUp ? 'Cleaning...' : 'Clean Phantom Folders'}
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={recreateFolders}
+                disabled={isCleaningUp || isRecreatingFolders}
+                className="w-full flex items-center gap-2 bg-green-50 hover:bg-green-100 border-green-200"
+              >
+                <FolderPlus className="h-4 w-4" />
+                {isRecreatingFolders ? 'Creating...' : 'Recreate Folders'}
               </Button>
             </CardContent>
           </Card>
@@ -230,9 +246,10 @@ const Admin = () => {
                   <span className="font-mono text-xs">{user?.id}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Cleanup Status:</span>
-                  <span className={isCleaningUp ? 'text-orange-500' : 'text-green-500'}>
-                    {isCleaningUp ? 'Running' : 'Idle'}
+                  <span className="text-muted-foreground">Status:</span>
+                  <span className={isCleaningUp || isRecreatingFolders ? 'text-orange-500' : 'text-green-500'}>
+                    {isCleaningUp ? 'Cleaning...' : 
+                     isRecreatingFolders ? 'Recreating...' : 'Idle'}
                   </span>
                 </div>
               </div>
@@ -250,6 +267,7 @@ const Admin = () => {
             <li>• Storage optimization should be run regularly to maintain performance</li>
             <li>• Ghost file cleaning removes orphaned records and files</li>
             <li>• Phantom folder cleanup removes empty storage folder references</li>
+            <li>• Recreate Folders creates the "incoming" and "processed" folder structure</li>
             <li>• Force operations are irreversible - use with caution</li>
           </ul>
         </div>

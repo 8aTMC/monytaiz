@@ -1582,6 +1582,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      recreate_storage_folders: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       restore_user_from_deletion: {
         Args: { restoration_reason?: string; target_user_id: string }
         Returns: Json
