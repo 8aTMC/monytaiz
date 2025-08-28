@@ -1,5 +1,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Navigation, useSidebar } from '@/components/Navigation';
@@ -367,10 +368,15 @@ const ContentLibrary = () => {
   }, [selecting, lastSelectedIndex]); // Stable dependencies
 
   const handleCategorySelect = useCallback((categoryId: string) => {
-    setSelectedCategory(categoryId);
-    setSelectedFilter('all');
-    handleClearSelection();
-  }, []); // No dependencies needed
+    console.log('Category changing from', selectedCategory, 'to', categoryId);
+    
+    // Batch state updates to prevent multiple re-renders
+    React.startTransition(() => {
+      setSelectedCategory(categoryId);
+      setSelectedFilter('all');
+      handleClearSelection();
+    });
+  }, [selectedCategory, handleClearSelection]); // Include dependencies for proper memoization
 
   const isCustomFolder = selectedCategory !== 'all-files' && 
     !['stories', 'livestreams', 'messages'].includes(selectedCategory);

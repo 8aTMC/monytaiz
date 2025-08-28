@@ -53,9 +53,9 @@ export default function SimpleLibrary() {
     // TODO: Implement folder update refresh  
   }, []);
 
-  // Convert SimpleMediaItem to the format expected by LibraryGrid - memoized by media array
+  // Convert SimpleMediaItem to the format expected by LibraryGrid - stable conversion
   const convertedMedia = useMemo(() => {
-    if (!media || !Array.isArray(media)) return [];
+    if (!media?.length) return [];
     
     return media.map(item => ({
       id: item.id,
@@ -74,28 +74,28 @@ export default function SimpleLibrary() {
       width: item.width,
       height: item.height
     }));
-  }, [media]);
+  }, [media?.length]); // Only depend on length to prevent unnecessary recalculations
 
-  // Filter media based on current filters
+  // Filter media based on current filters - optimized dependencies
   const filteredMedia = useMemo(() => {
     // For categories other than 'all-files', return empty array since we don't have data for them yet
     if (selectedCategory !== 'all-files') {
       return [];
     }
     
-    // Safety check for converted media
-    if (!convertedMedia || convertedMedia.length === 0) {
+    if (!convertedMedia?.length) {
       return [];
     }
     
-    let filtered = [...convertedMedia];
+    let filtered = convertedMedia.filter(Boolean); // Remove any null/undefined items
     
     // Apply search filter
-    if (searchQuery) {
+    if (searchQuery.trim()) {
+      const searchLower = searchQuery.toLowerCase();
       filtered = filtered.filter(item => 
-        item?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item?.notes?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item?.tags?.some(tag => tag?.toLowerCase().includes(searchQuery.toLowerCase()))
+        item?.title?.toLowerCase().includes(searchLower) ||
+        item?.notes?.toLowerCase().includes(searchLower) ||
+        item?.tags?.some(tag => tag?.toLowerCase().includes(searchLower))
       );
     }
     
@@ -112,7 +112,7 @@ export default function SimpleLibrary() {
     }
     
     // Apply sorting
-    filtered.sort((a, b) => {
+    const sorted = [...filtered].sort((a, b) => {
       switch (sortBy) {
         case 'newest':
           return new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime();
@@ -125,7 +125,7 @@ export default function SimpleLibrary() {
       }
     });
     
-    return filtered;
+    return sorted;
   }, [convertedMedia, searchQuery, selectedFilter, sortBy, selectedCategory]);
 
   // Default categories for sidebar - memoized to prevent re-renders
@@ -213,9 +213,14 @@ export default function SimpleLibrary() {
   }, [handleToggleItem]);
 
   const handleCategorySelect = useCallback((categoryId: string) => {
-    setSelectedCategory(categoryId);
-    handleClearSelection();
-  }, [handleClearSelection]);
+    console.log('SimpleLibrary category changing from', selectedCategory, 'to', categoryId);
+    
+    // Batch state updates and add small delay to prevent rapid switching issues
+    React.startTransition(() => {
+      setSelectedCategory(categoryId);
+      handleClearSelection();
+    });
+  }, [selectedCategory, handleClearSelection]);
 
   const handleCopy = useCallback((collectionIds: string[]) => {
     // TODO: Implement copy functionality
