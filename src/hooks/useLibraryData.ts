@@ -240,7 +240,7 @@ export const useLibraryData = ({
     } catch (error) {
       console.error('Error updating folder count:', error);
     }
-  }, []);
+  }, []); // No dependencies - uses stable setCategoryCounts
 
   useEffect(() => {
     fetchContent();

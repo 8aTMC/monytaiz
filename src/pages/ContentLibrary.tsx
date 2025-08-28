@@ -166,18 +166,11 @@ const ContentLibrary = () => {
           })) || [];
           setCustomFolders(folders);
           
-          // Update counts for custom folders - use async updates to avoid blocking
+          // Update counts for custom folders - fire and forget to avoid blocking render
           folders.forEach(folder => {
-            supabase
-              .from('collection_items')
-              .select('media_id', { count: 'exact' })
-              .eq('collection_id', folder.id)
-              .then(({ count }) => {
-                // Only update if component is still mounted and user is still the same
-                if (user && user.id) {
-                  updateFolderCount(folder.id);
-                }
-              });
+            updateFolderCount(folder.id).catch(err => {
+              console.error('Error updating folder count:', err);
+            });
           });
         }
       } catch (error) {
@@ -188,7 +181,7 @@ const ContentLibrary = () => {
     if (user) {
       fetchCustomCollections();
     }
-  }, [user]); // Remove updateFolderCount from dependencies to break the loop
+  }, [user?.id]); // Only depend on user.id, not the whole user object
 
   // Selection handlers
   const handleToggleItem = (itemId: string, itemIndex?: number) => {
@@ -299,7 +292,7 @@ const ContentLibrary = () => {
     }
   };
 
-  const refreshCustomFolders = async () => {
+  const refreshCustomFolders = useCallback(async () => {
     if (!user) return;
     try {
       const { data, error } = await supabase
@@ -317,12 +310,18 @@ const ContentLibrary = () => {
           count: 0
         }));
         setCustomFolders(folders);
-        folders.forEach(folder => updateFolderCount(folder.id));
+        
+        // Fire and forget - don't wait for count updates
+        folders.forEach(folder => {
+          updateFolderCount(folder.id).catch(err => {
+            console.error('Error updating folder count:', err);
+          });
+        });
       }
     } catch (error) {
       console.error('Error fetching collections:', error);
     }
-  };
+  }, [user?.id, updateFolderCount]); // Stable dependencies
 
   const handleCardClick = (item: MediaItem, event: React.MouseEvent, itemIndex: number) => {
     const currentTime = Date.now();
