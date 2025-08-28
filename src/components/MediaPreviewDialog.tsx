@@ -275,7 +275,10 @@ export const MediaPreviewDialog = ({
                         <img 
                           src={getCurrentUrl()}
                           alt={item.title || 'Preview'} 
-                          className="w-full h-auto object-contain rounded transition-all duration-300"
+                          className="w-full h-auto object-contain rounded transition-all duration-300 max-h-[70vh]"
+                          style={{
+                            aspectRatio: item.width && item.height ? `${item.width}/${item.height}` : 'auto'
+                          }}
                           onError={(e) => {
                             console.error('Failed to load image:', e);
                           }}
@@ -309,7 +312,10 @@ export const MediaPreviewDialog = ({
                     <video 
                       src={getCurrentUrl()}
                       controls 
-                      className="w-full h-auto object-contain rounded"
+                      className="w-full h-auto object-contain rounded max-h-[70vh]"
+                      style={{
+                        aspectRatio: item.width && item.height ? `${item.width}/${item.height}` : '16/9'
+                      }}
                       preload="metadata"
                       onError={(e) => {
                         console.error('Failed to load secure video:', e);

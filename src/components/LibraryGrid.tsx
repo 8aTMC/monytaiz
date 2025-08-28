@@ -44,9 +44,11 @@ const LibraryGridComponent = ({
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="aspect-square bg-muted/20 rounded-lg animate-pulse"></div>
+          <div key={i} className="bg-muted/20 rounded-lg animate-pulse" style={{ aspectRatio: '1' }}>
+            <div className="w-full h-32"></div>
+          </div>
         ))}
       </div>
     );
@@ -59,7 +61,13 @@ const LibraryGridComponent = ({
   return (
     <div 
       ref={gridContainerRef}
-      className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 select-none"
+      className="masonry-grid select-none"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+        gap: '1rem',
+        gridAutoRows: 'min-content'
+      }}
     >
       {content.map((item, index) => {
         // Create stable click handlers for each item

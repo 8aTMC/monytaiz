@@ -67,10 +67,17 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     };
   }, [stableMediaItem.id, stableMediaItem.type, stableMediaItem.storage_path, stableMediaItem.path]);
 
-  // For non-image types, show icon
+  // For non-image types, show icon with natural aspect ratio
   if (item.type !== 'image') {
+    const aspectRatio = item.width && item.height 
+      ? (item.width / item.height).toFixed(3)
+      : '16/9'; // Default aspect ratio for video/audio
+    
     return (
-      <div className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}>
+      <div 
+        className={`bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}
+        style={{ aspectRatio }}
+      >
         <div className="flex flex-col items-center gap-2">
           {getContentTypeIcon(item.type)}
           <span className="text-xs text-muted-foreground capitalize">
@@ -81,10 +88,17 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     );
   }
 
-  // Show loading state
+  // Show loading state with natural aspect ratio
   if (isLoading && !currentUrl) {
+    const aspectRatio = item.width && item.height 
+      ? (item.width / item.height).toFixed(3)
+      : '1';
+      
     return (
-      <div className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}>
+      <div 
+        className={`bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}
+        style={{ aspectRatio }}
+      >
         <div className="animate-pulse">
           <Image className="h-8 w-8 text-muted-foreground" />
         </div>
@@ -92,13 +106,19 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     );
   }
 
-  // Calculate aspect ratio for layout stability
+  // Calculate natural aspect ratio
+  const aspectRatio = item.width && item.height 
+    ? (item.width / item.height).toFixed(3)
+    : '1';
+  
+  // Calculate display dimensions
   const aspectWidth = item.width ? Math.min(item.width, 256) : 256;
   const aspectHeight = item.height ? Math.round((aspectWidth / (item.width ?? 1)) * (item.height ?? 256)) : 256;
 
   return (
     <div 
-      className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}
+      className={`bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}
+      style={{ aspectRatio }}
     >
       {/* Show current URL if available */}
       {currentUrl && !error && (

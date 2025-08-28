@@ -83,19 +83,24 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
 
         <div className="flex-1 overflow-auto">
           {/* Media Display */}
-          <div className="flex items-center justify-center min-h-[400px] bg-muted/20">
+          <div className="flex items-center justify-center bg-muted/20" style={{ minHeight: '400px' }}>
             {loading ? (
               <div className="text-center text-muted-foreground">
                 <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
                 <p>Loading media...</p>
               </div>
             ) : fullUrl ? (
-              <>
+              <div className="w-full h-full flex items-center justify-center">
                 {item.media_type === 'image' && (
                   <img
                     src={fullUrl}
                     alt={item.title || item.original_filename}
-                    className="max-w-full max-h-[600px] object-contain"
+                    className="max-w-full max-h-[70vh] object-contain"
+                    style={{ 
+                      width: 'auto', 
+                      height: 'auto',
+                      aspectRatio: item.width && item.height ? `${item.width}/${item.height}` : 'auto'
+                    }}
                     onError={(e) => {
                       console.error('Failed to load image:', e);
                       setFullUrl(null);
@@ -106,7 +111,10 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                   <video
                     src={fullUrl}
                     controls
-                    className="max-w-full max-h-[600px]"
+                    className="max-w-full max-h-[70vh] object-contain"
+                    style={{
+                      aspectRatio: item.width && item.height ? `${item.width}/${item.height}` : '16/9'
+                    }}
                     preload="metadata"
                     onError={(e) => {
                       console.error('Failed to load video:', e);
@@ -132,7 +140,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                     </audio>
                   </div>
                 )}
-              </>
+              </div>
             ) : (
               <div className="text-center text-muted-foreground">
                 <Info className="w-12 h-12 mx-auto mb-4" />
