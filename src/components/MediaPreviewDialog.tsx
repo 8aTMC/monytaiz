@@ -102,13 +102,18 @@ export const MediaPreviewDialog = ({
 
   const getStoragePath = (path: string | any): string | null => {
     if (typeof path === 'string' && path.trim()) {
-      // Remove 'content/' prefix since we'll add it in the URL
-      return path.startsWith('content/') ? path.substring(8) : path;
+      // Database paths are like "processed/uuid.webp", edge function expects "content/processed/uuid.webp"
+      const cleanPath = path.startsWith('content/') ? path : `content/${path}`;
+      console.log('Storage path processed:', path, '->', cleanPath);
+      return cleanPath;
     }
     if (typeof path === 'object' && path?.value && typeof path.value === 'string') {
       const pathStr = path.value;
-      return pathStr.startsWith('content/') ? pathStr.substring(8) : pathStr;
+      const cleanPath = pathStr.startsWith('content/') ? pathStr : `content/${pathStr}`;
+      console.log('Storage path processed (object):', pathStr, '->', cleanPath);
+      return cleanPath;
     }
+    console.warn('Invalid storage path:', path);
     return null;
   };
 
@@ -140,17 +145,23 @@ export const MediaPreviewDialog = ({
     if (!open || !item) return;
     
     const storagePath = getItemStoragePath(item);
-    if (!storagePath) return;
+    console.log('Loading media for item:', item.id, 'storagePath:', storagePath);
+    
+    if (!storagePath) {
+      console.error('No storage path available for item:', item.id);
+      return;
+    }
 
     let isMounted = true;
     
     const loadMedia = async () => {
       try {
+        console.log('Starting progressive media load for path:', storagePath);
         if (isMounted) {
           await loadProgressiveMedia(storagePath, item.tiny_placeholder);
         }
       } catch (error) {
-        console.error('Failed to load media:', error);
+        console.error('Failed to load media for item:', item.id, 'path:', storagePath, 'error:', error);
       }
     };
 
