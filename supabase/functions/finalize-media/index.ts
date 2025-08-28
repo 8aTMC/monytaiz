@@ -49,12 +49,20 @@ Deno.serve(async (req) => {
     // Parse request body
     let body: FinalizeRequest;
     try {
-      console.log('Raw request body type:', typeof req.body);
-      body = await req.json();
-      console.log('Parsed request body:', body);
+      const rawBody = await req.text();
+      console.log('Raw body length:', rawBody.length);
+      console.log('Raw body content:', rawBody.substring(0, 200));
+      
+      if (!rawBody || rawBody.trim() === '') {
+        console.error('Request body is empty');
+        return json({ error: "Request body is empty" }, 400);
+      }
+      
+      body = JSON.parse(rawBody);
+      console.log('Parsed request body:', JSON.stringify(body, null, 2));
     } catch (parseError) {
       console.error('Failed to parse request body:', parseError);
-      return json({ error: "Invalid JSON in request body" }, 400);
+      return json({ error: "Invalid JSON in request body", details: parseError.message }, 400);
     }
 
     const { id, bucket, original_path, processed, meta } = body;
