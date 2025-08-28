@@ -9,19 +9,32 @@ export const usePhantomCleanup = () => {
   const cleanPhantomFolders = async (bucket: string, phantomFolders: string[]) => {
     setIsCleaningPhantoms(true);
     try {
+      // Ensure prefixes is a plain array of strings (no Set/Map/proxy)
+      const prefixes = Array.from(phantomFolders)
+        .filter(folder => folder && typeof folder === 'string' && folder.length > 0)
+        .map(folder => {
+          // Normalize to relative paths (remove bucket prefix if present)
+          const normalized = String(folder).replace(/^content\//, '').replace(/^\/+/, '');
+          // Ensure ends with / for folder prefixes
+          return normalized.endsWith('/') ? normalized : `${normalized}/`;
+        });
+
       // Build JSON-safe payload - keys must be strings relative to bucket, no undefined values
       const payload = {
         bucket: 'content',
-        prefixes: phantomFolders
-          .filter(folder => folder && typeof folder === 'string' && folder.length > 0)
-          .map(folder => {
-            // Normalize to relative paths (remove bucket prefix if present)
-            const normalized = folder.replace(/^content\//, '').replace(/^\/+/, '');
-            // Ensure ends with / for folder prefixes
-            return normalized.endsWith('/') ? normalized : `${normalized}/`;
-          }),
+        prefixes: prefixes,
         dryRun: false
       };
+
+      // Debug JSON serialization
+      console.log('raw payload ->', payload);
+      try {
+        const test = JSON.stringify(payload);
+        console.log('JSON ok, length:', test.length);
+      } catch (e) {
+        console.error('JSON.stringify failed:', e); // <— you'll see which field breaks it
+        throw new Error(`Payload is not JSON-serializable: ${e.message}`);
+      }
 
       // Strip anything non-JSON (throws if not serializable)
       const safeBody = JSON.parse(JSON.stringify(payload));
