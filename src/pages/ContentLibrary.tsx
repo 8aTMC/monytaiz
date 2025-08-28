@@ -349,7 +349,7 @@ const ContentLibrary = () => {
     onCountsRefreshNeeded: calculateCategoryCounts
   });
   const { toast } = useToast();
-  const { optimizeStorage, cleanOrphanedRecords, forceDeleteGhostFiles, isCleaningUp } = useStorageCleanup();
+  const { optimizeStorage, cleanOrphanedRecords, forceDeleteGhostFiles, cleanPhantomFolders, isCleaningUp } = useStorageCleanup();
 
   // User roles state
   const [userRoles, setUserRoles] = useState<string[]>([]);
@@ -1052,6 +1052,17 @@ const ContentLibrary = () => {
               >
                 <Recycle className="h-4 w-4" />
                 {isCleaningUp ? 'Purging...' : 'FORCE PURGE ALL GHOSTS'}
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => cleanPhantomFolders('content', ['ff395f9e-2cdb-436c-a928-ab82efe24d67', 'photos'])}
+                disabled={isCleaningUp}
+                className="flex items-center gap-2 bg-orange-100 hover:bg-orange-200 border-orange-300"
+              >
+                <Recycle className="h-4 w-4" />
+                {isCleaningUp ? 'Cleaning...' : 'Clean Phantom Folders'}
               </Button>
               
               <ForceLogoutButton />
