@@ -52,10 +52,11 @@ export const LibrarySidebar = ({
     : customFolders;
 
   return (
-    <div className="w-80 bg-card border-r border-border overflow-y-auto flex-shrink-0 p-6">
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold text-foreground mb-3">Library</h2>
-      </div>
+    <div className="w-64 bg-card border-r border-border flex-shrink-0">
+      <div className="h-full overflow-y-auto custom-scrollbar p-4">
+        <div className="mb-3">
+          <h2 className="text-lg font-semibold text-foreground mb-3">Library</h2>
+        </div>
         
       {/* Default Categories */}
       <div className="space-y-1 mb-4">
@@ -155,7 +156,8 @@ export const LibrarySidebar = ({
             );
           })}
         </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

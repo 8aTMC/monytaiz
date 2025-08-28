@@ -246,7 +246,7 @@ export default function SimpleLibrary() {
 
   return (
     <Layout>
-      <div className="flex h-full min-h-screen">
+      <div className="flex h-full overflow-hidden">
         {/* Sidebar */}
         <LibrarySidebar
           defaultCategories={defaultCategories}
@@ -259,23 +259,25 @@ export default function SimpleLibrary() {
         />
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Selection Toolbar */}
           {selecting && selectedItems.size > 0 && (
-            <LibrarySelectionToolbar
-              selectedCount={selectedItems.size}
-              totalCount={filteredMedia.length}
-              currentView={selectedCategory}
-              isCustomFolder={false}
-              onClearSelection={handleClearSelection}
-              onSelectAll={handleSelectAll}
-              onCopy={handleCopy}
-              onDelete={handleDelete}
-            />
+            <div className="flex-shrink-0">
+              <LibrarySelectionToolbar
+                selectedCount={selectedItems.size}
+                totalCount={filteredMedia.length}
+                currentView={selectedCategory}
+                isCustomFolder={false}
+                onClearSelection={handleClearSelection}
+                onSelectAll={handleSelectAll}
+                onCopy={handleCopy}
+                onDelete={handleDelete}
+              />
+            </div>
           )}
 
           {/* Header */}
-          <div className="p-6 border-b border-border">
+          <div className="flex-shrink-0 p-4 border-b border-border">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h1 className="text-2xl font-bold text-foreground">
@@ -298,84 +300,99 @@ export default function SimpleLibrary() {
                       variant={selectedFilter === filter ? 'default' : 'ghost'}
                       size="sm"
                       onClick={() => handleFilterChange(filter)}
-                      className="h-8"
+                      className="px-3 py-1 text-xs"
                     >
                       {filter}
                     </Button>
                   ))}
                 </div>
-              </div>
 
-              <div className="flex items-center gap-2">
                 {/* Search */}
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     placeholder="Search content..."
                     value={searchQuery}
                     onChange={(e) => handleSearchChange(e.target.value)}
-                    className="pl-10 w-48"
+                    className="pl-8 w-64"
                   />
                 </div>
-
-                {/* Sort */}
-                <Select value={sortBy} onValueChange={handleSortChange}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="newest">Newest First</SelectItem>
-                    <SelectItem value="oldest">Oldest First</SelectItem>
-                    <SelectItem value="name">Name</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
+
+              {/* Sort */}
+              <Select value={sortBy} onValueChange={handleSortChange}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="oldest">Oldest First</SelectItem>
+                  <SelectItem value="name-asc">Name A-Z</SelectItem>
+                  <SelectItem value="name-desc">Name Z-A</SelectItem>
+                  <SelectItem value="size-desc">Largest First</SelectItem>
+                  <SelectItem value="size-asc">Smallest First</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          {/* Content Area */}
-          <div className="flex-1 overflow-auto p-6">
-            {error && (
-              <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-                <div className="text-sm text-destructive">
-                  Error: {error}
+          {/* Scrollable Grid Content */}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+            <div className="p-4">
+              {loading ? (
+                <LibraryGrid
+                  content={[]}
+                  selectedItems={selectedItems}
+                  selecting={selecting}
+                  onItemClick={handleItemClick}
+                  onCheckboxClick={handleCheckboxClick}
+                  loading={true}
+                />
+              ) : error ? (
+                <div className="flex flex-col items-center justify-center h-64 text-center">
+                  <Database className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold text-foreground mb-2">Failed to load content</h3>
+                  <p className="text-muted-foreground mb-4">There was an error loading your media library.</p>
+                  <Button onClick={fetchMedia} variant="outline">
+                    Try Again
+                  </Button>
                 </div>
-              </div>
-            )}
-
-            {/* Empty State */}
-            {filteredMedia.length === 0 && !loading && (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                  <Database className="w-8 h-8 text-muted-foreground" />
+              ) : filteredMedia.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-64 text-center">
+                  <FileImage className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    {media.length === 0 ? 'No content yet' : 'No matches found'}
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {media.length === 0 
+                      ? 'Upload some content to get started with your library.'
+                      : 'Try adjusting your search or filter criteria.'
+                    }
+                  </p>
                 </div>
-                <h3 className="text-lg font-medium text-foreground mb-2">No media found</h3>
-                <p className="text-muted-foreground">
-                  {searchQuery ? 'Try adjusting your search terms' : 'Upload some files to get started'}
-                </p>
-              </div>
-            )}
-
-            {/* Media Grid */}
-            <LibraryGrid
-              content={filteredMedia}
-              selectedItems={selectedItems}
-              selecting={selecting}
-              onItemClick={handleItemClick}
-              onCheckboxClick={handleCheckboxClick}
-              loading={loading}
-            />
+              ) : (
+                <LibraryGrid
+                  content={convertedMedia}
+                  selectedItems={selectedItems}
+                  selecting={selecting}
+                  onItemClick={handleItemClick}
+                  onCheckboxClick={handleCheckboxClick}
+                />
+              )}
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Preview Modal */}
+      {/* Preview Dialog */}
+      {selectedItem && (
         <SimpleMediaPreviewAsync
           item={selectedItem}
           isOpen={isPreviewOpen}
           onClose={handlePreviewClose}
           getFullUrlAsync={getFullUrlAsync}
         />
-      </div>
+      )}
     </Layout>
   );
 }
