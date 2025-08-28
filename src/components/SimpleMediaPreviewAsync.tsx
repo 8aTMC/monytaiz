@@ -74,7 +74,15 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
       
       {/* Dialog content positioned above everything */}
       <div 
-        className="media-dialog w-full max-w-4xl max-h-[90vh] border bg-background shadow-lg rounded-lg overflow-hidden"
+        className="media-dialog border bg-background shadow-lg rounded-lg overflow-hidden"
+        style={{
+          width: 'auto',
+          height: 'auto',
+          maxWidth: '95vw',
+          maxHeight: '95vh',
+          minWidth: '400px',
+          minHeight: '300px'
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sr-only" id="media-preview-description">
@@ -106,23 +114,25 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
         {/* Content */}
         <div className="flex-1 overflow-auto">
           {/* Media Display */}
-          <div className="flex items-center justify-center bg-muted/20" style={{ minHeight: '400px' }}>
+          <div className="flex items-center justify-center bg-muted/20 p-4">
             {loading ? (
               <div className="text-center text-muted-foreground">
                 <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
                 <p>Loading media...</p>
               </div>
             ) : fullUrl ? (
-              <div className="w-full h-full flex items-center justify-center">
+              <div className="flex items-center justify-center">
                 {item?.media_type === 'image' && (
                   <img
                     src={fullUrl}
                     alt={item.title || item.original_filename}
-                    className="max-w-full max-h-[70vh] object-contain"
+                    className="block"
                     style={{ 
+                      maxWidth: '85vw',
+                      maxHeight: '80vh',
                       width: 'auto', 
                       height: 'auto',
-                      aspectRatio: item.width && item.height ? `${item.width}/${item.height}` : 'auto'
+                      objectFit: 'contain'
                     }}
                     onError={(e) => {
                       console.error('Failed to load image:', e);
@@ -134,9 +144,13 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                   <video
                     src={fullUrl}
                     controls
-                    className="max-w-full max-h-[70vh] object-contain"
+                    className="block"
                     style={{
-                      aspectRatio: item.width && item.height ? `${item.width}/${item.height}` : '16/9'
+                      maxWidth: '85vw',
+                      maxHeight: '80vh',
+                      width: 'auto',
+                      height: 'auto',
+                      objectFit: 'contain'
                     }}
                     preload="metadata"
                     onError={(e) => {
@@ -144,7 +158,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                       setFullUrl(null);
                     }}
                   >
-                    Your browser does not support video playback.
+                    Your browser does not support video playbook.
                   </video>
                 )}
                 {item?.media_type === 'audio' && (
@@ -165,7 +179,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                 )}
               </div>
             ) : (
-              <div className="text-center text-muted-foreground">
+              <div className="text-center text-muted-foreground p-8">
                 <Info className="w-12 h-12 mx-auto mb-4" />
                 <p>Media not available</p>
               </div>
