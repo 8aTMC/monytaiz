@@ -9,11 +9,15 @@ const corsHeaders = {
 interface FinalizeRequest {
   id: string;
   bucket: string;
-  original_path: string;
+  original_key?: string;
+  original_path?: string; // legacy support
   processed: {
-    image?: string;
-    video_1080?: string;
-    video_720?: string;
+    image_key?: string;
+    image?: string; // legacy support
+    video_1080_key?: string;
+    video_1080?: string; // legacy support
+    video_720_key?: string;
+    video_720?: string; // legacy support
   };
   meta: {
     width: number;
@@ -28,12 +32,18 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const supabaseService = createClient(SUPABASE_URL, SERVICE_KEY);
 
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
+const json = (data: unknown, status = 200) =>
+  new Response(JSON.stringify(data), {
     status,
     headers: { ...corsHeaders, "content-type": "application/json" },
   });
-}
+
+// Normalize path by removing bucket prefix if present
+const normalizeKey = (bucket: string, maybeKey?: string | null) => {
+  if (!maybeKey) return null;
+  // Strip leading bucket/ if present and remove leading slashes
+  return maybeKey.replace(new RegExp(`^${bucket}/`), '').replace(/^\/+/, '');
+};
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -41,111 +51,100 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== 'POST') {
+    return json({ error: 'Method not allowed' }, 405);
+  }
+
+  let body: FinalizeRequest;
   try {
-    if (req.method !== 'POST') {
-      return json({ error: "Method not allowed" }, 405);
-    }
+    body = await req.json();
+  } catch {
+    return json({ error: 'Invalid JSON body' }, 400);
+  }
 
-    // Parse request body
-    let body: FinalizeRequest;
-    try {
-      const rawBody = await req.text();
-      console.log('Raw body length:', rawBody.length);
-      console.log('Raw body content:', rawBody.substring(0, 200));
-      
-      if (!rawBody || rawBody.trim() === '') {
-        console.error('Request body is empty');
-        return json({ error: "Request body is empty" }, 400);
-      }
-      
-      body = JSON.parse(rawBody);
-      console.log('Parsed request body:', JSON.stringify(body, null, 2));
-    } catch (parseError) {
-      console.error('Failed to parse request body:', parseError);
-      return json({ error: "Invalid JSON in request body", details: parseError.message }, 400);
-    }
+  const { id, bucket, processed, meta } = body;
+  
+  // Validate required fields
+  if (!id || !bucket) {
+    return json({ error: 'id and bucket are required' }, 400);
+  }
 
-    const { id, bucket, original_path, processed, meta } = body;
+  // Normalize paths - support both new key format and legacy path format
+  const originalKey = normalizeKey(bucket, body.original_key || body.original_path);
+  const imageKey = normalizeKey(bucket, processed.image_key || processed.image);
+  const video1080Key = normalizeKey(bucket, processed.video_1080_key || processed.video_1080);
+  const video720Key = normalizeKey(bucket, processed.video_720_key || processed.video_720);
 
-    // Validate required fields
-    if (!id || !bucket || !original_path) {
-      console.error('Missing required fields:', { id, bucket, original_path, processed, meta });
+  if (!imageKey && !video1080Key && !video720Key) {
+    return json({ error: 'at least one processed key is required' }, 400);
+  }
+
+  console.log(`Finalizing media ${id}:`, {
+    bucket,
+    originalKey,
+    imageKey,
+    video1080Key,
+    video720Key,
+    meta
+  });
+
+  // Update database with processed keys (store KEYS, not full URLs)
+  const updateData: any = {
+    processing_status: 'done',
+    width: meta.width || null,
+    height: meta.height || null,
+    tiny_placeholder: meta.tiny_placeholder || null,
+    original_path: null, // Clear original path reference
+    bucket
+  };
+
+  // Set main path and renditions based on what was processed
+  if (imageKey) {
+    updateData.path = imageKey;
+  } else if (video1080Key) {
+    updateData.path = video1080Key;
+  }
+
+  // Always store renditions if we have any video
+  if (video1080Key || video720Key) {
+    updateData.renditions = {
+      ...(video1080Key && { video_1080: video1080Key }),
+      ...(video720Key && { video_720: video720Key })
+    };
+  }
+
+  if (meta.duration) {
+    updateData.duration = meta.duration;
+  }
+
+  const { error: updateError } = await supabaseService
+    .from('media')
+    .update(updateData)
+    .eq('id', id);
+
+  if (updateError) {
+    console.error('DB update failed:', updateError);
+    return json({ error: `db upsert failed: ${updateError.message}` }, 400);
+  }
+
+  console.log(`Successfully updated media row ${id}`);
+
+  // Delete original file (key relative to bucket)
+  if (originalKey) {
+    const { error: deleteError } = await supabaseService.storage
+      .from(bucket)
+      .remove([originalKey]);
+
+    if (deleteError) {
+      console.error('Storage removal failed:', deleteError);
       return json({ 
-        error: "Missing required fields: id, bucket, original_path",
-        received: { id, bucket, original_path, processed_keys: Object.keys(processed || {}), meta }
+        error: `remove failed: ${deleteError.message}`, 
+        key: originalKey 
       }, 400);
     }
 
-    console.log(`Finalizing media ${id}: original=${original_path}, processed=${JSON.stringify(processed)}`);
-    console.log('Full request body received:', JSON.stringify(body, null, 2));
-
-    // Step 1: Update media row with processed paths and metadata
-    const updateData: any = {
-      processing_status: 'done',
-      width: meta.width,
-      height: meta.height,
-      tiny_placeholder: meta.tiny_placeholder,
-      original_path: null // Clear original path reference
-    };
-
-    // Set main path and renditions based on what was processed
-    if (processed.image) {
-      updateData.path = processed.image;
-    } else if (processed.video_1080) {
-      updateData.path = processed.video_1080;
-      updateData.renditions = {
-        video_1080: processed.video_1080,
-        ...(processed.video_720 && { video_720: processed.video_720 })
-      };
-    }
-
-    if (meta.duration) {
-      updateData.duration = meta.duration;
-    }
-
-    const { error: updateError } = await supabaseService
-      .from('media')
-      .update(updateData)
-      .eq('id', id);
-
-    if (updateError) {
-      console.error('Failed to update media row:', updateError);
-      return json({ error: `Database update failed: ${updateError.message}` }, 500);
-    }
-
-    console.log(`Successfully updated media row ${id} with processed paths`);
-
-    // Step 2: Delete original file from content/incoming/
-    try {
-      const { error: deleteError } = await supabaseService.storage
-        .from(bucket)
-        .remove([original_path]);
-
-      if (deleteError) {
-        console.warn(`Failed to delete original file ${original_path}:`, deleteError);
-        // Don't fail the entire operation if deletion fails
-        // The cleanup function will handle orphaned files
-      } else {
-        console.log(`Successfully deleted original file: ${original_path}`);
-      }
-    } catch (deleteError) {
-      console.warn(`Error during file deletion:`, deleteError);
-      // Continue without failing
-    }
-
-    // Step 3: Return success
-    return json({ 
-      ok: true, 
-      message: 'Media finalized successfully',
-      processed_paths: processed,
-      metadata: meta
-    });
-
-  } catch (error) {
-    console.error('Finalize media error:', error);
-    return json({ 
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : String(error)
-    }, 500);
+    console.log(`Successfully deleted original file: ${originalKey}`);
   }
+
+  return json({ ok: true });
 });

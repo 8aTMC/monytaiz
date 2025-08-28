@@ -220,22 +220,38 @@ export const useOptimizedUpload = () => {
     tinyPlaceholder: string
   ) => {
     const { data, error } = await supabase.functions.invoke('finalize-media', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: {
         id: mediaRowId,
         bucket: 'content',
-        original_path: originalPath,
-        processed: processedPaths,
+        original_key: originalPath,
+        processed: {
+          image_key: processedPaths.image,
+          video_1080_key: processedPaths.video_1080,
+          video_720_key: processedPaths.video_720
+        },
         meta: {
           width: metadata.width,
           height: metadata.height,
           duration: metadata.duration,
           tiny_placeholder: tinyPlaceholder
         }
-      },
-      headers: { 'Content-Type': 'application/json' }
+      }
     });
 
-    if (error) throw error;
+    if (error) {
+      // Log server error message for debugging
+      if (error.context) {
+        try {
+          const errorBody = await error.context.clone().text();
+          console.error('finalize-media error body:', errorBody);
+        } catch (e) {
+          console.error('Could not read error body:', e);
+        }
+      }
+      throw error;
+    }
     return data;
   }, []);
 
