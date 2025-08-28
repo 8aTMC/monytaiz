@@ -2,10 +2,6 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface OptimizedMediaState {
-  tinyPlaceholder: string | null;
-  thumbnailUrl: string | null;
-  previewUrl: string | null;
-  fullUrl: string | null;
   currentUrl: string | null;
   isLoading: boolean;
   error: boolean;
@@ -16,10 +12,6 @@ interface MediaItem {
   type: 'image' | 'video' | 'audio';
   storage_path?: string;
   path?: string;
-  renditions?: {
-    video_1080?: string;
-    video_720?: string;
-  };
   tiny_placeholder?: string;
   width?: number;
   height?: number;
@@ -27,22 +19,18 @@ interface MediaItem {
 
 const SUPABASE_PROJECT_URL = 'https://alzyzfjzwvofmjccirjq.supabase.co';
 
-// Cache for transform URLs
-const urlCache = new Map<string, { url: string; expires: number }>();
+// Enhanced cache for URLs
+const urlCache = new Map();
 
 export const useOptimizedMediaDisplay = () => {
   const [mediaState, setMediaState] = useState<OptimizedMediaState>({
-    tinyPlaceholder: null,
-    thumbnailUrl: null,
-    previewUrl: null,
-    fullUrl: null,
     currentUrl: null,
     isLoading: false,
     error: false
   });
 
   const loadingRef = useRef<boolean>(false);
-  const enhanceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const currentItemRef = useRef<string | null>(null);
 
   // Generate optimized transform URL using Supabase Image Transformations
   const getTransformUrl = useCallback((
@@ -90,223 +78,113 @@ export const useOptimizedMediaDisplay = () => {
           transform: transforms.width || transforms.height ? {
             width: transforms.width,
             height: transforms.height,
-            quality: transforms.quality || 80,
+            quality: transforms.quality || 85,
             resize: transforms.resize || 'cover'
           } : undefined
         });
 
       if (error || !data.signedUrl) {
-        // Don't spam console with warnings for missing files
-        if (error.message !== 'Object not found') {
-          console.warn('Failed to create signed URL for', path, ':', error);
-        }
-        throw new Error(`Failed to create signed URL: ${error.message}`);
+        // Silent handling for missing files
+        return null;
       }
 
       // Cache the result
       urlCache.set(cacheKey, {
         url: data.signedUrl,
-        expires: Date.now() + (expiresIn * 1000) - 60000 // Expire 1 minute early for safety
+        expires: Date.now() + (expiresIn * 1000) - 60000
       });
 
       return data.signedUrl;
     } catch (error) {
-      // Throw error to be handled by caller instead of returning null
-      throw error;
+      // Silent error handling to prevent console spam
+      return null;
     }
   }, []);
 
-  // Load optimized media with progressive enhancement
+  // Simplified media loading with flat file structure priority
   const loadOptimizedMedia = useCallback(async (item: MediaItem, isPublic: boolean = false) => {
-    if (loadingRef.current) return;
+    const itemId = `${item.id}-${item.type}`;
+    
+    // Prevent duplicate loading of same item
+    if (loadingRef.current || currentItemRef.current === itemId) return;
     
     loadingRef.current = true;
+    currentItemRef.current = itemId;
     setMediaState(prev => ({ ...prev, isLoading: true, error: false }));
 
     try {
-      const mediaPath = item.path || item.storage_path;
-      if (!mediaPath) {
-        throw new Error('No storage path available');
-      }
-
-      // Check if processed version exists - try processed path first for new media
-      const processedPath = `processed/${item.id}.webp`;
-      const isLegacyPath = !mediaPath.includes('processed/');
+      // Determine best file path - prioritize processed flat structure
+      let bestPath: string | null = null;
       
-      // Use tiny placeholder for initial display if available
-      let initialUrl: string | null = null;
-      if (item.tiny_placeholder) {
-        initialUrl = item.tiny_placeholder;
-      }
-
-      // Generate URLs based on media type and privacy
-      let thumbnailUrl: string | null = null;
-      let previewUrl: string | null = null;
-      let fullUrl: string | null = null;
-
       if (item.type === 'image') {
-        // Try processed version first for better performance
-        const pathToUse = isLegacyPath ? processedPath : mediaPath;
-        
-        if (isPublic) {
-          fullUrl = getTransformUrl(pathToUse, { quality: 90 });
-          thumbnailUrl = getTransformUrl(pathToUse, {
-            width: 256,
-            height: 256,
-            resize: 'cover',
-            quality: 70
-          });
-          previewUrl = getTransformUrl(pathToUse, {
-            width: 1280,
-            height: 720,
-            resize: 'contain',
-            quality: 80
-          });
-        } else {
-          // For private files, try processed version first, fallback to original
-          try {
-            fullUrl = await getSignedTransformUrl(pathToUse, { quality: 90 });
-            thumbnailUrl = await getSignedTransformUrl(pathToUse, {
-              width: 256,
-              height: 256,
-              resize: 'cover',
-              quality: 70
-            });
-            previewUrl = await getSignedTransformUrl(pathToUse, {
-              width: 1280,
-              height: 720,
-              resize: 'contain',
-              quality: 80
-            });
-          } catch (error) {
-            // If processed version fails and we were trying processed, try original path
-            if (isLegacyPath && pathToUse === processedPath) {
-              try {
-                fullUrl = await getSignedTransformUrl(mediaPath, { quality: 90 });
-                thumbnailUrl = await getSignedTransformUrl(mediaPath, {
-                  width: 256,
-                  height: 256,
-                  resize: 'cover',
-                  quality: 70
-                });
-                previewUrl = await getSignedTransformUrl(mediaPath, {
-                  width: 1280,
-                  height: 720,
-                  resize: 'contain',
-                  quality: 80
-                });
-              } catch (fallbackError) {
-                console.warn('Failed to generate URLs for both processed and original:', item.id);
-                setMediaState(prev => ({
-                  ...prev,
-                  isLoading: false,
-                  error: true
-                }));
-                loadingRef.current = false;
-                return;
-              }
-            } else {
-              console.warn('Failed to generate signed URLs for:', pathToUse, error);
-              setMediaState(prev => ({
-                ...prev,
-                isLoading: false,
-                error: true
-              }));
-              loadingRef.current = false;
-              return;
-            }
-          }
-        }
-
-        // Set URLs immediately - processed files load instantly
-        setMediaState(prev => ({
-          ...prev,
-          thumbnailUrl,
-          previewUrl,
-          fullUrl,
-          // Use full quality directly for better performance
-          currentUrl: fullUrl || thumbnailUrl,
-          tinyPlaceholder: initialUrl,
-          isLoading: false
-        }));
-
+        // Try processed flat structure first
+        bestPath = `processed/${item.id}.webp`;
       } else if (item.type === 'video') {
-        // Try processed version first for videos too
-        const processedVideoPath = `processed/${item.id}.mp4`;
-        const videoPathToUse = isLegacyPath ? processedVideoPath : mediaPath;
-        
-        if (isPublic) {
-          fullUrl = getTransformUrl(videoPathToUse);
-          thumbnailUrl = getTransformUrl(videoPathToUse, {
-            width: 256,
-            height: 256,
-            resize: 'cover',
-            quality: 70
-          });
-        } else {
-          try {
-            fullUrl = await getSignedTransformUrl(videoPathToUse);
-            thumbnailUrl = await getSignedTransformUrl(videoPathToUse, {
-              width: 256,
-              height: 256,
-              resize: 'cover',
-              quality: 70
-            });
-          } catch (error) {
-            // If processed version fails and we were trying processed, try original
-            if (isLegacyPath && videoPathToUse === processedVideoPath) {
-              try {
-                fullUrl = await getSignedTransformUrl(mediaPath);
-                thumbnailUrl = await getSignedTransformUrl(mediaPath, {
-                  width: 256,
-                  height: 256,
-                  resize: 'cover',
-                  quality: 70
-                });
-              } catch (fallbackError) {
-                console.warn('Failed to generate video URLs for both processed and original:', item.id);
-                setMediaState(prev => ({
-                  ...prev,
-                  isLoading: false,
-                  error: true
-                }));
-                loadingRef.current = false;
-                return;
-              }
-            } else {
-              console.warn('Failed to generate video URLs for:', videoPathToUse, error);
-              setMediaState(prev => ({
-                ...prev,
-                isLoading: false,
-                error: true
-              }));
-              loadingRef.current = false;
-              return;
-            }
-          }
-        }
-
-        setMediaState(prev => ({
-          ...prev,
-          thumbnailUrl,
-          fullUrl,
-          currentUrl: fullUrl || thumbnailUrl,
-          tinyPlaceholder: initialUrl,
-          isLoading: false
-        }));
-
-      } else if (item.type === 'audio') {
-        // Audio files don't have visual thumbnails
-        setMediaState(prev => ({
-          ...prev,
-          isLoading: false
-        }));
+        // Try processed flat structure first
+        bestPath = `processed/${item.id}.mp4`;
+      } else {
+        // For audio or other types, fallback to original path
+        bestPath = item.path || item.storage_path || null;
       }
 
-    } catch (error) {
-      console.error('Failed to load optimized media:', error);
+      if (!bestPath) {
+        throw new Error('No valid file path found');
+      }
+
+      let finalUrl: string | null = null;
+
+      if (isPublic) {
+        // For public files, use direct transform URL
+        finalUrl = getTransformUrl(bestPath, {
+          quality: 85,
+          ...(item.type === 'image' && {
+            width: 512,
+            height: 512,
+            resize: 'cover'
+          })
+        });
+      } else {
+        // For private files, get signed URL
+        finalUrl = await getSignedTransformUrl(bestPath, {
+          quality: 85,
+          ...(item.type === 'image' && {
+            width: 512,
+            height: 512,
+            resize: 'cover'
+          })
+        });
+
+        // If processed version fails, try original path as fallback
+        if (!finalUrl && (item.path || item.storage_path)) {
+          const fallbackPath = item.path || item.storage_path!;
+          finalUrl = await getSignedTransformUrl(fallbackPath, {
+            quality: 85,
+            ...(item.type === 'image' && {
+              width: 512,
+              height: 512,
+              resize: 'cover'
+            })
+          });
+        }
+      }
+
+      if (!finalUrl) {
+        throw new Error('Failed to generate media URL');
+      }
+
+      // Set the final URL immediately - no progressive loading
       setMediaState(prev => ({
         ...prev,
+        currentUrl: finalUrl,
+        isLoading: false,
+        error: false
+      }));
+
+    } catch (error) {
+      // Silent error handling - just show error state
+      setMediaState(prev => ({
+        ...prev,
+        currentUrl: null,
         isLoading: false,
         error: true
       }));
@@ -315,54 +193,22 @@ export const useOptimizedMediaDisplay = () => {
     }
   }, [getTransformUrl, getSignedTransformUrl]);
 
-  // Enhance quality on hover/focus
+  // Simple quality enhancement (no-op since we load at full quality)
   const enhanceQuality = useCallback(() => {
-    if (enhanceTimeoutRef.current) {
-      clearTimeout(enhanceTimeoutRef.current);
-    }
-    
-    enhanceTimeoutRef.current = setTimeout(() => {
-      setMediaState(prev => {
-        // Upgrade from thumbnail to preview, or preview to full
-        if (prev.fullUrl && prev.currentUrl !== prev.fullUrl) {
-          return { ...prev, currentUrl: prev.fullUrl };
-        } else if (prev.previewUrl && prev.currentUrl !== prev.previewUrl) {
-          return { ...prev, currentUrl: prev.previewUrl };
-        }
-        return prev;
-      });
-    }, 300);
+    // No-op since we already load at optimal quality
   }, []);
-
-  // Get best available URL for specific use case
-  const getBestUrl = useCallback((
-    purpose: 'thumbnail' | 'preview' | 'full' = 'thumbnail'
-  ): string | null => {
-    switch (purpose) {
-      case 'thumbnail':
-        return mediaState.thumbnailUrl || mediaState.tinyPlaceholder;
-      case 'preview':
-        return mediaState.previewUrl || mediaState.thumbnailUrl || mediaState.tinyPlaceholder;
-      case 'full':
-        return mediaState.fullUrl || mediaState.previewUrl || mediaState.thumbnailUrl || mediaState.tinyPlaceholder;
-      default:
-        return mediaState.currentUrl;
-    }
-  }, [mediaState]);
 
   // Cleanup
   useEffect(() => {
     return () => {
-      if (enhanceTimeoutRef.current) {
-        clearTimeout(enhanceTimeoutRef.current);
-      }
+      currentItemRef.current = null;
+      loadingRef.current = false;
     };
   }, []);
 
   return {
     loadOptimizedMedia,
     enhanceQuality,
-    getBestUrl,
     getTransformUrl,
     getSignedTransformUrl,
     ...mediaState

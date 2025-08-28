@@ -23,19 +23,13 @@ interface MediaThumbnailProps {
 }
 
 export const MediaThumbnail = ({ item, className = "", isPublic = false }: MediaThumbnailProps) => {
-  const { loadOptimizedMedia, currentUrl, tinyPlaceholder, enhanceQuality, error } = useOptimizedMediaDisplay();
+  const { loadOptimizedMedia, currentUrl, enhanceQuality, error } = useOptimizedMediaDisplay();
 
-  // Convert item to the expected format
-  const mediaItem = {
-    id: item.id || crypto.randomUUID(),
-    type: item.type,
-    storage_path: item.storage_path || item.file_path,
-    path: item.path,
-    tiny_placeholder: item.tiny_placeholder,
-    width: item.width,
-    height: item.height,
-    renditions: item.renditions
-  };
+  // Use primitive values to prevent infinite re-renders
+  const itemId = item.id || crypto.randomUUID();
+  const itemType = item.type;
+  const storagePath = item.storage_path || item.file_path;
+  const itemPath = item.path;
 
   const getContentTypeIcon = (type: string) => {
     switch (type) {
@@ -46,21 +40,30 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     }
   };
 
-  // Load optimized media on mount
+  // Load optimized media on mount with primitive dependencies
   useEffect(() => {
-    if (mediaItem.type && (mediaItem.storage_path || mediaItem.path)) {
+    if (itemType && (storagePath || itemPath)) {
+      const mediaItem = {
+        id: itemId,
+        type: itemType,
+        storage_path: storagePath,
+        path: itemPath,
+        tiny_placeholder: item.tiny_placeholder,
+        width: item.width,
+        height: item.height
+      };
       loadOptimizedMedia(mediaItem, isPublic);
     }
-  }, [mediaItem.type, mediaItem.storage_path, mediaItem.path, loadOptimizedMedia, isPublic]);
+  }, [itemId, itemType, storagePath, itemPath, isPublic, loadOptimizedMedia, item.tiny_placeholder, item.width, item.height]);
 
   // For non-image types, show icon
-  if (mediaItem.type !== 'image') {
+  if (itemType !== 'image') {
     return (
       <div className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}>
         <div className="flex flex-col items-center gap-2">
-          {getContentTypeIcon(mediaItem.type)}
+          {getContentTypeIcon(itemType)}
           <span className="text-xs text-muted-foreground capitalize">
-            {mediaItem.type}
+            {itemType}
           </span>
         </div>
       </div>
@@ -79,31 +82,25 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
   }
 
   // Calculate aspect ratio for layout stability
-  const aspectWidth = mediaItem.width ? Math.min(mediaItem.width, 256) : 256;
-  const aspectHeight = mediaItem.height ? Math.round((aspectWidth / (mediaItem.width ?? 1)) * (mediaItem.height ?? 256)) : 256;
+  const aspectWidth = item.width ? Math.min(item.width, 256) : 256;
+  const aspectHeight = item.height ? Math.round((aspectWidth / (item.width ?? 1)) * (item.height ?? 256)) : 256;
 
   return (
     <div 
       className={`aspect-square bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}
-      onMouseEnter={enhanceQuality}
     >
-      {/* Show current URL - processed files load instantly with no blur */}
+      {/* Show current URL - processed files load instantly at full quality */}
       {currentUrl && (
         <img
           src={currentUrl}
           alt={item.title || 'Media thumbnail'}
-          className={`w-full h-full object-cover transition-all duration-300 ${
-            // Only blur tiny placeholders, never blur actual content
-            currentUrl === tinyPlaceholder 
-              ? 'filter blur-[2px] scale-105' 
-              : 'filter-none scale-100'
-          }`}
+          className="w-full h-full object-cover transition-opacity duration-200"
           loading="lazy"
           decoding="async"
           width={aspectWidth}
           height={aspectHeight}
           onError={(e) => {
-            // Silently handle error without spamming console
+            // Silently handle error
             e.currentTarget.style.display = 'none';
           }}
         />
