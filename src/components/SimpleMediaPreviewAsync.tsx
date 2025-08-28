@@ -65,15 +65,24 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden" aria-describedby="media-preview-description">
-        <div id="media-preview-description" className="sr-only">
-          Preview dialog for media file: {item.title || item.original_filename}
+      {/* Custom overlay with highest z-index to cover everything including sidebar */}
+      {isOpen && (
+        <div 
+          className="media-preview-overlay" 
+          onClick={onClose}
+        />
+      )}
+      
+      {/* Dialog content with even higher z-index */}
+      <div className={`media-preview-dialog grid w-full max-w-4xl max-h-[90vh] gap-4 border bg-background p-0 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg overflow-hidden ${isOpen ? 'block' : 'hidden'}`}>
+        <div className="sr-only" id="media-preview-description">
+          Preview dialog for media file: {item?.title || item?.original_filename || 'Unknown file'}
         </div>
-        <DialogHeader className="p-4 border-b">
+        <div className="p-4 border-b">
           <div className="flex items-center justify-between">
-            <DialogTitle className="truncate pr-4">
-              {item.title || item.original_filename}
-            </DialogTitle>
+            <h2 className="text-lg font-semibold truncate pr-4">
+              {item?.title || item?.original_filename || 'Untitled'}
+            </h2>
             <div className="flex gap-2">
               <Button
                 variant="ghost"
@@ -88,7 +97,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
               </Button>
             </div>
           </div>
-        </DialogHeader>
+        </div>
 
         <div className="flex-1 overflow-auto">
           {/* Media Display */}
@@ -210,7 +219,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
             )}
           </div>
         </div>
-      </DialogContent>
+      </div>
     </Dialog>
   );
 };
