@@ -53,14 +53,7 @@ export const LibraryGrid = ({
   }
 
   if (content.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <div className="h-12 w-12 bg-muted rounded-full mx-auto mb-4 flex items-center justify-center">
-          <span className="text-muted-foreground">📁</span>
-        </div>
-        <p className="text-muted-foreground">No content found</p>
-      </div>
-    );
+    return null;
   }
 
   return (

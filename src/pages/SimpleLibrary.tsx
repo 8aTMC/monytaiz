@@ -327,15 +327,9 @@ export default function SimpleLibrary() {
                   <Database className="w-8 h-8 text-muted-foreground" />
                 </div>
                 <h3 className="text-lg font-medium text-foreground mb-2">No media found</h3>
-                <p className="text-muted-foreground mb-4">
+                <p className="text-muted-foreground">
                   {searchQuery ? 'Try adjusting your search terms' : 'Upload some files to get started'}
                 </p>
-                {!searchQuery && (
-                  <Button onClick={handleUpload}>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Files
-                  </Button>
-                )}
               </div>
             )}
 
