@@ -53,7 +53,7 @@ export const LibrarySidebar = ({
 
   return (
     <div className="w-64 bg-card border-r border-border flex-shrink-0 overflow-hidden">
-      <div className="h-full overflow-y-auto custom-scrollbar px-2 py-3">
+      <div className="h-full overflow-y-auto custom-scrollbar px-1 py-3">
         <div className="mb-3">
           <h2 className="text-base font-semibold text-foreground mb-2">Library</h2>
         </div>
@@ -73,11 +73,11 @@ export const LibrarySidebar = ({
                   <IconComponent className="h-3.5 w-3.5 flex-shrink-0" />
                    <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
                      <span className="font-medium text-left w-full truncate text-sm">{truncateText(category.label, 18)}</span>
-                     <span className={`text-xs text-left w-full truncate ${selectedCategory === category.id ? 'text-foreground/80' : 'text-muted-foreground/70'}`}>{truncateText(category.description, 20)}</span>
+                     <span className={`text-xs text-left w-full ${selectedCategory === category.id ? 'text-foreground/80' : 'text-muted-foreground/70'}`}>{category.description}</span>
                    </div>
                 </div>
               </Button>
-              <Badge variant="secondary" className="absolute top-0.5 right-1 text-xs pointer-events-none px-1 py-0 h-4 min-w-[16px] flex items-center justify-center">
+              <Badge variant="secondary" className="absolute top-0.5 right-1 text-[10px] pointer-events-none px-0.5 py-0 h-3 min-w-[12px] flex items-center justify-center">
                 {categoryCounts[category.id] || 0}
               </Badge>
             </div>
@@ -140,13 +140,13 @@ export const LibrarySidebar = ({
                   >
                     <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
                       {isReorderMode && <GripVertical className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />}
-                      <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
-                        <span className="font-medium text-left w-full truncate text-sm">{truncateText(folder.label, 18)}</span>
-                        <span className={`text-xs text-left w-full truncate ${selectedCategory === folder.id ? 'text-foreground/80' : 'text-muted-foreground/70'}`}>{folder.description}</span>
-                      </div>
+                       <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
+                         <span className="font-medium text-left w-full truncate text-sm">{truncateText(folder.label, 18)}</span>
+                         <span className={`text-xs text-left w-full ml-5 ${selectedCategory === folder.id ? 'text-foreground/80' : 'text-muted-foreground/70'}`}>{folder.description}</span>
+                       </div>
                     </div>
                   </Button>
-                   <Badge variant="secondary" className="absolute top-0.5 right-1 text-xs pointer-events-none px-1 py-0 h-4 min-w-[16px] flex items-center justify-center">
+                   <Badge variant="secondary" className="absolute top-0.5 right-1 text-[10px] pointer-events-none px-0.5 py-0 h-3 min-w-[12px] flex items-center justify-center">
                      {categoryCounts[folder.id] || 0}
                    </Badge>
                 </div>
