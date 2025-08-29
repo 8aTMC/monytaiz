@@ -52,32 +52,32 @@ export const LibrarySidebar = ({
     : customFolders;
 
   return (
-    <div className="w-64 bg-card border-r border-border flex-shrink-0">
-      <div className="h-full overflow-y-auto custom-scrollbar px-3 py-4">
+    <div className="w-64 bg-card border-r border-border flex-shrink-0 overflow-hidden">
+      <div className="h-full overflow-y-auto custom-scrollbar px-2 py-3">
         <div className="mb-3">
-          <h2 className="text-lg font-semibold text-foreground mb-3">Library</h2>
+          <h2 className="text-base font-semibold text-foreground mb-2">Library</h2>
         </div>
         
       {/* Default Categories */}
-      <div className="space-y-1 mb-4">
+      <div className="space-y-1 mb-3">
         {defaultCategories.map((category) => {
           const IconComponent = category.icon;
           return (
             <div key={category.id} className="relative">
               <Button
                 variant={selectedCategory === category.id ? "default" : "ghost"}
-                className="w-full justify-start text-left p-2 h-auto pr-10"
+                className="w-full justify-start text-left p-1.5 h-auto pr-8 min-w-0"
                 onClick={() => onCategorySelect(category.id)}
               >
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <IconComponent className="h-4 w-4 flex-shrink-0" />
-                   <div className="flex flex-col items-start min-w-0 flex-1">
-                     <span className="font-medium text-left w-full">{truncateText(category.label, 24)}</span>
-                     <span className={`text-xs text-left w-full ${selectedCategory === category.id ? 'text-foreground' : 'text-muted-foreground/80'}`}>{truncateText(category.description, 30)}</span>
+                <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+                  <IconComponent className="h-3.5 w-3.5 flex-shrink-0" />
+                   <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
+                     <span className="font-medium text-left w-full truncate text-sm">{truncateText(category.label, 18)}</span>
+                     <span className={`text-xs text-left w-full truncate ${selectedCategory === category.id ? 'text-foreground/80' : 'text-muted-foreground/70'}`}>{truncateText(category.description, 20)}</span>
                    </div>
                 </div>
               </Button>
-              <Badge variant="secondary" className="absolute top-1 right-2 text-xs pointer-events-none">
+              <Badge variant="secondary" className="absolute top-0.5 right-1 text-xs pointer-events-none px-1 py-0 h-4 min-w-[16px] flex items-center justify-center">
                 {categoryCounts[category.id] || 0}
               </Badge>
             </div>
@@ -86,10 +86,10 @@ export const LibrarySidebar = ({
       </div>
 
       {/* Horizontal Divider */}
-      <div className="border-t border-border my-4"></div>
+      <div className="border-t border-border my-3"></div>
 
       {/* Action Buttons */}
-        <div className="flex flex-col gap-2 mb-4">
+        <div className="flex flex-col gap-1 mb-3">
           <div className="flex items-center gap-1">
             <NewFolderDialog onFolderCreated={onFolderCreated} />
             
@@ -98,10 +98,9 @@ export const LibrarySidebar = ({
               size="sm"
               onClick={() => setIsReorderMode(!isReorderMode)}
               disabled={customFolders.length === 0}
-              className="text-xs px-2"
+              className="text-xs px-1.5 h-7 flex-shrink-0"
             >
-              <ArrowUpDown className="h-3 w-3 mr-1" />
-              Reorder
+              <ArrowUpDown className="h-3 w-3" />
             </Button>
           </div>
         </div>
@@ -110,7 +109,7 @@ export const LibrarySidebar = ({
       {sortedCustomFolders.length > 0 && (
         <div className="space-y-1">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-medium text-muted-foreground">My Folders</div>
+            <div className="text-xs font-medium text-muted-foreground">My Folders</div>
           </div>
           
           {sortedCustomFolders.map((folder, index) => {
@@ -119,7 +118,7 @@ export const LibrarySidebar = ({
               <div key={folder.id}>
                 <div className={`relative ${isReorderMode ? 'cursor-move' : ''}`}>
                   {!isReorderMode && (
-                    <div className="absolute top-1 left-1 z-10">
+                    <div className="absolute top-0.5 left-0.5 z-10">
                       <EditFolderDialog 
                         folder={{
                           id: folder.id,
@@ -131,7 +130,7 @@ export const LibrarySidebar = ({
                   )}
                   <Button
                     variant={selectedCategory === folder.id ? "default" : "ghost"}
-                    className={`w-full justify-start text-left p-2 h-auto pr-10 ${!isReorderMode ? 'pl-10' : 'pl-2'}`}
+                    className={`w-full justify-start text-left p-1.5 h-auto pr-8 min-w-0 ${!isReorderMode ? 'pl-7' : 'pl-1.5'}`}
                     onClick={() => {
                       if (!isReorderMode) {
                         onCategorySelect(folder.id);
@@ -139,20 +138,20 @@ export const LibrarySidebar = ({
                     }}
                     disabled={isReorderMode}
                   >
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      {isReorderMode && <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
-                      <div className="flex flex-col items-start min-w-0 flex-1">
-                        <span className="font-medium text-left w-full">{truncateText(folder.label, 30)}</span>
-                        <span className={`text-xs text-left w-full ${selectedCategory === folder.id ? 'text-foreground' : 'text-muted-foreground/80'}`}>{folder.description}</span>
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+                      {isReorderMode && <GripVertical className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />}
+                      <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
+                        <span className="font-medium text-left w-full truncate text-sm">{truncateText(folder.label, 18)}</span>
+                        <span className={`text-xs text-left w-full truncate ${selectedCategory === folder.id ? 'text-foreground/80' : 'text-muted-foreground/70'}`}>{folder.description}</span>
                       </div>
                     </div>
                   </Button>
-                   <Badge variant="secondary" className="absolute top-1 right-2 text-xs pointer-events-none">
+                   <Badge variant="secondary" className="absolute top-0.5 right-1 text-xs pointer-events-none px-1 py-0 h-4 min-w-[16px] flex items-center justify-center">
                      {categoryCounts[folder.id] || 0}
                    </Badge>
                 </div>
                 
-                <div className="h-px mx-2 bg-border/30" />
+                <div className="h-px mx-1 bg-border/30" />
               </div>
             );
           })}
