@@ -332,7 +332,7 @@ const ContentLibrary = () => {
 
   return (
     <LibraryErrorBoundary>
-      <div className="h-full flex overflow-hidden -mx-6 -mb-6">
+      <div className="h-full flex overflow-hidden -mb-6">
         {/* Sidebar */}
         <LibrarySidebar
           defaultCategories={defaultCategories}
