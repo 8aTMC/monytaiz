@@ -59,18 +59,16 @@ export const NewFolderDialog = ({ onFolderCreated }: NewFolderDialogProps) => {
       }
 
       const { error } = await supabase
-        .from('collections')
+        .from('file_folders')
         .insert({
           name: name.trim(),
           description: description.trim() || null,
           creator_id: user.id,
-          created_by: user.id,
-          system: false,
         });
 
       if (error) {
         // Handle unique constraint violation
-        if (error.code === '23505' && error.message.includes('unique_collection_name_per_creator')) {
+        if (error.code === '23505' && error.message.includes('unique_file_folder_name_per_creator')) {
           toast({
             title: "Error",
             description: "A folder with this name already exists",
