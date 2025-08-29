@@ -53,7 +53,7 @@ export const LibrarySidebar = ({
 
   return (
     <div className="w-64 bg-card border-r border-border flex-shrink-0">
-      <div className="h-full overflow-y-auto custom-scrollbar p-4">
+      <div className="h-full overflow-y-auto custom-scrollbar px-3 py-4">
         <div className="mb-3">
           <h2 className="text-lg font-semibold text-foreground mb-3">Library</h2>
         </div>
@@ -89,21 +89,22 @@ export const LibrarySidebar = ({
       <div className="border-t border-border my-4"></div>
 
       {/* Action Buttons */}
-      <div className="flex flex-col gap-2 mb-4">
-        <div className="flex items-center gap-2">
-          <NewFolderDialog onFolderCreated={onFolderCreated} />
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsReorderMode(!isReorderMode)}
-            disabled={customFolders.length === 0}
-          >
-            <ArrowUpDown className="h-4 w-4 mr-2" />
-            Reorder
-          </Button>
+        <div className="flex flex-col gap-2 mb-4">
+          <div className="flex items-center gap-1">
+            <NewFolderDialog onFolderCreated={onFolderCreated} />
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsReorderMode(!isReorderMode)}
+              disabled={customFolders.length === 0}
+              className="text-xs px-2"
+            >
+              <ArrowUpDown className="h-3 w-3 mr-1" />
+              Reorder
+            </Button>
+          </div>
         </div>
-      </div>
 
       {/* Custom Folders */}
       {sortedCustomFolders.length > 0 && (
