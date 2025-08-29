@@ -1,6 +1,6 @@
 import React from 'react';
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useSidebar } from '@/components/Navigation';
 import { User, Session } from '@supabase/supabase-js';
@@ -16,7 +16,6 @@ import { useMediaOperations } from '@/hooks/useMediaOperations';
 import { MediaPreviewDialog } from '@/components/MediaPreviewDialog';
 import { useToast } from '@/hooks/use-toast';
 import { LibraryGrid } from '@/components/LibraryGrid';
-import { LibrarySidebar } from '@/components/LibrarySidebar';
 import { useLibraryData } from '@/hooks/useLibraryData';
 import { LibraryErrorBoundary } from '@/components/LibraryErrorBoundary';
 
@@ -42,6 +41,7 @@ interface MediaItem {
 const ContentLibrary = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +50,7 @@ const ContentLibrary = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
-  const [selectedCategory, setSelectedCategory] = useState('all-files');
+  const selectedCategory = searchParams.get('category') || 'all-files';
   
   // Selection state
   const [selecting, setSelecting] = useState(false);
@@ -130,11 +130,11 @@ const ContentLibrary = () => {
   }, []);
 
   const handleCategorySelect = useCallback((categoryId: string) => {
-    setSelectedCategory(categoryId);
+    setSearchParams({ category: categoryId });
     setSelectedFilter('all');
     setSelecting(false);
     setSelectedItems(new Set());
-  }, []);
+  }, [setSearchParams]);
 
   // Stable selection handlers using functional updates
   const handleToggleItem = useCallback((itemId: string) => {
@@ -333,19 +333,8 @@ const ContentLibrary = () => {
 
   return (
     <LibraryErrorBoundary>
-      <div className="h-full flex overflow-hidden -mb-6">
-        {/* Sidebar */}
-        <LibrarySidebar
-          defaultCategories={defaultCategories}
-          customFolders={customFolders}
-          selectedCategory={selectedCategory}
-          categoryCounts={categoryCounts}
-          onCategorySelect={handleCategorySelect}
-          onFolderCreated={() => {}}
-          onFolderUpdated={() => {}}
-        />
-
-        {/* Main Content Area */}
+      <div className="h-full flex flex-col overflow-hidden -mb-6">
+        {/* Main Content Area - Full Width */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Enhanced Header */}
           <div className="bg-gradient-header border-b border-border/50 p-6 pb-5 backdrop-blur-sm">
