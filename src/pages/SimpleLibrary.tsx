@@ -35,12 +35,15 @@ export default function SimpleLibrary() {
 
   // Fetch folders from database
   const fetchFolders = useCallback(async () => {
+    console.log('Fetching folders...');
     setFoldersLoading(true);
     try {
       const { data, error } = await supabase
         .from('file_folders')
         .select('*')
         .order('name');
+
+      console.log('Folders query result:', { data, error });
 
       if (error) throw error;
 
@@ -53,6 +56,7 @@ export default function SimpleLibrary() {
         isDefault: false
       }));
 
+      console.log('Transformed folders:', folders);
       setCustomFolders(folders);
     } catch (error: any) {
       console.error('Error fetching folders:', error);
