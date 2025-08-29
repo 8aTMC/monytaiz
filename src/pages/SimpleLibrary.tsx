@@ -9,7 +9,9 @@ import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Database, MessageSquare, Zap, FileImage, Search } from 'lucide-react';
+import { Database, MessageSquare, Zap, FileImage, Search, Folder } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SimpleLibrary() {
   const { media, loading, error, fetchMedia, getFullUrlAsync } = useSimpleMedia();
@@ -25,10 +27,49 @@ export default function SimpleLibrary() {
   const [selectedFilter, setSelectedFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
+  
+  // Folders state
+  const [customFolders, setCustomFolders] = useState<any[]>([]);
+  const [foldersLoading, setFoldersLoading] = useState(false);
+  const { toast } = useToast();
+
+  // Fetch folders from database
+  const fetchFolders = useCallback(async () => {
+    setFoldersLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('file_folders')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+
+      // Transform folders to match LibrarySidebar expected format
+      const folders = data.map(folder => ({
+        id: folder.id,
+        label: folder.name,
+        icon: Folder,
+        description: folder.description || 'Custom folder',
+        isDefault: false
+      }));
+
+      setCustomFolders(folders);
+    } catch (error: any) {
+      console.error('Error fetching folders:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load folders",
+        variant: "destructive",
+      });
+    } finally {
+      setFoldersLoading(false);
+    }
+  }, [toast]);
 
   useEffect(() => {
     fetchMedia();
-  }, [fetchMedia]);
+    fetchFolders();
+  }, [fetchMedia, fetchFolders]);
 
   // Stable event handlers
   const handlePreviewClose = useCallback(() => {
@@ -52,14 +93,14 @@ export default function SimpleLibrary() {
     setSortBy(sort);
   }, []);
 
-  // Folder management handlers - stable empty functions
+  // Folder management handlers
   const handleFolderCreated = useCallback(() => {
-    // TODO: Implement folder creation refresh
-  }, []);
+    fetchFolders();
+  }, [fetchFolders]);
 
   const handleFolderUpdated = useCallback(() => {
-    // TODO: Implement folder update refresh  
-  }, []);
+    fetchFolders();
+  }, [fetchFolders]);
 
   // Convert SimpleMediaItem to the format expected by LibraryGrid - stable conversion
   const convertedMedia = useMemo(() => {
@@ -251,7 +292,7 @@ export default function SimpleLibrary() {
           {/* Sidebar */}
           <LibrarySidebar
             defaultCategories={defaultCategories}
-            customFolders={[]}
+            customFolders={customFolders}
             selectedCategory={selectedCategory}
             categoryCounts={categoryCounts}
             onCategorySelect={handleCategorySelect}
