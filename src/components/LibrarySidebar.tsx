@@ -142,7 +142,7 @@ export const LibrarySidebar = ({
                       {isReorderMode && <GripVertical className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />}
                        <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
                          <span className="font-medium text-left w-full truncate text-sm">{truncateText(folder.label, 18)}</span>
-                         <span className={`text-xs text-left w-full ml-5 ${selectedCategory === folder.id ? 'text-foreground/80' : 'text-muted-foreground/70'}`}>{folder.description}</span>
+                         <span className={`text-xs text-left w-full ${selectedCategory === folder.id ? 'text-foreground/80' : 'text-muted-foreground/70'}`}>{folder.description}</span>
                        </div>
                     </div>
                   </Button>
