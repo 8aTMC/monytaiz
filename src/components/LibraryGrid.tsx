@@ -96,34 +96,39 @@ const LibraryGridComponent = ({
         return (
           <Card 
             key={`${item.id}-${index}`}
-            className={`group cursor-pointer border border-border hover:border-primary/50 transition-colors relative ${
-              selectedItems.has(item.id) ? 'ring-2 ring-primary border-primary' : ''
+            className={`group cursor-pointer relative overflow-hidden transition-all duration-300 hover:shadow-shadow-hover transform hover:-translate-y-1 ${
+              selectedItems.has(item.id) 
+                ? 'ring-2 ring-primary border-primary shadow-shadow-glow bg-gradient-selection' 
+                : 'border border-border/50 hover:border-primary/30 bg-gradient-card hover:shadow-shadow-elevated'
             }`}
             onClick={handleItemClick}
           >
-            {/* Selection checkbox - transparent overlay */}
-            <div className="absolute top-2 right-2 z-10">
+            {/* Enhanced Selection checkbox */}
+            <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-all duration-300">
               <div 
-                className={`w-6 h-6 rounded border flex items-center justify-center cursor-pointer transition-all ${
+                className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-all duration-300 backdrop-blur-md ${
                   selectedItems.has(item.id) 
-                    ? 'bg-primary border-primary text-primary-foreground shadow-lg' 
-                    : 'bg-black/20 border-white/30 hover:bg-black/40 backdrop-blur-sm'
+                    ? 'bg-gradient-primary border-white/30 text-white shadow-shadow-glow scale-110 opacity-100' 
+                    : 'bg-black/30 border-white/40 hover:bg-black/50 hover:border-white/60 hover:scale-110'
                 }`}
                 onClick={handleCheckboxClick}
               >
-                {selectedItems.has(item.id) && <Check className="h-4 w-4" />}
+                {selectedItems.has(item.id) && <Check className="h-4 w-4 font-bold" />}
               </div>
             </div>
 
-            <CardContent className="p-0 relative">
-              {/* Date */}
-              <div className="absolute top-2 left-2 z-10 text-xs text-white bg-black/50 rounded px-1.5 py-0.5">
+            <CardContent className="p-0 relative overflow-hidden">
+              {/* Enhanced Date badge */}
+              <div className="absolute top-3 left-3 z-10 text-xs text-white bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 font-medium">
                 {new Date(item.created_at).toLocaleDateString('en-US', { 
                   month: 'short', 
                   day: 'numeric', 
                   year: 'numeric' 
                 })}
               </div>
+              
+              {/* Overlay gradient for better text readability */}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40 z-5"></div>
 
               {/* Thumbnail */}
               <MediaThumbnail 
@@ -137,16 +142,29 @@ const LibraryGridComponent = ({
                 }}
               />
               
-              {/* Categories */}
-              <div className="absolute bottom-2 left-2 right-2 z-10">
-                <div className="text-xs text-white bg-black/50 rounded px-1.5 py-0.5 truncate">
-                  {(() => {
-                    const defaultTags = ['upload', 'story', 'livestream', 'message'];
-                    const customTags = item.tags.filter(tag => !defaultTags.includes(tag.toLowerCase()));
-                    return customTags.length > 0 ? customTags.join(', ') : item.origin;
-                  })()}
+              {/* Enhanced Categories with improved styling */}
+              <div className="absolute bottom-3 left-3 right-3 z-10 flex items-center justify-between">
+                <div className="flex-1 mr-2">
+                  <div className="text-xs text-white bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 truncate font-medium">
+                    {(() => {
+                      const defaultTags = ['upload', 'story', 'livestream', 'message'];
+                      const customTags = item.tags.filter(tag => !defaultTags.includes(tag.toLowerCase()));
+                      return customTags.length > 0 ? customTags.join(', ') : item.origin;
+                    })()}
+                  </div>
+                </div>
+                
+                {/* File type indicator */}
+                <div className="flex-shrink-0">
+                  <div className={`w-2 h-2 rounded-full ${
+                    item.type === 'video' ? 'bg-red-400' :
+                    item.type === 'audio' ? 'bg-green-400' : 'bg-blue-400'
+                  }`}></div>
                 </div>
               </div>
+              
+              {/* Hover overlay effect */}
+              <div className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-10 transition-opacity duration-300 z-5"></div>
             </CardContent>
           </Card>
         );

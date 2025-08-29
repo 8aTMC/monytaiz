@@ -6,6 +6,7 @@ import { useSidebar } from '@/components/Navigation';
 import { User, Session } from '@supabase/supabase-js';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Grid, BookOpen, Zap, MessageSquare } from 'lucide-react';
@@ -345,56 +346,68 @@ const ContentLibrary = () => {
         />
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <div className="bg-card border-b border-border p-6 pb-4">
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                {categoryLabel}
-              </h1>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Enhanced Header */}
+          <div className="bg-gradient-header border-b border-border/50 p-6 pb-5 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold text-foreground">
+                  {categoryLabel}
+                </h1>
+                <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+                  {content.length} items
+                </Badge>
+              </div>
             </div>
 
-            {/* Controls and Filters */}
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              {/* Filter Tabs */}
+            {/* Enhanced Controls and Filters */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              {/* Enhanced Filter Tabs */}
               <div className="flex items-center gap-2 flex-wrap order-2 lg:order-1">
                 {[
-                  { id: 'all', label: 'All' },
-                  { id: 'image', label: 'Photo' },
-                  { id: 'video', label: 'Video' },
-                  { id: 'audio', label: 'Audio' }
-                ].map((filter) => (
-                  <Button
-                    key={filter.id}
-                    variant={selectedFilter === filter.id ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleFilterChange(filter.id)}
-                    className="whitespace-nowrap"
-                  >
-                    {filter.label}
-                  </Button>
-                ))}
+                  { id: 'all', label: 'All Content', icon: Grid },
+                  { id: 'image', label: 'Photos', icon: Grid },
+                  { id: 'video', label: 'Videos', icon: Grid },
+                  { id: 'audio', label: 'Audio', icon: Grid }
+                ].map((filter) => {
+                  const isSelected = selectedFilter === filter.id;
+                  return (
+                    <Button
+                      key={filter.id}
+                      variant={isSelected ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleFilterChange(filter.id)}
+                      className={`whitespace-nowrap transition-all duration-300 ${
+                        isSelected 
+                          ? "bg-gradient-primary shadow-shadow-soft" 
+                          : "hover:bg-gradient-glass hover:shadow-shadow-soft/50"
+                      }`}
+                    >
+                      {filter.label}
+                    </Button>
+                  );
+                })}
               </div>
 
-                {/* Search and Sort Controls */}
-              <div className="flex items-center gap-3 order-1 lg:order-2">
-                {/* Search */}
+                {/* Enhanced Search and Sort Controls */}
+              <div className="flex items-center gap-4 order-1 lg:order-2">
+                {/* Enhanced Search */}
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
-                    placeholder="Search content..."
+                    placeholder="Search your content..."
                     value={searchQuery}
                     onChange={(e) => handleSearchChange(e.target.value)}
-                    className="pl-10 w-40 focus:w-64 transition-all duration-200"
+                    className="pl-12 w-48 focus:w-72 transition-all duration-300 bg-gradient-glass border-border/50 focus:border-primary/50 focus:shadow-shadow-glow"
                   />
                 </div>
 
-                {/* Sort By */}
+                {/* Enhanced Sort By */}
                 <Select value={sortBy} onValueChange={handleSortChange}>
-                  <SelectTrigger className="w-36">
+                  <SelectTrigger className="w-40 bg-gradient-glass border-border/50 hover:border-primary/30 transition-all duration-300">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-card/95 backdrop-blur-md border-border/50">
                     <SelectItem value="newest">Newest First</SelectItem>
                     <SelectItem value="oldest">Oldest First</SelectItem>
                     <SelectItem value="price_high">Price: High to Low</SelectItem>
@@ -402,7 +415,7 @@ const ContentLibrary = () => {
                   </SelectContent>
                 </Select>
 
-                {/* Select Toggle Button */}
+                {/* Enhanced Select Toggle Button */}
                 <Button
                   variant={selecting ? "default" : "outline"}
                   size="sm"
@@ -412,16 +425,21 @@ const ContentLibrary = () => {
                       setSelectedItems(new Set());
                     }
                   }}
+                  className={`transition-all duration-300 ${
+                    selecting 
+                      ? "bg-gradient-primary shadow-shadow-glow" 
+                      : "hover:bg-gradient-glass hover:shadow-shadow-soft/50"
+                  }`}
                 >
-                  Select
+                  {selecting ? "Cancel Select" : "Select Items"}
                 </Button>
               </div>
             </div>
           </div>
 
-          {/* Selection Toolbar - positioned between controls and content */}
+          {/* Enhanced Selection Toolbar */}
           {selecting && (
-            <div className="bg-card border-b border-border p-4">
+            <div className="p-4 pt-6">
               <LibrarySelectionToolbar
                 selectedCount={selectedItems.size}
                 totalCount={content.length}
@@ -436,8 +454,8 @@ const ContentLibrary = () => {
             </div>
           )}
 
-          {/* Content Area */}
-          <div className="flex-1 overflow-y-auto p-6">
+          {/* Enhanced Content Area */}
+          <div className="flex-1 overflow-y-auto p-6 pt-4 custom-scrollbar">
             {/* Content Grid */}
             <LibraryGrid
               content={content}

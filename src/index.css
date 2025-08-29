@@ -46,16 +46,21 @@ All colors MUST be HSL.
 
     --radius: 0.75rem;
 
-    /* Light theme gradients */
+    /* Enhanced gradients for modern UI */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(210 20% 96%) 50%, hsl(var(--card)) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(210 20% 98%) 30%, hsl(var(--card)) 100%);
     --gradient-hero: linear-gradient(135deg, hsl(200 95% 50%), hsl(215 80% 60%), hsl(45 100% 55%));
-    --gradient-glass: linear-gradient(135deg, hsla(200, 95%, 50%, 0.1), hsla(215, 80%, 60%, 0.05));
+    --gradient-glass: linear-gradient(135deg, hsla(200, 95%, 50%, 0.08), hsla(215, 80%, 60%, 0.04));
+    --gradient-sidebar: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(210 25% 97%) 100%);
+    --gradient-header: linear-gradient(180deg, hsl(var(--card)) 0%, hsla(200, 95%, 50%, 0.02) 100%);
+    --gradient-selection: linear-gradient(135deg, hsla(200, 95%, 50%, 0.1), hsla(200, 95%, 50%, 0.05));
 
-    /* Light shadows */
-    --shadow-soft: 0 4px 20px hsla(200, 95%, 50%, 0.15);
-    --shadow-glow: 0 0 40px hsla(200, 95%, 50%, 0.2);
-    --shadow-card: 0 8px 32px hsla(220, 9%, 14%, 0.1);
+    /* Enhanced shadows with depth */
+    --shadow-soft: 0 4px 20px hsla(200, 95%, 50%, 0.12);
+    --shadow-glow: 0 0 40px hsla(200, 95%, 50%, 0.15);
+    --shadow-card: 0 8px 32px hsla(220, 9%, 14%, 0.08);
+    --shadow-elevated: 0 12px 48px hsla(220, 9%, 14%, 0.12);
+    --shadow-hover: 0 16px 64px hsla(200, 95%, 50%, 0.2);
 
   /* Animations */
   --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -109,8 +114,18 @@ All colors MUST be HSL.
     --input: 240 4% 10%;
     --ring: 259 94% 51%;
     
-    /* Dark theme gradients */
-    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(240 4% 10%) 50%, hsl(var(--card)) 100%);
+    /* Enhanced dark theme gradients */
+    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(240 4% 8%) 30%, hsl(var(--card)) 100%);
+    --gradient-sidebar: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(240 4% 8%) 100%);
+    --gradient-header: linear-gradient(180deg, hsl(var(--card)) 0%, hsla(259, 94%, 51%, 0.02) 100%);
+    --gradient-selection: linear-gradient(135deg, hsla(259, 94%, 51%, 0.15), hsla(259, 94%, 51%, 0.08));
+
+    /* Enhanced dark shadows */
+    --shadow-soft: 0 4px 20px hsla(0, 0%, 0%, 0.3);
+    --shadow-glow: 0 0 40px hsla(259, 94%, 51%, 0.2);
+    --shadow-card: 0 8px 32px hsla(0, 0%, 0%, 0.4);
+    --shadow-elevated: 0 12px 48px hsla(0, 0%, 0%, 0.5);
+    --shadow-hover: 0 16px 64px hsla(259, 94%, 51%, 0.3);
     
     --sidebar-background: 240 4% 6%;
     --sidebar-foreground: 0 0% 98%;

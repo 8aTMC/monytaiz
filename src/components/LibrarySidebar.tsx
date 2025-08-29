@@ -52,32 +52,56 @@ export const LibrarySidebar = ({
     : customFolders;
 
   return (
-    <div className="w-64 bg-card border-r border-border flex-shrink-0 overflow-hidden">
-      <div className="h-full overflow-y-auto custom-scrollbar pl-3 pr-4 py-3">
-        <div className="mb-3">
-          <h2 className="text-base font-semibold text-foreground mb-2">Library</h2>
+    <div className="w-64 flex-shrink-0 overflow-hidden relative">
+      <div className="absolute inset-0 bg-gradient-sidebar"></div>
+      <div className="relative h-full overflow-y-auto custom-scrollbar pl-6 pr-4 py-6">
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-foreground mb-1 bg-gradient-primary bg-clip-text text-transparent">Library</h2>
+          <p className="text-sm text-muted-foreground">Manage your content</p>
         </div>
         
       {/* Default Categories */}
-      <div className="space-y-1 mb-3">
+      <div className="space-y-2 mb-6">
         {defaultCategories.map((category) => {
           const IconComponent = category.icon;
+          const isSelected = selectedCategory === category.id;
           return (
-            <div key={category.id} className="relative">
+            <div key={category.id} className="relative group">
               <Button
-                variant={selectedCategory === category.id ? "default" : "ghost"}
-                className="w-full justify-start text-left p-1.5 h-auto pr-8 min-w-0"
+                variant={isSelected ? "default" : "ghost"}
+                className={`w-full justify-start text-left p-3 h-auto pr-12 min-w-0 relative overflow-hidden transition-all duration-300 ${
+                  isSelected 
+                    ? "bg-gradient-primary shadow-shadow-soft border-0" 
+                    : "hover:bg-gradient-glass hover:shadow-shadow-soft/50 border border-transparent hover:border-border"
+                }`}
                 onClick={() => onCategorySelect(category.id)}
               >
-                <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
-                  <IconComponent className="h-3.5 w-3.5 flex-shrink-0" />
+                <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden relative z-10">
+                  <div className={`p-2 rounded-lg transition-all duration-300 ${
+                    isSelected ? "bg-white/20" : "bg-primary/10 group-hover:bg-primary/20"
+                  }`}>
+                    <IconComponent className={`h-4 w-4 flex-shrink-0 ${isSelected ? "text-white" : "text-primary"}`} />
+                  </div>
                    <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
-                     <span className="font-medium text-left w-full truncate text-sm">{truncateText(category.label, 18)}</span>
-                     <span className={`text-xs text-left w-full ${selectedCategory === category.id ? 'text-foreground/80' : 'text-muted-foreground/70'}`}>{category.description}</span>
+                     <span className={`font-semibold text-left w-full truncate ${isSelected ? "text-white" : "text-foreground"}`}>
+                       {truncateText(category.label, 16)}
+                     </span>
+                     <span className={`text-xs text-left w-full truncate ${
+                       isSelected ? 'text-white/80' : 'text-muted-foreground group-hover:text-foreground/80'
+                     }`}>
+                       {category.description}
+                     </span>
                    </div>
                 </div>
               </Button>
-              <Badge variant="secondary" className="absolute top-0.5 right-1 text-[10px] pointer-events-none px-0.5 py-0 h-3 min-w-[12px] flex items-center justify-center">
+              <Badge 
+                variant="secondary" 
+                className={`absolute top-2 right-2 text-[10px] pointer-events-none px-1.5 py-0.5 h-5 min-w-[20px] flex items-center justify-center transition-all duration-300 ${
+                  isSelected 
+                    ? "bg-white/20 text-white border-white/20" 
+                    : "bg-primary/10 text-primary border-primary/20 group-hover:bg-primary/20"
+                }`}
+              >
                 {categoryCounts[category.id] || 0}
               </Badge>
             </div>
@@ -85,12 +109,17 @@ export const LibrarySidebar = ({
         })}
       </div>
 
-      {/* Horizontal Divider */}
-      <div className="border-t border-border my-3"></div>
+      {/* Elegant Divider */}
+      <div className="relative my-6">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-border to-transparent h-px"></div>
+        <div className="relative flex justify-center">
+          <span className="bg-gradient-sidebar px-3 text-xs font-medium text-muted-foreground">Custom Folders</span>
+        </div>
+      </div>
 
       {/* Action Buttons */}
-        <div className="flex flex-col gap-1 mb-3">
-          <div className="flex items-center gap-1">
+        <div className="flex flex-col gap-3 mb-6">
+          <div className="flex items-center gap-2">
             <NewFolderDialog onFolderCreated={onFolderCreated} />
             
             <Button
@@ -98,7 +127,7 @@ export const LibrarySidebar = ({
               size="sm"
               onClick={() => setIsReorderMode(!isReorderMode)}
               disabled={customFolders.length === 0}
-              className="text-xs px-1.5 h-7 flex-shrink-0"
+              className="text-xs px-2 h-8 flex-shrink-0 hover:bg-gradient-glass transition-all duration-300"
             >
               <ArrowUpDown className="h-3 w-3" />
             </Button>

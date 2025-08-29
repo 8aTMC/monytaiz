@@ -53,23 +53,27 @@ export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = (
 
   return (
     <>
-      <div className="flex items-center justify-between px-4 py-2 border-b bg-card">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between px-6 py-4 bg-gradient-selection border border-primary/20 rounded-lg mx-6 mb-2">
+        <div className="flex items-center gap-3">
           <Button
             variant="secondary"
             size="sm"
             onClick={onClearSelection}
             disabled={disabled}
+            className="hover:bg-destructive/10 hover:text-destructive transition-all duration-300"
           >
             <X className="h-4 w-4 mr-2" />
             Cancel
           </Button>
+
+          <div className="w-px h-6 bg-border"></div>
 
           <Button
             variant="outline"
             size="sm"
             onClick={allSelected ? onClearSelection : onSelectAll}
             disabled={disabled || totalCount === 0}
+            className="hover:bg-gradient-glass transition-all duration-300"
           >
             <Check className="h-4 w-4 mr-2" />
             {allSelected ? "Deselect All" : "Select All"}
@@ -80,9 +84,10 @@ export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = (
             size="sm"
             onClick={handleCopy}
             disabled={!hasSelection || disabled}
+            className="hover:bg-gradient-glass transition-all duration-300"
           >
             <Copy className="h-4 w-4 mr-2" />
-            Copy
+            Copy to Folder
           </Button>
 
           <Button
@@ -90,14 +95,16 @@ export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = (
             size="sm"
             onClick={handleDelete}
             disabled={!hasSelection || disabled}
+            className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all duration-300"
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            Delete
+            {isCustomFolder ? "Remove" : "Delete"}
           </Button>
         </div>
 
-        <div className="text-sm text-muted-foreground">
-          {selectedCount} selected
+        <div className="text-sm font-medium">
+          <span className="text-primary">{selectedCount}</span>
+          <span className="text-muted-foreground"> of {totalCount} selected</span>
         </div>
       </div>
 
