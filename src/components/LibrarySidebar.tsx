@@ -53,7 +53,7 @@ export const LibrarySidebar = ({
 
   return (
     <div className="w-64 bg-card border-r border-border flex-shrink-0 overflow-hidden">
-      <div className="h-full overflow-y-auto custom-scrollbar pl-0 pr-1 py-3 -ml-3">
+      <div className="h-full overflow-y-auto custom-scrollbar pl-0 pr-1 pb-3 -ml-3">
         <div className="mb-3">
           <h2 className="text-base font-semibold text-foreground mb-2">Library</h2>
         </div>
