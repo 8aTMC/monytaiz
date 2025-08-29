@@ -118,7 +118,7 @@ export const LibrarySidebar = ({
               <div key={folder.id}>
                 <div className={`relative ${isReorderMode ? 'cursor-move' : ''}`}>
                   {!isReorderMode && (
-                    <div className="absolute top-0.5 left-0.5 z-10">
+                    <div className="absolute top-1 left-1 z-10">
                       <EditFolderDialog 
                         folder={{
                           id: folder.id,
