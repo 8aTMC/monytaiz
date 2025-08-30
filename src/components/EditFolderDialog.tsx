@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +29,7 @@ interface EditFolderDialogProps {
   folder: {
     id: string;
     label: string;
+    description?: string;
   };
   onFolderUpdated: () => void;
   /** Optional: provide your own trigger node (e.g., a custom icon button). */
@@ -41,6 +43,7 @@ export const EditFolderDialog = ({
 }: EditFolderDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState(folder.label);
+  const [description, setDescription] = useState(folder.description || '');
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
@@ -60,6 +63,7 @@ export const EditFolderDialog = ({
         .from('collections')
         .update({
           name: name.trim(),
+          description: description.trim() || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', folder.id);
@@ -106,7 +110,10 @@ export const EditFolderDialog = ({
     }
   };
 
-  const resetForm = () => setName(folder.label);
+  const resetForm = () => {
+    setName(folder.label);
+    setDescription(folder.description || '');
+  };
 
   // Default elegant three-dots trigger if none provided
   const defaultTrigger = (
@@ -153,6 +160,19 @@ export const EditFolderDialog = ({
               maxLength={30}
             />
             <p className="text-xs text-muted-foreground">{name.length}/30 characters</p>
+          </div>
+          
+          <div className="grid gap-2">
+            <Label htmlFor="folder-description">Description</Label>
+            <Textarea
+              id="folder-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Optional description"
+              maxLength={100}
+              rows={3}
+            />
+            <p className="text-xs text-muted-foreground">{description.length}/100 characters</p>
           </div>
         </div>
 
