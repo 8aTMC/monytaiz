@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { OnboardingForm } from '@/components/OnboardingForm';
+import { ForceLogoutButton } from '@/components/ForceLogoutButton';
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -81,10 +82,15 @@ const Onboarding = () => {
   }
 
   return (
-    <OnboardingForm 
-      userEmail={user.email || ''} 
-      userId={user.id}
-    />
+    <div>
+      <div className="absolute top-4 right-4">
+        <ForceLogoutButton />
+      </div>
+      <OnboardingForm 
+        userEmail={user.email || ''} 
+        userId={user.id}
+      />
+    </div>
   );
 };
 
