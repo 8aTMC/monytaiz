@@ -141,10 +141,10 @@ export const LibrarySidebar = ({
   };
 
   return (
-    <div className="w-64 flex-shrink-0 overflow-hidden relative border-r border-border h-full">
+    <div className="w-full flex-shrink-0 overflow-hidden relative h-full">
       <div className="absolute inset-0 bg-gradient-sidebar" />
-      {/* moved significantly closer to navigation */}
-      <div className="relative h-full overflow-y-auto custom-scrollbar pl-2 pr-3 py-4 -ml-6">
+      {/* Library directory content */}
+      <div className="relative h-full overflow-y-auto custom-scrollbar px-4 py-4">
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-foreground mb-0.5 bg-gradient-primary bg-clip-text text-transparent">
             Library

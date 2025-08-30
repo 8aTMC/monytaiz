@@ -288,20 +288,23 @@ export default function SimpleLibrary() {
   return (
     <>
       <Layout>
-        <div className="flex h-full overflow-hidden -ml-4">
-          {/* Sidebar - moved closer to navigation */}
-          <LibrarySidebar
-            defaultCategories={defaultCategories}
-            customFolders={customFolders}
-            selectedCategory={selectedCategory}
-            categoryCounts={categoryCounts}
-            onCategorySelect={handleCategorySelect}
-            onFolderCreated={handleFolderCreated}
-            onFolderUpdated={handleFolderUpdated}
-          />
-
-          {/* Main Content */}
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Three-column layout: Navigation (fixed) | Library Directory | Main Content */}
+        <div className="grid h-full grid-cols-[288px_1fr] gap-4 -ml-2 lg:grid-cols-[288px_1fr] md:grid-cols-1">
+          {/* Library Directory Column */}
+          <aside className="pr-4 border-r border-border overflow-y-auto md:border-r-0 md:border-b md:pb-4 md:pr-0">
+            <LibrarySidebar
+              defaultCategories={defaultCategories}
+              customFolders={customFolders}
+              selectedCategory={selectedCategory}
+              categoryCounts={categoryCounts}
+              onCategorySelect={handleCategorySelect}
+              onFolderCreated={handleFolderCreated}
+              onFolderUpdated={handleFolderUpdated}
+            />
+          </aside>
+          
+          {/* Main Content Column */}
+          <main className="pl-4 overflow-hidden md:pl-0">
             {/* Selection Toolbar */}
             {selecting && selectedItems.size > 0 && (
               <div className="flex-shrink-0">
@@ -423,7 +426,7 @@ export default function SimpleLibrary() {
                 )}
               </div>
             </div>
-          </div>
+          </main>
         </div>
       </Layout>
 
