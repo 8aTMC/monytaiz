@@ -56,10 +56,10 @@ const Onboarding = () => {
         return;
       }
 
-      // If profile is already complete, redirect to fans section
+      // If profile is already complete, redirect to library
       if (profile?.username && profile?.display_name && profile?.signup_completed && !profile?.temp_username) {
-        console.log('✅ Profile already complete, redirecting to fans section');
-        navigate('/fans');
+        console.log('✅ Profile already complete, redirecting to library');
+        navigate('/library');
       }
     } catch (error) {
       console.error('Error checking profile status:', error);
