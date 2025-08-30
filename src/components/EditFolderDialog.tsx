@@ -1,120 +1,161 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Edit, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { MoreVertical, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+
 interface EditFolderDialogProps {
   folder: {
     id: string;
     label: string;
   };
   onFolderUpdated: () => void;
+  /** Optional: provide your own trigger node (e.g., a custom icon button). */
+  trigger?: React.ReactNode;
 }
+
 export const EditFolderDialog = ({
   folder,
-  onFolderUpdated
+  onFolderUpdated,
+  trigger,
 }: EditFolderDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState(folder.label);
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
+
   const handleSave = async () => {
     if (!name.trim()) {
       toast({
-        title: "Error",
-        description: "Folder name is required",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Folder name is required',
+        variant: 'destructive',
       });
       return;
     }
     setIsLoading(true);
     try {
-      const {
-        error
-      } = await supabase.from('collections').update({
-        name: name.trim(),
-        updated_at: new Date().toISOString()
-      }).eq('id', folder.id);
-      if (error) {
-        throw error;
-      }
-      toast({
-        title: "Success",
-        description: "Folder updated successfully"
-      });
+      const { error } = await supabase
+        .from('collections')
+        .update({
+          name: name.trim(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', folder.id);
+
+      if (error) throw error;
+
+      toast({ title: 'Success', description: 'Folder updated successfully' });
       setIsOpen(false);
       onFolderUpdated();
     } catch (error) {
       console.error('Error updating folder:', error);
       toast({
-        title: "Error",
-        description: "Failed to update folder",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to update folder',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
   };
+
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const {
-        error
-      } = await supabase.from('collections').delete().eq('id', folder.id);
-      if (error) {
-        throw error;
-      }
-      toast({
-        title: "Success",
-        description: "Folder deleted successfully"
-      });
+      const { error } = await supabase
+        .from('collections')
+        .delete()
+        .eq('id', folder.id);
+
+      if (error) throw error;
+
+      toast({ title: 'Success', description: 'Folder deleted successfully' });
       setIsOpen(false);
       onFolderUpdated();
     } catch (error) {
       console.error('Error deleting folder:', error);
       toast({
-        title: "Error",
-        description: "Failed to delete folder",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to delete folder',
+        variant: 'destructive',
       });
     } finally {
       setIsDeleting(false);
     }
   };
-  const resetForm = () => {
-    setName(folder.label);
-  };
-  return <Dialog open={isOpen} onOpenChange={open => {
-    setIsOpen(open);
-    if (!open) {
-      resetForm();
-    }
-  }}>
+
+  const resetForm = () => setName(folder.label);
+
+  // Default elegant three-dots trigger if none provided
+  const defaultTrigger = (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={(e) => e.stopPropagation()}
+      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full"
+      aria-label="Folder options"
+      title="Folder options"
+    >
+      <MoreVertical className="h-4 w-4" />
+    </Button>
+  );
+
+  return (
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open) resetForm();
+      }}
+    >
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" onClick={e => e.stopPropagation()} className="h-8 w-8 p-0 hover:bg-muted/50 mx-0">
-          <Edit className="h-4 w-4" />
-        </Button>
+        {/* If a custom trigger is passed, use it; otherwise use the default kebab */}
+        <span onClick={(e) => e.stopPropagation()}>
+          {trigger ?? defaultTrigger}
+        </span>
       </DialogTrigger>
+
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Folder</DialogTitle>
         </DialogHeader>
+
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="folder-name">Name</Label>
-            <Input id="folder-name" value={name} onChange={e => setName(e.target.value)} placeholder="Enter folder name" maxLength={30} />
-            <p className="text-xs text-muted-foreground">
-              {name.length}/30 characters
-            </p>
+            <Input
+              id="folder-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter folder name"
+              maxLength={30}
+            />
+            <p className="text-xs text-muted-foreground">{name.length}/30 characters</p>
           </div>
         </div>
+
         <div className="flex justify-between">
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -132,7 +173,10 @@ export const EditFolderDialog = ({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
                   Delete
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -140,7 +184,11 @@ export const EditFolderDialog = ({
           </AlertDialog>
 
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isLoading || isDeleting}>
+            <Button
+              variant="outline"
+              onClick={() => setIsOpen(false)}
+              disabled={isLoading || isDeleting}
+            >
               Cancel
             </Button>
             <Button onClick={handleSave} disabled={isLoading || isDeleting}>
@@ -149,5 +197,6 @@ export const EditFolderDialog = ({
           </div>
         </div>
       </DialogContent>
-    </Dialog>;
+    </Dialog>
+  );
 };
