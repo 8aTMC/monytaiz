@@ -289,9 +289,9 @@ export default function SimpleLibrary() {
     <>
       <Layout>
         {/* Three-column layout: Navigation (fixed) | Library Directory | Main Content */}
-        <div className="grid h-full grid-cols-[288px_1fr] gap-4 -ml-2 lg:grid-cols-[288px_1fr] md:grid-cols-1">
+        <div className="grid h-full grid-cols-[280px_1fr] gap-2 -ml-8 lg:grid-cols-[280px_1fr] md:grid-cols-1">
           {/* Library Directory Column */}
-          <aside className="pr-4 border-r border-border overflow-y-auto md:border-r-0 md:border-b md:pb-4 md:pr-0">
+          <aside className="pr-2 border-r border-border overflow-y-auto md:border-r-0 md:border-b md:pb-4 md:pr-0">
             <LibrarySidebar
               defaultCategories={defaultCategories}
               customFolders={customFolders}
@@ -304,7 +304,7 @@ export default function SimpleLibrary() {
           </aside>
           
           {/* Main Content Column */}
-          <main className="pl-4 overflow-hidden md:pl-0">
+          <main className="pl-2 overflow-hidden md:pl-0">
             {/* Selection Toolbar */}
             {selecting && selectedItems.size > 0 && (
               <div className="flex-shrink-0">
