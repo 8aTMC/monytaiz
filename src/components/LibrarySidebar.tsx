@@ -141,10 +141,10 @@ export const LibrarySidebar = ({
   };
 
   return (
-    <div className="w-64 flex-shrink-0 overflow-hidden relative border-r border-purple-500/30">
+    <div className="w-64 flex-shrink-0 overflow-hidden relative border-r border-border/30 -ml-4">
       <div className="absolute inset-0 bg-gradient-sidebar" />
-      {/* move closer to navigation - reduced left padding */}
-      <div className="relative h-full overflow-y-auto custom-scrollbar pl-1 pr-3 py-4">
+      {/* moved closer to navigation with negative margin and reduced padding */}
+      <div className="relative h-full overflow-y-auto custom-scrollbar pl-5 pr-3 py-4">
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-foreground mb-0.5 bg-gradient-primary bg-clip-text text-transparent">
             Library
