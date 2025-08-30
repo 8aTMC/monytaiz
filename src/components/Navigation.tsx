@@ -610,56 +610,6 @@ export const Navigation = ({ role }: NavigationProps) => {
                      <span className="font-medium">Library</span>
                    </Link>
                    
-                   {/* Library Categories - Only show when on library page */}
-                   {location.pathname === '/library' && (
-                     <div className="ml-4 space-y-1 border-l border-border/30 pl-4">
-                       <Link
-                         to="/library?category=all-files"
-                         className={`group flex items-center gap-3 px-4 py-2 ml-2 rounded-lg text-xs transition-all duration-200 hover:scale-[1.02] ${
-                           location.search === '?category=all-files' || (!location.search)
-                             ? 'bg-primary/5 text-primary/90 border border-primary/10'
-                             : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-                         }`}
-                       >
-                         <Grid className="h-3 w-3" />
-                         <span>All Files</span>
-                       </Link>
-                       <Link
-                         to="/library?category=stories"
-                         className={`group flex items-center gap-3 px-4 py-2 ml-2 rounded-lg text-xs transition-all duration-200 hover:scale-[1.02] ${
-                           location.search === '?category=stories'
-                             ? 'bg-primary/5 text-primary/90 border border-primary/10'
-                             : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-                         }`}
-                       >
-                         <BookOpen className="h-3 w-3" />
-                         <span>Stories</span>
-                       </Link>
-                       <Link
-                         to="/library?category=livestreams"
-                         className={`group flex items-center gap-3 px-4 py-2 ml-2 rounded-lg text-xs transition-all duration-200 hover:scale-[1.02] ${
-                           location.search === '?category=livestreams'
-                             ? 'bg-primary/5 text-primary/90 border border-primary/10'
-                             : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-                         }`}
-                       >
-                         <Zap className="h-3 w-3" />
-                         <span>LiveStreams</span>
-                       </Link>
-                       <Link
-                         to="/library?category=messages"
-                         className={`group flex items-center gap-3 px-4 py-2 ml-2 rounded-lg text-xs transition-all duration-200 hover:scale-[1.02] ${
-                           location.search === '?category=messages'
-                             ? 'bg-primary/5 text-primary/90 border border-primary/10'
-                             : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-                         }`}
-                       >
-                         <MessageSquare className="h-3 w-3" />
-                         <span>Messages</span>
-                       </Link>
-                     </div>
-                   )}
-                   
                    <Link
                      to="/upload"
                       className={`group flex items-center gap-3 px-6 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
