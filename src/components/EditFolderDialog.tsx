@@ -7,7 +7,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Edit, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
 interface EditFolderDialogProps {
   folder: {
     id: string;
@@ -15,43 +14,41 @@ interface EditFolderDialogProps {
   };
   onFolderUpdated: () => void;
 }
-
-export const EditFolderDialog = ({ folder, onFolderUpdated }: EditFolderDialogProps) => {
+export const EditFolderDialog = ({
+  folder,
+  onFolderUpdated
+}: EditFolderDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState(folder.label);
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   const handleSave = async () => {
     if (!name.trim()) {
       toast({
         title: "Error",
         description: "Folder name is required",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
-
     setIsLoading(true);
     try {
-      const { error } = await supabase
-        .from('collections')
-        .update({
-          name: name.trim(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', folder.id);
-
+      const {
+        error
+      } = await supabase.from('collections').update({
+        name: name.trim(),
+        updated_at: new Date().toISOString()
+      }).eq('id', folder.id);
       if (error) {
         throw error;
       }
-
       toast({
         title: "Success",
-        description: "Folder updated successfully",
+        description: "Folder updated successfully"
       });
-      
       setIsOpen(false);
       onFolderUpdated();
     } catch (error) {
@@ -59,30 +56,25 @@ export const EditFolderDialog = ({ folder, onFolderUpdated }: EditFolderDialogPr
       toast({
         title: "Error",
         description: "Failed to update folder",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
   };
-
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const { error } = await supabase
-        .from('collections')
-        .delete()
-        .eq('id', folder.id);
-
+      const {
+        error
+      } = await supabase.from('collections').delete().eq('id', folder.id);
       if (error) {
         throw error;
       }
-
       toast({
         title: "Success",
-        description: "Folder deleted successfully",
+        description: "Folder deleted successfully"
       });
-      
       setIsOpen(false);
       onFolderUpdated();
     } catch (error) {
@@ -90,31 +82,23 @@ export const EditFolderDialog = ({ folder, onFolderUpdated }: EditFolderDialogPr
       toast({
         title: "Error",
         description: "Failed to delete folder",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsDeleting(false);
     }
   };
-
   const resetForm = () => {
     setName(folder.label);
   };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      setIsOpen(open);
-      if (!open) {
-        resetForm();
-      }
-    }}>
+  return <Dialog open={isOpen} onOpenChange={open => {
+    setIsOpen(open);
+    if (!open) {
+      resetForm();
+    }
+  }}>
       <DialogTrigger asChild>
-        <Button 
-          variant="ghost" 
-          size="sm"
-          className="h-8 w-8 p-0 hover:bg-muted/50"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <Button variant="ghost" size="sm" onClick={e => e.stopPropagation()} className="h-8 w-8 p-0 hover:bg-muted/50 mx-0">
           <Edit className="h-4 w-4" />
         </Button>
       </DialogTrigger>
@@ -125,13 +109,7 @@ export const EditFolderDialog = ({ folder, onFolderUpdated }: EditFolderDialogPr
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="folder-name">Name</Label>
-            <Input
-              id="folder-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter folder name"
-              maxLength={30}
-            />
+            <Input id="folder-name" value={name} onChange={e => setName(e.target.value)} placeholder="Enter folder name" maxLength={30} />
             <p className="text-xs text-muted-foreground">
               {name.length}/30 characters
             </p>
@@ -154,10 +132,7 @@ export const EditFolderDialog = ({ folder, onFolderUpdated }: EditFolderDialogPr
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDelete}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
+                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                   Delete
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -165,22 +140,14 @@ export const EditFolderDialog = ({ folder, onFolderUpdated }: EditFolderDialogPr
           </AlertDialog>
 
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setIsOpen(false)}
-              disabled={isLoading || isDeleting}
-            >
+            <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isLoading || isDeleting}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleSave}
-              disabled={isLoading || isDeleting}
-            >
+            <Button onClick={handleSave} disabled={isLoading || isDeleting}>
               {isLoading ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </div>
       </DialogContent>
-    </Dialog>
-  );
+    </Dialog>;
 };
