@@ -208,7 +208,11 @@ export const LibrarySidebar = ({
                     <div className="absolute top-1 left-1 z-10">
                       {/* If your EditFolderDialog accepts `trigger`, use this: */}
                       <EditFolderDialog
-                        folder={{ id: folder.id, label: folder.label }}
+                        folder={{ 
+                          id: folder.id, 
+                          label: folder.label,
+                          description: folder.description 
+                        }}
                         onFolderUpdated={onFolderUpdated}
                         trigger={
                           <Button

@@ -60,7 +60,7 @@ export const EditFolderDialog = ({
     setIsLoading(true);
     try {
       const { error } = await supabase
-        .from('collections')
+        .from('file_folders')
         .update({
           name: name.trim(),
           description: description.trim() || null,
@@ -89,7 +89,7 @@ export const EditFolderDialog = ({
     setIsDeleting(true);
     try {
       const { error } = await supabase
-        .from('collections')
+        .from('file_folders')
         .delete()
         .eq('id', folder.id);
 
