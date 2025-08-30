@@ -126,13 +126,16 @@ export const LibrarySidebar = ({
 
               {/* 2-line subtitle (≈40 chars) */}
               <span
-                className={`text-xs leading-tight text-left w-full line-clamp-2 break-words ${
+                className={`text-xs leading-[1.3] text-left w-full ${
                   isSelected ? 'text-white/80' : 'text-muted-foreground'
                 }`}
                 style={{ 
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
                   wordBreak: 'break-word',
-                  overflowWrap: 'break-word',
-                  lineHeight: '1.2'
+                  overflowWrap: 'break-word'
                 }}
                 title={item.description}
               >
