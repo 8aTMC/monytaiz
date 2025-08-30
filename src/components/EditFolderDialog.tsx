@@ -173,10 +173,10 @@ export const EditFolderDialog = ({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Optional description"
-              maxLength={100}
+              maxLength={40}
               rows={3}
             />
-            <p className="text-xs text-muted-foreground">{description.length}/100 characters</p>
+            <p className="text-xs text-muted-foreground">{description.length}/40 characters</p>
           </div>
         </div>
 
