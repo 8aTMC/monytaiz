@@ -56,9 +56,9 @@ export const LibrarySidebar = ({
           const IconComponent = category.icon;
           const isSelected = selectedCategory === category.id;
           return <div key={category.id} className="relative group">
-              <Button variant={isSelected ? "default" : "ghost"} className={`w-full justify-start text-left p-2 h-auto pr-12 min-w-0 relative overflow-hidden transition-all duration-300 ${isSelected ? "bg-gradient-primary shadow-shadow-soft border-0" : "hover:bg-gradient-glass hover:shadow-shadow-soft/50 border border-transparent hover:border-border"}`} onClick={() => onCategorySelect(category.id)}>
-                <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden relative z-10">
-                  <div className={`p-2 rounded-lg transition-all duration-300 ${isSelected ? "bg-white/20" : "bg-primary/10 group-hover:bg-primary/20"}`}>
+              <Button variant={isSelected ? "default" : "ghost"} className={`w-full justify-start text-left py-1.5 px-2 h-auto pr-10 min-w-0 relative overflow-hidden transition-all duration-300 ${isSelected ? "bg-gradient-primary shadow-shadow-soft border-0" : "hover:bg-gradient-glass hover:shadow-shadow-soft/50 border border-transparent hover:border-border"}`} onClick={() => onCategorySelect(category.id)}>
+                <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden relative z-10">
+                  <div className={`p-1.5 rounded-lg transition-all duration-300 ${isSelected ? "bg-white/20" : "bg-primary/10 group-hover:bg-primary/20"}`}>
                     <IconComponent className={`h-4 w-4 flex-shrink-0 ${isSelected ? "text-white" : "text-primary"}`} />
                   </div>
                    <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden">
@@ -71,7 +71,7 @@ export const LibrarySidebar = ({
                    </div>
                 </div>
               </Button>
-              <Badge variant="secondary" className={`absolute top-2 right-2 text-[9px] pointer-events-none px-1.5 py-0.5 h-5 min-w-[20px] flex items-center justify-center transition-all duration-300 ${isSelected ? "bg-white/20 text-white border-white/20" : "bg-primary/10 text-primary border-primary/20 group-hover:bg-primary/20"}`}>
+              <Badge variant="secondary" className={`absolute top-1.5 right-1.5 text-[8px] pointer-events-none px-1 py-0 h-4 min-w-[16px] flex items-center justify-center transition-all duration-300 ${isSelected ? "bg-white/20 text-white border-white/20" : "bg-primary/10 text-primary border-primary/20 group-hover:bg-primary/20"}`}>
                 {categoryCounts[category.id] || 0}
               </Badge>
             </div>;
@@ -126,7 +126,7 @@ export const LibrarySidebar = ({
                        </div>
                     </div>
                   </Button>
-                   <Badge variant="secondary" className="absolute top-0.5 right-1 text-[9px] pointer-events-none px-0.5 py-0 h-3 min-w-[12px] flex items-center justify-center">
+                   <Badge variant="secondary" className="absolute top-0.5 right-1 text-[8px] pointer-events-none px-0.5 py-0 h-3 min-w-[12px] flex items-center justify-center">
                      {categoryCounts[folder.id] || 0}
                    </Badge>
                 </div>
