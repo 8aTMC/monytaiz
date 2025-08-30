@@ -126,7 +126,7 @@ export const LibrarySidebar = ({
 
               {/* 2-line subtitle (≈40 chars) */}
               <span
-                className={`text-[10px] leading-tight text-left w-full line-clamp-2 break-words ${
+                className={`text-xs leading-tight text-left w-full line-clamp-2 break-words ${
                   isSelected ? 'text-white/80' : 'text-muted-foreground'
                 }`}
                 style={{ 
