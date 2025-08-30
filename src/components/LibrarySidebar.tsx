@@ -155,10 +155,10 @@ export const LibrarySidebar = ({
       {/* Library directory content */}
       <div className="relative h-full overflow-y-auto custom-scrollbar px-4 py-4" style={{ minWidth: '100%' }}>
         <div className="mb-4">
-          <h2 className="text-lg font-semibold text-foreground mb-0.5 bg-gradient-primary bg-clip-text text-transparent">
+          <h2 className="text-lg font-semibold text-foreground mb-0.5 bg-gradient-primary bg-clip-text text-transparent ml-[5px]">
             Library
           </h2>
-          <p className="text-xs text-muted-foreground">Manage your content</p>
+          <p className="text-xs text-muted-foreground ml-[5px]">Manage your content</p>
         </div>
 
         {/* Default categories (more compact, consistent with custom) */}
@@ -202,7 +202,7 @@ export const LibrarySidebar = ({
         {sortedCustomFolders.length > 0 && (
           <div className="space-y-1">
             <div className="flex items-center justify-between mb-1.5">
-              <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
+              <div className="text-[11px] font-medium tracking-wide text-muted-foreground ml-[5px]">
                 My Folders
               </div>
             </div>
