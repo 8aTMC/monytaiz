@@ -150,10 +150,10 @@ export const LibrarySidebar = ({
   };
 
   return (
-    <div className="w-full flex-shrink-0 overflow-hidden relative h-full">
+    <div className="w-full flex-shrink-0 relative h-full" style={{ zIndex: 1 }}>
       <div className="absolute inset-0 bg-gradient-sidebar" />
       {/* Library directory content */}
-      <div className="relative h-full overflow-y-auto custom-scrollbar px-4 py-4">
+      <div className="relative h-full overflow-y-auto custom-scrollbar px-4 py-4" style={{ minWidth: '100%' }}>
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-foreground mb-0.5 bg-gradient-primary bg-clip-text text-transparent">
             Library
