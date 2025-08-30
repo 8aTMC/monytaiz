@@ -288,7 +288,7 @@ export default function SimpleLibrary() {
   return (
     <>
       <Layout>
-        <div className="flex h-full overflow-hidden">
+        <div className="flex h-full overflow-hidden -ml-4">
           {/* Sidebar - moved closer to navigation */}
           <LibrarySidebar
             defaultCategories={defaultCategories}
