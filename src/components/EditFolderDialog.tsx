@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -147,6 +148,9 @@ export const EditFolderDialog = ({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Folder</DialogTitle>
+          <DialogDescription>
+            Update the folder name and description. The description will be visible in the sidebar.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">

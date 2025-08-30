@@ -53,7 +53,6 @@ export default function SimpleLibrary() {
         isDefault: false
       }));
 
-      console.log('Fetched folders with descriptions:', folders.map(f => ({ name: f.label, description: f.description })));
       setCustomFolders(folders);
     } catch (error: any) {
       console.error('Error fetching folders:', error);

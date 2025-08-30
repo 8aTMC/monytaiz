@@ -131,12 +131,7 @@ export const LibrarySidebar = ({
                 }`}
                 title={item.description}
               >
-                {(() => {
-                  if (item.description) {
-                    console.log('Showing description for', item.label, ':', item.description);
-                  }
-                  return item.description;
-                })()}
+                {item.description}
               </span>
             </div>
           </div>
