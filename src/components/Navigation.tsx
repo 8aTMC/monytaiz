@@ -39,15 +39,21 @@ import {
   Tags,
   Shield,
   BookOpen,
-  Zap
+  Zap,
+  Folder,
+  MoreVertical
 } from 'lucide-react';
 import { ContentIcon } from './icons/ContentIcon';
 import { CreatorProfileDialog } from '@/components/CreatorProfileDialog';
+import { NewFolderDialog } from '@/components/NewFolderDialog';
+import { FolderActionsDropdown } from '@/components/FolderActionsDropdown';
 // Force hot reload to fix cache issue
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { SettingsDialog } from '@/components/SettingsDialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useToast } from '@/components/ui/use-toast';
 
 // Create a context for sidebar state
 const SidebarContext = createContext<{
@@ -164,6 +170,8 @@ export const Navigation = ({ role }: NavigationProps) => {
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [isFan, setIsFan] = useState(false);
   const [openSection, setOpenSection] = useState<'fans' | 'content' | 'management' | null>(null);
+  const [customFolders, setCustomFolders] = useState<Array<{ id: string; label: string; }>>([]);
+  const { toast } = useToast();
 
   // Determine which section should be open based on current route
   const getCurrentSection = (): 'fans' | 'content' | 'management' | null => {
@@ -185,6 +193,35 @@ export const Navigation = ({ role }: NavigationProps) => {
   const handleSectionToggle = (section: 'fans' | 'content' | 'management') => {
     setOpenSection(openSection === section ? null : section);
   };
+
+  // Fetch custom folders
+  const fetchCustomFolders = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('file_folders')
+        .select('id, name')
+        .eq('creator_id', user.id)
+        .order('name');
+
+      if (error) throw error;
+      
+      setCustomFolders(data?.map(folder => ({ 
+        id: folder.id, 
+        label: folder.name 
+      })) || []);
+    } catch (error) {
+      console.error('Error fetching custom folders:', error);
+    }
+  };
+
+  // Fetch custom folders when user changes or when on library page
+  useEffect(() => {
+    if (user?.id && location.pathname === '/library') {
+      fetchCustomFolders();
+    }
+  }, [user?.id, location.pathname]);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -610,55 +647,91 @@ export const Navigation = ({ role }: NavigationProps) => {
                      <span className="font-medium">Library</span>
                    </Link>
                    
-                   {/* Library Categories - Only show when on library page */}
-                   {location.pathname === '/library' && (
-                     <div className="ml-4 space-y-1 border-l border-border/30 pl-4">
-                       <Link
-                         to="/library?category=all-files"
-                         className={`group flex items-center gap-3 px-4 py-2 ml-2 rounded-lg text-xs transition-all duration-200 hover:scale-[1.02] ${
-                           location.search === '?category=all-files' || (!location.search)
-                             ? 'bg-primary/5 text-primary/90 border border-primary/10'
-                             : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-                         }`}
-                       >
-                         <Grid className="h-3 w-3" />
-                         <span>All Files</span>
-                       </Link>
-                       <Link
-                         to="/library?category=stories"
-                         className={`group flex items-center gap-3 px-4 py-2 ml-2 rounded-lg text-xs transition-all duration-200 hover:scale-[1.02] ${
-                           location.search === '?category=stories'
-                             ? 'bg-primary/5 text-primary/90 border border-primary/10'
-                             : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-                         }`}
-                       >
-                         <BookOpen className="h-3 w-3" />
-                         <span>Stories</span>
-                       </Link>
-                       <Link
-                         to="/library?category=livestreams"
-                         className={`group flex items-center gap-3 px-4 py-2 ml-2 rounded-lg text-xs transition-all duration-200 hover:scale-[1.02] ${
-                           location.search === '?category=livestreams'
-                             ? 'bg-primary/5 text-primary/90 border border-primary/10'
-                             : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-                         }`}
-                       >
-                         <Zap className="h-3 w-3" />
-                         <span>LiveStreams</span>
-                       </Link>
-                       <Link
-                         to="/library?category=messages"
-                         className={`group flex items-center gap-3 px-4 py-2 ml-2 rounded-lg text-xs transition-all duration-200 hover:scale-[1.02] ${
-                           location.search === '?category=messages'
-                             ? 'bg-primary/5 text-primary/90 border border-primary/10'
-                             : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-                         }`}
-                       >
-                         <MessageSquare className="h-3 w-3" />
-                         <span>Messages</span>
-                       </Link>
-                     </div>
-                   )}
+                    {/* Library Categories - Only show when on library page */}
+                    {location.pathname === '/library' && (
+                      <div className="ml-4 space-y-0.5 border-l border-border/30 pl-4">
+                        <Link
+                          to="/library?category=all-files"
+                          className={`group flex items-center gap-3 px-4 py-1.5 ml-2 rounded-lg text-xs transition-all duration-200 hover:scale-[1.02] ${
+                            location.search === '?category=all-files' || (!location.search)
+                              ? 'bg-primary/5 text-primary/90 border border-primary/10'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                          }`}
+                        >
+                          <Grid className="h-3 w-3" />
+                          <span>All Files</span>
+                        </Link>
+                        <Link
+                          to="/library?category=stories"
+                          className={`group flex items-center gap-3 px-4 py-1.5 ml-2 rounded-lg text-xs transition-all duration-200 hover:scale-[1.02] ${
+                            location.search === '?category=stories'
+                              ? 'bg-primary/5 text-primary/90 border border-primary/10'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                          }`}
+                        >
+                          <BookOpen className="h-3 w-3" />
+                          <span>Stories</span>
+                        </Link>
+                        <Link
+                          to="/library?category=livestreams"
+                          className={`group flex items-center gap-3 px-4 py-1.5 ml-2 rounded-lg text-xs transition-all duration-200 hover:scale-[1.02] ${
+                            location.search === '?category=livestreams'
+                              ? 'bg-primary/5 text-primary/90 border border-primary/10'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                          }`}
+                        >
+                          <Zap className="h-3 w-3" />
+                          <span>LiveStreams</span>
+                        </Link>
+                        <Link
+                          to="/library?category=messages"
+                          className={`group flex items-center gap-3 px-4 py-1.5 ml-2 rounded-lg text-xs transition-all duration-200 hover:scale-[1.02] ${
+                            location.search === '?category=messages'
+                              ? 'bg-primary/5 text-primary/90 border border-primary/10'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                          }`}
+                        >
+                          <MessageSquare className="h-3 w-3" />
+                          <span>Messages</span>
+                        </Link>
+                        
+                        {/* Custom Folders Section */}
+                        <div className="pt-3 mt-3 border-t border-border/20">
+                          <div className="flex items-center justify-between mb-2 px-2">
+                            <span className="text-xs font-medium text-muted-foreground">My Folders</span>
+                            <NewFolderDialog onFolderCreated={() => fetchCustomFolders()} />
+                          </div>
+                          
+                          {customFolders.length > 0 ? (
+                            <div className="space-y-0.5">
+                              {customFolders.map((folder) => (
+                                <div key={folder.id} className="group flex items-center">
+                                  <Link
+                                    to={`/library?category=${folder.id}`}
+                                    className={`group flex items-center gap-3 px-4 py-1.5 ml-2 rounded-lg text-xs transition-all duration-200 hover:scale-[1.02] flex-1 ${
+                                      location.search === `?category=${folder.id}`
+                                        ? 'bg-primary/5 text-primary/90 border border-primary/10'
+                                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                                    }`}
+                                  >
+                                    <Folder className="h-3 w-3" />
+                                    <span className="truncate">{folder.label}</span>
+                                  </Link>
+                                  <FolderActionsDropdown 
+                                    folder={folder} 
+                                    onAction={() => fetchCustomFolders()}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="px-4 py-3 text-xs text-muted-foreground">
+                              No folders yet
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                    
                    <Link
                      to="/upload"
