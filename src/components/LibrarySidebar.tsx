@@ -82,9 +82,9 @@ export const LibrarySidebar = ({
 
         <Button
           variant={isSelected ? 'default' : 'ghost'}
-          className={`w-full justify-start text-left h-auto p-2.5 pr-10 ${
+          className={`w-full justify-start text-left h-auto p-2.5 pr-8 ${
             leftPad ? 'pl-9' : ''
-          } min-w-0 relative overflow-hidden transition-all ${
+          } min-w-0 relative transition-all ${
             isSelected
               ? 'bg-gradient-primary shadow-shadow-soft border-0'
               : 'hover:bg-gradient-glass hover:shadow-shadow-soft/50 border border-transparent hover:border-border'
@@ -92,7 +92,7 @@ export const LibrarySidebar = ({
           onClick={onClick}
           disabled={showHandle}
         >
-          <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+          <div className="flex items-center gap-2 flex-1">
             {showHandle && (
               <GripVertical className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
             )}
@@ -114,7 +114,7 @@ export const LibrarySidebar = ({
               </div>
             )}
 
-            <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden leading-tight">
+            <div className="flex flex-col items-start flex-1 leading-tight" style={{ width: 'calc(100% - 32px)' }}>
               <span
                 className={`font-medium text-left w-full truncate ${
                   isSelected ? 'text-white' : 'text-foreground'
@@ -126,7 +126,7 @@ export const LibrarySidebar = ({
 
               {/* 2-line subtitle (≈40 chars) */}
               <span
-                className={`text-xs leading-[1.3] text-left w-full ${
+                className={`text-xs leading-[1.3] text-left ${
                   isSelected ? 'text-white/80' : 'text-muted-foreground'
                 }`}
                 style={{ 
@@ -135,7 +135,8 @@ export const LibrarySidebar = ({
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
                   wordBreak: 'break-word',
-                  overflowWrap: 'break-word'
+                  overflowWrap: 'break-word',
+                  width: '100%'
                 }}
                 title={item.description}
               >
