@@ -289,7 +289,7 @@ export default function SimpleLibrary() {
     <>
       <Layout>
         <div className="flex h-full overflow-hidden">
-          {/* Sidebar */}
+          {/* Sidebar - moved closer to navigation */}
           <LibrarySidebar
             defaultCategories={defaultCategories}
             customFolders={customFolders}

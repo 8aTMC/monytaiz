@@ -97,19 +97,22 @@ export const LibrarySidebar = ({
               <GripVertical className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
             )}
 
-            <div
-              className={`p-1.5 rounded-lg flex-shrink-0 transition ${
-                isSelected ? 'bg-white/20' : 'bg-primary/10 group-hover:bg-primary/20'
-              }`}
-            >
-              {Icon && (
-                <Icon
-                  className={`h-4 w-4 ${
-                    isSelected ? 'text-white' : 'text-primary'
-                  }`}
-                />
-              )}
-            </div>
+            {/* Only show icon for default categories, not custom folders */}
+            {item.isDefault && (
+              <div
+                className={`p-1.5 rounded-lg flex-shrink-0 transition ${
+                  isSelected ? 'bg-white/20' : 'bg-primary/10 group-hover:bg-primary/20'
+                }`}
+              >
+                {Icon && (
+                  <Icon
+                    className={`h-4 w-4 ${
+                      isSelected ? 'text-white' : 'text-primary'
+                    }`}
+                  />
+                )}
+              </div>
+            )}
 
             <div className="flex flex-col items-start min-w-0 flex-1 overflow-hidden leading-tight">
               <span
@@ -138,10 +141,10 @@ export const LibrarySidebar = ({
   };
 
   return (
-    <div className="w-64 flex-shrink-0 overflow-hidden relative">
+    <div className="w-64 flex-shrink-0 overflow-hidden relative border-r border-purple-500/30">
       <div className="absolute inset-0 bg-gradient-sidebar" />
-      {/* tighten left gap */}
-      <div className="relative h-full overflow-y-auto custom-scrollbar pl-3 pr-3 py-4">
+      {/* move closer to navigation - reduced left padding */}
+      <div className="relative h-full overflow-y-auto custom-scrollbar pl-1 pr-3 py-4">
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-foreground mb-0.5 bg-gradient-primary bg-clip-text text-transparent">
             Library
