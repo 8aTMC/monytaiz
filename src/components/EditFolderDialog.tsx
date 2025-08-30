@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Edit, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface EditFolderDialogProps {
   folder: {
@@ -14,24 +14,14 @@ interface EditFolderDialogProps {
     label: string;
   };
   onFolderUpdated: () => void;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
 }
 
-export const EditFolderDialog = ({ 
-  folder, 
-  onFolderUpdated, 
-  open: controlledOpen,
-  onOpenChange: controlledOnOpenChange
-}: EditFolderDialogProps) => {
-  const [internalOpen, setInternalOpen] = useState(false);
+export const EditFolderDialog = ({ folder, onFolderUpdated }: EditFolderDialogProps) => {
+  const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState(folder.label);
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
-
-  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
-  const setOpen = controlledOnOpenChange || setInternalOpen;
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -46,7 +36,7 @@ export const EditFolderDialog = ({
     setIsLoading(true);
     try {
       const { error } = await supabase
-        .from('file_folders')
+        .from('collections')
         .update({
           name: name.trim(),
           updated_at: new Date().toISOString()
@@ -62,7 +52,7 @@ export const EditFolderDialog = ({
         description: "Folder updated successfully",
       });
       
-      setOpen(false);
+      setIsOpen(false);
       onFolderUpdated();
     } catch (error) {
       console.error('Error updating folder:', error);
@@ -80,7 +70,7 @@ export const EditFolderDialog = ({
     setIsDeleting(true);
     try {
       const { error } = await supabase
-        .from('file_folders')
+        .from('collections')
         .delete()
         .eq('id', folder.id);
 
@@ -93,7 +83,7 @@ export const EditFolderDialog = ({
         description: "Folder deleted successfully",
       });
       
-      setOpen(false);
+      setIsOpen(false);
       onFolderUpdated();
     } catch (error) {
       console.error('Error deleting folder:', error);
@@ -112,24 +102,22 @@ export const EditFolderDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(openState) => {
-      setOpen(openState);
-      if (!openState) {
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      setIsOpen(open);
+      if (!open) {
         resetForm();
       }
     }}>
-      {controlledOpen === undefined && (
-        <DialogTrigger asChild>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-muted/50"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-        </DialogTrigger>
-      )}
+      <DialogTrigger asChild>
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="h-8 w-8 p-0 hover:bg-muted/50"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Folder</DialogTitle>
@@ -179,7 +167,7 @@ export const EditFolderDialog = ({
           <div className="flex gap-2">
             <Button 
               variant="outline" 
-              onClick={() => setOpen(false)}
+              onClick={() => setIsOpen(false)}
               disabled={isLoading || isDeleting}
             >
               Cancel

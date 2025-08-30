@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowUpDown, GripVertical } from 'lucide-react';
 import { NewFolderDialog } from '@/components/NewFolderDialog';
-import { FolderActionsMenu } from '@/components/FolderActionsMenu';
+import { EditFolderDialog } from '@/components/EditFolderDialog';
 
 interface CategoryItem {
   id: string;
@@ -52,7 +52,7 @@ export const LibrarySidebar = ({
     : customFolders;
 
   return (
-    <div className="w-64 flex-shrink-0 overflow-hidden relative border-r border-border">
+    <div className="w-64 flex-shrink-0 overflow-hidden relative">
       <div className="absolute inset-0 bg-gradient-sidebar"></div>
       <div className="relative h-full overflow-y-auto custom-scrollbar pl-6 pr-4 py-6">
         <div className="mb-6">
@@ -61,7 +61,7 @@ export const LibrarySidebar = ({
         </div>
         
       {/* Default Categories */}
-      <div className="space-y-1 mb-6">
+      <div className="space-y-2 mb-6">
         {defaultCategories.map((category) => {
           const IconComponent = category.icon;
           const isSelected = selectedCategory === category.id;
@@ -112,11 +112,14 @@ export const LibrarySidebar = ({
       {/* Elegant Divider */}
       <div className="relative my-6">
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-border to-transparent h-px"></div>
+        <div className="relative flex justify-center">
+          <span className="bg-gradient-sidebar px-3 text-xs font-medium text-muted-foreground">Custom Folders</span>
+        </div>
       </div>
 
       {/* Action Buttons */}
         <div className="flex flex-col gap-3 mb-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <NewFolderDialog onFolderCreated={onFolderCreated} />
             
             <Button
@@ -124,7 +127,7 @@ export const LibrarySidebar = ({
               size="sm"
               onClick={() => setIsReorderMode(!isReorderMode)}
               disabled={customFolders.length === 0}
-              className="text-xs px-2 h-7 w-8 hover:bg-gradient-glass transition-all duration-300"
+              className="text-xs px-2 h-8 flex-shrink-0 hover:bg-gradient-glass transition-all duration-300"
             >
               <ArrowUpDown className="h-3 w-3" />
             </Button>
@@ -144,8 +147,8 @@ export const LibrarySidebar = ({
               <div key={folder.id}>
                 <div className={`relative ${isReorderMode ? 'cursor-move' : ''}`}>
                   {!isReorderMode && (
-                    <div className="absolute top-1 right-1 z-10">
-                      <FolderActionsMenu 
+                    <div className="absolute top-1 left-1 z-10">
+                      <EditFolderDialog 
                         folder={{
                           id: folder.id,
                           label: folder.label
@@ -156,7 +159,7 @@ export const LibrarySidebar = ({
                   )}
                   <Button
                     variant={selectedCategory === folder.id ? "default" : "ghost"}
-                    className={`w-full justify-start text-left p-1.5 h-auto pr-8 min-w-0 ${!isReorderMode ? 'pr-8' : 'pl-1.5'}`}
+                    className={`w-full justify-start text-left p-1.5 h-auto pr-8 min-w-0 ${!isReorderMode ? 'pl-7' : 'pl-1.5'}`}
                     onClick={() => {
                       if (!isReorderMode) {
                         onCategorySelect(folder.id);
