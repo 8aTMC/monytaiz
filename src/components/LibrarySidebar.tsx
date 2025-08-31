@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowUpDown, GripVertical, MoreVertical, Search } from 'lucide-react';
@@ -36,6 +36,15 @@ export const LibrarySidebar = ({
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [reorderedFolders, setReorderedFolders] = useState<CategoryItem[]>(customFolders);
+
+  // Sync reorderedFolders with customFolders when not in reorder mode
+  useEffect(() => {
+    if (!isReorderMode) {
+      setReorderedFolders(customFolders);
+    }
+  }, [customFolders, isReorderMode]);
 
   // Optimized search function - case insensitive matching of title and description
   const searchFolders = (folders: CategoryItem[], search: string): CategoryItem[] => {
@@ -57,6 +66,44 @@ export const LibrarySidebar = ({
           : b.label.localeCompare(a.label)
       )
     : filteredFolders;
+
+  // Use reorderedFolders when in reorder mode, otherwise use the filtered/sorted folders
+  const foldersToDisplay = isReorderMode ? reorderedFolders : sortedCustomFolders;
+
+  // Drag and drop handlers
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex !== null && draggedIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex !== null && draggedIndex !== dropIndex) {
+      const newFolders = [...reorderedFolders];
+      const draggedItem = newFolders[draggedIndex];
+      newFolders.splice(draggedIndex, 1);
+      newFolders.splice(dropIndex, 0, draggedItem);
+      setReorderedFolders(newFolders);
+      onFolderUpdated(); // Notify parent of the change
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
 
   // ---- Reusable row (used for both default categories & custom folders)
   const Row = ({
@@ -231,7 +278,7 @@ export const LibrarySidebar = ({
         </div>
 
         {/* Custom folders */}
-        {sortedCustomFolders.length > 0 && (
+        {foldersToDisplay.length > 0 && (
           <div className="space-y-1">
             <div className="flex items-center justify-between mb-1.5">
               <div className="text-[11px] font-medium tracking-wide text-muted-foreground ml-[10px]">
@@ -239,11 +286,26 @@ export const LibrarySidebar = ({
               </div>
             </div>
 
-            {sortedCustomFolders.map((folder, index) => {
+            {foldersToDisplay.map((folder, index) => {
               const isSelected = selectedCategory === folder.id;
+              const isDragging = isReorderMode && draggedIndex === index;
+              const isDragOver = isReorderMode && dragOverIndex === index;
 
               return (
-                <div key={folder.id} className="relative">
+                <div 
+                  key={folder.id} 
+                  className={`relative transition-all duration-200 ${
+                    isDragging ? 'opacity-50 scale-95' : 'opacity-100 scale-100'
+                  } ${
+                    isDragOver ? 'border-t-2 border-primary' : ''
+                  }`}
+                  draggable={isReorderMode}
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, index)}
+                  onDragEnd={handleDragEnd}
+                >
                   {/* three-dots edit trigger (absolute, elegant) */}
                   {!isReorderMode && (
                     <div className="absolute top-1/2 left-1 -translate-y-1/2 z-10">
