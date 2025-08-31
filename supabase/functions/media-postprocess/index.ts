@@ -183,10 +183,27 @@ Deno.serve(async (req) => {
         console.warn('Failed to process image:', error);
       }
     } else if (type === 'video') {
-      // For videos, use default dimensions and video icon placeholder
+      // For videos, use default dimensions and generate a video thumbnail placeholder
       width = 1920;
       height = 1080;
-      console.log('Video processing - using default dimensions');
+      
+      // Generate a better video placeholder with play icon
+      const videoPlaceholder = 'data:image/svg+xml;base64,' + btoa(`
+        <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="videoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <rect width="400" height="300" fill="url(#videoGrad)"/>
+          <circle cx="200" cy="150" r="40" fill="rgba(255,255,255,0.9)"/>
+          <polygon points="185,135 185,165 215,150" fill="#2563eb"/>
+        </svg>
+      `);
+      tinyDataUrl = videoPlaceholder;
+      
+      console.log('Video processing - generated video thumbnail placeholder');
     } else if (type === 'audio') {
       // For audio, use square dimensions
       width = 800;

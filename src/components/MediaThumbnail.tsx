@@ -67,12 +67,38 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     };
   }, [stableMediaItem.id, stableMediaItem.type, stableMediaItem.storage_path, stableMediaItem.path]);
 
-  // For non-image types, show icon with natural aspect ratio
+  // For non-image types, show thumbnail if available, otherwise show icon with natural aspect ratio
   if (item.type !== 'image') {
     const aspectRatio = item.width && item.height 
       ? (item.width / item.height).toFixed(3)
       : '16/9'; // Default aspect ratio for video/audio
     
+    // If we have a tiny_placeholder (thumbnail), use it instead of icon
+    if (item.tiny_placeholder && item.tiny_placeholder !== 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==') {
+      return (
+        <div 
+          className={`bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}
+          style={{ aspectRatio }}
+        >
+          <img
+            src={item.tiny_placeholder}
+            alt={item.title || `${item.type} thumbnail`}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+          {item.type === 'video' && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="bg-black/50 rounded-full p-3">
+                <Video className="h-8 w-8 text-white" />
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    // Fallback to icon if no thumbnail
     return (
       <div 
         className={`bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}
