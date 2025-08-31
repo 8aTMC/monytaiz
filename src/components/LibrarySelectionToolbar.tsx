@@ -53,7 +53,7 @@ export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = (
 
   return (
     <>
-      <div className="flex items-center justify-between px-6 py-4 bg-gradient-selection border border-primary/20 rounded-lg mx-6 mb-2">
+      <div className="flex items-center justify-between py-4 bg-muted/50 border-t border-border/50">
         <div className="flex items-center gap-3">
           <Button
             variant="secondary"

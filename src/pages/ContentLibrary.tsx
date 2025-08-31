@@ -424,11 +424,9 @@ const ContentLibrary = () => {
                 </Button>
               </div>
             </div>
-          </div>
-
-          {/* Selection Toolbar - appears below header */}
-          {selecting && (
-            <div className="border-b border-border/50 bg-gradient-soft px-6 py-4">
+            
+            {/* Selection Toolbar - integrated in header */}
+            {selecting && (
               <LibrarySelectionToolbar
                 selectedCount={selectedItems.size}
                 totalCount={content.length}
@@ -440,8 +438,8 @@ const ContentLibrary = () => {
                 onDelete={handleDelete}
                 disabled={operationLoading || loadingContent}
               />
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Enhanced Content Area */}
           <div className="flex-1 overflow-y-auto p-6 pt-4 custom-scrollbar">
