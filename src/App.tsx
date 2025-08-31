@@ -107,7 +107,9 @@ const App = () => (
               } />
               <Route path="/library" element={
                 <ProtectedRoute>
-                  <SimpleLibrary />
+                  <Layout>
+                    <SimpleLibrary />
+                  </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/upload" element={
