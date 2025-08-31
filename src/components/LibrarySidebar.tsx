@@ -257,19 +257,48 @@ export const LibrarySidebar = ({
         {/* Actions */}
         <div className="mb-3 flex justify-center">
           <div className="flex items-center gap-1" style={{ width: 'calc(100% - 30px)' }}>
-            <div className="flex-1">
-              <NewFolderDialog onFolderCreated={onFolderCreated} />
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsReorderMode(!isReorderMode)}
-              disabled={customFolders.length === 0}
-              className="text-xs px-2 h-7 flex-1 hover:bg-gradient-glass transition"
-            >
-              <ArrowUpDown className="h-3.5 w-3.5 mr-1" />
-              Reorder
-            </Button>
+            {isReorderMode ? (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setIsReorderMode(false);
+                    setReorderedFolders(customFolders); // Reset to original order
+                  }}
+                  className="text-xs px-2 h-7 flex-1 hover:bg-destructive/10 text-destructive border-destructive/20 hover:border-destructive/40 transition"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setIsReorderMode(false);
+                    onFolderUpdated(); // Save the new order
+                  }}
+                  className="text-xs px-2 h-7 flex-1 hover:bg-gradient-glass transition"
+                >
+                  Save
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="flex-1">
+                  <NewFolderDialog onFolderCreated={onFolderCreated} />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsReorderMode(!isReorderMode)}
+                  disabled={customFolders.length === 0}
+                  className="text-xs px-2 h-7 flex-1 hover:bg-gradient-glass transition"
+                >
+                  <ArrowUpDown className="h-3.5 w-3.5 mr-1" />
+                  Reorder
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
