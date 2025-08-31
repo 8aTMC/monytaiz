@@ -72,11 +72,14 @@ const LibraryGridComponent = ({
       {content.map((item, index) => {
         // Create stable click handlers for each item
         const handleItemClick = (event: React.MouseEvent) => {
+          console.log('Item clicked, detail:', event.detail, 'selecting:', selecting);
           if (selecting) {
             // In selection mode: single click selects/unselects, double click previews
             if (event.detail === 2) {
+              console.log('Double click detected - opening preview');
               onItemClick(item, event, index);
             } else {
+              console.log('Single click detected - selecting item');
               onCheckboxClick(item.id, index, event);
             }
           } else {
