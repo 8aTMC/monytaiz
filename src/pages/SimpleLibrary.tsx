@@ -21,6 +21,7 @@ export default function SimpleLibrary() {
   // Selection state
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [selecting, setSelecting] = useState(false);
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
   
   // Filter and search state
   const [selectedCategory, setSelectedCategory] = useState('all-files');
@@ -234,6 +235,7 @@ export default function SimpleLibrary() {
     console.log('Clear selection');
     setSelectedItems(new Set());
     setSelecting(false);
+    setLastSelectedIndex(null);
   }, []);
 
   const handleSelectAll = useCallback(() => {
@@ -259,15 +261,44 @@ export default function SimpleLibrary() {
     }
   }, [selecting, handleToggleItem, media]);
 
+  // Helper function to select items in a range
+  const selectItemsInRange = useCallback((startIndex: number, endIndex: number) => {
+    const start = Math.min(startIndex, endIndex);
+    const end = Math.max(startIndex, endIndex);
+    
+    const rangeIds = new Set<string>();
+    for (let i = start; i <= end; i++) {
+      if (filteredMedia[i]) {
+        rangeIds.add(filteredMedia[i].id);
+      }
+    }
+    
+    setSelectedItems(prev => {
+      const newSet = new Set(prev);
+      rangeIds.forEach(id => newSet.add(id));
+      return newSet;
+    });
+  }, [filteredMedia]);
+
   const handleCheckboxClick = useCallback((itemId: string, index: number, event?: React.MouseEvent) => {
     console.log('Checkbox clicked:', itemId, index);
     if (event) {
       event.preventDefault();
       event.stopPropagation();
     }
-    handleToggleItem(itemId);
+    
+    // Check if Alt key is pressed for range selection
+    if (event?.altKey && lastSelectedIndex !== null && Math.abs(index - lastSelectedIndex) > 0) {
+      console.log('Range selection from', lastSelectedIndex, 'to', index);
+      selectItemsInRange(lastSelectedIndex, index);
+    } else {
+      // Normal single item toggle
+      handleToggleItem(itemId);
+    }
+    
+    setLastSelectedIndex(index);
     setSelecting(true);
-  }, [handleToggleItem]);
+  }, [handleToggleItem, lastSelectedIndex, selectItemsInRange]);
 
   const handleCategorySelect = useCallback((categoryId: string) => {
     console.log('Category changed to:', categoryId);
