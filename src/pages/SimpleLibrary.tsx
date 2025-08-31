@@ -287,20 +287,6 @@ export default function SimpleLibrary() {
 
   return (
     <>
-      {/* Selection Toolbar - Conditional Rendering */}
-      {selecting && selectedItems.size > 0 && (
-        <LibrarySelectionToolbar
-          selectedCount={selectedItems.size}
-          totalCount={filteredMedia.length}
-          currentView={selectedCategory}
-          isCustomFolder={false}
-          onClearSelection={handleClearSelection}
-          onSelectAll={handleSelectAll}
-          onCopy={handleCopy}
-          onDelete={handleDelete}
-        />
-      )}
-
       {/* Three-column layout: Navigation (fixed) | Library Directory | Main Content */}
       <div className="grid h-full grid-cols-[280px_1fr] gap-2 -ml-9 lg:grid-cols-[280px_1fr] md:grid-cols-1">
         {/* Library Directory Column */}
@@ -317,7 +303,7 @@ export default function SimpleLibrary() {
         </aside>
         
         {/* Main Content Column */}
-        <main className="pl-2 overflow-hidden md:pl-0" style={{ paddingTop: selecting && selectedItems.size > 0 ? '80px' : '0' }}>
+        <main className="pl-2 overflow-hidden md:pl-0">
           <div className="flex-shrink-0 p-4 border-b border-border">
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -380,6 +366,19 @@ export default function SimpleLibrary() {
           {/* Scrollable Grid Content */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
             <div className="p-4">
+              {/* Selection Toolbar - Conditional Rendering */}
+              {selecting && selectedItems.size > 0 && (
+                <LibrarySelectionToolbar
+                  selectedCount={selectedItems.size}
+                  totalCount={filteredMedia.length}
+                  currentView={selectedCategory}
+                  isCustomFolder={false}
+                  onClearSelection={handleClearSelection}
+                  onSelectAll={handleSelectAll}
+                  onCopy={handleCopy}
+                  onDelete={handleDelete}
+                />
+              )}
               {loading ? (
                 <LibraryGrid
                   content={[]}
