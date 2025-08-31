@@ -20,7 +20,7 @@ interface LibrarySidebarProps {
   categoryCounts: Record<string, number>;
   onCategorySelect: (categoryId: string) => void;
   onFolderCreated: () => void;
-  onFolderUpdated: () => void;
+  onFolderUpdated: (reorderedFolders?: CategoryItem[]) => void;
 }
 
 export const LibrarySidebar = ({
@@ -94,7 +94,6 @@ export const LibrarySidebar = ({
       newFolders.splice(draggedIndex, 1);
       newFolders.splice(dropIndex, 0, draggedItem);
       setReorderedFolders(newFolders);
-      onFolderUpdated(); // Notify parent of the change
     }
     setDraggedIndex(null);
     setDragOverIndex(null);
@@ -275,7 +274,8 @@ export const LibrarySidebar = ({
                   size="sm"
                   onClick={() => {
                     setIsReorderMode(false);
-                    onFolderUpdated(); // Save the new order
+                    // Pass the reordered folders to the parent component
+                    onFolderUpdated(reorderedFolders);
                   }}
                   className="text-xs px-2 h-7 flex-1 hover:bg-gradient-glass transition"
                 >
