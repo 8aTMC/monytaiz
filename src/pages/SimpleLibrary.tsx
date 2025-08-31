@@ -281,14 +281,14 @@ export default function SimpleLibrary() {
   }, [filteredMedia]);
 
   const handleCheckboxClick = useCallback((itemId: string, index: number, event?: React.MouseEvent) => {
-    console.log('Checkbox clicked:', itemId, index);
+    console.log('Checkbox clicked:', itemId, index, 'Alt:', event?.altKey, 'Shift:', event?.shiftKey, 'LastIndex:', lastSelectedIndex);
     if (event) {
       event.preventDefault();
       event.stopPropagation();
     }
     
     // Check if Alt or Shift key is pressed for range selection
-    if ((event?.altKey || event?.shiftKey) && lastSelectedIndex !== null && Math.abs(index - lastSelectedIndex) > 0) {
+    if ((event?.altKey || event?.shiftKey) && lastSelectedIndex !== null && Math.abs(index - lastSelectedIndex) >= 0) {
       console.log('Range selection from', lastSelectedIndex, 'to', index);
       selectItemsInRange(lastSelectedIndex, index);
     } else {
