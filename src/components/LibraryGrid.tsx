@@ -70,17 +70,25 @@ const LibraryGridComponent = ({
       }}
     >
       {content.map((item, index) => {
+        let clickTimeout: NodeJS.Timeout | null = null;
+        
         // Create stable click handlers for each item
         const handleItemClick = (event: React.MouseEvent) => {
-          console.log('Item clicked, detail:', event.detail, 'selecting:', selecting);
           if (selecting) {
             // In selection mode: single click selects/unselects, double click previews
             if (event.detail === 2) {
-              console.log('Double click detected - opening preview');
+              // Double click - clear any pending single click and open preview
+              if (clickTimeout) {
+                clearTimeout(clickTimeout);
+                clickTimeout = null;
+              }
               onItemClick(item, event, index);
-            } else {
-              console.log('Single click detected - selecting item');
-              onCheckboxClick(item.id, index, event);
+            } else if (event.detail === 1) {
+              // Single click - delay execution to check for double click
+              clickTimeout = setTimeout(() => {
+                onCheckboxClick(item.id, index, event);
+                clickTimeout = null;
+              }, 200);
             }
           } else {
             // Default mode: single click previews
