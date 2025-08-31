@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowUpDown, GripVertical, MoreVertical } from 'lucide-react';
+import { ArrowUpDown, GripVertical, MoreVertical, Search } from 'lucide-react';
 import { NewFolderDialog } from '@/components/NewFolderDialog';
 import { EditFolderDialog } from '@/components/EditFolderDialog';
 
@@ -215,14 +215,17 @@ export const LibrarySidebar = ({
         </div>
 
         {/* Search Field */}
-        <div className="mb-4">
-          <input
-            type="text"
-            placeholder="Search folders..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-3 py-2 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 placeholder:text-muted-foreground"
-          />
+        <div className="mb-4 flex justify-center">
+          <div className="relative" style={{ width: 'calc(100% - 10px)' }}>
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search folders..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-3 py-2 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 placeholder:text-muted-foreground"
+            />
+          </div>
         </div>
 
         {/* Custom folders */}
