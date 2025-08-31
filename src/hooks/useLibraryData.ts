@@ -16,6 +16,7 @@ interface MediaItem {
   created_at: string;
   updated_at: string;
   tiny_placeholder?: string;
+  thumbnail_path?: string;
   width?: number;
   height?: number;
 }
@@ -65,7 +66,7 @@ export const useLibraryData = ({
 
       // Fetch based on category
       if (category === 'all-files') {
-        const [mediaResults, contentResults] = await Promise.all([
+        const [mediaResults, contentResults, simpleMediaResults] = await Promise.all([
           supabase
             .from('media')
             .select('id, bucket, path, storage_path, mime, type, size_bytes, title, notes, tags, suggested_price_cents, creator_id, created_at, updated_at, tiny_placeholder, width, height, origin')
@@ -79,6 +80,12 @@ export const useLibraryData = ({
             .not('file_path', 'is', null)
             .not('file_path', 'eq', '')
             .gt('file_size', 0)
+            .order('created_at', { ascending: false })
+            .abortSignal(abortControllerRef.current.signal),
+          supabase
+            .from('simple_media')
+            .select('id, original_path, processed_path, thumbnail_path, mime_type, media_type, original_size_bytes, title, description, tags, suggested_price_cents, creator_id, created_at, updated_at, width, height, processing_status')
+            .eq('processing_status', 'processed')
             .order('created_at', { ascending: false })
             .abortSignal(abortControllerRef.current.signal)
         ]);
@@ -113,6 +120,32 @@ export const useLibraryData = ({
           }));
 
           combinedData = [...combinedData, ...convertedLegacyItems];
+        }
+
+        if (simpleMediaResults.data) {
+          const convertedSimpleMedia = simpleMediaResults.data.map(item => ({
+            id: item.id,
+            title: item.title || 'Untitled',
+            type: item.media_type,
+            bucket: 'content',
+            path: item.processed_path || item.original_path,
+            storage_path: item.processed_path || item.original_path,
+            mime: item.mime_type || '',
+            size_bytes: item.original_size_bytes || 0,
+            suggested_price_cents: item.suggested_price_cents || 0,
+            tags: item.tags || [],
+            notes: item.description || null,
+            creator_id: item.creator_id,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            origin: 'upload',
+            tiny_placeholder: undefined,
+            thumbnail_path: item.thumbnail_path,
+            width: item.width,
+            height: item.height
+          }));
+
+          combinedData = [...combinedData, ...convertedSimpleMedia];
         }
       } else if (category === 'messages') {
         const { data: mediaResults } = await supabase
@@ -191,6 +224,7 @@ export const useLibraryData = ({
           mime: item.mime || '',
           creator_id: item.creator_id,
           tiny_placeholder: item.tiny_placeholder || undefined,
+          thumbnail_path: item.thumbnail_path || undefined,
           width: item.width || undefined,
           height: item.height || undefined
         }));
@@ -212,7 +246,7 @@ export const useLibraryData = ({
       const counts: Record<string, number> = {};
       
       // All Files count
-      const [allMediaResults, allContentResults] = await Promise.all([
+      const [allMediaResults, allContentResults, allSimpleMediaResults] = await Promise.all([
         supabase.from('media').select('id', { count: 'exact' }),
         supabase
           .from('content_files')
@@ -221,7 +255,11 @@ export const useLibraryData = ({
           .not('content_type', 'is', null)
           .not('file_path', 'is', null)
           .not('file_path', 'eq', '')
-          .gt('file_size', 0)
+          .gt('file_size', 0),
+        supabase
+          .from('simple_media')
+          .select('id', { count: 'exact' })
+          .eq('processing_status', 'processed')
       ]);
       
       const { data: mediaIds } = await supabase.from('media').select('id');
@@ -237,7 +275,7 @@ export const useLibraryData = ({
       const mediaIdSet = new Set((mediaIds || []).map(item => item.id));
       const uniqueContentFiles = (contentFileIds || []).filter(item => !mediaIdSet.has(item.id));
       
-      counts['all-files'] = (allMediaResults.count || 0) + uniqueContentFiles.length;
+      counts['all-files'] = (allMediaResults.count || 0) + uniqueContentFiles.length + (allSimpleMediaResults.count || 0);
       
       // Messages count
       const { count: messagesCount } = await supabase

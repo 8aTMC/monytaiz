@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { Image, Video, FileAudio, Play } from 'lucide-react';
 import { useOptimizedMediaDisplay } from '@/hooks/useOptimizedMediaDisplay';
+import { useThumbnailUrl } from '@/hooks/useThumbnailUrl';
 
 interface MediaThumbnailProps {
   item: {
@@ -11,6 +12,7 @@ interface MediaThumbnailProps {
     path?: string;
     title: string | null;
     tiny_placeholder?: string;
+    thumbnail_path?: string;
     width?: number;
     height?: number;
     renditions?: {
@@ -24,6 +26,7 @@ interface MediaThumbnailProps {
 
 export const MediaThumbnail = ({ item, className = "", isPublic = false }: MediaThumbnailProps) => {
   const { loadOptimizedMedia, currentUrl, isLoading, error, clearMedia } = useOptimizedMediaDisplay();
+  const { thumbnailUrl, loading: thumbnailLoading } = useThumbnailUrl(item.thumbnail_path);
 
   // Create stable media item object to prevent infinite re-renders
   const stableMediaItem = useMemo(() => ({
@@ -32,6 +35,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     storage_path: item.storage_path || item.file_path,
     path: item.path,
     tiny_placeholder: item.tiny_placeholder,
+    thumbnail_path: item.thumbnail_path,
     width: item.width,
     height: item.height
   }), [
@@ -40,7 +44,8 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     item.storage_path, 
     item.file_path, 
     item.path, 
-    item.tiny_placeholder, 
+    item.tiny_placeholder,
+    item.thumbnail_path,
     item.width, 
     item.height
   ]);
@@ -73,15 +78,18 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
       ? (item.width / item.height).toFixed(3)
       : '16/9'; // Default aspect ratio for video/audio
     
-    // If we have a tiny_placeholder (thumbnail), use it instead of icon
-    if (item.tiny_placeholder && item.tiny_placeholder !== 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==') {
+    // Check for thumbnail from simple_media first, then tiny_placeholder
+    const thumbnailSrc = thumbnailUrl || 
+      (item.tiny_placeholder && item.tiny_placeholder !== 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==' ? item.tiny_placeholder : null);
+    
+    if (thumbnailSrc) {
       return (
         <div 
           className={`bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden group ${className}`}
           style={{ aspectRatio }}
         >
           <img
-            src={item.tiny_placeholder}
+            src={thumbnailSrc}
             alt={item.title || `${item.type} thumbnail`}
             className="w-full h-full object-cover"
             loading="lazy"
