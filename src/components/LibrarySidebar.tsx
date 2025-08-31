@@ -35,14 +35,28 @@ export const LibrarySidebar = ({
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
+  // Optimized search function - case insensitive matching of title and description
+  const searchFolders = (folders: CategoryItem[], search: string): CategoryItem[] => {
+    if (!search.trim()) return folders;
+    
+    const searchLower = search.toLowerCase().trim();
+    return folders.filter(folder => 
+      folder.label.toLowerCase().includes(searchLower) ||
+      folder.description.toLowerCase().includes(searchLower)
+    );
+  };
+
+  // Apply search first, then sorting
+  const filteredFolders = searchFolders(customFolders, searchTerm);
   const sortedCustomFolders = sortOrder
-    ? [...customFolders].sort((a, b) =>
+    ? [...filteredFolders].sort((a, b) =>
         sortOrder === 'asc'
           ? a.label.localeCompare(b.label)
           : b.label.localeCompare(a.label)
       )
-    : customFolders;
+    : filteredFolders;
 
   // ---- Reusable row (used for both default categories & custom folders)
   const Row = ({
@@ -184,18 +198,31 @@ export const LibrarySidebar = ({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 mb-4">
-          <NewFolderDialog onFolderCreated={onFolderCreated} />
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex-1">
+            <NewFolderDialog onFolderCreated={onFolderCreated} />
+          </div>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setIsReorderMode(!isReorderMode)}
             disabled={customFolders.length === 0}
-            className="text-xs px-2 h-7 flex-shrink-0 hover:bg-gradient-glass transition"
-            title="Reorder"
+            className="text-xs px-2 h-7 flex-1 hover:bg-gradient-glass transition"
           >
-            <ArrowUpDown className="h-3.5 w-3.5" />
+            <ArrowUpDown className="h-3.5 w-3.5 mr-1" />
+            Reorder
           </Button>
+        </div>
+
+        {/* Search Field */}
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Search folders..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-3 py-2 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 placeholder:text-muted-foreground"
+          />
         </div>
 
         {/* Custom folders */}
