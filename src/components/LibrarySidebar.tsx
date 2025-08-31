@@ -181,7 +181,7 @@ export const LibrarySidebar = ({
               <span
                 className={`font-medium text-left w-full truncate ${
                   isDragging 
-                    ? 'text-muted-foreground' 
+                    ? 'text-foreground font-semibold' 
                     : isSelected 
                       ? 'text-white' 
                       : 'text-foreground'
@@ -195,7 +195,7 @@ export const LibrarySidebar = ({
               <span
                 className={`text-xs leading-[1.3] text-left ${
                   isDragging
-                    ? 'text-muted-foreground/80'
+                    ? 'text-foreground/90'
                     : isSelected 
                       ? 'text-white/80' 
                       : 'text-muted-foreground'
