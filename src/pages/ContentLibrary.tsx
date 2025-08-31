@@ -334,6 +334,21 @@ const ContentLibrary = () => {
   return (
     <LibraryErrorBoundary>
       <div className="h-full flex flex-col overflow-hidden -mb-6">
+        {/* Selection Toolbar - At very top level when selecting */}
+        {selecting && (
+          <LibrarySelectionToolbar
+            selectedCount={selectedItems.size}
+            totalCount={content.length}
+            currentView={categoryLabel}
+            isCustomFolder={isCustomFolder}
+            onClearSelection={handleClearSelection}
+            onSelectAll={handleSelectAll}
+            onCopy={handleCopy}
+            onDelete={handleDelete}
+            disabled={operationLoading || loadingContent}
+          />
+        )}
+        
         {/* Main Content Area - Full Width */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Enhanced Header */}
@@ -424,21 +439,6 @@ const ContentLibrary = () => {
                 </Button>
               </div>
             </div>
-            
-            {/* Selection Toolbar - integrated in header */}
-            {selecting && (
-              <LibrarySelectionToolbar
-                selectedCount={selectedItems.size}
-                totalCount={content.length}
-                currentView={categoryLabel}
-                isCustomFolder={isCustomFolder}
-                onClearSelection={handleClearSelection}
-                onSelectAll={handleSelectAll}
-                onCopy={handleCopy}
-                onDelete={handleDelete}
-                disabled={operationLoading || loadingContent}
-              />
-            )}
           </div>
 
           {/* Enhanced Content Area */}
