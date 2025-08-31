@@ -18,8 +18,8 @@ function json(data: unknown, status = 200) {
   });
 }
 
-// Generate video thumbnail using FFmpeg
-async function generateVideoThumbnail(videoUrl: string): Promise<string | null> {
+// Generate video thumbnail using FFmpeg with improved commands
+async function generateVideoThumbnail(videoUrl: string): Promise<{ dataUrl: string | null, thumbnailPath: string | null }> {
   try {
     console.log('Generating thumbnail for video:', videoUrl);
     
@@ -30,7 +30,7 @@ async function generateVideoThumbnail(videoUrl: string): Promise<string | null> 
     
     if (!videoResponse.ok) {
       console.error('Failed to fetch video:', videoResponse.status);
-      return null;
+      return { dataUrl: createFallbackThumbnail(), thumbnailPath: null };
     }
     
     const videoBuffer = await videoResponse.arrayBuffer();
@@ -40,14 +40,14 @@ async function generateVideoThumbnail(videoUrl: string): Promise<string | null> 
     // Write video to temporary file
     await Deno.writeFile(tempVideoPath, new Uint8Array(videoBuffer));
     
-    // Use FFmpeg to extract thumbnail at 1 second mark
-    const ffmpegCommand = new Deno.Command("ffmpeg", {
+    // First try: Extract frame at 1 second
+    let ffmpegCommand = new Deno.Command("ffmpeg", {
       args: [
+        "-ss", "00:00:01",  // Seek to 1 second first (more efficient)
         "-i", tempVideoPath,
-        "-ss", "00:00:01",  // Seek to 1 second
         "-vframes", "1",    // Extract 1 frame
         "-q:v", "2",        // High quality
-        "-vf", "scale=400:300:force_original_aspect_ratio=decrease,pad=400:300:(ow-iw)/2:(oh-ih)/2", // Scale and pad
+        "-vf", "scale=640:480:force_original_aspect_ratio=decrease,pad=640:480:(ow-iw)/2:(oh-ih)/2", 
         "-y",               // Overwrite output file
         tempThumbnailPath
       ],
@@ -55,8 +55,30 @@ async function generateVideoThumbnail(videoUrl: string): Promise<string | null> 
       stderr: "piped",
     });
     
-    const process = ffmpegCommand.spawn();
-    const { success, stderr } = await process.output();
+    let process = ffmpegCommand.spawn();
+    let { success, stderr } = await process.output();
+    
+    // If failed at 1 second, try first frame
+    if (!success) {
+      console.log('Thumbnail at 1s failed, trying first frame');
+      ffmpegCommand = new Deno.Command("ffmpeg", {
+        args: [
+          "-i", tempVideoPath,
+          "-vframes", "1",    // Extract 1 frame (first frame)
+          "-q:v", "2",        // High quality
+          "-vf", "scale=640:480:force_original_aspect_ratio=decrease,pad=640:480:(ow-iw)/2:(oh-ih)/2",
+          "-y",               // Overwrite output file
+          tempThumbnailPath
+        ],
+        stdout: "piped",
+        stderr: "piped",
+      });
+      
+      process = ffmpegCommand.spawn();
+      const result = await process.output();
+      success = result.success;
+      stderr = result.stderr;
+    }
     
     if (!success) {
       const errorText = new TextDecoder().decode(stderr);
@@ -67,11 +89,28 @@ async function generateVideoThumbnail(videoUrl: string): Promise<string | null> 
         await Deno.remove(tempVideoPath);
       } catch {}
       
-      return createFallbackThumbnail();
+      return { dataUrl: createFallbackThumbnail(), thumbnailPath: null };
     }
     
     // Read the generated thumbnail
     const thumbnailBuffer = await Deno.readFile(tempThumbnailPath);
+    
+    // Save thumbnail to storage
+    const thumbnailFilename = `thumbnails/thumb_${Date.now()}.jpg`;
+    const { data: uploadData, error: uploadError } = await sb.storage
+      .from('content')
+      .upload(thumbnailFilename, thumbnailBuffer, {
+        contentType: 'image/jpeg',
+        upsert: true
+      });
+    
+    let thumbnailPath = null;
+    if (!uploadError && uploadData?.path) {
+      thumbnailPath = uploadData.path;
+      console.log('Thumbnail saved to storage:', thumbnailPath);
+    }
+    
+    // Also create data URL for backward compatibility
     const base64Thumbnail = btoa(String.fromCharCode(...thumbnailBuffer));
     const dataUrl = `data:image/jpeg;base64,${base64Thumbnail}`;
     
@@ -84,11 +123,11 @@ async function generateVideoThumbnail(videoUrl: string): Promise<string | null> 
     }
     
     console.log('Successfully generated video thumbnail');
-    return dataUrl;
+    return { dataUrl, thumbnailPath };
     
   } catch (error) {
     console.error('Error generating video thumbnail:', error);
-    return createFallbackThumbnail();
+    return { dataUrl: createFallbackThumbnail(), thumbnailPath: null };
   }
 }
 
@@ -121,12 +160,14 @@ Deno.serve(async (req) => {
       return json({ error: "Method not allowed" }, 405);
     }
 
-    const { bucket, path } = await req.json();
+    const { bucket, path, mediaId } = await req.json();
+    
+    // mediaId is required to identify which record to update
     if (!bucket || !path) {
       return json({ error: "bucket and path required" }, 400);
     }
 
-    console.log(`Generating video thumbnail for: ${bucket}/${path}`);
+    console.log(`Generating video thumbnail for: ${bucket}/${path}`, mediaId ? `(mediaId: ${mediaId})` : '');
 
     // Get signed URL for the video
     const { data: signedData, error: signError } = await sb.storage
@@ -138,13 +179,28 @@ Deno.serve(async (req) => {
     }
 
     // Generate thumbnail
-    const thumbnailDataUrl = await generateVideoThumbnail(signedData.signedUrl);
+    const { dataUrl: thumbnailDataUrl, thumbnailPath } = await generateVideoThumbnail(signedData.signedUrl);
     
     if (!thumbnailDataUrl) {
       return json({ error: "Failed to generate video thumbnail" }, 500);
     }
 
-    // Update the media record with the thumbnail
+    // Update both media and simple_media tables if mediaId is provided
+    if (mediaId) {
+      // Update simple_media table
+      const { error: simpleMediaUpdateError } = await sb
+        .from("simple_media")
+        .update({ thumbnail_path: thumbnailPath })
+        .eq("id", mediaId);
+      
+      if (simpleMediaUpdateError) {
+        console.error('Failed to update simple_media record:', simpleMediaUpdateError);
+      } else {
+        console.log('Updated simple_media with thumbnail_path:', thumbnailPath);
+      }
+    }
+
+    // Also update media table for backward compatibility
     const { error: updateError } = await sb
       .from("media")
       .update({ tiny_placeholder: thumbnailDataUrl })
@@ -153,14 +209,18 @@ Deno.serve(async (req) => {
 
     if (updateError) {
       console.error('Failed to update media record:', updateError);
-      return json({ error: updateError.message }, 500);
+      // Don't return error if simple_media was updated successfully
+      if (!mediaId) {
+        return json({ error: updateError.message }, 500);
+      }
     }
 
     console.log(`Successfully generated thumbnail for: ${bucket}/${path}`);
     
     return json({ 
       ok: true, 
-      thumbnail: thumbnailDataUrl 
+      thumbnail: thumbnailDataUrl,
+      thumbnailPath: thumbnailPath
     });
   } catch (error) {
     console.error('Video thumbnail generation error:', error);
