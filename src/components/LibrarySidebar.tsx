@@ -84,7 +84,7 @@ export const LibrarySidebar = ({
           variant="secondary"
           className={`absolute top-1.5 right-1.5 rounded-full text-[10px] px-1.5 h-4 min-w-[16px] flex items-center justify-center pointer-events-none transition-all ${
             isSelected
-              ? 'bg-white/20 text-white border-white/20'
+              ? 'bg-white text-primary border-white shadow-sm'
               : 'bg-primary/10 text-primary border-primary/20 group-hover:bg-primary/20'
           }`}
         >
