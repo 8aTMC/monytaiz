@@ -216,7 +216,7 @@ export const LibrarySidebar = ({
 
         {/* Search Field */}
         <div className="mb-4 flex justify-center">
-          <div className="relative" style={{ width: 'calc(100% - 10px)' }}>
+          <div className="relative" style={{ width: 'calc(100% - 30px)' }}>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
