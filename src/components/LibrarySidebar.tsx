@@ -164,7 +164,7 @@ export const LibrarySidebar = ({
   };
 
   return (
-    <div className="w-full flex-shrink-0 relative h-full" style={{ zIndex: 10 }}>
+    <div className="w-full flex-shrink-0 relative h-full border-r border-border" style={{ zIndex: 10 }}>
       <div className="absolute inset-0 bg-gradient-sidebar" />
       {/* Library directory content */}
       <div className="relative h-full overflow-y-auto custom-scrollbar px-4 py-4" style={{ minWidth: '100%' }}>
