@@ -287,20 +287,18 @@ export default function SimpleLibrary() {
 
   return (
     <>
-      {/* Selection Toolbar - Fixed Global Overlay */}
+      {/* Selection Toolbar - Conditional Rendering */}
       {selecting && selectedItems.size > 0 && (
-        <div className="fixed top-0 left-0 right-0 z-50">
-          <LibrarySelectionToolbar
-            selectedCount={selectedItems.size}
-            totalCount={filteredMedia.length}
-            currentView={selectedCategory}
-            isCustomFolder={false}
-            onClearSelection={handleClearSelection}
-            onSelectAll={handleSelectAll}
-            onCopy={handleCopy}
-            onDelete={handleDelete}
-          />
-        </div>
+        <LibrarySelectionToolbar
+          selectedCount={selectedItems.size}
+          totalCount={filteredMedia.length}
+          currentView={selectedCategory}
+          isCustomFolder={false}
+          onClearSelection={handleClearSelection}
+          onSelectAll={handleSelectAll}
+          onCopy={handleCopy}
+          onDelete={handleDelete}
+        />
       )}
 
       {/* Three-column layout: Navigation (fixed) | Library Directory | Main Content */}
