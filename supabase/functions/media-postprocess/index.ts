@@ -183,27 +183,68 @@ Deno.serve(async (req) => {
         console.warn('Failed to process image:', error);
       }
     } else if (type === 'video') {
-      // For videos, use default dimensions and generate a video thumbnail placeholder
+      // For videos, use default dimensions and generate actual video thumbnail
       width = 1920;
       height = 1080;
       
-      // Generate a better video placeholder with play icon
-      const videoPlaceholder = 'data:image/svg+xml;base64,' + btoa(`
-        <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="videoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
-              <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:1" />
-            </linearGradient>
-          </defs>
-          <rect width="400" height="300" fill="url(#videoGrad)"/>
-          <circle cx="200" cy="150" r="40" fill="rgba(255,255,255,0.9)"/>
-          <polygon points="185,135 185,165 215,150" fill="#2563eb"/>
-        </svg>
-      `);
-      tinyDataUrl = videoPlaceholder;
+      console.log('Generating video thumbnail for:', bucket, '/', path);
       
-      console.log('Video processing - generated video thumbnail placeholder');
+      try {
+        const { data: thumbnailData, error: thumbnailError } = await sb.functions.invoke('video-thumbnail', {
+          body: { bucket, path },
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (thumbnailError) {
+          console.error('Video thumbnail generation error:', thumbnailError);
+          // Use fallback placeholder for videos
+          tinyDataUrl = 'data:image/svg+xml;base64,' + btoa(`
+            <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:1" />
+                </linearGradient>
+              </defs>
+              <rect width="400" height="300" fill="url(#bg)"/>
+              <circle cx="200" cy="150" r="35" fill="#ffffff" opacity="0.9"/>
+              <polygon points="185,135 185,165 215,150" fill="#2563eb"/>
+              <text x="200" y="220" text-anchor="middle" fill="#ffffff" font-family="Arial" font-size="14" opacity="0.8">Video</text>
+            </svg>
+          `);
+        } else if (thumbnailData?.thumbnail) {
+          tinyDataUrl = thumbnailData.thumbnail;
+          console.log('Successfully generated video thumbnail');
+        } else {
+          // Fallback if no thumbnail returned
+          tinyDataUrl = 'data:image/svg+xml;base64,' + btoa(`
+            <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="videoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:1" />
+                </linearGradient>
+              </defs>
+              <rect width="400" height="300" fill="url(#videoGrad)"/>
+              <circle cx="200" cy="150" r="40" fill="rgba(255,255,255,0.9)"/>
+              <polygon points="185,135 185,165 215,150" fill="#2563eb"/>
+            </svg>
+          `);
+        }
+      } catch (error) {
+        console.error('Failed to generate video thumbnail:', error);
+        // Use fallback placeholder
+        tinyDataUrl = 'data:image/svg+xml;base64,' + btoa(`
+          <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+            <rect width="400" height="300" fill="#1a1a1a"/>
+            <circle cx="200" cy="150" r="35" fill="#ffffff" opacity="0.9"/>
+            <polygon points="185,135 185,165 215,150" fill="#1a1a1a"/>
+            <text x="200" y="220" text-anchor="middle" fill="#ffffff" font-family="Arial" font-size="14">Video</text>
+          </svg>
+        `);
+      }
+      
+      console.log('Video processing completed');
     } else if (type === 'audio') {
       // For audio, use square dimensions
       width = 800;

@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { Image, Video, FileAudio } from 'lucide-react';
+import { Image, Video, FileAudio, Play } from 'lucide-react';
 import { useOptimizedMediaDisplay } from '@/hooks/useOptimizedMediaDisplay';
 
 interface MediaThumbnailProps {
@@ -77,7 +77,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     if (item.tiny_placeholder && item.tiny_placeholder !== 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==') {
       return (
         <div 
-          className={`bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}
+          className={`bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden group ${className}`}
           style={{ aspectRatio }}
         >
           <img
@@ -88,11 +88,18 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
             decoding="async"
           />
           {item.type === 'video' && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="bg-black/50 rounded-full p-3">
-                <Video className="h-8 w-8 text-white" />
+            <>
+              {/* Play button overlay */}
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+                <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg">
+                  <Play className="w-5 h-5 text-primary ml-0.5" />
+                </div>
               </div>
-            </div>
+              {/* Video label */}
+              <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                Video
+              </div>
+            </>
           )}
         </div>
       );

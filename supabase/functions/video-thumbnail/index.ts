@@ -18,40 +18,97 @@ function json(data: unknown, status = 200) {
   });
 }
 
-// Generate video thumbnail using canvas API
+// Generate video thumbnail using FFmpeg
 async function generateVideoThumbnail(videoUrl: string): Promise<string | null> {
   try {
-    // Since we're in Deno, we'll use a different approach
-    // We'll need to use FFmpeg or similar tool to extract frames
-    // For now, let's create a placeholder that can be enhanced later
+    console.log('Generating thumbnail for video:', videoUrl);
     
-    // This is a fallback approach - in a real implementation, you'd use FFmpeg
-    // to extract a frame from the video at a specific timestamp
-    const response = await fetch(videoUrl, { 
-      method: 'HEAD',
-      signal: AbortSignal.timeout(5000)
+    // Create a temporary file for the video
+    const videoResponse = await fetch(videoUrl, {
+      signal: AbortSignal.timeout(30000) // 30 second timeout
     });
     
-    if (!response.ok) {
+    if (!videoResponse.ok) {
+      console.error('Failed to fetch video:', videoResponse.status);
       return null;
     }
     
-    // For now, return a video-specific placeholder
-    // This could be enhanced with actual frame extraction
-    const videoPlaceholder = 'data:image/svg+xml;base64,' + btoa(`
-      <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
-        <rect width="400" height="300" fill="#1a1a1a"/>
-        <circle cx="200" cy="150" r="40" fill="#ffffff" opacity="0.8"/>
-        <polygon points="185,130 185,170 220,150" fill="#1a1a1a"/>
-        <text x="200" y="220" text-anchor="middle" fill="#ffffff" font-family="Arial" font-size="16">Video</text>
-      </svg>
-    `);
+    const videoBuffer = await videoResponse.arrayBuffer();
+    const tempVideoPath = `/tmp/input_${Date.now()}.mp4`;
+    const tempThumbnailPath = `/tmp/thumb_${Date.now()}.jpg`;
     
-    return videoPlaceholder;
+    // Write video to temporary file
+    await Deno.writeFile(tempVideoPath, new Uint8Array(videoBuffer));
+    
+    // Use FFmpeg to extract thumbnail at 1 second mark
+    const ffmpegCommand = new Deno.Command("ffmpeg", {
+      args: [
+        "-i", tempVideoPath,
+        "-ss", "00:00:01",  // Seek to 1 second
+        "-vframes", "1",    // Extract 1 frame
+        "-q:v", "2",        // High quality
+        "-vf", "scale=400:300:force_original_aspect_ratio=decrease,pad=400:300:(ow-iw)/2:(oh-ih)/2", // Scale and pad
+        "-y",               // Overwrite output file
+        tempThumbnailPath
+      ],
+      stdout: "piped",
+      stderr: "piped",
+    });
+    
+    const process = ffmpegCommand.spawn();
+    const { success, stderr } = await process.output();
+    
+    if (!success) {
+      const errorText = new TextDecoder().decode(stderr);
+      console.error('FFmpeg error:', errorText);
+      
+      // Cleanup temp files
+      try {
+        await Deno.remove(tempVideoPath);
+      } catch {}
+      
+      return createFallbackThumbnail();
+    }
+    
+    // Read the generated thumbnail
+    const thumbnailBuffer = await Deno.readFile(tempThumbnailPath);
+    const base64Thumbnail = btoa(String.fromCharCode(...thumbnailBuffer));
+    const dataUrl = `data:image/jpeg;base64,${base64Thumbnail}`;
+    
+    // Cleanup temp files
+    try {
+      await Deno.remove(tempVideoPath);
+      await Deno.remove(tempThumbnailPath);
+    } catch (cleanupError) {
+      console.warn('Cleanup error:', cleanupError);
+    }
+    
+    console.log('Successfully generated video thumbnail');
+    return dataUrl;
+    
   } catch (error) {
     console.error('Error generating video thumbnail:', error);
-    return null;
+    return createFallbackThumbnail();
   }
+}
+
+// Create fallback SVG thumbnail
+function createFallbackThumbnail(): string {
+  const videoPlaceholder = 'data:image/svg+xml;base64,' + btoa(`
+    <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:1" />
+        </linearGradient>
+      </defs>
+      <rect width="400" height="300" fill="url(#bg)"/>
+      <circle cx="200" cy="150" r="35" fill="#ffffff" opacity="0.9"/>
+      <polygon points="185,135 185,165 215,150" fill="#2563eb"/>
+      <text x="200" y="220" text-anchor="middle" fill="#ffffff" font-family="Arial" font-size="14" opacity="0.8">Video Thumbnail</text>
+    </svg>
+  `);
+  return videoPlaceholder;
 }
 
 Deno.serve(async (req) => {
