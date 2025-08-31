@@ -428,7 +428,7 @@ const ContentLibrary = () => {
 
           {/* Enhanced Selection Toolbar */}
           {selecting && (
-            <div className="p-4 pt-6">
+            <div className="border-b border-border/50 bg-gradient-soft px-6 py-4">
               <LibrarySelectionToolbar
                 selectedCount={selectedItems.size}
                 totalCount={content.length}
