@@ -113,7 +113,8 @@ export const LibrarySidebar = ({
     leftPad = false,
     showHandle = false,
     onClick,
-    rightMenu
+    rightMenu,
+    isDragging = false
   }: {
     item: CategoryItem;
     isSelected: boolean;
@@ -122,6 +123,7 @@ export const LibrarySidebar = ({
     showHandle?: boolean;
     onClick?: () => void;
     rightMenu?: React.ReactNode;
+    isDragging?: boolean;
   }) => {
     const Icon = item.icon;
     return (
@@ -178,7 +180,11 @@ export const LibrarySidebar = ({
             <div className="flex flex-col items-start flex-1 leading-tight" style={{ width: 'calc(100% - 32px)' }}>
               <span
                 className={`font-medium text-left w-full truncate ${
-                  isSelected ? 'text-white' : 'text-foreground'
+                  isDragging 
+                    ? 'text-muted-foreground' 
+                    : isSelected 
+                      ? 'text-white' 
+                      : 'text-foreground'
                 }`}
                 title={item.label}
               >
@@ -188,7 +194,11 @@ export const LibrarySidebar = ({
               {/* 2-line subtitle (≈40 chars) */}
               <span
                 className={`text-xs leading-[1.3] text-left ${
-                  isSelected ? 'text-white/80' : 'text-muted-foreground'
+                  isDragging
+                    ? 'text-muted-foreground/80'
+                    : isSelected 
+                      ? 'text-white/80' 
+                      : 'text-muted-foreground'
                 }`}
                 style={{ 
                   display: '-webkit-box',
@@ -339,6 +349,7 @@ export const LibrarySidebar = ({
                     count={categoryCounts[folder.id] || 0}
                     leftPad={!isReorderMode} // room for kebab icon
                     showHandle={isReorderMode}
+                    isDragging={isDragging}
                     onClick={() => {
                       if (!isReorderMode) onCategorySelect(folder.id);
                     }}
