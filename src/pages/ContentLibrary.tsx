@@ -424,24 +424,24 @@ const ContentLibrary = () => {
                 </Button>
               </div>
             </div>
-            
-            {/* Enhanced Selection Toolbar */}
-            {selecting && (
-              <div className="border-b border-border/50 bg-gradient-soft px-6 py-4">
-                <LibrarySelectionToolbar
-                  selectedCount={selectedItems.size}
-                  totalCount={content.length}
-                  currentView={categoryLabel}
-                  isCustomFolder={isCustomFolder}
-                  onClearSelection={handleClearSelection}
-                  onSelectAll={handleSelectAll}
-                  onCopy={handleCopy}
-                  onDelete={handleDelete}
-                  disabled={operationLoading || loadingContent}
-                />
-              </div>
-            )}
           </div>
+
+          {/* Selection Toolbar - appears below header */}
+          {selecting && (
+            <div className="border-b border-border/50 bg-gradient-soft px-6 py-4">
+              <LibrarySelectionToolbar
+                selectedCount={selectedItems.size}
+                totalCount={content.length}
+                currentView={categoryLabel}
+                isCustomFolder={isCustomFolder}
+                onClearSelection={handleClearSelection}
+                onSelectAll={handleSelectAll}
+                onCopy={handleCopy}
+                onDelete={handleDelete}
+                disabled={operationLoading || loadingContent}
+              />
+            </div>
+          )}
 
           {/* Enhanced Content Area */}
           <div className="flex-1 overflow-y-auto p-6 pt-4 custom-scrollbar">
