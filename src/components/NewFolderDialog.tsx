@@ -105,7 +105,7 @@ export const NewFolderDialog = ({ onFolderCreated }: NewFolderDialogProps) => {
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="text-xs h-7 px-2 flex-1 min-w-0">
           <FolderPlus className="h-3 w-3 mr-1 flex-shrink-0" />
-          <span className="truncate">New</span>
+          <span className="truncate">New Folder</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">

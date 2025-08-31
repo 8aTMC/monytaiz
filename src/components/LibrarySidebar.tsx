@@ -198,20 +198,22 @@ export const LibrarySidebar = ({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 mb-3">
-          <div className="flex-1">
-            <NewFolderDialog onFolderCreated={onFolderCreated} />
+        <div className="mb-3 flex justify-center">
+          <div className="flex items-center gap-1" style={{ width: 'calc(100% - 30px)' }}>
+            <div className="flex-1">
+              <NewFolderDialog onFolderCreated={onFolderCreated} />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsReorderMode(!isReorderMode)}
+              disabled={customFolders.length === 0}
+              className="text-xs px-2 h-7 flex-1 hover:bg-gradient-glass transition"
+            >
+              <ArrowUpDown className="h-3.5 w-3.5 mr-1" />
+              Reorder
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsReorderMode(!isReorderMode)}
-            disabled={customFolders.length === 0}
-            className="text-xs px-2 h-7 flex-1 hover:bg-gradient-glass transition"
-          >
-            <ArrowUpDown className="h-3.5 w-3.5 mr-1" />
-            Reorder
-          </Button>
         </div>
 
         {/* Search Field */}
