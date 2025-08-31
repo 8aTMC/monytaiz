@@ -287,8 +287,8 @@ export default function SimpleLibrary() {
       event.stopPropagation();
     }
     
-    // Check if Alt key is pressed for range selection
-    if (event?.altKey && lastSelectedIndex !== null && Math.abs(index - lastSelectedIndex) > 0) {
+    // Check if Alt or Shift key is pressed for range selection
+    if ((event?.altKey || event?.shiftKey) && lastSelectedIndex !== null && Math.abs(index - lastSelectedIndex) > 0) {
       console.log('Range selection from', lastSelectedIndex, 'to', index);
       selectItemsInRange(lastSelectedIndex, index);
     } else {
