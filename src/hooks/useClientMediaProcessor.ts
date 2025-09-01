@@ -63,7 +63,7 @@ export const useClientMediaProcessor = () => {
     return canvasRef.current;
   }, []);
 
-  // Check if ffmpeg.wasm is supported with extensive logging
+  // Check client-side processing capabilities (graceful degradation)
   const checkFFmpegSupport = useCallback(() => {
     try {
       const hasWorker = typeof Worker !== 'undefined';
@@ -71,33 +71,28 @@ export const useClientMediaProcessor = () => {
       const isCrossOriginIsolated = crossOriginIsolated;
       const hasWebAssembly = typeof WebAssembly !== 'undefined';
       
-      console.log('🔍 FFmpeg Support Diagnostic:', {
+      console.log('🔍 Client Processing Support:', {
         hasWorker,
         hasSharedArrayBuffer,
         isCrossOriginIsolated,
         hasWebAssembly,
-        userAgent: navigator.userAgent,
-        location: window.location.href,
-        headers: {
-          'Cross-Origin-Embedder-Policy': document.querySelector('meta[http-equiv="Cross-Origin-Embedder-Policy"]')?.getAttribute('content'),
-          'Cross-Origin-Opener-Policy': document.querySelector('meta[http-equiv="Cross-Origin-Opener-Policy"]')?.getAttribute('content')
-        }
+        environment: window.location.hostname
       });
       
-      // Additional detailed checks
-      if (!hasSharedArrayBuffer) {
-        console.warn('❌ SharedArrayBuffer unavailable - requires COOP/COEP headers');
-      }
-      if (!isCrossOriginIsolated) {
-        console.warn('❌ Cross-Origin Isolation disabled - SharedArrayBuffer will not work');
-      }
-      
+      // In Lovable preview environment, SharedArrayBuffer is typically not available
+      // This is expected - we'll use server-side processing instead
       const isSupported = hasWorker && hasSharedArrayBuffer && isCrossOriginIsolated && hasWebAssembly;
-      console.log(`🎥 Client-side video processing: ${isSupported ? '✅ AVAILABLE' : '❌ UNAVAILABLE - using server fallback'}`);
+      
+      if (isSupported) {
+        console.log('🎥 Client-side video processing: ✅ AVAILABLE');
+      } else {
+        console.log('🎥 Client-side video processing: ⚠️ UNAVAILABLE - using server-side processing');
+        console.log('   This is normal in preview environments and will use our robust server fallback');
+      }
       
       return isSupported;
     } catch (error) {
-      console.error('❌ FFmpeg support check failed:', error);
+      console.error('❌ Client processing check failed:', error);
       return false;
     }
   }, []);
