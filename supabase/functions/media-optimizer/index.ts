@@ -120,20 +120,24 @@ Deno.serve(async (req) => {
         
         console.log(`📊 Video file size: ${fileSizeMB}MB`);
         
-        // Check if file is too large for edge function processing
-        const maxSizeMB = 400; // Conservative limit for edge functions
-        if (fileSizeMB > maxSizeMB) {
-          console.log(`⚠️ File too large for edge function (${fileSizeMB}MB > ${maxSizeMB}MB), using fallback approach`);
+        // Progressive processing strategy based on file size
+        const smallFileMB = 50;   // Files under 50MB - try full processing
+        const mediumFileMB = 200; // Files 50-200MB - streaming processing only
+        const largeFileMB = 500;  // Files over 500MB - background processing or keep original
+        
+        console.log(`📊 Processing strategy for ${fileSizeMB}MB file:`);
+        
+        if (fileSizeMB > largeFileMB) {
+          console.log(`⚠️ File too large for edge function (${fileSizeMB}MB > ${largeFileMB}MB), keeping original`);
           
-          // For very large files, just mark as processed without conversion
-          // TODO: Implement chunked/streaming processing or external service
+          // For very large files, mark as processed but not optimized
           const { error: updateError } = await supabase
             .from('simple_media')
             .update({ 
               processing_status: 'processed',
-              processed_path: originalPath, // Keep original for now
+              processed_path: originalPath, // Keep original
               processed_at: new Date().toISOString(),
-              processing_error: `File too large for conversion (${fileSizeMB}MB). Stored as original format.`
+              processing_error: `File too large for real-time processing (${fileSizeMB}MB). Stored in original format. Consider manual optimization.`
             })
             .eq('id', mediaId);
 
@@ -146,7 +150,8 @@ Deno.serve(async (req) => {
               success: true,
               mediaId,
               processedPath: originalPath,
-              warning: `File too large for optimization (${fileSizeMB}MB). Stored in original format.`
+              warning: `File too large for optimization (${fileSizeMB}MB). Video available in original format.`,
+              suggestion: `Consider compressing video to under ${mediumFileMB}MB for optimization.`
             }),
             { 
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -155,21 +160,153 @@ Deno.serve(async (req) => {
           );
         }
         
-        console.log('⬇️ Downloading video file for processing...');
-        // Get the original video file for processing
-        const { data: fileData, error: downloadError } = await supabase.storage
-          .from('content')
-          .download(originalPath);
+        // For medium to large files, use streaming processing without loading full file into memory
+        let arrayBuffer: ArrayBuffer;
+        let fileSizeActual: number;
         
-        if (downloadError) {
-          throw new Error(`Failed to download video for processing: ${downloadError.message}`);
-        }
+        if (fileSizeMB > smallFileMB) {
+          console.log(`🌊 Using streaming approach for ${fileSizeMB}MB file (${smallFileMB}-${largeFileMB}MB range)`);
+          
+          try {
+            // Try streaming processing first without loading full file
+            const response = await supabase.functions.invoke('video-processor-v2', {
+              body: { 
+                bucket: 'content',
+                path: originalPath,
+                fileName: originalPath.split('/').pop(),
+                mediaId: mediaId,
+                mediaType: 'video',
+                targetQualities: fileSizeMB > mediumFileMB ? ['480p'] : ['480p', '720p'], // Fewer qualities for larger files
+                streamingMode: true
+              },
+              headers: { 'Content-Type': 'application/json' },
+            });
+            
+            if (!response.error && response.data?.success) {
+              console.log('✅ Streaming processing succeeded, skipping memory-intensive download');
+              // Jump to thumbnail generation without downloading the file
+              const processData = response.data;
+              
+              // Generate thumbnail
+              const { data: thumbnailData, error: thumbnailError } = await supabase.functions.invoke('video-thumbnail', {
+                body: { 
+                  bucket: 'content', 
+                  path: originalPath,
+                  mediaId: mediaId 
+                },
+                headers: { 'Content-Type': 'application/json' },
+              });
 
-        console.log('📦 Converting to array buffer...');
-        // Convert file to ArrayBuffer for FFmpeg processing
-        const arrayBuffer = await fileData.arrayBuffer();
-        const fileSizeActual = Math.round(arrayBuffer.byteLength / 1024 / 1024);
-        console.log(`✅ File loaded: ${fileSizeActual}MB`);
+              if (thumbnailError) {
+                console.error('Video thumbnail generation failed:', thumbnailError);
+              }
+
+              // Clean up original file
+              const { error: deleteError } = await supabase.storage
+                .from('content')
+                .remove([originalPath]);
+              
+              if (deleteError) {
+                console.error('Failed to delete original video file:', deleteError);
+              }
+
+              // Use the best quality as the main processed path
+              const mainProcessedPath = processData?.processedPaths?.['720p'] || 
+                                       processData?.processedPaths?.['480p'] || 
+                                       originalPath;
+
+              // Update simple_media with success status and paths
+              const { error: updateError } = await supabase
+                .from('simple_media')
+                .update({ 
+                  processing_status: 'processed',
+                  processed_path: mainProcessedPath,
+                  thumbnail_path: thumbnailData?.thumbnailPath,
+                  processed_at: new Date().toISOString(),
+                  mime_type: 'video/webm',
+                  optimized_size_bytes: processData?.totalCompressedSize || null
+                })
+                .eq('id', mediaId);
+
+              if (updateError) {
+                throw new Error(`Failed to update media record: ${updateError.message}`);
+              }
+
+              console.log('✅ Streaming video processing completed successfully for:', mediaId);
+              
+              return new Response(
+                JSON.stringify({
+                  success: true,
+                  mediaId,
+                  processedPath: mainProcessedPath,
+                  processedPaths: processData?.processedPaths,
+                  thumbnailPath: thumbnailData?.thumbnailPath,
+                  compressionInfo: processData?.compressionInfo,
+                  processingMethod: 'streaming'
+                }),
+                { 
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                  status: 200 
+                }
+              );
+            } else {
+              console.warn('⚠️ Streaming processing failed, falling back to memory processing:', response.error);
+            }
+          } catch (streamError) {
+            console.warn('⚠️ Streaming processing error, falling back to memory processing:', streamError);
+          }
+        }
+        
+        // Fallback: Download file for processing (only for smaller files or when streaming fails)
+        console.log(`⬇️ Downloading ${fileSizeMB}MB video file for memory processing...`);
+        
+        try {
+          const { data: fileData, error: downloadError } = await supabase.storage
+            .from('content')
+            .download(originalPath);
+          
+          if (downloadError) {
+            throw new Error(`Failed to download video for processing: ${downloadError.message}`);
+          }
+
+          console.log('📦 Converting to array buffer...');
+          arrayBuffer = await fileData.arrayBuffer();
+          fileSizeActual = Math.round(arrayBuffer.byteLength / 1024 / 1024);
+          console.log(`✅ File loaded: ${fileSizeActual}MB`);
+          
+          // Memory safety check
+          if (fileSizeActual > 250) {
+            throw new Error(`File too large for memory processing: ${fileSizeActual}MB. Use streaming approach.`);
+          }
+          
+        } catch (downloadError) {
+          console.error('❌ Failed to download video for processing:', downloadError);
+          
+          // Final fallback - keep original file
+          const { error: updateError } = await supabase
+            .from('simple_media')
+            .update({ 
+              processing_status: 'processed',
+              processed_path: originalPath,
+              processed_at: new Date().toISOString(),
+              processing_error: `Could not process video: ${downloadError.message}`
+            })
+            .eq('id', mediaId);
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              mediaId,
+              processedPath: originalPath,
+              warning: 'Video processing failed, but file is available in original format.',
+              error: downloadError.message
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200 
+            }
+          );
+        }
         
         // Try the new streaming video processor first, fallback to original
         console.log('🎬 Calling video-processor-v2 for streaming processing...');

@@ -408,6 +408,8 @@ export const useSimpleUpload = () => {
         });
 
         try {
+          console.log(`🎥 Starting server-side video processing for ${file.name} (${Math.round(originalSize/1024/1024)}MB)`);
+          
           const { data: serverProcessData, error: serverProcessError } = await supabase.functions.invoke('media-optimizer', {
             body: {
               mediaId: mediaRecord.id,
@@ -423,30 +425,90 @@ export const useSimpleUpload = () => {
 
           if (serverProcessError) {
             console.error('Server-side processing failed:', serverProcessError);
-            throw new Error(`Server-side processing failed: ${serverProcessError.message}`);
-          }
+            
+            // Handle different types of processing failures gracefully
+            const errorMsg = serverProcessError.message || 'Unknown server processing error';
+            
+            if (errorMsg.includes('too large') || errorMsg.includes('memory')) {
+              toast({
+                title: "Video uploaded successfully",
+                description: `${file.name} is available in original format. File was too large for optimization.`,
+                variant: "default"
+              });
+              
+              setUploadProgress({
+                phase: 'complete',
+                progress: 100,
+                message: `Video uploaded (original format) - file too large for optimization`,
+                originalSize,
+                processedSize: originalSize,
+                compressionRatio: 0
+              });
+              
+              return { 
+                ...mediaRecord, 
+                compressionRatio: 0, 
+                processedSize: originalSize, 
+                qualityInfo: { warning: 'File too large for optimization' },
+                processedPaths: { original: originalPath },
+                thumbnailPath: undefined
+              };
+            } else {
+              // For other errors, still don't fail the upload
+              console.warn('Processing failed but upload succeeded:', errorMsg);
+              toast({
+                title: "Upload successful with warnings",
+                description: "Video uploaded but optimization failed. File available in original format.",
+                variant: "default"
+              });
+            }
+          } else if (serverProcessData?.success) {
+            // Update the processed size from server processing
+            if (serverProcessData?.totalCompressedSize) {
+              processedSize = serverProcessData.totalCompressedSize;
+              compressionRatio = Math.round(((originalSize - processedSize) / originalSize) * 100);
+            }
 
-          // Update the processed size from server processing
-          if (serverProcessData?.totalCompressedSize) {
-            processedSize = serverProcessData.totalCompressedSize;
-            compressionRatio = Math.round(((originalSize - processedSize) / originalSize) * 100);
+            setUploadProgress({
+              phase: 'complete',
+              progress: 100,
+              message: `Video processed and uploaded! ${compressionRatio > 0 ? `${compressionRatio}% size reduction` : ''}`,
+              originalSize,
+              processedSize,
+              compressionRatio
+            });
+            
+            toast({
+              title: "Video processing completed",
+              description: `${file.name} optimized with ${compressionRatio}% size reduction`,
+            });
+            
+            return { 
+              ...mediaRecord, 
+              compressionRatio, 
+              processedSize, 
+              qualityInfo: serverProcessData.compressionInfo || qualityInfo,
+              processedPaths: serverProcessData.processedPaths || processedPaths,
+              thumbnailPath: serverProcessData.thumbnailPath || thumbnailPath
+            };
           }
-
+        } catch (serverError) {
+          console.error('Server-side video processing failed:', serverError);
+          
+          // Robust fallback - upload still succeeded, just not optimized
+          toast({
+            title: "Upload successful",
+            description: `${file.name} uploaded successfully. Optimization failed but video is available.`,
+            variant: "default"
+          });
+          
           setUploadProgress({
             phase: 'complete',
             progress: 100,
-            message: `Video processed and uploaded! ${compressionRatio > 0 ? `${compressionRatio}% size reduction` : ''}`,
+            message: `Video uploaded (original format) - optimization failed`,
             originalSize,
-            processedSize,
-            compressionRatio
-          });
-        } catch (serverError) {
-          console.error('Server-side video processing failed:', serverError);
-          // Don't throw - the upload is still successful, just not optimized
-          toast({
-            title: "Processing partially failed",
-            description: "Video uploaded but server optimization failed. File may be larger than expected.",
-            variant: "destructive"
+            processedSize: originalSize,
+            compressionRatio: 0
           });
         }
       } else {
