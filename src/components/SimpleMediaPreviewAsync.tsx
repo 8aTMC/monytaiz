@@ -135,11 +135,11 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  // Determine orientation and aspect ratio
+  // Determine orientation and aspect ratio - increased sizes
   const isVertical = item?.width && item?.height && item.height > item.width;
   const aspectRatio = isVertical ? '9/16' : '16/9';
-  const containerWidth = isVertical ? '400px' : '700px';
-  const containerHeight = isVertical ? '711px' : '394px';
+  const containerWidth = isVertical ? '500px' : '900px';
+  const containerHeight = isVertical ? '889px' : '506px';
 
   if (!isOpen) return null;
 
@@ -147,13 +147,13 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
     <>
       {/* Custom overlay that covers EVERYTHING including sidebar */}
       <div 
-        className="media-overlay"
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]"
         onClick={onClose}
       />
       
       {/* Dialog content positioned above everything */}
       <div 
-        className="media-dialog border bg-background shadow-lg rounded-lg overflow-hidden flex flex-col"
+        className="fixed border bg-background shadow-lg rounded-lg overflow-hidden flex flex-col z-[101]"
         style={{
           position: 'fixed',
           left: '50%',
