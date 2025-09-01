@@ -200,7 +200,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
             <div className="flex items-center gap-1">
               <span className="font-medium">Size:</span>
               <span className="bg-muted px-2 py-1 rounded text-xs">
-                {formatFileSize(item.original_size_bytes || 0)}
+                {formatFileSize(item.optimized_size_bytes || item.original_size_bytes || 0)}
               </span>
             </div>
           </div>
