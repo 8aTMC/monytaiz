@@ -469,6 +469,7 @@ export default function SimpleLibrary() {
     toast({
       title: "Success",
       description: `${isCustomFolder ? 'Removing' : 'Deleting'} ${itemIds.length} item(s)...`,
+      duration: 3000
     });
 
     // Optimistic UI update - remove items from current view immediately
