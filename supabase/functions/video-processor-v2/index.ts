@@ -27,15 +27,126 @@ function logMemoryUsage(context: string) {
 }
 
 interface VideoProcessRequest {
-  fileData?: number[];
+  inputData?: number[];
   fileName: string;
   mediaId: string;
-  mediaType: 'video';
   targetQualities: string[];
-  // New streaming mode fields
   bucket?: string;
   path?: string;
   streamingMode?: boolean;
+}
+
+// Helper functions for smart quality determination and file handling
+async function determineSmartQualities(inputPath: string, requestedQualities: string[]): Promise<string[]> {
+  try {
+    // Get video info using ffprobe
+    const probeCommand = new Deno.Command('ffprobe', {
+      args: [
+        '-v', 'quiet',
+        '-print_format', 'json',
+        '-show_streams',
+        inputPath
+      ],
+      stdout: 'piped',
+      stderr: 'piped'
+    });
+    
+    const { stdout } = await probeCommand.output();
+    const probeResult = JSON.parse(new TextDecoder().decode(stdout));
+    
+    const videoStream = probeResult.streams?.find((s: any) => s.codec_type === 'video');
+    if (!videoStream) {
+      console.warn('No video stream found, using requested qualities');
+      return requestedQualities;
+    }
+    
+    const inputHeight = videoStream.height;
+    console.log(`Input video resolution: ${videoStream.width}x${inputHeight}`);
+    
+    // Determine appropriate qualities based on input resolution
+    const smartQualities: string[] = [];
+    
+    // Always include original if requested
+    if (requestedQualities.includes('original')) {
+      smartQualities.push('original');
+    }
+    
+    // Add appropriate scaled versions
+    if (inputHeight >= 2160 && requestedQualities.includes('2160p')) smartQualities.push('2160p');
+    if (inputHeight >= 1080 && requestedQualities.includes('1080p')) smartQualities.push('1080p');
+    if (inputHeight >= 720 && requestedQualities.includes('720p')) smartQualities.push('720p');
+    if (inputHeight >= 480 && requestedQualities.includes('480p')) smartQualities.push('480p');
+    
+    // If no smart qualities found, fallback to requested
+    return smartQualities.length > 0 ? smartQualities : requestedQualities;
+    
+  } catch (error) {
+    console.warn('Failed to determine smart qualities:', error);
+    return requestedQualities;
+  }
+}
+
+function getOriginalExtension(fileName: string): string {
+  const extension = fileName.split('.').pop()?.toLowerCase();
+  return extension || 'mp4';
+}
+
+function getMimeTypeFromExtension(extension: string): string {
+  const mimeTypes: Record<string, string> = {
+    'mp4': 'video/mp4',
+    'mov': 'video/quicktime', 
+    'avi': 'video/x-msvideo',
+    'mkv': 'video/x-matroska',
+    'webm': 'video/webm',
+    'm4v': 'video/x-m4v'
+  };
+  return mimeTypes[extension] || 'video/mp4';
+}
+
+function getQualityParams(quality: string): string[] {
+  switch (quality) {
+    case '480p':
+      return [
+        '-vf', 'scale=-2:480',
+        '-b:v', '800k',
+        '-bufsize', '1600k',
+        '-crf', '35'
+      ];
+    case '720p':
+      return [
+        '-vf', 'scale=-2:720', 
+        '-b:v', '1500k',
+        '-bufsize', '3000k',
+        '-crf', '32'
+      ];
+    case '1080p':
+      return [
+        '-vf', 'scale=-2:1080',
+        '-b:v', '3000k', 
+        '-bufsize', '6000k',
+        '-crf', '30'
+      ];
+    case '2160p':
+    case '4k':
+      return [
+        '-vf', 'scale=-2:2160',
+        '-b:v', '8000k',
+        '-bufsize', '16000k',
+        '-crf', '28'
+      ];
+    case 'original':
+      return [
+        '-b:v', '0',  // Use CRF only for original quality
+        '-crf', '28'
+      ];
+    default:
+      return [
+        '-vf', 'scale=-2:480',
+        '-b:v', '800k',
+        '-bufsize', '1600k', 
+        '-crf', '35'
+      ];
+  }
 }
 
 // Stream-based video processing to avoid memory issues
@@ -56,72 +167,50 @@ async function processVideoStreaming(
   const compressionInfo: { [quality: string]: { size: number; bitrate: string; compressionRatio: number } } = {};
   let totalCompressedSize = 0;
   
-  const baseName = fileName.split('.')[0];
   const originalSize = inputData.length;
   
-  // Memory limit - keep it conservative
-  const memoryThreshold = 100 * 1024 * 1024; // 100MB
-  const currentMemory = logMemoryUsage('before-processing');
-  
-  if (currentMemory.rss > memoryThreshold) {
-    throw new Error(`❌ Insufficient memory: ${currentMemory.rss}MB > ${Math.round(memoryThreshold/1024/1024)}MB threshold`);
-  }
-
   // Write input file once
-  const tempInputPath = `/tmp/input_${mediaId}.mp4`;
+  const tempInputPath = `/tmp/input_${mediaId}.${getOriginalExtension(fileName)}`;
   console.log(`📁 Writing ${Math.round(originalSize/1024/1024)}MB input file to ${tempInputPath}`);
   await Deno.writeFile(tempInputPath, inputData);
   logMemoryUsage('after-input-write');
 
-  // Process each quality sequentially to minimize memory usage
-  for (const quality of targetQualities) {
-    console.log(`🎯 Processing quality: ${quality}`);
-    logMemoryUsage(`before-${quality}`);
+  try {
+    // Determine target qualities based on input resolution
+    const smartQualities = await determineSmartQualities(tempInputPath, targetQualities);
+    console.log(`Smart qualities determined: ${smartQualities.join(', ')}`);
     
-    const outputPath = `/tmp/output_${mediaId}_${quality}.webm`;
-    
-    // Get processing parameters
-    const params = getQualityParams(quality);
-    if (!params) {
-      console.warn(`⚠️ Skipping unknown quality: ${quality}`);
-      continue;
-    }
-
-    try {
-      // Use more memory-efficient FFmpeg settings
-      const ffmpegArgs = [
-        '-i', tempInputPath,
-        
-        // Video encoding - VP9 with constrained memory
-        '-c:v', 'libvpx-vp9',
-        '-crf', params.crf,
-        '-b:v', params.bitrate,
-        '-maxrate', params.bitrate,
-        '-bufsize', params.bufsize,
-        '-vf', params.scale,
-        
-        // Audio encoding - Opus
-        '-c:a', 'libopus',
-        '-b:a', '64k',
-        
-        // Memory optimization settings
-        '-threads', '1', // Single thread to limit memory
-        '-tile-columns', '0', // No tiling to save memory
-        '-tile-rows', '0',
-        '-frame-parallel', '0', // No parallelism
-        '-row-mt', '0',
-        '-deadline', 'realtime', // Fast encoding
-        '-cpu-used', '5', // Very fast, less memory
-        
-        // Force memory cleanup
+    // Iterate through smart target qualities
+    for (const quality of smartQualities) {
+      console.log(`Processing quality: ${quality}`);
+      logMemoryUsage(`Before ${quality} processing`);
+      
+      const qualityParams = getQualityParams(quality);
+      const outputExtension = quality === 'original' ? getOriginalExtension(fileName) : 'mp4';
+      const outputFileName = quality === 'original' ? 
+        `${mediaId}_original.${outputExtension}` : 
+        `${mediaId}_${quality}.mp4`;
+      const outputPath = `/tmp/${outputFileName}`;
+      
+      const baseCommand = ['-i', tempInputPath];
+      const codecCommand = quality === 'original' ? 
+        ['-c:v', 'libx264', '-c:a', 'aac'] : 
+        ['-c:v', 'libx264', '-c:a', 'aac'];
+      
+      const ffmpegCommand = [
+        ...baseCommand,
+        ...codecCommand,
+        ...qualityParams,
         '-movflags', '+faststart',
-        '-y', outputPath
+        '-preset', 'medium',
+        '-y',
+        outputPath
       ];
 
-      console.log(`⚙️ Running FFmpeg for ${quality}:`, ffmpegArgs.slice(0, 10).join(' '), '...');
+      console.log(`⚙️ Running FFmpeg for ${quality}:`, ffmpegCommand.slice(0, 10).join(' '), '...');
       
       const process = new Deno.Command("ffmpeg", {
-        args: ffmpegArgs,
+        args: ffmpegCommand,
         stdout: "piped",
         stderr: "piped",
       }).spawn();
@@ -148,23 +237,24 @@ async function processVideoStreaming(
       
       console.log(`✅ ${quality} processed: ${Math.round(processedSize/1024/1024)}MB (${compressionRatio}% compression)`);
       
-      // Upload to storage in chunks to avoid memory issues
-      const processedFileName = `processed/${mediaId}-${baseName}_${quality}.webm`;
+      // Upload to storage
+      const processedFileName = `processed/${mediaId}/${outputFileName}`;
       console.log(`⬆️ Uploading ${quality} to: ${processedFileName}`);
       
-      // Read and upload in one operation (Deno handles this efficiently)
       const fileData = await Deno.readFile(outputPath);
+      const contentType = quality === 'original' ? 
+        getMimeTypeFromExtension(outputExtension) : 
+        'video/mp4';
       
       const { error: uploadError } = await sb.storage
         .from('content')
         .upload(processedFileName, fileData, { 
-          upsert: false,
-          contentType: 'video/webm'
+          upsert: true,
+          contentType
         });
 
       if (uploadError) {
         console.error(`❌ Upload failed for ${quality}:`, uploadError);
-        // Clean up failed output
         try { await Deno.remove(outputPath); } catch { }
         continue;
       }
@@ -173,7 +263,7 @@ async function processVideoStreaming(
       results[quality] = processedFileName;
       compressionInfo[quality] = {
         size: processedSize,
-        bitrate: params.bitrate,
+        bitrate: qualityParams.includes('-b:v') ? qualityParams[qualityParams.indexOf('-b:v') + 1] : 'variable',
         compressionRatio
       };
       totalCompressedSize += processedSize;
@@ -187,21 +277,19 @@ async function processVideoStreaming(
       }
       
       logMemoryUsage(`after-${quality}`);
-      
-    } catch (error) {
-      console.error(`❌ Processing failed for ${quality}:`, error);
-      // Clean up any partial files
-      try { await Deno.remove(outputPath); } catch { }
-      continue;
     }
-  }
 
-  // Clean up input file
-  try {
-    await Deno.remove(tempInputPath);
-    console.log(`🧹 Cleaned up input file: ${tempInputPath}`);
   } catch (error) {
-    console.warn(`⚠️ Failed to cleanup input file:`, error);
+    console.error('❌ Video processing failed:', error);
+    throw new Error(`Video processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  } finally {
+    // Clean up input file
+    try {
+      await Deno.remove(tempInputPath);
+      console.log(`🧹 Cleaned up input file: ${tempInputPath}`);
+    } catch (error) {
+      console.warn(`⚠️ Failed to cleanup input file:`, error);
+    }
   }
 
   logMemoryUsage('process-complete');
@@ -211,34 +299,6 @@ async function processVideoStreaming(
     compressionInfo,
     totalCompressedSize
   };
-}
-
-function getQualityParams(quality: string) {
-  switch (quality) {
-    case '480p':
-      return {
-        scale: 'scale=854:480:force_original_aspect_ratio=decrease,pad=854:480:(ow-iw)/2:(oh-ih)/2',
-        bitrate: '400k',
-        bufsize: '800k',
-        crf: '35'
-      };
-    case '720p':
-      return {
-        scale: 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2',
-        bitrate: '800k',
-        bufsize: '1600k',
-        crf: '32'
-      };
-    case '1080p':
-      return {
-        scale: 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2',
-        bitrate: '1500k',
-        bufsize: '3000k',
-        crf: '30'
-      };
-    default:
-      return null;
-  }
 }
 
 // Streaming-based video processing that downloads directly from storage
@@ -260,10 +320,8 @@ async function processVideoStreamingFromStorage(
   const compressionInfo: { [quality: string]: { size: number; bitrate: string; compressionRatio: number } } = {};
   let totalCompressedSize = 0;
   
-  const baseName = fileName.split('.')[0];
-  
-  // Download file directly to temp location (more memory efficient than ArrayBuffer)
-  const tempInputPath = `/tmp/input_${mediaId}.mp4`;
+  // Download file directly to temp location
+  const tempInputPath = `/tmp/input_${mediaId}.${getOriginalExtension(fileName)}`;
   console.log(`⬇️ Downloading ${path} directly to ${tempInputPath}`);
   
   const { data: fileData, error: downloadError } = await sb.storage
@@ -274,76 +332,50 @@ async function processVideoStreamingFromStorage(
     throw new Error(`Failed to download video: ${downloadError.message}`);
   }
   
-  // Write file as stream to avoid memory issues
   const fileArrayBuffer = await fileData.arrayBuffer();
   const originalSize = fileArrayBuffer.byteLength;
-  
-  // Memory check before proceeding
-  const memoryThreshold = 150 * 1024 * 1024; // 150MB threshold
-  const currentMemory = logMemoryUsage('before-file-write');
-  
-  if (currentMemory.rss > memoryThreshold) {
-    throw new Error(`❌ Insufficient memory: ${currentMemory.rss}MB > ${Math.round(memoryThreshold/1024/1024)}MB threshold`);
-  }
   
   await Deno.writeFile(tempInputPath, new Uint8Array(fileArrayBuffer));
   console.log(`📁 Written ${Math.round(originalSize/1024/1024)}MB input file`);
   logMemoryUsage('after-file-write');
 
-  // Process each quality sequentially to minimize memory usage
-  for (const quality of targetQualities) {
-    console.log(`🎯 Processing quality: ${quality}`);
-    logMemoryUsage(`before-${quality}`);
+  try {
+    // Determine target qualities based on input resolution
+    const smartQualities = await determineSmartQualities(tempInputPath, targetQualities);
+    console.log(`Smart qualities determined: ${smartQualities.join(', ')}`);
     
-    const outputPath = `/tmp/output_${mediaId}_${quality}.webm`;
-    
-    // Get processing parameters
-    const params = getQualityParams(quality);
-    if (!params) {
-      console.warn(`⚠️ Skipping unknown quality: ${quality}`);
-      continue;
-    }
-
-    try {
-      // Ultra-conservative FFmpeg settings for streaming
-      const ffmpegArgs = [
-        '-i', tempInputPath,
-        
-        // Video encoding - VP9 with maximum memory efficiency
-        '-c:v', 'libvpx-vp9',
-        '-crf', params.crf,
-        '-b:v', params.bitrate,
-        '-maxrate', params.bitrate,
-        '-bufsize', params.bufsize,
-        '-vf', params.scale,
-        
-        // Audio encoding - Opus
-        '-c:a', 'libopus',
-        '-b:a', '64k',
-        
-        // Extreme memory optimization
-        '-threads', '1',           // Single thread
-        '-tile-columns', '0',      // No tiling
-        '-tile-rows', '0',
-        '-frame-parallel', '0',    // No parallelism
-        '-row-mt', '0',
-        '-deadline', 'realtime',   // Fastest encoding
-        '-cpu-used', '8',          // Maximum speed (least memory)
-        '-static-thresh', '0',     // Disable static analysis
-        '-max-intra-rate', '300',  // Limit complexity
-        '-undershoot-pct', '25',   // Conservative bitrate
-        '-overshoot-pct', '25',
-        
-        // Force cleanup and fast start
+    // Iterate through smart target qualities
+    for (const quality of smartQualities) {
+      console.log(`Processing quality: ${quality} (streaming mode)`);
+      logMemoryUsage(`Before ${quality} processing (streaming)`);
+      
+      const qualityParams = getQualityParams(quality);
+      const outputExtension = quality === 'original' ? getOriginalExtension(fileName) : 'mp4';
+      const outputFileName = quality === 'original' ? 
+        `${mediaId}_original.${outputExtension}` : 
+        `${mediaId}_${quality}.mp4`;
+      const outputPath = `/tmp/${outputFileName}`;
+      
+      const baseCommand = ['-i', tempInputPath];
+      const codecCommand = quality === 'original' ? 
+        ['-c:v', 'libx264', '-c:a', 'aac'] : 
+        ['-c:v', 'libx264', '-c:a', 'aac'];
+      
+      const ffmpegCommand = [
+        ...baseCommand,
+        ...codecCommand,
+        ...qualityParams,
         '-movflags', '+faststart',
-        '-f', 'webm',              // Force WebM container
-        '-y', outputPath
+        '-preset', 'medium',
+        '-threads', '2',
+        '-y',
+        outputPath
       ];
 
       console.log(`⚙️ Running ultra-efficient FFmpeg for ${quality}`);
       
       const process = new Deno.Command("ffmpeg", {
-        args: ffmpegArgs,
+        args: ffmpegCommand,
         stdout: "piped",
         stderr: "piped",
       }).spawn();
@@ -370,17 +402,19 @@ async function processVideoStreamingFromStorage(
       
       console.log(`✅ ${quality} processed: ${Math.round(processedSize/1024/1024)}MB (${compressionRatio}% compression)`);
       
-      // Upload to storage immediately and cleanup
-      const processedFileName = `processed/${mediaId}-${baseName}_${quality}.webm`;
+      const processedFileName = `processed/${mediaId}/${outputFileName}`;
       console.log(`⬆️ Uploading ${quality} to: ${processedFileName}`);
       
-      const fileData = await Deno.readFile(outputPath);
-      
+      const fileDataBuffer = await Deno.readFile(outputPath);
+      const contentType = quality === 'original' ? 
+        getMimeTypeFromExtension(outputExtension) : 
+        'video/mp4';
+
       const { error: uploadError } = await sb.storage
         .from('content')
-        .upload(processedFileName, fileData, { 
-          upsert: false,
-          contentType: 'video/webm'
+        .upload(processedFileName, fileDataBuffer, { 
+          upsert: true,
+          contentType
         });
 
       // Immediate cleanup regardless of upload result
@@ -400,26 +434,25 @@ async function processVideoStreamingFromStorage(
       results[quality] = processedFileName;
       compressionInfo[quality] = {
         size: processedSize,
-        bitrate: params.bitrate,
+        bitrate: qualityParams.includes('-b:v') ? qualityParams[qualityParams.indexOf('-b:v') + 1] : 'variable',
         compressionRatio
       };
       totalCompressedSize += processedSize;
       
       logMemoryUsage(`after-${quality}`);
-      
-    } catch (error) {
-      console.error(`❌ Processing failed for ${quality}:`, error);
-      try { await Deno.remove(outputPath); } catch { }
-      continue;
     }
-  }
 
-  // Final cleanup
-  try {
-    await Deno.remove(tempInputPath);
-    console.log(`🧹 Final cleanup: ${tempInputPath}`);
   } catch (error) {
-    console.warn(`⚠️ Final cleanup warning:`, error);
+    console.error('❌ Video processing failed:', error);
+    throw new Error(`Video processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  } finally {
+    // Final cleanup
+    try {
+      await Deno.remove(tempInputPath);
+      console.log(`🧹 Final cleanup: ${tempInputPath}`);
+    } catch (error) {
+      console.warn(`⚠️ Final cleanup warning:`, error);
+    }
   }
 
   logMemoryUsage('streaming-complete');
@@ -441,21 +474,16 @@ Deno.serve(async (req) => {
   logMemoryUsage('request-start');
 
   try {
-    const requestData: VideoProcessRequest = await req.json();
+    // Parse request body
     const { 
-      fileData, 
+      inputData, 
       fileName, 
-      mediaId, 
-      mediaType, 
-      targetQualities = ['480p', '720p', '1080p'],
+      targetQualities = ['original', '1080p', '720p', '480p'], 
+      mediaId,
+      streamingMode = false,
       bucket,
-      path,
-      streamingMode = false
-    } = requestData;
-
-    if (mediaType !== 'video') {
-      return json({ error: 'This function only processes videos' }, 400);
-    }
+      path 
+    } = await req.json() as VideoProcessRequest;
 
     console.log(`🎬 Processing video: ${fileName}`);
     console.log(`🎯 Target qualities: ${targetQualities.join(', ')}`);
@@ -467,14 +495,14 @@ Deno.serve(async (req) => {
       // Use streaming processing (recommended for larger files)
       console.log(`🌊 Using streaming processing from ${bucket}/${path}`);
       results = await processVideoStreamingFromStorage(bucket, path, fileName, targetQualities, mediaId);
-    } else if (fileData) {
+    } else if (inputData) {
       // Use traditional in-memory processing (for smaller files)
-      console.log(`💾 Using in-memory processing (${Math.round(fileData.length/1024/1024)}MB)`);
+      console.log(`💾 Using in-memory processing (${Math.round(inputData.length/1024/1024)}MB)`);
       
-      const uint8Array = new Uint8Array(fileData);
+      const uint8Array = new Uint8Array(inputData);
       
       // Check file size limits for in-memory processing
-      const maxSize = 200 * 1024 * 1024; // Reduced limit for in-memory processing
+      const maxSize = 200 * 1024 * 1024; // 200MB limit for in-memory processing
       if (uint8Array.length > maxSize) {
         console.error(`❌ File too large for in-memory processing: ${Math.round(uint8Array.length/1024/1024)}MB > ${Math.round(maxSize/1024/1024)}MB`);
         return json({ 
@@ -487,7 +515,7 @@ Deno.serve(async (req) => {
       results = await processVideoStreaming(uint8Array, fileName, targetQualities, mediaId);
     } else {
       return json({ 
-        error: 'Invalid request: provide either fileData or bucket+path with streamingMode=true',
+        error: 'Invalid request: provide either inputData or bucket+path with streamingMode=true',
         success: false 
       }, 400);
     }
@@ -498,24 +526,24 @@ Deno.serve(async (req) => {
     }
 
     console.log(`✅ Video processing completed: ${Object.keys(results.processedPaths).length} qualities`);
-    console.log(`📊 Total compressed size: ${Math.round(results.totalCompressedSize/1024/1024)}MB`);
+    logMemoryUsage('request-complete');
 
     return json({
       success: true,
       processedPaths: results.processedPaths,
       compressionInfo: results.compressionInfo,
       totalCompressedSize: results.totalCompressedSize,
-      availableQualities: Object.keys(results.processedPaths),
-      processingMethod: streamingMode ? 'streaming' : 'in-memory'
+      message: `Successfully processed ${Object.keys(results.processedPaths).length} qualities`
     });
 
   } catch (error) {
-    console.error('❌ Video processing error:', error);
+    console.error('❌ Video processor error:', error);
     logMemoryUsage('error-state');
     
-    return json({ 
-      error: error.message,
-      success: false 
+    return json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown processing error',
+      details: 'Check edge function logs for more information'
     }, 500);
   }
 });

@@ -9,19 +9,14 @@ export interface ProcessingProgress {
 }
 
 export interface ProcessedMedia {
-  id: string;
-  originalFile: File;
-  processedBlobs: Map<string, Blob>;
+  original: File;
+  processed: File;
+  thumbnail: Blob | null;
   metadata: {
     width: number;
     height: number;
-    duration?: number;
-    format: string;
-    originalSize: number;
-    processedSize: number;
-    compressionRatio: number;
+    duration: number;
   };
-  tinyPlaceholder: string;
 }
 
 export const useClientMediaProcessor = () => {
@@ -264,226 +259,134 @@ export const useClientMediaProcessor = () => {
     }
   }, [getCanvas, createTinyPlaceholder, trackBlobUrl, cleanupBlobUrl]);
 
-  // Helper function to create video thumbnail with proper error handling
-  const createVideoThumbnail = useCallback(async (videoElement: HTMLVideoElement, canvas: HTMLCanvasElement): Promise<Blob> => {
-    const ctx = canvas.getContext('2d')!;
-    
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Video thumbnail creation timeout'));
-      }, 5000);
+  // Helper function to create video thumbnail
+  const createVideoThumbnail = useCallback(async (file: File): Promise<Blob | null> => {
+    try {
+      const video = document.createElement('video');
+      const canvas = getCanvas();
+      const ctx = canvas.getContext('2d')!;
       
-      const captureFrame = () => {
-        try {
-          // Set canvas size to maintain aspect ratio
-          const aspectRatio = videoElement.videoWidth / videoElement.videoHeight;
-          canvas.width = Math.min(320, videoElement.videoWidth);
-          canvas.height = canvas.width / aspectRatio;
-          
-          // Draw frame with optimizations
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
-          ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-          
-          canvas.toBlob((blob) => {
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Video thumbnail creation timeout'));
+        }, 5000);
+        
+        const captureFrame = () => {
+          try {
+            // Set canvas size to maintain aspect ratio
+            const aspectRatio = video.videoWidth / video.videoHeight;
+            canvas.width = Math.min(320, video.videoWidth);
+            canvas.height = canvas.width / aspectRatio;
+            
+            // Draw frame with optimizations
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            canvas.toBlob((blob) => {
+              clearTimeout(timeout);
+              if (blob) {
+                resolve(blob);
+              } else {
+                reject(new Error('Failed to create thumbnail blob'));
+              }
+            }, 'image/jpeg', 0.8);
+          } catch (error) {
             clearTimeout(timeout);
-            if (blob) {
-              resolve(blob);
-            } else {
-              reject(new Error('Failed to create thumbnail blob'));
-            }
-          }, 'image/jpeg', 0.8);
-        } catch (error) {
+            reject(error);
+          }
+        };
+
+        video.onloadedmetadata = () => {
+          const seekTime = Math.min(1, video.duration * 0.1);
+          
+          if ('requestVideoFrameCallback' in video) {
+            video.currentTime = seekTime;
+            (video as any).requestVideoFrameCallback(captureFrame);
+          } else {
+            const handleSeeked = () => {
+              video.removeEventListener('seeked', handleSeeked);
+              captureFrame();
+            };
+            
+            video.addEventListener('seeked', handleSeeked);
+            video.currentTime = seekTime;
+          }
+        };
+        
+        video.onerror = () => {
           clearTimeout(timeout);
-          reject(error);
-        }
+          resolve(null);
+        };
+        
+        video.src = trackBlobUrl(URL.createObjectURL(file));
+      });
+    } catch (error) {
+      console.error('Thumbnail creation failed:', error);
+      return null;
+    }
+  }, [getCanvas, trackBlobUrl]);
+
+  const processVideo = useCallback(async (file: File): Promise<ProcessedMedia> => {
+    console.log('🎬 Starting video processing (upload original):', file.name, file.size);
+    
+    setProgress({
+      phase: 'analyzing',
+      message: 'Preparing video for upload...',
+      progress: 50
+    });
+
+    try {
+      // Create thumbnail only - backend will handle compression
+      const thumbnail = await createVideoThumbnail(file);
+      
+      // Get video metadata
+      const video = document.createElement('video');
+      const videoUrl = trackBlobUrl(URL.createObjectURL(file));
+      video.src = videoUrl;
+      
+      await new Promise((resolve) => {
+        video.onloadedmetadata = resolve;
+      });
+
+      const metadata = {
+        width: video.videoWidth,
+        height: video.videoHeight,
+        duration: video.duration
       };
 
-      // Try to seek to a good position for thumbnail
-      const seekTime = Math.min(1, videoElement.duration * 0.1); // 10% into video or 1 second
-      
-      if ('requestVideoFrameCallback' in videoElement) {
-        // Use modern API when available
-        videoElement.currentTime = seekTime;
-        (videoElement as any).requestVideoFrameCallback(captureFrame);
-      } else {
-        // Fallback to seeked event
-        const handleSeeked = () => {
-          (videoElement as HTMLVideoElement).removeEventListener('seeked', handleSeeked);
-          captureFrame();
-        };
-        
-        (videoElement as HTMLVideoElement).addEventListener('seeked', handleSeeked);
-        (videoElement as HTMLVideoElement).currentTime = seekTime;
-      }
-    });
-  }, []);
-
-  // Process video with improved error handling and browser compatibility
-  const processVideo = useCallback(async (file: File): Promise<ProcessedMedia | null> => {
-    console.log('🎬 Processing video:', file.name, 'Size:', (file.size / (1024 * 1024)).toFixed(1), 'MB');
-    
-    try {
-      const metadata = await getVideoInfo(file);
-      const placeholder = await createTinyPlaceholder(file);
-      
-      setProgress({
-        phase: 'encoding',
-        progress: 20,
-        message: 'Checking conversion options...'
-      });
-
-      // Try video conversion only if browser fully supports it
-      let conversionResult = null;
-      
-      try {
-        if (checkBrowserSupport()) {
-          console.log('Attempting video conversion...');
-          conversionResult = await convertVideo(file, { quality: 'medium' });
-        } else {
-          console.log('Browser does not support video conversion - using original format');
-        }
-      } catch (conversionError) {
-        console.log('Video conversion failed:', conversionError);
-        conversionResult = null;
-      }
+      cleanupBlobUrl(videoUrl);
 
       setProgress({
-        phase: 'encoding',
-        progress: 70,
-        message: 'Creating thumbnail...'
+        phase: 'complete',
+        message: 'Video ready for upload!',
+        progress: 100
       });
 
-      // Create thumbnail and process the video
-      const videoElement = document.createElement('video');
-      const canvas = getCanvas();
-      const processedBlobs = new Map<string, Blob>();
-      
-      // Add the converted video if successful
-      if (conversionResult && conversionResult.webmBlob) {
-        processedBlobs.set('webm', conversionResult.webmBlob);
-        console.log('Video converted successfully');
-      } else {
-        console.log('Using original video format');
-      }
+      // Return original file - backend will compress
+      return {
+        original: file,
+        processed: file, // Upload original, backend compresses
+        thumbnail,
+        metadata
+      };
 
-      return new Promise((resolve) => {
-        const timeout = setTimeout(() => {
-          cleanup();
-          // Return basic video info even if thumbnail fails
-          resolve({
-            id: crypto.randomUUID(),
-            originalFile: file,
-            processedBlobs,
-            metadata: {
-              width: metadata.width,
-              height: metadata.height,
-              duration: metadata.duration,
-              format: conversionResult ? 'video/webm' : file.type,
-              originalSize: file.size,
-              processedSize: conversionResult ? conversionResult.convertedSize : file.size,
-              compressionRatio: conversionResult ? conversionResult.compressionRatio : 1
-            },
-            tinyPlaceholder: placeholder
-          });
-        }, 15000); // Shorter timeout
-        
-        const cleanup = () => {
-          clearTimeout(timeout);
-          if (videoElement.src) {
-            cleanupBlobUrl(videoElement.src);
-          }
-        };
-        
-        videoElement.onloadedmetadata = async () => {
-          try {
-            // Try to create thumbnail
-            const thumbnail = await createVideoThumbnail(videoElement, canvas);
-            if (thumbnail) {
-              processedBlobs.set('thumbnail', thumbnail);
-            }
-          } catch (thumbnailError) {
-            console.warn('Thumbnail creation failed:', thumbnailError);
-            // Continue without thumbnail
-          }
-          
-          setProgress({
-            phase: 'complete',
-            progress: 100,
-            message: conversionResult ? 'Video converted successfully' : 'Video processed (original format)'
-          });
-          
-          cleanup();
-          resolve({
-            id: crypto.randomUUID(),
-            originalFile: file,
-            processedBlobs,
-            metadata: {
-              width: metadata.width,
-              height: metadata.height,
-              duration: metadata.duration,
-              format: conversionResult ? 'video/webm' : file.type,
-              originalSize: file.size,
-              processedSize: conversionResult ? conversionResult.convertedSize : file.size,
-              compressionRatio: conversionResult ? conversionResult.compressionRatio : 1
-            },
-            tinyPlaceholder: placeholder
-          });
-        };
-        
-        videoElement.onerror = () => {
-          console.warn('Video metadata loading failed');
-          cleanup();
-          // Return basic info without thumbnail
-          resolve({
-            id: crypto.randomUUID(),
-            originalFile: file,
-            processedBlobs,
-            metadata: {
-              width: metadata.width,
-              height: metadata.height,
-              duration: metadata.duration,
-              format: conversionResult ? 'video/webm' : file.type,
-              originalSize: file.size,
-              processedSize: conversionResult ? conversionResult.convertedSize : file.size,
-              compressionRatio: conversionResult ? conversionResult.compressionRatio : 1
-            },
-            tinyPlaceholder: placeholder
-          });
-        };
-        
-        // Use the converted video for thumbnail if available, otherwise original
-        const videoBlob = conversionResult ? conversionResult.webmBlob : file;
-        videoElement.src = trackBlobUrl(URL.createObjectURL(videoBlob));
-      });
-      
     } catch (error) {
-      console.error('Video processing error:', error);
+      console.error('❌ Video processing failed:', error);
       
-      // Return a basic processed media object even if everything fails
-      try {
-        const placeholder = await createTinyPlaceholder(file);
-        return {
-          id: crypto.randomUUID(),
-          originalFile: file,
-          processedBlobs: new Map<string, Blob>(),
-          metadata: {
-            width: 0,
-            height: 0,
-            duration: 0,
-            format: file.type,
-            originalSize: file.size,
-            processedSize: file.size,
-            compressionRatio: 1
-          },
-          tinyPlaceholder: placeholder
-        };
-      } catch (placeholderError) {
-        console.error('Even placeholder creation failed:', placeholderError);
-        return null;
-      }
+      // Fallback: return original file without thumbnail
+      return {
+        original: file,
+        processed: file,
+        thumbnail: null,
+        metadata: {
+          width: 0,
+          height: 0,
+          duration: 0
+        }
+      };
     }
-  }, [getVideoInfo, getCanvas, createTinyPlaceholder, createVideoThumbnail, checkBrowserSupport, convertVideo, trackBlobUrl, cleanupBlobUrl]);
+  }, [createVideoThumbnail, trackBlobUrl, cleanupBlobUrl]);
 
   // Audio fallback processing
   const processAudioFallback = useCallback(async (file: File): Promise<ProcessedMedia | null> => {

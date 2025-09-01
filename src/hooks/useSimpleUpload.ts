@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useClientMediaProcessor } from './useClientMediaProcessor';
+import { useClientMediaProcessor, type ProcessedMedia } from './useClientMediaProcessor';
+import { useMediaPostProcess } from './useMediaPostProcess';
 
 interface QualityProgress {
   resolution: string;
@@ -44,6 +45,7 @@ export const useSimpleUpload = () => {
   });
   const { toast } = useToast();
   const { processFiles, isProcessing, progress: processingProgress, canProcessVideo } = useClientMediaProcessor();
+  const { processMedia } = useMediaPostProcess();
 
   const uploadFile = useCallback(async (file: File) => {
     setUploading(true);
@@ -79,72 +81,20 @@ export const useSimpleUpload = () => {
       // Always use incoming folder for processing
       const uploadPath = `incoming/${fileId}-${file.name}`;
       
-      let processedPaths: { [quality: string]: string } = {};
-      let processedBlobs: { [quality: string]: Blob } = {};
       let thumbnailPath: string | undefined;
       let thumbnailBlob: Blob | undefined;
       let width: number | undefined;
       let height: number | undefined;
-      let qualityInfo: any = {};
 
-      // Check if we can do client-side processing
-      let canClientProcess = true;
+      // For videos, create thumbnail only
       if (mediaType === 'video') {
-        const validation = canProcessVideo(file);
-        if (!validation.canProcess) {
-          console.log('Client-side video processing not available, will use original format:', validation.reason);
-          canClientProcess = false;
-        }
-      }
-
-      // Process media client-side for format conversion and compression
-      if (mediaType === 'image') {
         setUploadProgress({
           phase: 'processing',
-          progress: 10,
-          message: 'Converting image to WebP...',
+          progress: 30,
+          message: 'Creating video thumbnail...',
           originalSize,
-          processedSize,
-          compressionRatio
-        });
-
-        try {
-          const processedFiles = await processFiles([file]);
-          if (processedFiles.length > 0 && processedFiles[0].processedBlobs.has('webp')) {
-            const result = processedFiles[0];
-            const webpBlob = result.processedBlobs.get('webp')!;
-            processedBlobs.image = webpBlob;
-            processedSize = webpBlob.size;
-            compressionRatio = Math.round(((originalSize - processedSize) / originalSize) * 100);
-            width = result.metadata.width;
-            height = result.metadata.height;
-            
-            // Update processed path with .webp extension
-            const baseName = file.name.split('.')[0];
-            processedPaths.image = `processed/${fileId}-${baseName}.webp`;
-            
-            setUploadProgress({
-              phase: 'processing',
-              progress: 50,
-              message: `Image optimized (${compressionRatio}% reduction)`,
-              originalSize,
-              processedSize,
-              compressionRatio
-            });
-          }
-        } catch (error) {
-          console.warn('Client-side image processing failed, will use server-side processing:', error);
-          // Continue with original file - server will handle processing
-        }
-
-      } else if (mediaType === 'video' && canClientProcess) {
-        setUploadProgress({
-          phase: 'processing',
-          progress: 10,
-          message: 'Converting video to WebM (multiple qualities)...',
-          originalSize,
-          processedSize,
-          compressionRatio
+          processedSize: originalSize,
+          compressionRatio: 0
         });
 
         try {
@@ -153,91 +103,17 @@ export const useSimpleUpload = () => {
             const result = processedFiles[0];
             const baseName = file.name.split('.')[0];
             
-            // Store WebM conversion
-            if (result.processedBlobs.has('webm')) {
-              const webmBlob = result.processedBlobs.get('webm')!;
-              processedBlobs['webm'] = webmBlob;
-              processedPaths['webm'] = `processed/${fileId}-${baseName}.webm`;
-              processedSize = webmBlob.size;
-            }
-            
             // Store thumbnail
-            if (result.processedBlobs.has('thumbnail')) {
-              thumbnailBlob = result.processedBlobs.get('thumbnail')!;
+            if (result.thumbnail) {
+              thumbnailBlob = result.thumbnail;
               thumbnailPath = `processed/thumbnails/${fileId}-${baseName}_thumb.jpg`;
             }
             
-            compressionRatio = result.metadata.compressionRatio || 0;
             width = result.metadata.width;
             height = result.metadata.height;
-            
-            setUploadProgress({
-              phase: 'processing',
-              progress: 70,
-              message: `Video converted to WebM (${compressionRatio.toFixed(1)}x compression)`,
-              originalSize,
-              processedSize,
-              compressionRatio
-            });
           }
         } catch (error) {
-          console.error('Client-side video processing failed:', error);
-          console.log('Video will be stored in original format');
-          // Continue without client-side processing - original format will be used
-        }
-
-      } else if (mediaType === 'video' && !canClientProcess) {
-        setUploadProgress({
-          phase: 'processing',
-          progress: 30,
-          message: 'Video will be stored in original format...',
-          originalSize,
-          processedSize: originalSize,
-          compressionRatio: 0
-        });
-
-      } else if (mediaType === 'audio') {
-        setUploadProgress({
-          phase: 'processing',
-          progress: 10,
-          message: 'Converting audio to WebM/Opus...',
-          originalSize,
-          processedSize,
-          compressionRatio
-        });
-
-        try {
-          const processedFiles = await processFiles([file]);
-          if (processedFiles.length > 0 && processedFiles[0].processedBlobs.has('webm')) {
-            const result = processedFiles[0];
-            const webmBlob = result.processedBlobs.get('webm')!;
-            processedBlobs.audio = webmBlob;
-            processedSize = webmBlob.size;
-            compressionRatio = result.metadata.compressionRatio || 0;
-            
-            const baseName = file.name.split('.')[0];
-            processedPaths.audio = `processed/${fileId}-${baseName}.webm`;
-            
-            setUploadProgress({
-              phase: 'processing',
-              progress: 50,
-              message: `Audio optimized (${compressionRatio}% reduction)`,
-              originalSize,
-              processedSize,
-              compressionRatio
-            });
-          }
-        } catch (error) {
-          console.warn('Client-side audio processing failed, will use server-side processing:', error);
-          // Continue with original file - server will handle processing
-          setUploadProgress({
-            phase: 'processing',
-            progress: 30,
-            message: 'Processing audio on server...',
-            originalSize,
-            processedSize: originalSize,
-            compressionRatio: 0
-          });
+          console.warn('Video thumbnail creation failed:', error);
         }
       }
 
@@ -250,56 +126,16 @@ export const useSimpleUpload = () => {
         compressionRatio
       });
 
-      // Calculate total bytes to upload
-      const totalUploadBytes = file.size + Object.values(processedBlobs).reduce((sum, blob) => sum + blob.size, 0) + (thumbnailBlob?.size || 0);
-      let uploadedBytes = 0;
-      const uploadStartTime = Date.now();
-
-      // Helper function to update upload progress
-      const updateUploadProgress = (additionalBytes: number) => {
-        uploadedBytes += additionalBytes;
-        const elapsed = (Date.now() - uploadStartTime) / 1000;
-        const speed = elapsed > 0 ? uploadedBytes / elapsed : 0;
-        const remaining = totalUploadBytes - uploadedBytes;
-        const eta = speed > 0 ? remaining / speed : 0;
-        
-        setUploadProgress({
-          phase: 'uploading',
-          progress: 60 + (uploadedBytes / totalUploadBytes) * 20,
-          message: `Uploading files... ${Math.round((uploadedBytes / totalUploadBytes) * 100)}%`,
-          originalSize,
-          processedSize,
-          compressionRatio,
-          bytesUploaded: uploadedBytes,
-          totalBytes: totalUploadBytes,
-          uploadSpeed: `${(speed / (1024 * 1024)).toFixed(1)} MB/s`,
-          eta: eta > 0 ? `${Math.round(eta)}s remaining` : undefined
-        });
-      };
-
-      // Upload original file with progress tracking
+      // Upload original file
       console.log('Uploading original file...');
       const originalUpload = await supabase.storage.from('content').upload(uploadPath, file, { upsert: false });
       if (originalUpload.error) throw new Error(`Original upload failed: ${originalUpload.error.message}`);
-      updateUploadProgress(file.size);
-
-      // Upload processed files sequentially with progress tracking
-      for (const [quality, blob] of Object.entries(processedBlobs)) {
-        const path = processedPaths[quality];
-        if (path && blob) {
-          console.log(`Uploading ${quality} variant...`);
-          const upload = await supabase.storage.from('content').upload(path, blob, { upsert: false });
-          if (upload.error) throw new Error(`${quality} upload failed: ${upload.error.message}`);
-          updateUploadProgress(blob.size);
-        }
-      }
 
       // Upload thumbnail if available
       if (thumbnailBlob && thumbnailPath) {
         console.log('Uploading thumbnail...');
         const thumbnailUpload = await supabase.storage.from('content').upload(thumbnailPath, thumbnailBlob, { upsert: false });
         if (thumbnailUpload.error) throw new Error(`Thumbnail upload failed: ${thumbnailUpload.error.message}`);
-        updateUploadProgress(thumbnailBlob.size);
       }
 
       setUploadProgress({
@@ -311,34 +147,23 @@ export const useSimpleUpload = () => {
         compressionRatio
       });
 
-      // Determine final mime type and processed path
-      const finalMimeType = Object.keys(processedBlobs).length > 0 
-        ? (mediaType === 'image' ? 'image/webp' :
-           mediaType === 'video' ? 'video/webm' :
-           mediaType === 'audio' ? 'audio/webm' : file.type)
-        : file.type; // Keep original mime type if no processing occurred
-
-      const defaultProcessedPath = processedPaths.webm || processedPaths.image || processedPaths.audio || uploadPath;
-      const processingStatus = 'processed';
-
-      // Create database record with comprehensive media info
+      // Create database record
       const { data: mediaRecord, error: dbError } = await supabase
         .from('simple_media')
         .insert({
           creator_id: user.id,
           original_filename: file.name,
           title: file.name.split('.')[0],
-          mime_type: finalMimeType,
+          mime_type: file.type,
           original_size_bytes: originalSize,
           optimized_size_bytes: processedSize,
           original_path: uploadPath,
-          processed_path: defaultProcessedPath,
+          processed_path: uploadPath,
           thumbnail_path: thumbnailPath,
           media_type: mediaType,
-          processing_status: processingStatus,
+          processing_status: 'pending',
           width: width,
           height: height,
-          processed_at: processingStatus === 'processed' ? new Date().toISOString() : null,
           tags: []
         })
         .select()
@@ -348,60 +173,60 @@ export const useSimpleUpload = () => {
         throw new Error(`Database error: ${dbError.message}`);
       }
 
-      // No background processing needed - all handled client-side
-
       setUploadProgress({
         phase: 'complete',
         progress: 100,
-        message: `Upload complete! ${compressionRatio > 0 ? `${compressionRatio}% size reduction` : ''}`,
+        message: 'Upload complete!',
         originalSize,
         processedSize,
         compressionRatio
       });
 
-      // For files with client-side processing, clean up the original
-      if (Object.keys(processedBlobs).length > 0 || thumbnailBlob) {
-        console.log('🧹 Triggering cleanup of original file after successful client-side processing...');
+      // Trigger video processing for video files
+      if (file.type.startsWith('video/')) {
+        console.log('📡 Triggering video processing for compression...');
         
-        // Call media-optimizer for cleanup only
         try {
-          await supabase.functions.invoke('media-optimizer', {
+          // Call video-processor-v2 for intelligent compression
+          const { data: processResult, error: processError } = await supabase.functions.invoke('video-processor-v2', {
             body: {
-              mediaId: mediaRecord.id,
-              originalPath: uploadPath,
-              processedPaths,
-              thumbnailPath,
-              mimeType: finalMimeType,
-              mediaType,
-              skipProcessing: true, // Just cleanup, no processing
-              qualityInfo
+              streamingMode: true,
+              bucket: 'content',
+              path: uploadPath,
+              fileName: file.name,
+              targetQualities: ['original', '1080p', '720p', '480p'],
+              mediaId: mediaRecord.id
             }
           });
-          console.log('✅ Original file cleanup completed');
-        } catch (cleanupError) {
-          console.warn('⚠️ Original file cleanup failed (non-critical):', cleanupError);
-          // Don't throw - the upload was successful
+
+          if (processError) {
+            console.warn('⚠️ Video processing failed but upload succeeded:', processError);
+          } else {
+            console.log('✅ Video processing completed:', processResult);
+          }
+        } catch (processError) {
+          console.warn('⚠️ Video processing failed but upload succeeded:', processError);
         }
-        
-        toast({
-          title: "Upload successful",
-          description: `${file.name} uploaded${compressionRatio > 0 ? ` with ${compressionRatio}% size reduction` : ''}.`,
-          variant: "default"
-        });
-      } else {
-        toast({
-          title: "Upload successful",
-          description: `${file.name} uploaded successfully.`,
-          variant: "default"
-        });
+      } else if (processMedia) {
+        // Regular post-processing for non-video files
+        try {
+          await processMedia('content', uploadPath, true);
+          console.log('✅ Post-processing completed');
+        } catch (postProcessError) {
+          console.warn('⚠️ Post-processing failed but upload succeeded:', postProcessError);
+        }
       }
+
+      toast({
+        title: "Upload successful",
+        description: `${file.name} uploaded successfully.`,
+        variant: "default"
+      });
 
       return { 
         ...mediaRecord, 
         compressionRatio, 
-        processedSize, 
-        qualityInfo,
-        processedPaths,
+        processedSize,
         thumbnailPath 
       };
 
@@ -416,7 +241,7 @@ export const useSimpleUpload = () => {
     } finally {
       setUploading(false);
     }
-  }, [toast, processFiles, canProcessVideo]);
+  }, [toast, processFiles, canProcessVideo, processMedia]);
 
   const uploadMultiple = useCallback(async (files: File[]) => {
     const results = [];
@@ -427,7 +252,6 @@ export const useSimpleUpload = () => {
         results.push(result);
       } catch (error) {
         console.error(`Failed to upload ${file.name}:`, error);
-        // Continue with other files
       }
     }
     
