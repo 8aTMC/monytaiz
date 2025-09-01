@@ -66,11 +66,15 @@ export const CopyToCollectionDialog: React.FC<CopyToCollectionDialogProps> = ({
     
     setCreateLoading(true)
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('User not authenticated')
+
       const { data: newFolder, error } = await supabase
         .from('file_folders')
         .insert({
           name: newFolderName.trim(),
-          color: '#3B82F6'
+          color: '#3B82F6',
+          creator_id: user.id
         })
         .select()
         .single()
