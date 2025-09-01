@@ -260,6 +260,8 @@ async function copyToCollection(supabaseClient: any, userId: string, collectionI
 
 async function copyToFolder(supabaseClient: any, userId: string, folderId: string, mediaIds: string[]) {
   try {
+    console.log('Copy to folder request:', { userId, folderId, mediaIds: mediaIds.length })
+
     // Validate folder exists and user has access to it
     const { data: folder, error: folderError } = await supabaseClient
       .from('file_folders')
@@ -268,19 +270,30 @@ async function copyToFolder(supabaseClient: any, userId: string, folderId: strin
       .single()
 
     if (folderError || !folder) {
+      console.error('Folder validation error:', { folderError, folder, folderId })
       return new Response(
-        JSON.stringify({ error: 'Folder not found' }),
+        JSON.stringify({ error: 'Folder not found or access denied' }),
         { status: 404, headers: corsHeaders }
+      )
+    }
+
+    // Verify user has permission to add to this folder
+    if (folder.creator_id !== userId) {
+      console.error('Permission denied:', { folderCreatorId: folder.creator_id, userId })
+      return new Response(
+        JSON.stringify({ error: 'Permission denied: folder does not belong to user' }),
+        { status: 403, headers: corsHeaders }
       )
     }
 
     // Check what media exists in simple_media table
     const { data: existingMedia, error: mediaError } = await supabaseClient
       .from('simple_media')
-      .select('id')
+      .select('id, creator_id')
       .in('id', mediaIds)
 
     if (mediaError) {
+      console.error('Media validation error:', mediaError)
       return new Response(
         JSON.stringify({ error: 'Failed to validate media' }),
         { status: 500, headers: corsHeaders }
@@ -290,43 +303,108 @@ async function copyToFolder(supabaseClient: any, userId: string, folderId: strin
     const existingIds = (existingMedia || []).map((item: any) => item.id)
     const missingIds = mediaIds.filter(id => !existingIds.includes(id))
     
+    console.log('Media validation:', { 
+      requested: mediaIds.length, 
+      found: existingIds.length, 
+      missing: missingIds.length 
+    })
+    
     if (missingIds.length > 0) {
+      console.warn('Some media not found:', missingIds)
       return new Response(
         JSON.stringify({ error: `Media not found: ${missingIds.join(', ')}` }),
         { status: 404, headers: corsHeaders }
       )
     }
 
-    // Insert into file_folder_contents table
-    const itemsToInsert = existingIds.map(mediaId => ({
-      folder_id: folderId,
-      media_id: mediaId,
-      added_by: userId
-    }))
-
-    const { error: insertError } = await supabaseClient
+    // Check for existing entries to avoid duplicates
+    const { data: existingEntries, error: existingError } = await supabaseClient
       .from('file_folder_contents')
-      .upsert(itemsToInsert, { onConflict: 'folder_id,media_id' })
+      .select('media_id')
+      .eq('folder_id', folderId)
+      .in('media_id', existingIds)
 
-    if (insertError) {
-      console.error('Insert into folder contents error:', insertError)
+    if (existingError) {
+      console.error('Existing entries check error:', existingError)
       return new Response(
-        JSON.stringify({ error: 'Failed to copy items to folder' }),
+        JSON.stringify({ error: 'Failed to check existing entries' }),
         { status: 500, headers: corsHeaders }
       )
     }
 
+    // Filter out already existing entries
+    const alreadyInFolder = (existingEntries || []).map((item: any) => item.media_id)
+    const itemsToInsert = existingIds
+      .filter(id => !alreadyInFolder.includes(id))
+      .map(mediaId => ({
+        folder_id: folderId,
+        media_id: mediaId,
+        added_by: userId
+      }))
+
+    console.log('Items to insert:', { 
+      total: existingIds.length, 
+      alreadyExists: alreadyInFolder.length, 
+      toInsert: itemsToInsert.length 
+    })
+
+    if (itemsToInsert.length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'All items were already in the folder',
+          skipped: alreadyInFolder.length
+        }),
+        { headers: corsHeaders }
+      )
+    }
+
+    // Insert into file_folder_contents table with transaction
+    const { data: insertData, error: insertError } = await supabaseClient
+      .from('file_folder_contents')
+      .insert(itemsToInsert)
+      .select()
+
+    if (insertError) {
+      console.error('Insert into folder contents error:', insertError)
+      console.error('Insert details:', { 
+        itemsToInsert, 
+        userId, 
+        folderId,
+        errorCode: insertError.code,
+        errorMessage: insertError.message,
+        errorDetails: insertError.details,
+        errorHint: insertError.hint
+      })
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to copy items to folder', 
+          details: insertError.message,
+          debug: { userId, folderId, itemCount: itemsToInsert.length }
+        }),
+        { status: 500, headers: corsHeaders }
+      )
+    }
+
+    console.log('Successfully inserted folder contents:', insertData)
+
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Copied ${existingIds.length} items to folder` 
+        message: `Copied ${itemsToInsert.length} items to folder`,
+        inserted: itemsToInsert.length,
+        skipped: alreadyInFolder.length
       }),
       { headers: corsHeaders }
     )
   } catch (error) {
     console.error('Copy to folder error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        stack: error.stack,
+        debug: { userId, folderId, mediaCount: mediaIds.length }
+      }),
       { status: 500, headers: corsHeaders }
     )
   }
