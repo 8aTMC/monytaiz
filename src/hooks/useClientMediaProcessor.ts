@@ -441,6 +441,118 @@ export const useClientMediaProcessor = () => {
         }
       );
       
+      if (!conversionResult) {
+        console.log('Video conversion failed - falling back to original format');
+        // Fall back to original format processing
+        setProgress({
+          phase: 'encoding',
+          progress: 85,
+          message: 'Creating thumbnail (using original format)...'
+        });
+
+        const videoElement = document.createElement('video');
+        const canvas = getCanvas();
+        const processedBlobs = new Map<string, Blob>();
+        
+        return new Promise((resolve) => {
+          const timeout = setTimeout(() => {
+            cleanup();
+            resolve({
+              id: crypto.randomUUID(),
+              originalFile: file,
+              processedBlobs: new Map<string, Blob>(),
+              metadata: {
+                width: metadata.width,
+                height: metadata.height,
+                duration: metadata.duration,
+                format: file.type,
+                originalSize: file.size,
+                processedSize: file.size,
+                compressionRatio: 1
+              },
+              tinyPlaceholder: placeholder
+            });
+          }, 30000);
+          
+          const cleanup = () => {
+            clearTimeout(timeout);
+            if (videoElement.src) {
+              cleanupBlobUrl(videoElement.src);
+            }
+          };
+          
+          videoElement.onloadedmetadata = async () => {
+            try {
+              const thumbnail = await createVideoThumbnail(videoElement, canvas);
+              if (thumbnail) {
+                processedBlobs.set('thumbnail', thumbnail);
+              }
+              
+              setProgress({
+                phase: 'complete',
+                progress: 100,
+                message: 'Video processing complete (original format)'
+              });
+              
+              cleanup();
+              resolve({
+                id: crypto.randomUUID(),
+                originalFile: file,
+                processedBlobs,
+                metadata: {
+                  width: metadata.width,
+                  height: metadata.height,
+                  duration: metadata.duration,
+                  format: file.type,
+                  originalSize: file.size,
+                  processedSize: file.size,
+                  compressionRatio: 1
+                },
+                tinyPlaceholder: placeholder
+              });
+            } catch (error) {
+              cleanup();
+              resolve({
+                id: crypto.randomUUID(),
+                originalFile: file,
+                processedBlobs: new Map<string, Blob>(),
+                metadata: {
+                  width: metadata.width,
+                  height: metadata.height,
+                  duration: metadata.duration,
+                  format: file.type,
+                  originalSize: file.size,
+                  processedSize: file.size,
+                  compressionRatio: 1
+                },
+                tinyPlaceholder: placeholder
+              });
+            }
+          };
+          
+          videoElement.onerror = () => {
+            cleanup();
+            resolve({
+              id: crypto.randomUUID(),
+              originalFile: file,
+              processedBlobs: new Map<string, Blob>(),
+              metadata: {
+                width: metadata.width,
+                height: metadata.height,
+                duration: metadata.duration,
+                format: file.type,
+                originalSize: file.size,
+                processedSize: file.size,
+                compressionRatio: 1
+              },
+              tinyPlaceholder: placeholder
+            });
+          };
+          
+          videoElement.src = trackBlobUrl(URL.createObjectURL(file));
+        });
+      }
+      
       setProgress({
         phase: 'encoding',
         progress: 85,
