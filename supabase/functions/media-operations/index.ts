@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+// Edge Runtime API for background tasks
+declare const EdgeRuntime: {
+  waitUntil(promise: Promise<any>): void;
+};
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -271,149 +276,89 @@ async function copyToFolder(supabaseClient: any, userId: string, folderId: strin
   try {
     console.log('Copy to folder request:', { userId, folderId, mediaIds: mediaIds.length })
 
-    // Validate folder exists and user has access to it
-    const { data: folder, error: folderError } = await supabaseClient
-      .from('file_folders')
-      .select('id, creator_id')
-      .eq('id', folderId)
-      .single()
-
-    if (folderError || !folder) {
-      console.error('Folder validation error:', { folderError, folder, folderId })
-      return new Response(
-        JSON.stringify({ error: 'Folder not found or access denied' }),
-        { status: 404, headers: corsHeaders }
-      )
-    }
-
-    // Verify user has permission to add to this folder
-    if (folder.creator_id !== userId) {
-      console.error('Permission denied:', { folderCreatorId: folder.creator_id, userId })
-      return new Response(
-        JSON.stringify({ error: 'Permission denied: folder does not belong to user' }),
-        { status: 403, headers: corsHeaders }
-      )
-    }
-
-    // Check what media exists in simple_media table
-    const { data: existingMedia, error: mediaError } = await supabaseClient
-      .from('simple_media')
-      .select('id, creator_id')
-      .in('id', mediaIds)
-
-    if (mediaError) {
-      console.error('Media validation error:', mediaError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to validate media' }),
-        { status: 500, headers: corsHeaders }
-      )
-    }
-
-    const existingIds = (existingMedia || []).map((item: any) => item.id)
-    const missingIds = mediaIds.filter(id => !existingIds.includes(id))
-    
-    console.log('Media validation:', { 
-      requested: mediaIds.length, 
-      found: existingIds.length, 
-      missing: missingIds.length 
-    })
-    
-    if (missingIds.length > 0) {
-      console.warn('Some media not found:', missingIds)
-      return new Response(
-        JSON.stringify({ error: `Media not found: ${missingIds.join(', ')}` }),
-        { status: 404, headers: corsHeaders }
-      )
-    }
-
-    // Check for existing entries to avoid duplicates
-    const { data: existingEntries, error: existingError } = await supabaseClient
-      .from('file_folder_contents')
-      .select('media_id')
-      .eq('folder_id', folderId)
-      .in('media_id', existingIds)
-
-    if (existingError) {
-      console.error('Existing entries check error:', existingError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to check existing entries' }),
-        { status: 500, headers: corsHeaders }
-      )
-    }
-
-    // Filter out already existing entries
-    const alreadyInFolder = (existingEntries || []).map((item: any) => item.media_id)
-    const itemsToInsert = existingIds
-      .filter(id => !alreadyInFolder.includes(id))
-      .map(mediaId => ({
-        folder_id: folderId,
-        media_id: mediaId,
-        added_by: userId
-      }))
-
-    console.log('Items to insert:', { 
-      total: existingIds.length, 
-      alreadyExists: alreadyInFolder.length, 
-      toInsert: itemsToInsert.length 
-    })
-
-    if (itemsToInsert.length === 0) {
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'All items were already in the folder',
-          skipped: alreadyInFolder.length
-        }),
-        { headers: corsHeaders }
-      )
-    }
-
-    // Insert into file_folder_contents table with transaction
-    const { data: insertData, error: insertError } = await supabaseClient
-      .from('file_folder_contents')
-      .insert(itemsToInsert)
-      .select()
-
-    if (insertError) {
-      console.error('Insert into folder contents error:', insertError)
-      console.error('Insert details:', { 
-        itemsToInsert, 
-        userId, 
-        folderId,
-        errorCode: insertError.code,
-        errorMessage: insertError.message,
-        errorDetails: insertError.details,
-        errorHint: insertError.hint
-      })
-      return new Response(
-        JSON.stringify({ 
-          error: 'Failed to copy items to folder', 
-          details: insertError.message,
-          debug: { userId, folderId, itemCount: itemsToInsert.length }
-        }),
-        { status: 500, headers: corsHeaders }
-      )
-    }
-
-    console.log('Successfully inserted folder contents:', insertData)
-
-    return new Response(
+    // Return immediate success response
+    const response = new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Copied ${itemsToInsert.length} items to folder`,
-        inserted: itemsToInsert.length,
-        skipped: alreadyInFolder.length
+        message: `Copying ${mediaIds.length} items to folder`
       }),
       { headers: corsHeaders }
     )
-  } catch (error) {
+
+    // Use background task for actual copy operation
+    EdgeRuntime.waitUntil((async () => {
+      try {
+        // Validate folder exists and user has access to it
+        const { data: folder, error: folderError } = await supabaseClient
+          .from('file_folders')
+          .select('id, creator_id')
+          .eq('id', folderId)
+          .single()
+
+        if (folderError || !folder || folder.creator_id !== userId) {
+          console.error('Background folder validation error:', { folderError, folder, folderId })
+          return
+        }
+
+        // Check what media exists in simple_media table
+        const { data: existingMedia, error: mediaError } = await supabaseClient
+          .from('simple_media')
+          .select('id, creator_id')
+          .in('id', mediaIds)
+
+        if (mediaError) {
+          console.error('Background media validation error:', mediaError)
+          return
+        }
+
+        const existingIds = (existingMedia || []).map((item: any) => item.id)
+        
+        // Check for existing entries to avoid duplicates
+        const { data: existingEntries, error: existingError } = await supabaseClient
+          .from('file_folder_contents')
+          .select('media_id')
+          .eq('folder_id', folderId)
+          .in('media_id', existingIds)
+
+        if (existingError) {
+          console.error('Background existing entries check error:', existingError)
+          return
+        }
+
+        // Filter out already existing entries
+        const alreadyInFolder = (existingEntries || []).map((item: any) => item.media_id)
+        const itemsToInsert = existingIds
+          .filter(id => !alreadyInFolder.includes(id))
+          .map(mediaId => ({
+            folder_id: folderId,
+            media_id: mediaId,
+            added_by: userId
+          }))
+
+        if (itemsToInsert.length > 0) {
+          // Bulk insert new entries
+          const { error: insertError } = await supabaseClient
+            .from('file_folder_contents')
+            .insert(itemsToInsert)
+
+          if (insertError) {
+            console.error('Background insert error:', insertError)
+          } else {
+            console.log(`Successfully copied ${itemsToInsert.length} items to folder ${folderId}`)
+          }
+        } else {
+          console.log('All items were already in the folder')
+        }
+      } catch (bgError) {
+        console.error('Background copy task error:', bgError)
+      }
+    })())
+
+    return response
+  } catch (error: any) {
     console.error('Copy to folder error:', error)
     return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        stack: error.stack,
-        debug: { userId, folderId, mediaCount: mediaIds.length }
-      }),
+      JSON.stringify({ error: error.message }),
       { status: 500, headers: corsHeaders }
     )
   }
@@ -453,49 +398,45 @@ async function removeFromFolder(supabaseClient: any, userId: string, folderId: s
   try {
     console.log('Remove from folder request:', { userId, folderId, mediaIds: mediaIds.length })
 
-    // Validate folder exists and user has access to it
-    const { data: folder, error: folderError } = await supabaseClient
-      .from('file_folders')
-      .select('id, creator_id')
-      .eq('id', folderId)
-      .single()
-
-    if (folderError || !folder) {
-      console.error('Folder validation error:', { folderError, folder, folderId })
-      return new Response(
-        JSON.stringify({ error: 'Folder not found or access denied' }),
-        { status: 404, headers: corsHeaders }
-      )
-    }
-
-    // Verify user has permission to remove from this folder
-    if (folder.creator_id !== userId) {
-      console.error('Permission denied:', { folderCreatorId: folder.creator_id, userId })
-      return new Response(
-        JSON.stringify({ error: 'Permission denied: folder does not belong to user' }),
-        { status: 403, headers: corsHeaders }
-      )
-    }
-
-    // Delete from file_folder_contents
-    const { error } = await supabaseClient
-      .from('file_folder_contents')
-      .delete()
-      .eq('folder_id', folderId)
-      .in('media_id', mediaIds)
-
-    if (error) {
-      console.error('Remove from folder error:', error)
-      return new Response(
-        JSON.stringify({ error: 'Failed to remove from folder' }),
-        { status: 500, headers: corsHeaders }
-      )
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, message: `Removed ${mediaIds.length} items from folder` }),
+    // Return immediate success response
+    const response = new Response(
+      JSON.stringify({ success: true, message: `Removing ${mediaIds.length} items from folder` }),
       { headers: corsHeaders }
     )
+
+    // Use background task for actual deletion
+    EdgeRuntime.waitUntil((async () => {
+      try {
+        // Validate folder exists and user has access to it
+        const { data: folder, error: folderError } = await supabaseClient
+          .from('file_folders')
+          .select('id, creator_id')
+          .eq('id', folderId)
+          .single()
+
+        if (folderError || !folder || folder.creator_id !== userId) {
+          console.error('Folder validation error in background:', { folderError, folder, folderId })
+          return
+        }
+
+        // Bulk delete from file_folder_contents
+        const { error } = await supabaseClient
+          .from('file_folder_contents')
+          .delete()
+          .eq('folder_id', folderId)
+          .in('media_id', mediaIds)
+
+        if (error) {
+          console.error('Background remove from folder error:', error)
+        } else {
+          console.log(`Successfully removed ${mediaIds.length} items from folder ${folderId}`)
+        }
+      } catch (bgError) {
+        console.error('Background task error:', bgError)
+      }
+    })())
+
+    return response
   } catch (error) {
     console.error('Remove from folder error:', error)
     return new Response(

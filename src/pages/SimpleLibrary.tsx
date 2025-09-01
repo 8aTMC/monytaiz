@@ -460,46 +460,62 @@ export default function SimpleLibrary() {
   const handleDelete = useCallback(async () => {
     if (!selectedItems.size) return;
     
-    console.log('Delete selected items');
     const itemIds = Array.from(selectedItems);
+    const isCustomFolder = customFolders.some(folder => folder.id === selectedCategory);
+    
+    // Optimistic update - immediately clear selection and show success
+    handleClearSelection();
+    
+    toast({
+      title: "Success",
+      description: `${isCustomFolder ? 'Removing' : 'Deleting'} ${itemIds.length} item(s)...`,
+    });
+
+    // Optimistic UI update - remove items from current view immediately
+    if (isCustomFolder) {
+      setFolderContent(prev => prev.filter(itemId => !itemIds.includes(itemId)));
+      setFolderCounts(prev => ({
+        ...prev,
+        [selectedCategory]: Math.max(0, (prev[selectedCategory] || 0) - itemIds.length)
+      }));
+    } else {
+      // For 'all' category, we'll just let the background refresh handle it
+      // since useSimpleMedia doesn't expose setMedia
+    }
     
     try {
-      // Check if we're in a custom folder - if so, remove from folder only
-      const isCustomFolder = customFolders.some(folder => folder.id === selectedCategory);
+      // Perform actual operation in background
       if (isCustomFolder) {
-        await removeFromFolder(selectedCategory, itemIds);
-        
-        // Refresh folder content and counts
-        await Promise.all([
-          fetchFolderContent(selectedCategory),
-          refreshFolderCounts()
-        ]);
+        // Just remove from folder, don't wait for refresh
+        removeFromFolder(selectedCategory, itemIds).then(() => {
+          // Background refresh of actual counts
+          refreshFolderCounts();
+        });
       } else {
-        // For 'all' category, permanently delete the files
-        await deleteMediaHard(itemIds);
-        
-        // Refresh all data
-        await Promise.all([
-          fetchMedia(),
-          refreshFolderCounts()
-        ]);
+        // Permanently delete files, don't wait for refresh  
+        deleteMediaHard(itemIds).then(() => {
+          // Background refresh of data
+          fetchMedia();
+          refreshFolderCounts();
+        });
       }
-      
-      handleClearSelection();
-      
-      toast({
-        title: "Success",
-        description: `${isCustomFolder ? 'Removed' : 'Deleted'} ${itemIds.length} item(s)`,
-      });
     } catch (error) {
       console.error('Delete error:', error);
+      // Revert optimistic update on error
+      if (isCustomFolder) {
+        fetchFolderContent(selectedCategory);
+        refreshFolderCounts();
+      } else {
+        fetchMedia();
+      }
+      
       toast({
         title: "Error",
         description: "Failed to delete items",
         variant: "destructive"
       });
     }
-  }, [selectedItems, selectedCategory, removeFromFolder, deleteMediaHard, fetchFolderContent, refreshFolderCounts, fetchMedia, handleClearSelection, toast, customFolders]);
+  }, [selectedItems, selectedCategory, removeFromFolder, deleteMediaHard, fetchFolderContent, refreshFolderCounts, fetchMedia, handleClearSelection, toast, customFolders, setFolderContent, setFolderCounts]);
 
   return (
     <>
