@@ -60,9 +60,12 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     }
   };
 
-  // Load optimized media on mount with stable dependencies
+  // Load optimized media on mount with stable dependencies, but skip for videos with thumbnails
   useEffect(() => {
-    if (stableMediaItem.type && (stableMediaItem.storage_path || stableMediaItem.path)) {
+    // Skip loading optimized media for videos that have thumbnail_path - prioritize actual thumbnails
+    const shouldSkipOptimizedLoading = stableMediaItem.type === 'video' && stableMediaItem.thumbnail_path;
+    
+    if (stableMediaItem.type && (stableMediaItem.storage_path || stableMediaItem.path) && !shouldSkipOptimizedLoading) {
       // Always treat content as private since content bucket is private
       loadOptimizedMedia(stableMediaItem, false);
     }
@@ -71,12 +74,21 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     return () => {
       clearMedia();
     };
-  }, [stableMediaItem.id, stableMediaItem.type, stableMediaItem.storage_path, stableMediaItem.path]);
+  }, [stableMediaItem.id, stableMediaItem.type, stableMediaItem.storage_path, stableMediaItem.path, stableMediaItem.thumbnail_path]);
 
-  // Calculate natural aspect ratio
-  const aspectRatio = item.width && item.height 
-    ? (item.width / item.height).toFixed(3)
-    : (item.type === 'video' ? '16/9' : '1');
+  // Calculate aspect ratio with limits for consistent grid display
+  const calculateAspectRatio = () => {
+    if (!item.width || !item.height) {
+      return item.type === 'video' ? '16/9' : '1';
+    }
+    
+    const ratio = item.width / item.height;
+    // Limit extreme aspect ratios for better grid consistency
+    const clampedRatio = Math.max(0.5, Math.min(2.5, ratio));
+    return clampedRatio.toFixed(3);
+  };
+  
+  const aspectRatio = calculateAspectRatio();
 
   // For non-image types, show thumbnail if available, otherwise show icon with natural aspect ratio
   if (item.type !== 'image') {
