@@ -44,3 +44,6 @@ verify_jwt = true
 
 [functions.media-postprocess]
 verify_jwt = true
+
+[functions.video-processor]
+verify_jwt = true

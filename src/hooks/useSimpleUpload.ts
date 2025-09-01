@@ -396,21 +396,76 @@ export const useSimpleUpload = () => {
       // Determine if client-side processing was successful
       const clientSideProcessed = Object.keys(processedBlobs).length > 0 || !!thumbnailBlob;
       
-      // Trigger cleanup of original file since processing is complete
-      supabase.functions.invoke('media-optimizer', {
-        body: {
-          mediaId: mediaRecord.id,
-          originalPath,
-          processedPaths,
-          thumbnailPath,
-          mimeType: finalMimeType,
-          mediaType,
-          skipProcessing: clientSideProcessed, // Only skip if client-side processing succeeded
-          qualityInfo
+      if (!clientSideProcessed && mediaType === 'video') {
+        // For videos that couldn't be processed client-side, trigger server-side processing and wait for it
+        setUploadProgress({
+          phase: 'uploading',
+          progress: 90,
+          message: 'Processing video on server...',
+          originalSize,
+          processedSize: originalSize,
+          compressionRatio: 0
+        });
+
+        try {
+          const { data: serverProcessData, error: serverProcessError } = await supabase.functions.invoke('media-optimizer', {
+            body: {
+              mediaId: mediaRecord.id,
+              originalPath,
+              processedPaths,
+              thumbnailPath,
+              mimeType: finalMimeType,
+              mediaType,
+              skipProcessing: false, // Server-side processing needed
+              qualityInfo
+            }
+          });
+
+          if (serverProcessError) {
+            console.error('Server-side processing failed:', serverProcessError);
+            throw new Error(`Server-side processing failed: ${serverProcessError.message}`);
+          }
+
+          // Update the processed size from server processing
+          if (serverProcessData?.totalCompressedSize) {
+            processedSize = serverProcessData.totalCompressedSize;
+            compressionRatio = Math.round(((originalSize - processedSize) / originalSize) * 100);
+          }
+
+          setUploadProgress({
+            phase: 'complete',
+            progress: 100,
+            message: `Video processed and uploaded! ${compressionRatio > 0 ? `${compressionRatio}% size reduction` : ''}`,
+            originalSize,
+            processedSize,
+            compressionRatio
+          });
+        } catch (serverError) {
+          console.error('Server-side video processing failed:', serverError);
+          // Don't throw - the upload is still successful, just not optimized
+          toast({
+            title: "Processing partially failed",
+            description: "Video uploaded but server optimization failed. File may be larger than expected.",
+            variant: "destructive"
+          });
         }
-      }).catch(error => {
-        console.error('Background processing failed:', error);
-      });
+      } else {
+        // Trigger cleanup of original file since processing is complete
+        supabase.functions.invoke('media-optimizer', {
+          body: {
+            mediaId: mediaRecord.id,
+            originalPath,
+            processedPaths,
+            thumbnailPath,
+            mimeType: finalMimeType,
+            mediaType,
+            skipProcessing: clientSideProcessed, // Only skip if client-side processing succeeded
+            qualityInfo
+          }
+        }).catch(error => {
+          console.error('Background processing failed:', error);
+        });
+      }
 
       toast({
         title: "Upload successful",

@@ -101,10 +101,39 @@ Deno.serve(async (req) => {
     }
 
     if (mediaType === 'video') {
-      console.log('Processing video file for thumbnail generation');
+      console.log('Processing video file - converting to WebM with multiple qualities');
       
       try {
-        // Call video-thumbnail function for videos
+        // Get the original video file for processing
+        const { data: fileData, error: downloadError } = await supabase.storage
+          .from('content')
+          .download(originalPath);
+        
+        if (downloadError) {
+          throw new Error(`Failed to download video for processing: ${downloadError.message}`);
+        }
+
+        // Convert file to ArrayBuffer for FFmpeg processing
+        const arrayBuffer = await fileData.arrayBuffer();
+        
+        // Call video-processor function for video conversion
+        const { data: processData, error: processError } = await supabase.functions.invoke('video-processor', {
+          body: { 
+            fileData: Array.from(new Uint8Array(arrayBuffer)),
+            fileName: originalPath.split('/').pop(),
+            mediaId: mediaId,
+            mediaType: 'video',
+            targetQualities: ['480p', '720p', '1080p']
+          },
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (processError) {
+          console.error('Video processing failed:', processError);
+          throw new Error(`Video processing failed: ${processError.message}`);
+        }
+
+        // Call video-thumbnail function for thumbnail generation
         const { data: thumbnailData, error: thumbnailError } = await supabase.functions.invoke('video-thumbnail', {
           body: { 
             bucket: 'content', 
@@ -116,17 +145,35 @@ Deno.serve(async (req) => {
 
         if (thumbnailError) {
           console.error('Video thumbnail generation failed:', thumbnailError);
-          throw new Error(`Video thumbnail generation failed: ${thumbnailError.message}`);
+          // Don't throw - we can continue without thumbnail
         }
+
+        // Clean up original file (never keep originals for videos)
+        const { error: deleteError } = await supabase.storage
+          .from('content')
+          .remove([originalPath]);
+        
+        if (deleteError) {
+          console.error('Failed to delete original video file:', deleteError);
+          // Don't throw - the processed files are still valid
+        }
+
+        // Use the best quality as the main processed path (1080p if available, otherwise 720p, otherwise 480p)
+        const mainProcessedPath = processData?.processedPaths?.['1080p'] || 
+                                 processData?.processedPaths?.['720p'] || 
+                                 processData?.processedPaths?.['480p'] || 
+                                 originalPath;
 
         // Update simple_media with success status and paths
         const { error: updateError } = await supabase
           .from('simple_media')
           .update({ 
             processing_status: 'processed',
-            processed_path: originalPath, // Video doesn't need separate processed version
+            processed_path: mainProcessedPath,
             thumbnail_path: thumbnailData?.thumbnailPath,
-            processed_at: new Date().toISOString()
+            processed_at: new Date().toISOString(),
+            mime_type: 'video/webm', // Updated to WebM after processing
+            optimized_size_bytes: processData?.totalCompressedSize || null
           })
           .eq('id', mediaId);
 
@@ -140,9 +187,11 @@ Deno.serve(async (req) => {
           JSON.stringify({
             success: true,
             mediaId,
-            processedPath: originalPath,
+            processedPath: mainProcessedPath,
+            processedPaths: processData?.processedPaths,
             thumbnailPath: thumbnailData?.thumbnailPath,
-            thumbnail: thumbnailData?.thumbnail
+            thumbnail: thumbnailData?.thumbnail,
+            compressionInfo: processData?.compressionInfo
           }),
           { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
