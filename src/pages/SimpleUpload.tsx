@@ -118,7 +118,14 @@ export default function SimpleUpload() {
   });
 
   const removeFile = (id: string) => {
-    setFiles(prev => prev.filter(f => f.id !== id));
+    setFiles(prev => {
+      const newFiles = prev.filter(f => f.id !== id);
+      // If no files left, exit review mode
+      if (newFiles.length === 0) {
+        setReviewMode(false);
+      }
+      return newFiles;
+    });
   };
 
   const handleMetadataChange = (fileId: string, metadata: Partial<UploadedFileWithMetadata['metadata']>) => {
