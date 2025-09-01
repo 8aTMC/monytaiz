@@ -110,10 +110,11 @@ export const useSimpleUpload = () => {
 
         try {
           const processedFiles = await processFiles([file]);
-          if (processedFiles.length > 0 && processedFiles[0].processedFiles.image) {
+          if (processedFiles.length > 0 && processedFiles[0].processedBlobs.has('webp')) {
             const result = processedFiles[0];
-            processedBlobs.image = result.processedFiles.image;
-            processedSize = processedBlobs.image.size;
+            const webpBlob = result.processedBlobs.get('webp')!;
+            processedBlobs.image = webpBlob;
+            processedSize = webpBlob.size;
             compressionRatio = Math.round(((originalSize - processedSize) / originalSize) * 100);
             width = result.metadata.width;
             height = result.metadata.height;
@@ -152,69 +153,31 @@ export const useSimpleUpload = () => {
             const result = processedFiles[0];
             const baseName = file.name.split('.')[0];
             
-            // Initialize quality progress tracking
-            const qualityProgress: Record<string, QualityProgress> = {
-              '480p': { resolution: '480p', encodingProgress: 0, status: 'pending' },
-              '720p': { resolution: '720p', encodingProgress: 0, status: 'pending' },
-              '1080p': { resolution: '1080p', encodingProgress: 0, status: 'pending' }
-            };
-            
-            // Store all quality variants
-            if (result.processedFiles.video_480p) {
-              processedBlobs['480p'] = result.processedFiles.video_480p;
-              processedPaths['480p'] = `processed/${fileId}-${baseName}_480p.webm`;
-              qualityProgress['480p'] = {
-                resolution: '480p',
-                actualSize: result.processedFiles.video_480p.size,
-                compressionRatio: Math.round(((originalSize - result.processedFiles.video_480p.size) / originalSize) * 100),
-                encodingProgress: 100,
-                status: 'complete'
-              };
-            }
-            if (result.processedFiles.video_720p) {
-              processedBlobs['720p'] = result.processedFiles.video_720p;
-              processedPaths['720p'] = `processed/${fileId}-${baseName}_720p.webm`;
-              qualityProgress['720p'] = {
-                resolution: '720p',
-                actualSize: result.processedFiles.video_720p.size,
-                compressionRatio: Math.round(((originalSize - result.processedFiles.video_720p.size) / originalSize) * 100),
-                encodingProgress: 100,
-                status: 'complete'
-              };
-            }
-            if (result.processedFiles.video_1080p) {
-              processedBlobs['1080p'] = result.processedFiles.video_1080p;
-              processedPaths['1080p'] = `processed/${fileId}-${baseName}_1080p.webm`;
-              qualityProgress['1080p'] = {
-                resolution: '1080p',
-                actualSize: result.processedFiles.video_1080p.size,
-                compressionRatio: Math.round(((originalSize - result.processedFiles.video_1080p.size) / originalSize) * 100),
-                encodingProgress: 100,
-                status: 'complete'
-              };
+            // Store WebM conversion
+            if (result.processedBlobs.has('webm')) {
+              const webmBlob = result.processedBlobs.get('webm')!;
+              processedBlobs['webm'] = webmBlob;
+              processedPaths['webm'] = `processed/${fileId}-${baseName}.webm`;
+              processedSize = webmBlob.size;
             }
             
             // Store thumbnail
-            if (result.processedFiles.thumbnail) {
-              thumbnailBlob = result.processedFiles.thumbnail;
+            if (result.processedBlobs.has('thumbnail')) {
+              thumbnailBlob = result.processedBlobs.get('thumbnail')!;
               thumbnailPath = `processed/thumbnails/${fileId}-${baseName}_thumb.jpg`;
             }
             
-            // Use 480p size for compression calculation
-            processedSize = processedBlobs['480p']?.size || originalSize;
             compressionRatio = result.metadata.compressionRatio || 0;
             width = result.metadata.width;
             height = result.metadata.height;
-            qualityInfo = result.metadata.qualityInfo || {};
             
             setUploadProgress({
               phase: 'processing',
               progress: 70,
-              message: `Video converted (${compressionRatio}% reduction)`,
+              message: `Video converted to WebM (${compressionRatio.toFixed(1)}x compression)`,
               originalSize,
               processedSize,
-              compressionRatio,
-              qualityProgress
+              compressionRatio
             });
           }
         } catch (error) {
@@ -245,12 +208,12 @@ export const useSimpleUpload = () => {
 
         try {
           const processedFiles = await processFiles([file]);
-          if (processedFiles.length > 0 && processedFiles[0].processedFiles.audio) {
+          if (processedFiles.length > 0 && processedFiles[0].processedBlobs.has('webm')) {
             const result = processedFiles[0];
-            processedBlobs.audio = result.processedFiles.audio;
-            processedSize = processedBlobs.audio.size;
+            const webmBlob = result.processedBlobs.get('webm')!;
+            processedBlobs.audio = webmBlob;
+            processedSize = webmBlob.size;
             compressionRatio = result.metadata.compressionRatio || 0;
-            qualityInfo = result.metadata.qualityInfo || {};
             
             const baseName = file.name.split('.')[0];
             processedPaths.audio = `processed/${fileId}-${baseName}.webm`;
@@ -355,7 +318,7 @@ export const useSimpleUpload = () => {
            mediaType === 'audio' ? 'audio/webm' : file.type)
         : file.type; // Keep original mime type if no processing occurred
 
-      const defaultProcessedPath = processedPaths['480p'] || processedPaths.image || processedPaths.audio || uploadPath;
+      const defaultProcessedPath = processedPaths.webm || processedPaths.image || processedPaths.audio || uploadPath;
       const processingStatus = 'processed';
 
       // Create database record with comprehensive media info

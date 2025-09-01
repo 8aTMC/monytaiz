@@ -167,11 +167,12 @@ export const useOptimizedUpload = () => {
     const baseFolder = `processed/${mediaRowId}`;
 
     // Upload image
-    if (processed.processedFiles.image) {
+    if (processed.processedBlobs.has('webp')) {
+      const webpBlob = processed.processedBlobs.get('webp')!;
       const imagePath = `${baseFolder}/image.webp`;
       const { data, error } = await supabase.storage
         .from('content')
-        .upload(imagePath, processed.processedFiles.image, {
+        .upload(imagePath, webpBlob, {
           cacheControl: '31536000',
           upsert: false,
           contentType: 'image/webp'
@@ -181,34 +182,36 @@ export const useOptimizedUpload = () => {
       uploadedPaths.image = data.path;
     }
 
-    // Upload 1080p video
-    if (processed.processedFiles.video_1080p) {
-      const video1080Path = `${baseFolder}/video-1080p.mp4`;
+    // Upload WebM video
+    if (processed.processedBlobs.has('webm')) {
+      const webmBlob = processed.processedBlobs.get('webm')!;
+      const videoPath = `${baseFolder}/video.webm`;
       const { data, error } = await supabase.storage
         .from('content')
-        .upload(video1080Path, processed.processedFiles.video_1080p, {
+        .upload(videoPath, webmBlob, {
           cacheControl: '31536000',
           upsert: false,
-          contentType: 'video/mp4'
+          contentType: 'video/webm'
         });
       
       if (error) throw error;
-      uploadedPaths.video_1080p = data.path;
+      uploadedPaths.video = data.path;
     }
 
-    // Upload 720p video (if exists)
-    if (processed.processedFiles.video_720p) {
-      const video720Path = `${baseFolder}/video-720p.mp4`;
+    // Upload thumbnail
+    if (processed.processedBlobs.has('thumbnail')) {
+      const thumbnailBlob = processed.processedBlobs.get('thumbnail')!;
+      const thumbnailPath = `${baseFolder}/thumbnail.jpg`;
       const { data, error } = await supabase.storage
         .from('content')
-        .upload(video720Path, processed.processedFiles.video_720p, {
+        .upload(thumbnailPath, thumbnailBlob, {
           cacheControl: '31536000',
           upsert: false,
-          contentType: 'video/mp4'
+          contentType: 'image/jpeg'
         });
       
       if (error) throw error;
-      uploadedPaths.video_720p = data.path;
+      uploadedPaths.thumbnail = data.path;
     }
 
     return uploadedPaths;
@@ -292,7 +295,7 @@ export const useOptimizedUpload = () => {
       ));
 
       // Step 2: Upload processed files (if available)
-      if (item.processed && Object.keys(item.processed.processedFiles).length > 0) {
+      if (item.processed && item.processed.processedBlobs.size > 0) {
         updateStatus('uploading_processed', 40);
         
         const processedPaths = await uploadProcessed(item.processed, mediaRowId, signal);
