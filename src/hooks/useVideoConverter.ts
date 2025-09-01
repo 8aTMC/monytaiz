@@ -20,8 +20,35 @@ export const useVideoConverter = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
 
+  // Check if the browser supports the features needed for FFmpeg.wasm
+  const checkBrowserSupport = () => {
+    // Check for SharedArrayBuffer support (required for FFmpeg.wasm)
+    if (typeof SharedArrayBuffer === 'undefined') {
+      console.warn('SharedArrayBuffer not available - FFmpeg.wasm not supported');
+      return false;
+    }
+    
+    // Check for WebAssembly support
+    if (typeof WebAssembly === 'undefined') {
+      console.warn('WebAssembly not available');
+      return false;
+    }
+    
+    // Check for Worker support
+    if (typeof Worker === 'undefined') {
+      console.warn('Web Workers not available');
+      return false;
+    }
+    
+    return true;
+  };
+
   const loadFFmpeg = async () => {
     if (isLoaded) return;
+    
+    if (!checkBrowserSupport()) {
+      throw new Error('Browser does not support FFmpeg.wasm (requires SharedArrayBuffer)');
+    }
     
     try {
       const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
@@ -131,7 +158,7 @@ export const useVideoConverter = () => {
   };
 
   const tryMediaRecorderConversion = async (file: File): Promise<Blob | null> => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const video = document.createElement('video');
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -141,54 +168,108 @@ export const useVideoConverter = () => {
         return;
       }
 
+      // Check MediaRecorder support
+      if (!MediaRecorder.isTypeSupported('video/webm;codecs=vp9') && 
+          !MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+        console.log('WebM codecs not supported by MediaRecorder');
+        resolve(null);
+        return;
+      }
+
+      let timeoutId: NodeJS.Timeout;
+      let isComplete = false;
+      
+      const cleanup = () => {
+        if (timeoutId) clearTimeout(timeoutId);
+        if (video.src) URL.revokeObjectURL(video.src);
+        isComplete = true;
+      };
+
       video.onloadedmetadata = () => {
-        canvas.width = Math.min(1920, video.videoWidth);
-        canvas.height = Math.min(1080, video.videoHeight);
-        
-        const stream = canvas.captureStream(30);
-        const mediaRecorder = new MediaRecorder(stream, {
-          mimeType: 'video/webm;codecs=vp9,opus',
-          videoBitsPerSecond: 2500000
-        });
-        
-        const chunks: Blob[] = [];
-        
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            chunks.push(event.data);
-          }
-        };
-        
-        mediaRecorder.onstop = () => {
-          const webmBlob = new Blob(chunks, { type: 'video/webm' });
-          resolve(webmBlob);
-        };
-        
-        mediaRecorder.start(100);
-        
-        const drawFrame = () => {
-          if (video.ended || video.paused) {
-            mediaRecorder.stop();
-            return;
+        try {
+          // Scale down for better compatibility and performance
+          const maxDimension = 1280; // 720p max
+          const scale = Math.min(maxDimension / video.videoWidth, maxDimension / video.videoHeight, 1);
+          
+          canvas.width = Math.floor(video.videoWidth * scale);
+          canvas.height = Math.floor(video.videoHeight * scale);
+          
+          console.log(`Converting video: ${video.videoWidth}x${video.videoHeight} -> ${canvas.width}x${canvas.height}`);
+          
+          const stream = canvas.captureStream(15); // Lower framerate for better compression
+          
+          // Try VP9 first, fall back to VP8
+          let mimeType = 'video/webm;codecs=vp9';
+          if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = 'video/webm;codecs=vp8';
           }
           
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          requestAnimationFrame(drawFrame);
-        };
-        
-        video.play();
-        drawFrame();
-        
-        // Stop after reasonable time to prevent infinite recording
-        setTimeout(() => {
-          if (mediaRecorder.state === 'recording') {
-            mediaRecorder.stop();
-          }
-        }, Math.min(video.duration * 1000, 300000)); // Max 5 minutes
+          const mediaRecorder = new MediaRecorder(stream, {
+            mimeType,
+            videoBitsPerSecond: Math.min(1000000, file.size / 10) // Adaptive bitrate
+          });
+          
+          const chunks: Blob[] = [];
+          
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+              chunks.push(event.data);
+            }
+          };
+          
+          mediaRecorder.onstop = () => {
+            if (isComplete) return;
+            const webmBlob = new Blob(chunks, { type: 'video/webm' });
+            cleanup();
+            resolve(webmBlob);
+          };
+          
+          mediaRecorder.onerror = (event) => {
+            console.error('MediaRecorder error:', event);
+            cleanup();
+            resolve(null);
+          };
+          
+          mediaRecorder.start(1000); // Collect data every second
+          video.currentTime = 0;
+          video.play();
+          
+          const drawFrame = () => {
+            if (isComplete || video.ended || video.paused) {
+              mediaRecorder.stop();
+              return;
+            }
+            
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            requestAnimationFrame(drawFrame);
+          };
+          
+          drawFrame();
+          
+          // Safety timeout based on video duration
+          const maxDuration = Math.min(video.duration * 1000 + 5000, 60000); // Max 1 minute
+          timeoutId = setTimeout(() => {
+            if (mediaRecorder.state === 'recording') {
+              mediaRecorder.stop();
+            }
+          }, maxDuration);
+          
+        } catch (error) {
+          console.error('MediaRecorder setup error:', error);
+          cleanup();
+          resolve(null);
+        }
       };
       
-      video.onerror = () => resolve(null);
+      video.onerror = (error) => {
+        console.error('Video load error:', error);
+        cleanup();
+        resolve(null);
+      };
+      
       video.src = URL.createObjectURL(file);
+      video.muted = true;
+      video.preload = 'metadata';
     });
   };
 
@@ -197,31 +278,43 @@ export const useVideoConverter = () => {
     options: VideoConversionOptions = {},
     onProgress?: (progress: number) => void
   ): Promise<ConversionResult> => {
-    // Try MediaRecorder first for better performance on smaller files
-    if (file.size < 50 * 1024 * 1024) { // Less than 50MB
+    // Always try MediaRecorder first (simpler and more compatible)
+    try {
+      console.log('Attempting MediaRecorder conversion...');
+      const mediaRecorderBlob = await tryMediaRecorderConversion(file);
+      if (mediaRecorderBlob && mediaRecorderBlob.size > 0) {
+        const compressionRatio = file.size / mediaRecorderBlob.size;
+        console.log(`MediaRecorder conversion successful: ${compressionRatio.toFixed(2)}x compression`);
+        return {
+          webmBlob: mediaRecorderBlob,
+          originalSize: file.size,
+          convertedSize: mediaRecorderBlob.size,
+          compressionRatio
+        };
+      }
+    } catch (error) {
+      console.log('MediaRecorder conversion failed:', error);
+    }
+
+    // Try FFmpeg.wasm only if browser supports it
+    if (checkBrowserSupport()) {
       try {
-        const mediaRecorderBlob = await tryMediaRecorderConversion(file);
-        if (mediaRecorderBlob && mediaRecorderBlob.size < file.size * 0.9) {
-          return {
-            webmBlob: mediaRecorderBlob,
-            originalSize: file.size,
-            convertedSize: mediaRecorderBlob.size,
-            compressionRatio: file.size / mediaRecorderBlob.size
-          };
-        }
+        console.log('Attempting FFmpeg.wasm conversion...');
+        return await convertToWebM(file, options, onProgress);
       } catch (error) {
-        console.log('MediaRecorder conversion failed, falling back to FFmpeg:', error);
+        console.error('FFmpeg.wasm conversion failed:', error);
       }
     }
 
-    // Fall back to FFmpeg for larger files or if MediaRecorder fails
-    return convertToWebM(file, options, onProgress);
+    // If both methods fail, throw an error
+    throw new Error('Video conversion not supported in this browser. Please try a different file or browser.');
   };
 
   return {
     convertVideo,
     isConverting,
     isLoaded,
-    loadFFmpeg
+    loadFFmpeg,
+    checkBrowserSupport
   };
 };
