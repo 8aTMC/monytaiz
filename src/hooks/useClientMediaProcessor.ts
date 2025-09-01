@@ -103,7 +103,13 @@ export const useClientMediaProcessor = () => {
       return { canProcess: false, reason: 'Processing not supported in this browser' };
     }
     
-    // Allow all videos for thumbnail generation
+    // Check file size - allow up to 500MB for client-side processing
+    const maxSize = 500 * 1024 * 1024; // 500MB
+    if (file.size > maxSize) {
+      return { canProcess: false, reason: 'File too large for client-side processing (>500MB)' };
+    }
+    
+    // Allow all supported videos for processing
     return { canProcess: true };
   }, [checkFFmpegSupport]);
 
@@ -286,9 +292,9 @@ export const useClientMediaProcessor = () => {
     });
   }, []);
 
-  // Process video (simplified - just create thumbnail with optimized seeking)
+  // Process video with enhanced capabilities for larger files
   const processVideo = useCallback(async (file: File): Promise<ProcessedMedia | null> => {
-    console.log('🎬 Processing video (thumbnail only):', file.name);
+    console.log('🎬 Processing video with enhanced capabilities:', file.name, 'Size:', (file.size / (1024 * 1024)).toFixed(1), 'MB');
     
     let video: HTMLVideoElement | null = null;
     let objectUrl: string | null = null;
@@ -299,7 +305,7 @@ export const useClientMediaProcessor = () => {
       setProgress({
         phase: 'encoding',
         progress: 50,
-        message: 'Creating video thumbnail...'
+        message: `Creating thumbnail for ${(file.size / (1024 * 1024)).toFixed(1)}MB video...`
       });
 
       // Create video element
@@ -309,16 +315,17 @@ export const useClientMediaProcessor = () => {
       video.muted = true;
       video.preload = 'metadata';
       
-      // Wait for video to load
+      // Wait for video to load with longer timeout for large files
+      const timeout = file.size > 100 * 1024 * 1024 ? 30000 : 10000; // 30s for >100MB files
       await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Video load timeout')), 10000);
+        const timer = setTimeout(() => reject(new Error('Video load timeout')), timeout);
         
         video!.onloadedmetadata = () => {
-          clearTimeout(timeout);
+          clearTimeout(timer);
           resolve();
         };
         video!.onerror = () => {
-          clearTimeout(timeout);
+          clearTimeout(timer);
           reject(new Error('Failed to load video'));
         };
       });

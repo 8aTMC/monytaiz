@@ -76,9 +76,8 @@ export const useSimpleUpload = () => {
                        file.type.startsWith('video/') ? 'video' : 
                        file.type.startsWith('audio/') ? 'audio' : 'image';
 
-      // Determine upload strategy based on file size and type
-      const isLargeVideo = mediaType === 'video' && file.size > 50 * 1024 * 1024; // 50MB threshold
-      const uploadPath = isLargeVideo ? `raw/${fileId}-${file.name}` : `incoming/${fileId}-${file.name}`;
+      // Always use incoming folder for processing
+      const uploadPath = `incoming/${fileId}-${file.name}`;
       
       let processedPaths: { [quality: string]: string } = {};
       let processedBlobs: { [quality: string]: Blob } = {};
@@ -88,18 +87,13 @@ export const useSimpleUpload = () => {
       let height: number | undefined;
       let qualityInfo: any = {};
 
-      // Check if we can do client-side video processing (skip for large videos)
+      // Check if we can do client-side processing
       let canClientProcess = true;
       if (mediaType === 'video') {
-        if (isLargeVideo) {
-          console.log('Large video detected, will use background transcoding service');
+        const validation = canProcessVideo(file);
+        if (!validation.canProcess) {
+          console.log('Client-side video processing not available, will use original format:', validation.reason);
           canClientProcess = false;
-        } else {
-          const validation = canProcessVideo(file);
-          if (!validation.canProcess) {
-            console.log('Client-side video processing not available, original format will be used:', validation.reason);
-            canClientProcess = false;
-          }
         }
       }
 
@@ -230,25 +224,14 @@ export const useSimpleUpload = () => {
         }
 
       } else if (mediaType === 'video' && !canClientProcess) {
-        if (isLargeVideo) {
-          setUploadProgress({
-            phase: 'processing',
-            progress: 30,
-            message: 'Large video will be processed in background...',
-            originalSize,
-            processedSize: originalSize,
-            compressionRatio: 0
-          });
-        } else {
-          setUploadProgress({
-            phase: 'processing',
-            progress: 30,
-            message: 'Video will be stored in original format...',
-            originalSize,
-            processedSize: originalSize,
-            compressionRatio: 0
-          });
-        }
+        setUploadProgress({
+          phase: 'processing',
+          progress: 30,
+          message: 'Video will be stored in original format...',
+          originalSize,
+          processedSize: originalSize,
+          compressionRatio: 0
+        });
 
       } else if (mediaType === 'audio') {
         setUploadProgress({
@@ -373,7 +356,7 @@ export const useSimpleUpload = () => {
         : file.type; // Keep original mime type if no processing occurred
 
       const defaultProcessedPath = processedPaths['480p'] || processedPaths.image || processedPaths.audio || uploadPath;
-      const processingStatus = isLargeVideo ? 'pending' : 'processed';
+      const processingStatus = 'processed';
 
       // Create database record with comprehensive media info
       const { data: mediaRecord, error: dbError } = await supabase
@@ -402,42 +385,12 @@ export const useSimpleUpload = () => {
         throw new Error(`Database error: ${dbError.message}`);
       }
 
-      // Enqueue transcoding job for large videos
-      if (isLargeVideo) {
-        console.log('🎬 Enqueuing background transcoding job for large video...');
-        try {
-          // Call transcoder service (replace with actual service URL)
-          const transcoderUrl = import.meta.env.VITE_TRANSCODER_URL || 'http://localhost:8080';
-          const response = await fetch(`${transcoderUrl}/jobs/transcode`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              bucket: 'content',
-              path: uploadPath,
-              mediaId: mediaRecord.id,
-              crf: 30
-            })
-          });
-
-          if (!response.ok) {
-            throw new Error(`Transcoder service error: ${response.status}`);
-          }
-
-          console.log('✅ Transcoding job enqueued successfully');
-        } catch (transcoderError) {
-          console.warn('⚠️ Failed to enqueue transcoding job (non-critical):', transcoderError);
-          // Don't fail the upload - the video is still stored
-        }
-      }
+      // No background processing needed - all handled client-side
 
       setUploadProgress({
         phase: 'complete',
         progress: 100,
-        message: isLargeVideo 
-          ? 'Upload complete! Video processing in background...'
-          : `Upload complete! ${compressionRatio > 0 ? `${compressionRatio}% size reduction` : ''}`,
+        message: `Upload complete! ${compressionRatio > 0 ? `${compressionRatio}% size reduction` : ''}`,
         originalSize,
         processedSize,
         compressionRatio
@@ -470,12 +423,6 @@ export const useSimpleUpload = () => {
         toast({
           title: "Upload successful",
           description: `${file.name} uploaded${compressionRatio > 0 ? ` with ${compressionRatio}% size reduction` : ''}.`,
-          variant: "default"
-        });
-      } else if (isLargeVideo) {
-        toast({
-          title: "Upload successful",
-          description: `${file.name} uploaded. Large video processing in background...`,
           variant: "default"
         });
       } else {
