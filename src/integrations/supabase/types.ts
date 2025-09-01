@@ -534,6 +534,45 @@ export type Database = {
           },
         ]
       }
+      file_folder_contents: {
+        Row: {
+          added_by: string
+          created_at: string
+          folder_id: string
+          id: string
+          media_id: string
+        }
+        Insert: {
+          added_by: string
+          created_at?: string
+          folder_id: string
+          id?: string
+          media_id: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          folder_id?: string
+          id?: string
+          media_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_folder_contents_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "file_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_folder_contents_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "simple_media"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       file_folders: {
         Row: {
           color: string | null

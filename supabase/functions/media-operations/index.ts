@@ -274,8 +274,7 @@ async function copyToFolder(supabaseClient: any, userId: string, folderId: strin
       )
     }
 
-    // For now, we'll create a simple mapping table to track folder contents
-    // We need to check what media exists in simple_media table
+    // Check what media exists in simple_media table
     const { data: existingMedia, error: mediaError } = await supabaseClient
       .from('simple_media')
       .select('id')
@@ -298,24 +297,23 @@ async function copyToFolder(supabaseClient: any, userId: string, folderId: strin
       )
     }
 
-    // Since we don't have a folder_items table yet, we'll update the tags on the media
-    // to include a special folder tag. This is a temporary solution.
-    const folderTag = `folder:${folderId}`
-    
-    for (const mediaId of existingIds) {
-      const { data: currentMedia } = await supabaseClient
-        .from('simple_media')
-        .select('tags')
-        .eq('id', mediaId)
-        .single()
-      
-      const currentTags = currentMedia?.tags || []
-      const newTags = [...currentTags.filter((tag: string) => !tag.startsWith('folder:')), folderTag]
-      
-      await supabaseClient
-        .from('simple_media')
-        .update({ tags: newTags })
-        .eq('id', mediaId)
+    // Insert into file_folder_contents table
+    const itemsToInsert = existingIds.map(mediaId => ({
+      folder_id: folderId,
+      media_id: mediaId,
+      added_by: userId
+    }))
+
+    const { error: insertError } = await supabaseClient
+      .from('file_folder_contents')
+      .upsert(itemsToInsert, { onConflict: 'folder_id,media_id' })
+
+    if (insertError) {
+      console.error('Insert into folder contents error:', insertError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to copy items to folder' }),
+        { status: 500, headers: corsHeaders }
+      )
     }
 
     return new Response(
