@@ -319,258 +319,74 @@ export const useClientMediaProcessor = () => {
     });
   }, []);
 
-  // Process video with WebM conversion using the video converter
+  // Process video with improved error handling and browser compatibility
   const processVideo = useCallback(async (file: File): Promise<ProcessedMedia | null> => {
-    console.log('🎬 Processing video with WebM conversion:', file.name, 'Size:', (file.size / (1024 * 1024)).toFixed(1), 'MB');
+    console.log('🎬 Processing video:', file.name, 'Size:', (file.size / (1024 * 1024)).toFixed(1), 'MB');
     
     try {
       const metadata = await getVideoInfo(file);
-      
-      setProgress({
-        phase: 'encoding',
-        progress: 10,
-        message: 'Checking browser compatibility...'
-      });
-
-      // Create placeholder first
       const placeholder = await createTinyPlaceholder(file);
-      
-      // Check if video conversion is supported
-      if (!checkBrowserSupport()) {
-        console.warn('Video conversion not supported in this browser - will use original format');
-        
-        setProgress({
-          phase: 'encoding',
-          progress: 50,
-          message: 'Creating thumbnail (conversion not supported)...'
-        });
-
-        // Just create thumbnail without conversion
-        const videoElement = document.createElement('video');
-        const canvas = getCanvas();
-        
-        const processedBlobs = new Map<string, Blob>();
-        
-        return new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            cleanup();
-            reject(new Error('Thumbnail generation timeout'));
-          }, 30000);
-          
-          const cleanup = () => {
-            clearTimeout(timeout);
-            if (videoElement.src) {
-              cleanupBlobUrl(videoElement.src);
-            }
-          };
-          
-          videoElement.onloadedmetadata = async () => {
-            try {
-              const thumbnail = await createVideoThumbnail(videoElement, canvas);
-              if (thumbnail) {
-                processedBlobs.set('thumbnail', thumbnail);
-              }
-              
-              setProgress({
-                phase: 'complete',
-                progress: 100,
-                message: 'Video processing complete (original format)'
-              });
-              
-              cleanup();
-              resolve({
-                id: crypto.randomUUID(),
-                originalFile: file,
-                processedBlobs,
-                metadata: {
-                  width: metadata.width,
-                  height: metadata.height,
-                  duration: metadata.duration,
-                  format: file.type,
-                  originalSize: file.size,
-                  processedSize: file.size,
-                  compressionRatio: 1 // No compression
-                },
-                tinyPlaceholder: placeholder
-              });
-            } catch (error) {
-              cleanup();
-              reject(error);
-            }
-          };
-          
-          videoElement.onerror = () => {
-            cleanup();
-            reject(new Error('Failed to generate thumbnail'));
-          };
-          
-          videoElement.src = trackBlobUrl(URL.createObjectURL(file));
-        });
-      }
       
       setProgress({
         phase: 'encoding',
         progress: 20,
-        message: 'Converting to WebM...'
+        message: 'Checking conversion options...'
       });
 
-      // Determine quality based on file size and resolution
-      let quality: 'high' | 'medium' | 'low' = 'medium';
-      let targetResolution: string | undefined;
+      // Try video conversion only if browser fully supports it
+      let conversionResult = null;
       
-      if (file.size > 100 * 1024 * 1024) { // > 100MB
-        quality = 'low';
-        targetResolution = '1280:720'; // 720p
-      } else if (file.size > 50 * 1024 * 1024) { // > 50MB
-        quality = 'medium';
-        targetResolution = '1920:1080'; // 1080p
-      } else {
-        quality = 'high'; // Keep original resolution for smaller files
-      }
-      
-      // Convert video to WebM
-      const conversionResult = await convertVideo(
-        file,
-        { quality, targetResolution },
-        (progress) => {
-          setProgress({
-            phase: 'encoding',
-            progress: 20 + (progress * 0.6),
-            message: `Converting to WebM... ${progress}%`
-          });
+      try {
+        if (checkBrowserSupport()) {
+          console.log('Attempting video conversion...');
+          conversionResult = await convertVideo(file, { quality: 'medium' });
+        } else {
+          console.log('Browser does not support video conversion - using original format');
         }
-      );
-      
-      if (!conversionResult) {
-        console.log('Video conversion failed - falling back to original format');
-        // Fall back to original format processing
-        setProgress({
-          phase: 'encoding',
-          progress: 85,
-          message: 'Creating thumbnail (using original format)...'
-        });
-
-        const videoElement = document.createElement('video');
-        const canvas = getCanvas();
-        const processedBlobs = new Map<string, Blob>();
-        
-        return new Promise((resolve) => {
-          const timeout = setTimeout(() => {
-            cleanup();
-            resolve({
-              id: crypto.randomUUID(),
-              originalFile: file,
-              processedBlobs: new Map<string, Blob>(),
-              metadata: {
-                width: metadata.width,
-                height: metadata.height,
-                duration: metadata.duration,
-                format: file.type,
-                originalSize: file.size,
-                processedSize: file.size,
-                compressionRatio: 1
-              },
-              tinyPlaceholder: placeholder
-            });
-          }, 30000);
-          
-          const cleanup = () => {
-            clearTimeout(timeout);
-            if (videoElement.src) {
-              cleanupBlobUrl(videoElement.src);
-            }
-          };
-          
-          videoElement.onloadedmetadata = async () => {
-            try {
-              const thumbnail = await createVideoThumbnail(videoElement, canvas);
-              if (thumbnail) {
-                processedBlobs.set('thumbnail', thumbnail);
-              }
-              
-              setProgress({
-                phase: 'complete',
-                progress: 100,
-                message: 'Video processing complete (original format)'
-              });
-              
-              cleanup();
-              resolve({
-                id: crypto.randomUUID(),
-                originalFile: file,
-                processedBlobs,
-                metadata: {
-                  width: metadata.width,
-                  height: metadata.height,
-                  duration: metadata.duration,
-                  format: file.type,
-                  originalSize: file.size,
-                  processedSize: file.size,
-                  compressionRatio: 1
-                },
-                tinyPlaceholder: placeholder
-              });
-            } catch (error) {
-              cleanup();
-              resolve({
-                id: crypto.randomUUID(),
-                originalFile: file,
-                processedBlobs: new Map<string, Blob>(),
-                metadata: {
-                  width: metadata.width,
-                  height: metadata.height,
-                  duration: metadata.duration,
-                  format: file.type,
-                  originalSize: file.size,
-                  processedSize: file.size,
-                  compressionRatio: 1
-                },
-                tinyPlaceholder: placeholder
-              });
-            }
-          };
-          
-          videoElement.onerror = () => {
-            cleanup();
-            resolve({
-              id: crypto.randomUUID(),
-              originalFile: file,
-              processedBlobs: new Map<string, Blob>(),
-              metadata: {
-                width: metadata.width,
-                height: metadata.height,
-                duration: metadata.duration,
-                format: file.type,
-                originalSize: file.size,
-                processedSize: file.size,
-                compressionRatio: 1
-              },
-              tinyPlaceholder: placeholder
-            });
-          };
-          
-          videoElement.src = trackBlobUrl(URL.createObjectURL(file));
-        });
+      } catch (conversionError) {
+        console.log('Video conversion failed:', conversionError);
+        conversionResult = null;
       }
-      
+
       setProgress({
         phase: 'encoding',
-        progress: 85,
+        progress: 70,
         message: 'Creating thumbnail...'
       });
 
-      // Create thumbnail from converted video
+      // Create thumbnail and process the video
       const videoElement = document.createElement('video');
       const canvas = getCanvas();
-      
       const processedBlobs = new Map<string, Blob>();
-      processedBlobs.set('webm', conversionResult.webmBlob);
       
-      return new Promise((resolve, reject) => {
+      // Add the converted video if successful
+      if (conversionResult && conversionResult.webmBlob) {
+        processedBlobs.set('webm', conversionResult.webmBlob);
+        console.log('Video converted successfully');
+      } else {
+        console.log('Using original video format');
+      }
+
+      return new Promise((resolve) => {
         const timeout = setTimeout(() => {
           cleanup();
-          reject(new Error('Thumbnail generation timeout'));
-        }, 30000);
+          // Return basic video info even if thumbnail fails
+          resolve({
+            id: crypto.randomUUID(),
+            originalFile: file,
+            processedBlobs,
+            metadata: {
+              width: metadata.width,
+              height: metadata.height,
+              duration: metadata.duration,
+              format: conversionResult ? 'video/webm' : file.type,
+              originalSize: file.size,
+              processedSize: conversionResult ? conversionResult.convertedSize : file.size,
+              compressionRatio: conversionResult ? conversionResult.compressionRatio : 1
+            },
+            tinyPlaceholder: placeholder
+          });
+        }, 15000); // Shorter timeout
         
         const cleanup = () => {
           clearTimeout(timeout);
@@ -581,114 +397,89 @@ export const useClientMediaProcessor = () => {
         
         videoElement.onloadedmetadata = async () => {
           try {
+            // Try to create thumbnail
             const thumbnail = await createVideoThumbnail(videoElement, canvas);
             if (thumbnail) {
               processedBlobs.set('thumbnail', thumbnail);
             }
-            
-            setProgress({
-              phase: 'complete',
-              progress: 100,
-              message: 'Video conversion complete'
-            });
-            
-            cleanup();
-            resolve({
-              id: crypto.randomUUID(),
-              originalFile: file,
-              processedBlobs,
-              metadata: {
-                width: metadata.width,
-                height: metadata.height,
-                duration: metadata.duration,
-                format: 'video/webm',
-                originalSize: file.size,
-                processedSize: conversionResult.convertedSize,
-                compressionRatio: conversionResult.compressionRatio
-              },
-              tinyPlaceholder: placeholder
-            });
-          } catch (error) {
-            cleanup();
-            reject(error);
+          } catch (thumbnailError) {
+            console.warn('Thumbnail creation failed:', thumbnailError);
+            // Continue without thumbnail
           }
+          
+          setProgress({
+            phase: 'complete',
+            progress: 100,
+            message: conversionResult ? 'Video converted successfully' : 'Video processed (original format)'
+          });
+          
+          cleanup();
+          resolve({
+            id: crypto.randomUUID(),
+            originalFile: file,
+            processedBlobs,
+            metadata: {
+              width: metadata.width,
+              height: metadata.height,
+              duration: metadata.duration,
+              format: conversionResult ? 'video/webm' : file.type,
+              originalSize: file.size,
+              processedSize: conversionResult ? conversionResult.convertedSize : file.size,
+              compressionRatio: conversionResult ? conversionResult.compressionRatio : 1
+            },
+            tinyPlaceholder: placeholder
+          });
         };
         
         videoElement.onerror = () => {
+          console.warn('Video metadata loading failed');
           cleanup();
-          reject(new Error('Failed to generate thumbnail from converted video'));
+          // Return basic info without thumbnail
+          resolve({
+            id: crypto.randomUUID(),
+            originalFile: file,
+            processedBlobs,
+            metadata: {
+              width: metadata.width,
+              height: metadata.height,
+              duration: metadata.duration,
+              format: conversionResult ? 'video/webm' : file.type,
+              originalSize: file.size,
+              processedSize: conversionResult ? conversionResult.convertedSize : file.size,
+              compressionRatio: conversionResult ? conversionResult.compressionRatio : 1
+            },
+            tinyPlaceholder: placeholder
+          });
         };
         
-        videoElement.src = trackBlobUrl(URL.createObjectURL(conversionResult.webmBlob));
-      });
-    } catch (error) {
-      console.error('Video conversion error:', error);
-      setProgress({
-        phase: 'error',
-        progress: 0,
-        message: 'Video conversion failed - will use original format'
+        // Use the converted video for thumbnail if available, otherwise original
+        const videoBlob = conversionResult ? conversionResult.webmBlob : file;
+        videoElement.src = trackBlobUrl(URL.createObjectURL(videoBlob));
       });
       
-      // Fallback: just create thumbnail without conversion
+    } catch (error) {
+      console.error('Video processing error:', error);
+      
+      // Return a basic processed media object even if everything fails
       try {
-        const metadata = await getVideoInfo(file);
         const placeholder = await createTinyPlaceholder(file);
-        const videoElement = document.createElement('video');
-        const canvas = getCanvas();
-        
-        const processedBlobs = new Map<string, Blob>();
-        
-        return new Promise((resolve) => {
-          videoElement.onloadedmetadata = async () => {
-            try {
-              const thumbnail = await createVideoThumbnail(videoElement, canvas);
-              if (thumbnail) {
-                processedBlobs.set('thumbnail', thumbnail);
-              }
-              
-              resolve({
-                id: crypto.randomUUID(),
-                originalFile: file,
-                processedBlobs,
-                metadata: {
-                  width: metadata.width,
-                  height: metadata.height,
-                  duration: metadata.duration,
-                  format: file.type,
-                  originalSize: file.size,
-                  processedSize: file.size,
-                  compressionRatio: 1
-                },
-                tinyPlaceholder: placeholder
-              });
-            } catch {
-              // Even thumbnail creation failed - return basic info
-              resolve({
-                id: crypto.randomUUID(),
-                originalFile: file,
-                processedBlobs: new Map<string, Blob>(),
-                metadata: {
-                  width: metadata.width,
-                  height: metadata.height,
-                  duration: metadata.duration,
-                  format: file.type,
-                  originalSize: file.size,
-                  processedSize: file.size,
-                  compressionRatio: 1
-                },
-                tinyPlaceholder: placeholder
-              });
-            }
-            
-            if (videoElement.src) {
-              cleanupBlobUrl(videoElement.src);
-            }
-          };
-          
-          videoElement.src = trackBlobUrl(URL.createObjectURL(file));
-        });
-      } catch (fallbackError) {
-        console.error('Video fallback processing also failed:', fallbackError);
+        return {
+          id: crypto.randomUUID(),
+          originalFile: file,
+          processedBlobs: new Map<string, Blob>(),
+          metadata: {
+            width: 0,
+            height: 0,
+            duration: 0,
+            format: file.type,
+            originalSize: file.size,
+            processedSize: file.size,
+            compressionRatio: 1
+          },
+          tinyPlaceholder: placeholder
+        };
+      } catch (placeholderError) {
+        console.error('Even placeholder creation failed:', placeholderError);
         return null;
       }
     }
