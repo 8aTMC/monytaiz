@@ -231,9 +231,67 @@ export const useClientMediaProcessor = () => {
     }
   }, [getCanvas, createTinyPlaceholder]);
 
-  // Process video (simplified - just create thumbnail)
+  // Helper function to create video thumbnail with proper error handling
+  const createVideoThumbnail = useCallback(async (videoElement: HTMLVideoElement, canvas: HTMLCanvasElement): Promise<Blob> => {
+    const ctx = canvas.getContext('2d')!;
+    
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Video thumbnail creation timeout'));
+      }, 5000);
+      
+      const captureFrame = () => {
+        try {
+          // Set canvas size to maintain aspect ratio
+          const aspectRatio = videoElement.videoWidth / videoElement.videoHeight;
+          canvas.width = Math.min(320, videoElement.videoWidth);
+          canvas.height = canvas.width / aspectRatio;
+          
+          // Draw frame with optimizations
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+          
+          canvas.toBlob((blob) => {
+            clearTimeout(timeout);
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to create thumbnail blob'));
+            }
+          }, 'image/jpeg', 0.8);
+        } catch (error) {
+          clearTimeout(timeout);
+          reject(error);
+        }
+      };
+
+      // Try to seek to a good position for thumbnail
+      const seekTime = Math.min(1, videoElement.duration * 0.1); // 10% into video or 1 second
+      
+      if ('requestVideoFrameCallback' in videoElement) {
+        // Use modern API when available
+        videoElement.currentTime = seekTime;
+        (videoElement as any).requestVideoFrameCallback(captureFrame);
+      } else {
+        // Fallback to seeked event
+        const handleSeeked = () => {
+          (videoElement as HTMLVideoElement).removeEventListener('seeked', handleSeeked);
+          captureFrame();
+        };
+        
+        (videoElement as HTMLVideoElement).addEventListener('seeked', handleSeeked);
+        (videoElement as HTMLVideoElement).currentTime = seekTime;
+      }
+    });
+  }, []);
+
+  // Process video (simplified - just create thumbnail with optimized seeking)
   const processVideo = useCallback(async (file: File): Promise<ProcessedMedia | null> => {
     console.log('🎬 Processing video (thumbnail only):', file.name);
+    
+    let video: HTMLVideoElement | null = null;
+    let objectUrl: string | null = null;
     
     try {
       const metadata = await getVideoInfo(file);
@@ -244,33 +302,33 @@ export const useClientMediaProcessor = () => {
         message: 'Creating video thumbnail...'
       });
 
-      // Create thumbnail
-      const video = document.createElement('video');
-      video.src = URL.createObjectURL(file);
+      // Create video element
+      video = document.createElement('video');
+      objectUrl = URL.createObjectURL(file);
+      video.src = objectUrl;
       video.muted = true;
+      video.preload = 'metadata';
       
-      await new Promise((resolve, reject) => {
-        video.onloadedmetadata = resolve;
-        video.onerror = reject;
+      // Wait for video to load
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Video load timeout')), 10000);
+        
+        video!.onloadedmetadata = () => {
+          clearTimeout(timeout);
+          resolve();
+        };
+        video!.onerror = () => {
+          clearTimeout(timeout);
+          reject(new Error('Failed to load video'));
+        };
       });
 
-      const canvas = getCanvas();
-      const ctx = canvas.getContext('2d')!;
-      
       // Create thumbnail
-      video.currentTime = 0;
-      await new Promise(resolve => { video.onseeked = resolve; });
-      canvas.width = 320;
-      canvas.height = 240;
-      ctx.drawImage(video, 0, 0, 320, 240);
-      
-      const thumbnailBlob = await new Promise<Blob>(resolve => canvas.toBlob(resolve!, 'image/jpeg', 0.8));
+      const canvas = getCanvas();
+      const thumbnailBlob = await createVideoThumbnail(video, canvas);
 
       // Create placeholder
       const placeholder = await createTinyPlaceholder(file);
-
-      // Cleanup
-      URL.revokeObjectURL(video.src);
 
       setProgress({
         phase: 'complete',
@@ -282,7 +340,7 @@ export const useClientMediaProcessor = () => {
         id: crypto.randomUUID(),
         originalFile: file,
         processedFiles: {
-          thumbnail: thumbnailBlob!
+          thumbnail: thumbnailBlob
         },
         metadata: {
           width: metadata.width,
@@ -307,8 +365,17 @@ export const useClientMediaProcessor = () => {
         message: 'Video processing failed'
       });
       return null;
+    } finally {
+      // Cleanup
+      if (video) {
+        video.src = '';
+        video.load();
+      }
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
     }
-  }, [getVideoInfo, getCanvas, createTinyPlaceholder]);
+  }, [getVideoInfo, getCanvas, createTinyPlaceholder, createVideoThumbnail]);
 
   // Audio fallback processing
   const processAudioFallback = useCallback(async (file: File): Promise<ProcessedMedia | null> => {
