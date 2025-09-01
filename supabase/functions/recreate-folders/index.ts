@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const foldersToCreate = ['incoming/', 'processed/'];
+    const foldersToCreate = ['processed/', 'thumbnails/'];
     const placeholderContent = new TextEncoder().encode('# Folder Placeholder\nThis file maintains the folder structure in Supabase Storage.\n');
     const results = [];
 

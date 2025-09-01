@@ -631,37 +631,44 @@ async function optimizeStorage(supabaseClient: any, userId: string) {
       errors: [] as string[]
     };
 
-    // Step 1: Clean up orphaned files in incoming/
+    // Step 1: Clean up orphaned thumbnail files
     try {
-      const cutoffTime = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
-      
-      const { data: incomingFiles, error: listError } = await supabaseClient.storage
+      const { data: thumbnailFiles, error: listError } = await supabaseClient.storage
         .from('content')
-        .list('incoming', { limit: 1000, sortBy: { column: 'created_at', order: 'desc' } });
+        .list('thumbnails', { limit: 1000, sortBy: { column: 'created_at', order: 'desc' } });
 
-      if (!listError && incomingFiles?.length > 0) {
-        const oldFiles = incomingFiles.filter(file => {
-          if (!file.created_at) return false;
-          return new Date(file.created_at) < cutoffTime;
+      if (!listError && thumbnailFiles?.length > 0) {
+        // Check which thumbnails have corresponding media records
+        const thumbnailNames = thumbnailFiles.map(f => f.name.replace('.jpg', '').replace('.png', ''));
+        
+        const { data: mediaRecords } = await supabaseClient
+          .from('simple_media')
+          .select('id')
+          .in('id', thumbnailNames);
+        
+        const validMediaIds = (mediaRecords || []).map(m => m.id);
+        const orphanedThumbnails = thumbnailFiles.filter(f => {
+          const mediaId = f.name.replace('.jpg', '').replace('.png', '');
+          return !validMediaIds.includes(mediaId);
         });
 
-        if (oldFiles.length > 0) {
-          const filePaths = oldFiles.map(file => `incoming/${file.name}`);
+        if (orphanedThumbnails.length > 0) {
+          const thumbnailPaths = orphanedThumbnails.map(f => `thumbnails/${f.name}`);
           const { error: deleteError } = await supabaseClient.storage
             .from('content')
-            .remove(filePaths);
+            .remove(thumbnailPaths);
 
           if (!deleteError) {
-            result.orphaned_files_deleted = filePaths.length;
-            result.storage_saved_bytes += oldFiles.reduce((acc, f) => acc + (f.metadata?.size || 0), 0);
-            console.log(`Deleted ${filePaths.length} orphaned files from incoming/`);
+            result.orphaned_files_deleted = thumbnailPaths.length;
+            result.storage_saved_bytes += orphanedThumbnails.reduce((acc, f) => acc + (f.metadata?.size || 0), 0);
+            console.log(`Deleted ${thumbnailPaths.length} orphaned thumbnail files`);
           } else {
-            result.errors.push(`Failed to delete incoming files: ${deleteError.message}`);
+            result.errors.push(`Failed to delete thumbnail files: ${deleteError.message}`);
           }
         }
       }
     } catch (error) {
-      result.errors.push(`Error cleaning incoming files: ${error instanceof Error ? error.message : String(error)}`);
+      result.errors.push(`Error cleaning thumbnail files: ${error instanceof Error ? error.message : String(error)}`);
     }
 
     // Step 2: Clean up UUID folders and legacy folders (processed/, photos/)
