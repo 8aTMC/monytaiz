@@ -74,6 +74,85 @@ export const useClientMediaProcessor = () => {
     }
   }, []);
 
+  // Fallback processing for environments without SharedArrayBuffer
+  const processVideoFallback = useCallback(async (file: File): Promise<{
+    video_480p?: Blob;
+    video_720p?: Blob;
+    video_1080p?: Blob;
+    thumbnail?: Blob;
+    width: number;
+    height: number;
+    duration?: number;
+    compressionRatio: number;
+    qualityInfo: any;
+  }> => {
+    console.log('Using fallback video processing (server-side)');
+    
+    // For fallback, we'll return the original file as 480p and generate a placeholder thumbnail
+    const canvas = getCanvas();
+    const ctx = canvas.getContext('2d');
+    
+    // Create a simple placeholder thumbnail
+    canvas.width = 640;
+    canvas.height = 480;
+    if (ctx) {
+      const gradient = ctx.createLinearGradient(0, 0, 640, 480);
+      gradient.addColorStop(0, '#1f2937');
+      gradient.addColorStop(1, '#374151');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 640, 480);
+      
+      // Add play icon
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.beginPath();
+      ctx.moveTo(240, 180);
+      ctx.lineTo(400, 240);
+      ctx.lineTo(240, 300);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Add text
+      ctx.fillStyle = 'white';
+      ctx.font = '16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Video Thumbnail', 320, 350);
+      ctx.fillText(`${file.name}`, 320, 370);
+    }
+    
+    return new Promise((resolve) => {
+      canvas.toBlob((thumbnailBlob) => {
+        resolve({
+          video_480p: file, // Use original file for now
+          thumbnail: thumbnailBlob || new Blob([''], { type: 'image/jpeg' }),
+          width: 854,
+          height: 480,
+          compressionRatio: 0, // No compression in fallback
+          qualityInfo: {
+            '480p': { size: file.size, bitrate: 'original' }
+          }
+        });
+      }, 'image/jpeg', 0.8);
+    });
+  }, [getCanvas]);
+
+  // Fallback processing for audio without FFmpeg
+  const processAudioFallback = useCallback(async (file: File): Promise<{
+    audio?: Blob;
+    compressionRatio: number;
+    qualityInfo: any;
+  }> => {
+    console.log('Using fallback audio processing (server-side)');
+    
+    // For audio fallback, return original file
+    return {
+      audio: file,
+      compressionRatio: 0,
+      qualityInfo: {
+        audio: { size: file.size, bitrate: 'original' }
+      }
+    };
+  }, []);
+
   // Create tiny base64 placeholder
   const createTinyPlaceholder = useCallback((file: File): Promise<string> => {
     return new Promise((resolve) => {
@@ -574,18 +653,22 @@ export const useClientMediaProcessor = () => {
         } else if (file.type.startsWith('video/')) {
           const ffmpegSupported = checkFFmpegSupport();
           
-          if (!ffmpegSupported) {
-            throw new Error(`Video processing not supported in this environment. Missing SharedArrayBuffer or cross-origin isolation.`);
-          }
-
           setProgress({
             phase: 'encoding',
             progress: fileProgress + 10,
-            message: `Converting video to WebM (480p, 720p, 1080p)...`
+            message: ffmpegSupported 
+              ? `Converting video to WebM (480p, 720p, 1080p)...`
+              : `Preparing video for server-side processing...`
           });
 
           try {
-            const videoResult = await processVideo(file);
+            let videoResult;
+            if (ffmpegSupported) {
+              videoResult = await processVideo(file);
+            } else {
+              videoResult = await processVideoFallback(file);
+            }
+            
             processedMedia.processedFiles.video_480p = videoResult.video_480p;
             processedMedia.processedFiles.video_720p = videoResult.video_720p;
             processedMedia.processedFiles.video_1080p = videoResult.video_1080p;
@@ -594,7 +677,7 @@ export const useClientMediaProcessor = () => {
               width: videoResult.width,
               height: videoResult.height,
               duration: videoResult.duration,
-              format: 'webm',
+              format: ffmpegSupported ? 'webm' : 'original',
               compressionRatio: videoResult.compressionRatio,
               qualityInfo: videoResult.qualityInfo
             };
@@ -606,23 +689,27 @@ export const useClientMediaProcessor = () => {
         } else if (file.type.startsWith('audio/')) {
           const ffmpegSupported = checkFFmpegSupport();
           
-          if (!ffmpegSupported) {
-            throw new Error(`Audio processing not supported in this environment. Missing SharedArrayBuffer or cross-origin isolation.`);
-          }
-
           setProgress({
             phase: 'encoding',
             progress: fileProgress + 10,
-            message: `Converting audio to WebM/Opus...`
+            message: ffmpegSupported 
+              ? `Converting audio to WebM/Opus...`
+              : `Preparing audio for server-side processing...`
           });
 
           try {
-            const audioResult = await processAudio(file);
+            let audioResult;
+            if (ffmpegSupported) {
+              audioResult = await processAudio(file);
+            } else {
+              audioResult = await processAudioFallback(file);
+            }
+            
             processedMedia.processedFiles.audio = audioResult.audio;
             processedMedia.metadata = {
               width: 800,
               height: 800,
-              format: 'webm',
+              format: ffmpegSupported ? 'webm' : 'original',
               compressionRatio: audioResult.compressionRatio,
               qualityInfo: audioResult.qualityInfo
             };

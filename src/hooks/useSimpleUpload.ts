@@ -97,7 +97,8 @@ export const useSimpleUpload = () => {
             });
           }
         } catch (error) {
-          throw new Error(`Image processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          console.warn('Client-side image processing failed, will use server-side processing:', error);
+          // Continue with original file - server will handle processing
         }
 
       } else if (mediaType === 'video') {
@@ -153,7 +154,16 @@ export const useSimpleUpload = () => {
             });
           }
         } catch (error) {
-          throw new Error(`Video processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          console.warn('Client-side video processing failed, will use server-side processing:', error);
+          // Continue with original file - server will handle processing
+          setUploadProgress({
+            phase: 'processing',
+            progress: 30,
+            message: 'Processing video on server...',
+            originalSize,
+            processedSize: originalSize,
+            compressionRatio: 0
+          });
         }
 
       } else if (mediaType === 'audio') {
@@ -188,7 +198,16 @@ export const useSimpleUpload = () => {
             });
           }
         } catch (error) {
-          throw new Error(`Audio processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          console.warn('Client-side audio processing failed, will use server-side processing:', error);
+          // Continue with original file - server will handle processing
+          setUploadProgress({
+            phase: 'processing',
+            progress: 30,
+            message: 'Processing audio on server...',
+            originalSize,
+            processedSize: originalSize,
+            compressionRatio: 0
+          });
         }
       }
 
@@ -291,6 +310,9 @@ export const useSimpleUpload = () => {
         compressionRatio
       });
 
+      // Determine if client-side processing was successful
+      const clientSideProcessed = Object.keys(processedBlobs).length > 0 || !!thumbnailBlob;
+      
       // Trigger cleanup of original file since processing is complete
       supabase.functions.invoke('media-optimizer', {
         body: {
@@ -300,11 +322,11 @@ export const useSimpleUpload = () => {
           thumbnailPath,
           mimeType: finalMimeType,
           mediaType,
-          skipProcessing: true, // Processing already done client-side
+          skipProcessing: clientSideProcessed, // Only skip if client-side processing succeeded
           qualityInfo
         }
       }).catch(error => {
-        console.error('Background cleanup failed:', error);
+        console.error('Background processing failed:', error);
       });
 
       toast({
