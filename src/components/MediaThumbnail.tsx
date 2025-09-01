@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo } from 'react';
 import { Image, Video, FileAudio, Play } from 'lucide-react';
 import { useOptimizedMediaDisplay } from '@/hooks/useOptimizedMediaDisplay';
@@ -72,12 +73,13 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     };
   }, [stableMediaItem.id, stableMediaItem.type, stableMediaItem.storage_path, stableMediaItem.path]);
 
+  // Calculate natural aspect ratio
+  const aspectRatio = item.width && item.height 
+    ? (item.width / item.height).toFixed(3)
+    : (item.type === 'video' ? '16/9' : '1');
+
   // For non-image types, show thumbnail if available, otherwise show icon with natural aspect ratio
   if (item.type !== 'image') {
-    const aspectRatio = item.width && item.height 
-      ? (item.width / item.height).toFixed(3)
-      : '16/9'; // Default aspect ratio for video/audio
-    
     // Check for thumbnail from simple_media first, then tiny_placeholder
     const thumbnailSrc = thumbnailUrl || 
       (item.tiny_placeholder && item.tiny_placeholder !== 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==' ? item.tiny_placeholder : null);
@@ -85,7 +87,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     if (thumbnailSrc && !thumbnailLoading) {
       return (
         <div 
-          className={`bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden group ${className}`}
+          className={`bg-muted rounded-t-lg relative overflow-hidden group ${className}`}
           style={{ aspectRatio }}
         >
           <img
@@ -131,10 +133,6 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
 
   // Show loading state with natural aspect ratio
   if (isLoading && !currentUrl) {
-    const aspectRatio = item.width && item.height 
-      ? (item.width / item.height).toFixed(3)
-      : '1';
-      
     return (
       <div 
         className={`bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}
@@ -147,18 +145,13 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     );
   }
 
-  // Calculate natural aspect ratio
-  const aspectRatio = item.width && item.height 
-    ? (item.width / item.height).toFixed(3)
-    : '1';
-  
   // Calculate display dimensions
   const aspectWidth = item.width ? Math.min(item.width, 256) : 256;
   const aspectHeight = item.height ? Math.round((aspectWidth / (item.width ?? 1)) * (item.height ?? 256)) : 256;
 
   return (
     <div 
-      className={`bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}
+      className={`bg-muted rounded-t-lg relative overflow-hidden ${className}`}
       style={{ aspectRatio }}
     >
       {/* Show current URL if available */}
@@ -180,9 +173,11 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
 
       {/* Error state */}
       {error && (
-        <div className="flex flex-col items-center gap-2">
-          {getContentTypeIcon('image')}
-          <span className="text-xs text-muted-foreground">Failed to load</span>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-2">
+            {getContentTypeIcon('image')}
+            <span className="text-xs text-muted-foreground">Failed to load</span>
+          </div>
         </div>
       )}
     </div>
