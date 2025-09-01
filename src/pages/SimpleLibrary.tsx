@@ -33,6 +33,8 @@ export default function SimpleLibrary() {
   // Folders state
   const [customFolders, setCustomFolders] = useState<any[]>([]);
   const [foldersLoading, setFoldersLoading] = useState(false);
+  const [folderContent, setFolderContent] = useState<string[]>([]);
+  const [folderContentLoading, setFolderContentLoading] = useState(false);
   const { toast } = useToast();
 
   // Fetch folders from database
@@ -133,17 +135,47 @@ export default function SimpleLibrary() {
     }));
   }, [media]);
 
+  // Fetch folder content when folder is selected
+  const fetchFolderContent = useCallback(async (folderId: string) => {
+    setFolderContentLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('file_folder_contents')
+        .select('media_id')
+        .eq('folder_id', folderId);
+
+      if (error) throw error;
+      
+      const mediaIds = data.map(item => item.media_id);
+      setFolderContent(mediaIds);
+    } catch (error: any) {
+      console.error('Error fetching folder content:', error);
+      setFolderContent([]);
+    } finally {
+      setFolderContentLoading(false);
+    }
+  }, []);
+
   // Filter media based on current filters - optimized dependencies
   const filteredMedia = useMemo(() => {
-    if (selectedCategory !== 'all-files') {
-      return [];
-    }
-    
     if (!convertedMedia?.length) {
       return [];
     }
     
     let filtered = convertedMedia.filter(Boolean);
+    
+    // Handle folder filtering
+    if (selectedCategory !== 'all-files') {
+      // Check if it's a custom folder
+      const isCustomFolder = customFolders.some(folder => folder.id === selectedCategory);
+      if (isCustomFolder) {
+        // Filter media to only show items in the selected folder
+        filtered = filtered.filter(item => folderContent.includes(item.id));
+      } else {
+        // For other categories (stories, livestreams, messages), return empty for now
+        return [];
+      }
+    }
     
     // Apply search filter
     if (searchQuery.trim()) {
@@ -320,7 +352,15 @@ export default function SimpleLibrary() {
     console.log('Category changed to:', categoryId);
     setSelectedCategory(categoryId);
     handleClearSelection();
-  }, [handleClearSelection]);
+    
+    // If selecting a custom folder, fetch its content
+    const isCustomFolder = customFolders.some(folder => folder.id === categoryId);
+    if (isCustomFolder) {
+      fetchFolderContent(categoryId);
+    } else {
+      setFolderContent([]);
+    }
+  }, [handleClearSelection, customFolders, fetchFolderContent]);
 
   const handleCopy = useCallback(async (folderIds: string[]) => {
     if (selectedItems.size === 0 || folderIds.length === 0) {

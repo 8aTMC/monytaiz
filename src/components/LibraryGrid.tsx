@@ -159,7 +159,10 @@ const LibraryGridComponent = ({
                   <div className="text-xs text-white bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 truncate font-medium">
                     {(() => {
                       const defaultTags = ['upload', 'story', 'livestream', 'message'];
-                      const customTags = item.tags.filter(tag => !defaultTags.includes(tag.toLowerCase()));
+                      const customTags = item.tags.filter(tag => 
+                        !defaultTags.includes(tag.toLowerCase()) && 
+                        !tag.startsWith('folder:')
+                      );
                       return customTags.length > 0 ? customTags.join(', ') : item.origin;
                     })()}
                   </div>
