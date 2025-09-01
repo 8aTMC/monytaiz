@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 export interface ProcessingProgress {
@@ -35,27 +35,18 @@ export interface ProcessedMedia {
   tinyPlaceholder: string;
 }
 
-interface FFmpegWorkerMessage {
-  type: 'ready' | 'progress' | 'complete' | 'error';
-  data?: any;
-  progress?: number;
-  error?: string;
-}
-
 export const useClientMediaProcessor = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingQueue, setProcessingQueue] = useState<ProcessedMedia[]>([]);
   const [progress, setProgress] = useState<ProcessingProgress>({
     phase: 'analyzing',
     progress: 0,
-    message: 'Starting...'
+    message: ''
   });
-  
+  const canvasRef = useRef<HTMLCanvasElement>();
   const { toast } = useToast();
-  const ffmpegWorkerRef = useRef<Worker | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Initialize canvas for image processing
+  // Get canvas for processing
   const getCanvas = useCallback(() => {
     if (!canvasRef.current) {
       canvasRef.current = document.createElement('canvas');
@@ -63,138 +54,60 @@ export const useClientMediaProcessor = () => {
     return canvasRef.current;
   }, []);
 
-  // Check client-side processing capabilities (graceful degradation)
-  const checkFFmpegSupport = useCallback(() => {
+  // Check if processing is supported (simplified - just needs Canvas)
+  const checkFFmpegSupport = useCallback((): boolean => {
+    if (typeof window === 'undefined') return false;
+    
+    // Check for Canvas support
     try {
-      const hasWorker = typeof Worker !== 'undefined';
-      const hasSharedArrayBuffer = typeof SharedArrayBuffer !== 'undefined';
-      const isCrossOriginIsolated = crossOriginIsolated;
-      const hasWebAssembly = typeof WebAssembly !== 'undefined';
-      
-      console.log('🔍 Client Processing Support:', {
-        hasWorker,
-        hasSharedArrayBuffer,
-        isCrossOriginIsolated,
-        hasWebAssembly,
-        environment: window.location.hostname
-      });
-      
-      // In Lovable preview environment, SharedArrayBuffer is typically not available
-      // This is expected - we'll use server-side processing instead
-      const isSupported = hasWorker && hasSharedArrayBuffer && isCrossOriginIsolated && hasWebAssembly;
-      
-      if (isSupported) {
-        console.log('🎥 Client-side video processing: ✅ AVAILABLE');
-      } else {
-        console.log('🎥 Client-side video processing: ⚠️ UNAVAILABLE - using server-side processing');
-        console.log('   This is normal in preview environments and will use our robust server fallback');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        console.warn('Canvas 2D context not available');
+        return false;
       }
-      
-      return isSupported;
+      return true;
     } catch (error) {
-      console.error('❌ Client processing check failed:', error);
+      console.warn('Canvas not supported');
       return false;
     }
   }, []);
 
-  // Check video dimensions and file size
+  // Get video metadata
   const getVideoInfo = useCallback((file: File): Promise<{ width: number; height: number; duration: number }> => {
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');
-      const url = URL.createObjectURL(file);
+      video.src = URL.createObjectURL(file);
+      video.muted = true;
       
       video.onloadedmetadata = () => {
-        URL.revokeObjectURL(url);
-        resolve({
+        const info = {
           width: video.videoWidth,
           height: video.videoHeight,
           duration: video.duration
-        });
+        };
+        URL.revokeObjectURL(video.src);
+        resolve(info);
       };
       
       video.onerror = () => {
-        URL.revokeObjectURL(url);
+        URL.revokeObjectURL(video.src);
         reject(new Error('Failed to load video metadata'));
       };
-      
-      video.src = url;
     });
   }, []);
 
-  // Validate if we can process this video
-  const canProcessVideo = useCallback(async (file: File): Promise<{ canProcess: boolean; reason?: string; info?: any }> => {
-    const maxFileSize = 9216 * 1024 * 1024; // 9GB limit (9,216 MB)
-    const maxResolution = 4096; // 4K width limit (will be downscaled to 1080p)
-    
-    if (file.size > maxFileSize) {
-      return { 
-        canProcess: false, 
-        reason: `File too large (${Math.round(file.size / 1024 / 1024)}MB). Maximum: 9,216MB` 
-      };
+  // Check if a video can be processed client-side
+  const canProcessVideo = useCallback((file: File): { canProcess: boolean; reason?: string } => {
+    if (!checkFFmpegSupport()) {
+      return { canProcess: false, reason: 'Processing not supported in this browser' };
     }
-
-    try {
-      const info = await getVideoInfo(file);
-      
-      if (info.width > maxResolution || info.height > maxResolution) {
-        return { 
-          canProcess: false, 
-          reason: `Resolution too high (${info.width}x${info.height}). Maximum: 4096x4096` 
-        };
-      }
-
-      if (!checkFFmpegSupport()) {
-        return { 
-          canProcess: false, 
-          reason: 'Client-side video processing unavailable. Server-side processing will be used instead.',
-          info 
-        };
-      }
-
-      return { canProcess: true, info };
-    } catch (error) {
-      return { 
-        canProcess: false, 
-        reason: 'Failed to analyze video file' 
-      };
-    }
-  }, [checkFFmpegSupport, getVideoInfo]);
-
-  // Fallback processing - DO NOT USE ORIGINAL FILE
-  const processVideoFallback = useCallback(async (file: File): Promise<{
-    video_480p?: Blob;
-    video_720p?: Blob;
-    video_1080p?: Blob;
-    thumbnail?: Blob;
-    width: number;
-    height: number;
-    duration?: number;
-    compressionRatio: number;
-    qualityInfo: any;
-  }> => {
-    // This should never be called now - we validate before processing
-    throw new Error('Video processing fallback should not be used. Use server-side processing instead.');
-  }, []);
-
-  // Fallback processing for audio without FFmpeg
-  const processAudioFallback = useCallback(async (file: File): Promise<{
-    audio?: Blob;
-    compressionRatio: number;
-    qualityInfo: any;
-  }> => {
-    console.log('Using fallback audio processing (server-side)');
     
-    // For audio fallback, return original file
-    return {
-      audio: file,
-      compressionRatio: 0,
-      qualityInfo: {
-        audio: { size: file.size, bitrate: 'original' }
-      }
-    };
-  }, []);
+    // Allow all videos for thumbnail generation
+    return { canProcess: true };
+  }, [checkFFmpegSupport]);
 
-  // Create tiny base64 placeholder
+  // Create tiny placeholder
   const createTinyPlaceholder = useCallback((file: File): Promise<string> => {
     return new Promise((resolve) => {
       const canvas = getCanvas();
@@ -214,7 +127,6 @@ export const useClientMediaProcessor = () => {
           URL.revokeObjectURL(img.src);
         };
         img.onerror = () => {
-          // Generate colored placeholder based on filename
           canvas.width = 8;
           canvas.height = 8;
           const hash = file.name.split('').reduce((a, b) => {
@@ -228,7 +140,6 @@ export const useClientMediaProcessor = () => {
         };
         img.src = URL.createObjectURL(file);
       } else {
-        // Non-image files get a simple colored square
         canvas.width = 8;
         canvas.height = 8;
         const hash = file.name.split('').reduce((a, b) => {
@@ -243,413 +154,227 @@ export const useClientMediaProcessor = () => {
     });
   }, [getCanvas]);
 
-  // Process image using Canvas/WebCodecs with WebP fallback
-  const processImage = useCallback(async (file: File): Promise<{ blob: Blob; width: number; height: number }> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = getCanvas();
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Canvas not supported'));
-          return;
-        }
+  // Process image using Canvas
+  const processImage = useCallback(async (file: File): Promise<ProcessedMedia | null> => {
+    try {
+      const result = await new Promise<{ blob: Blob; width: number; height: number }>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = getCanvas();
+          const ctx = canvas.getContext('2d')!;
 
-        // Calculate optimal size (max 1920px on longest side)
-        const maxSize = 1920;
-        const ratio = Math.min(maxSize / img.width, maxSize / img.height);
-        const width = Math.round(img.width * ratio);
-        const height = Math.round(img.height * ratio);
+          // Calculate optimal size (max 1920px on longest side)
+          const maxSize = 1920;
+          const ratio = Math.min(maxSize / img.width, maxSize / img.height);
+          const width = Math.round(img.width * ratio);
+          const height = Math.round(img.height * ratio);
 
-        canvas.width = width;
-        canvas.height = height;
+          canvas.width = width;
+          canvas.height = height;
 
-        // Draw with quality optimizations
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, 0, 0, width, height);
+          // Draw with quality optimizations
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, width, height);
 
-        // Try WebP encoding first (best compression)
-        canvas.toBlob((blob) => {
-          if (blob) {
-            resolve({ blob, width, height });
-          } else {
-            // Fallback to high-quality JPEG
-            canvas.toBlob((jpegBlob) => {
-              if (jpegBlob) {
-                resolve({ blob: jpegBlob, width, height });
-              } else {
-                reject(new Error('Failed to encode image'));
-              }
-            }, 'image/jpeg', 0.85);
-          }
-        }, 'image/webp', 0.80);
-
-        URL.revokeObjectURL(img.src);
-      };
-      img.onerror = () => {
-        reject(new Error('Failed to load image'));
-        URL.revokeObjectURL(img.src);
-      };
-      img.src = URL.createObjectURL(file);
-    });
-  }, [getCanvas]);
-
-  // Initialize FFmpeg worker
-  const initFFmpegWorker = useCallback((): Promise<Worker> => {
-    return new Promise((resolve, reject) => {
-      if (ffmpegWorkerRef.current) {
-        resolve(ffmpegWorkerRef.current);
-        return;
-      }
-
-      try {
-        // Create enhanced worker with ffmpeg.wasm for video/audio processing
-        const workerCode = `
-          import { FFmpeg } from 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.7/dist/esm/index.js';
-          import { toBlobURL } from 'https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js';
-
-          let ffmpeg = null;
-          let initialized = false;
-
-          self.onmessage = async function(e) {
-            const { type, data } = e.data;
-            
-            try {
-              if (type === 'init') {
-                if (!initialized) {
-                  ffmpeg = new FFmpeg();
-                  ffmpeg.on('progress', ({ progress }) => {
-                    self.postMessage({ type: 'progress', progress: Math.round(progress * 100) });
-                  });
-
-                  const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.4/dist/esm';
-                  await ffmpeg.load({
-                    coreURL: await toBlobURL(baseURL + '/ffmpeg-core.js', 'text/javascript'),
-                    wasmURL: await toBlobURL(baseURL + '/ffmpeg-core.wasm', 'application/wasm'),
-                  });
-                  initialized = true;
+          // Try WebP encoding first
+          canvas.toBlob((blob) => {
+            if (blob) {
+              resolve({ blob, width, height });
+            } else {
+              // Fallback to JPEG
+              canvas.toBlob((jpegBlob) => {
+                if (jpegBlob) {
+                  resolve({ blob: jpegBlob, width, height });
+                } else {
+                  reject(new Error('Failed to encode image'));
                 }
-                self.postMessage({ type: 'ready' });
-                
-              } else if (type === 'process_video') {
-                const { fileData, fileName } = data;
-                
-                // Write input file (try different extensions based on original)
-                const inputExt = fileName.split('.').pop().toLowerCase();
-                const inputFile = 'input.' + (inputExt || 'mp4');
-                await ffmpeg.writeFile(inputFile, new Uint8Array(fileData));
-                
-                const outputs = [];
-                const qualityInfo = {};
-                
-                // Extract thumbnail first (1 second mark or first frame)
-                try {
-                  await ffmpeg.exec([
-                    '-i', inputFile,
-                    '-ss', '00:00:01',
-                    '-vframes', '1',
-                    '-q:v', '2',
-                    '-vf', 'scale=640:480:force_original_aspect_ratio=decrease,pad=640:480:(ow-iw)/2:(oh-ih)/2',
-                    '-y',
-                    'thumbnail.jpg'
-                  ]);
-                  
-                  const thumbnailData = await ffmpeg.readFile('thumbnail.jpg');
-                  outputs.push({ quality: 'thumbnail', data: thumbnailData });
-                } catch (thumbError) {
-                  console.warn('Thumbnail extraction failed, trying first frame');
-                  try {
-                    await ffmpeg.exec([
-                      '-i', inputFile,
-                      '-vframes', '1',
-                      '-q:v', '2',
-                      '-vf', 'scale=640:480:force_original_aspect_ratio=decrease,pad=640:480:(ow-iw)/2:(oh-ih)/2',
-                      '-y',
-                      'thumbnail.jpg'
-                    ]);
-                    const thumbnailData = await ffmpeg.readFile('thumbnail.jpg');
-                    outputs.push({ quality: 'thumbnail', data: thumbnailData });
-                  } catch {
-                    console.warn('Both thumbnail extraction methods failed');
-                  }
-                }
-                
-                // 480p WebM (default quality - maximum compression)
-                await ffmpeg.exec([
-                  '-i', inputFile,
-                  '-c:v', 'libvpx-vp9',
-                  '-crf', '32',
-                  '-b:v', '500k',
-                  '-vf', 'scale=854:480:force_original_aspect_ratio=decrease,pad=854:480:(ow-iw)/2:(oh-ih)/2',
-                  '-c:a', 'libopus',
-                  '-b:a', '64k',
-                  '-deadline', 'good',
-                  '-cpu-used', '1',
-                  '-row-mt', '1',
-                  'output_480p.webm'
-                ]);
-                
-                const output480p = await ffmpeg.readFile('output_480p.webm');
-                outputs.push({ quality: '480p', data: output480p });
-                qualityInfo['480p'] = { size: output480p.byteLength, bitrate: '500k' };
-                
-                // 720p WebM
-                await ffmpeg.exec([
-                  '-i', inputFile,
-                  '-c:v', 'libvpx-vp9',
-                  '-crf', '30',
-                  '-b:v', '1000k',
-                  '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2',
-                  '-c:a', 'libopus',
-                  '-b:a', '96k',
-                  '-deadline', 'good',
-                  '-cpu-used', '1',
-                  '-row-mt', '1',
-                  'output_720p.webm'
-                ]);
-                
-                const output720p = await ffmpeg.readFile('output_720p.webm');
-                outputs.push({ quality: '720p', data: output720p });
-                qualityInfo['720p'] = { size: output720p.byteLength, bitrate: '1000k' };
-                
-                // 1080p WebM
-                await ffmpeg.exec([
-                  '-i', inputFile,
-                  '-c:v', 'libvpx-vp9',
-                  '-crf', '28',
-                  '-b:v', '2000k',
-                  '-vf', 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2',
-                  '-c:a', 'libopus',
-                  '-b:a', '128k',
-                  '-deadline', 'good',
-                  '-cpu-used', '1',
-                  '-row-mt', '1',
-                  'output_1080p.webm'
-                ]);
-                
-                const output1080p = await ffmpeg.readFile('output_1080p.webm');
-                outputs.push({ quality: '1080p', data: output1080p });
-                qualityInfo['1080p'] = { size: output1080p.byteLength, bitrate: '2000k' };
-                
-                // Get video metadata
-                try {
-                  await ffmpeg.exec(['-i', inputFile, '-f', 'null', '-']);
-                } catch (e) {
-                  // Expected to fail, we just want the metadata from stderr
-                }
-                
-                self.postMessage({ 
-                  type: 'complete', 
-                  data: { 
-                    outputs,
-                    qualityInfo,
-                    metadata: { width: 1920, height: 1080, format: 'webm' }
-                  }
-                });
-                
-              } else if (type === 'process_audio') {
-                const { fileData, fileName } = data;
-                
-                // Detect input format and use appropriate extension
-                const inputExt = fileName.split('.').pop().toLowerCase();
-                const inputFile = 'input.' + (inputExt || 'mp3');
-                await ffmpeg.writeFile(inputFile, new Uint8Array(fileData));
-                
-                // Convert to WebM with Opus codec (maximum compression for audio)
-                await ffmpeg.exec([
-                  '-i', inputFile,
-                  '-c:a', 'libopus',
-                  '-b:a', '64k',
-                  '-application', 'voip',
-                  '-vbr', 'on',
-                  '-compression_level', '10',
-                  'output.webm'
-                ]);
-                
-                const outputData = await ffmpeg.readFile('output.webm');
-                
-                self.postMessage({ 
-                  type: 'complete', 
-                  data: { 
-                    output: outputData,
-                    metadata: { width: 800, height: 800, format: 'webm' },
-                    qualityInfo: { audio: { size: outputData.byteLength, bitrate: '64k' } }
-                  }
-                });
-              }
-              
-            } catch (error) {
-              self.postMessage({ type: 'error', error: error.message });
+              }, 'image/jpeg', 0.85);
             }
-          };
-        `;
+          }, 'image/webp', 0.80);
 
-        const blob = new Blob([workerCode], { type: 'application/javascript' });
-        const worker = new Worker(URL.createObjectURL(blob), { type: 'module' });
-        
-        worker.onmessage = (e: MessageEvent<FFmpegWorkerMessage>) => {
-          if (e.data.type === 'ready') {
-            ffmpegWorkerRef.current = worker;
-            resolve(worker);
-          } else if (e.data.type === 'error') {
-            reject(new Error(e.data.error || 'FFmpeg initialization failed'));
+          URL.revokeObjectURL(img.src);
+        };
+        img.onerror = () => {
+          reject(new Error('Failed to load image'));
+          URL.revokeObjectURL(img.src);
+        };
+        img.src = URL.createObjectURL(file);
+      });
+
+      const placeholder = await createTinyPlaceholder(file);
+      const compressionRatio = Math.round(((file.size - result.blob.size) / file.size) * 100);
+
+      return {
+        id: crypto.randomUUID(),
+        originalFile: file,
+        processedFiles: {
+          image: result.blob
+        },
+        metadata: {
+          width: result.width,
+          height: result.height,
+          format: result.blob.type,
+          compressionRatio,
+          qualityInfo: {
+            'compressed': {
+              size: result.blob.size,
+              compressionRatio
+            }
           }
-        };
+        },
+        tinyPlaceholder: placeholder
+      };
+    } catch (error) {
+      console.error('Image processing failed:', error);
+      return null;
+    }
+  }, [getCanvas, createTinyPlaceholder]);
 
-        worker.onerror = (error) => {
-          reject(new Error(`Worker error: ${error.message}`));
-        };
-
-        // Initialize FFmpeg
-        worker.postMessage({ type: 'init' });
-        
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }, []);
-
-  // Process video using FFmpeg worker with multiple qualities and thumbnail
-  const processVideo = useCallback(async (file: File): Promise<{
-    video_480p?: Blob;
-    video_720p?: Blob;
-    video_1080p?: Blob;
-    thumbnail?: Blob;
-    width: number;
-    height: number;
-    duration?: number;
-    compressionRatio: number;
-    qualityInfo: any;
-  }> => {
-    const worker = await initFFmpegWorker();
+  // Process video (simplified - just create thumbnail)
+  const processVideo = useCallback(async (file: File): Promise<ProcessedMedia | null> => {
+    console.log('🎬 Processing video (thumbnail only):', file.name);
     
-    return new Promise((resolve, reject) => {
-      const fileReader = new FileReader();
-      fileReader.onload = () => {
-        const fileData = fileReader.result as ArrayBuffer;
-        
-        const onMessage = (e: MessageEvent<FFmpegWorkerMessage>) => {
-          if (e.data.type === 'progress') {
-            setProgress(prev => ({
-              ...prev,
-              progress: Math.min(e.data.progress || 0, 90),
-              message: `Encoding video... ${e.data.progress || 0}%`
-            }));
-          } else if (e.data.type === 'complete') {
-            worker.removeEventListener('message', onMessage);
-            const { outputs, metadata, qualityInfo } = e.data.data;
-            
-            const result: any = {
-              width: metadata.width,
-              height: metadata.height,
-              duration: metadata.duration,
-              qualityInfo: qualityInfo || {},
+    try {
+      const metadata = await getVideoInfo(file);
+      
+      setProgress({
+        phase: 'encoding',
+        progress: 50,
+        message: 'Creating video thumbnail...'
+      });
+
+      // Create thumbnail
+      const video = document.createElement('video');
+      video.src = URL.createObjectURL(file);
+      video.muted = true;
+      
+      await new Promise((resolve, reject) => {
+        video.onloadedmetadata = resolve;
+        video.onerror = reject;
+      });
+
+      const canvas = getCanvas();
+      const ctx = canvas.getContext('2d')!;
+      
+      // Create thumbnail
+      video.currentTime = 0;
+      await new Promise(resolve => { video.onseeked = resolve; });
+      canvas.width = 320;
+      canvas.height = 240;
+      ctx.drawImage(video, 0, 0, 320, 240);
+      
+      const thumbnailBlob = await new Promise<Blob>(resolve => canvas.toBlob(resolve!, 'image/jpeg', 0.8));
+
+      // Create placeholder
+      const placeholder = await createTinyPlaceholder(file);
+
+      // Cleanup
+      URL.revokeObjectURL(video.src);
+
+      setProgress({
+        phase: 'complete',
+        progress: 100,
+        message: 'Video processing complete'
+      });
+
+      return {
+        id: crypto.randomUUID(),
+        originalFile: file,
+        processedFiles: {
+          thumbnail: thumbnailBlob!
+        },
+        metadata: {
+          width: metadata.width,
+          height: metadata.height,
+          duration: metadata.duration,
+          format: file.type,
+          compressionRatio: 0, // No compression, just thumbnail
+          qualityInfo: {
+            'original': {
+              size: file.size,
               compressionRatio: 0
-            };
-            
-            let totalProcessedSize = 0;
-            let smallestSize = file.size;
-            
-            outputs.forEach((output: any) => {
-              if (output.quality === 'thumbnail') {
-                result.thumbnail = new Blob([output.data], { type: 'image/jpeg' });
-              } else if (output.quality === '480p') {
-                result.video_480p = new Blob([output.data], { type: 'video/webm' });
-                totalProcessedSize += output.data.byteLength;
-                smallestSize = Math.min(smallestSize, output.data.byteLength);
-              } else if (output.quality === '720p') {
-                result.video_720p = new Blob([output.data], { type: 'video/webm' });
-                totalProcessedSize += output.data.byteLength;
-              } else if (output.quality === '1080p') {
-                result.video_1080p = new Blob([output.data], { type: 'video/webm' });
-                totalProcessedSize += output.data.byteLength;
-              }
-            });
-            
-            // Calculate compression ratio based on smallest variant
-            result.compressionRatio = Math.round(((file.size - smallestSize) / file.size) * 100);
-            
-            resolve(result);
-          } else if (e.data.type === 'error') {
-            worker.removeEventListener('message', onMessage);
-            reject(new Error(e.data.error || 'Video processing failed'));
+            }
           }
-        };
-        
-        worker.addEventListener('message', onMessage);
-        worker.postMessage({
-          type: 'process_video',
-          data: {
-            fileData,
-            fileName: file.name
-          }
-        });
+        },
+        tinyPlaceholder: placeholder
       };
-      
-      fileReader.onerror = () => reject(new Error('Failed to read file'));
-      fileReader.readAsArrayBuffer(file);
-    });
-  }, [initFFmpegWorker]);
+    } catch (error) {
+      console.error('Video processing failed:', error);
+      setProgress({
+        phase: 'error',
+        progress: 0,
+        message: 'Video processing failed'
+      });
+      return null;
+    }
+  }, [getVideoInfo, getCanvas, createTinyPlaceholder]);
 
-  // Process audio using FFmpeg worker
-  const processAudio = useCallback(async (file: File): Promise<{
-    audio?: Blob;
-    compressionRatio: number;
-    qualityInfo: any;
-  }> => {
-    const worker = await initFFmpegWorker();
+  // Audio fallback processing
+  const processAudioFallback = useCallback(async (file: File): Promise<ProcessedMedia | null> => {
+    console.log('Processing audio (passthrough)');
     
-    return new Promise((resolve, reject) => {
-      const fileReader = new FileReader();
-      fileReader.onload = () => {
-        const fileData = fileReader.result as ArrayBuffer;
-        
-        const onMessage = (e: MessageEvent<FFmpegWorkerMessage>) => {
-          if (e.data.type === 'progress') {
-            setProgress(prev => ({
-              ...prev,
-              progress: Math.min(e.data.progress || 0, 90),
-              message: `Encoding audio... ${e.data.progress || 0}%`
-            }));
-          } else if (e.data.type === 'complete') {
-            worker.removeEventListener('message', onMessage);
-            const { output, metadata, qualityInfo } = e.data.data;
-            
-            const audioBlob = new Blob([output], { type: 'audio/webm' });
-            const compressionRatio = Math.round(((file.size - output.byteLength) / file.size) * 100);
-            
-            resolve({
-              audio: audioBlob,
-              compressionRatio,
-              qualityInfo: qualityInfo || {}
-            });
-          } else if (e.data.type === 'error') {
-            worker.removeEventListener('message', onMessage);
-            reject(new Error(e.data.error || 'Audio processing failed'));
+    try {
+      const placeholder = await createTinyPlaceholder(file);
+
+      return {
+        id: crypto.randomUUID(),
+        originalFile: file,
+        processedFiles: {},
+        metadata: {
+          width: 0,
+          height: 0,
+          duration: 0,
+          format: file.type,
+          compressionRatio: 0,
+          qualityInfo: {
+            'original': {
+              size: file.size,
+              compressionRatio: 0
+            }
           }
-        };
-        
-        worker.addEventListener('message', onMessage);
-        worker.postMessage({
-          type: 'process_audio',
-          data: {
-            fileData,
-            fileName: file.name
-          }
-        });
+        },
+        tinyPlaceholder: placeholder
       };
-      
-      fileReader.onerror = () => reject(new Error('Failed to read audio file'));
-      fileReader.readAsArrayBuffer(file);
+    } catch (error) {
+      console.error('Audio processing failed:', error);
+      return null;
+    }
+  }, [createTinyPlaceholder]);
+
+  // Process audio (simplified - no compression)
+  const processAudio = useCallback(async (file: File): Promise<ProcessedMedia | null> => {
+    console.log('🎵 Processing audio (passthrough):', file.name);
+    
+    setProgress({
+      phase: 'encoding',
+      progress: 50,
+      message: 'Processing audio...'
     });
-  }, [initFFmpegWorker]);
+
+    try {
+      const result = await processAudioFallback(file);
+      
+      setProgress({
+        phase: 'complete',
+        progress: 100,
+        message: 'Audio processing complete'
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Audio processing failed:', error);
+      return processAudioFallback(file);
+    }
+  }, [processAudioFallback]);
 
   // Main processing function
   const processFiles = useCallback(async (files: File[]): Promise<ProcessedMedia[]> => {
     if (isProcessing) return [];
     
     setIsProcessing(true);
+    setProcessingQueue([]);
+    
     const processedFiles: ProcessedMedia[] = [];
     
     try {
@@ -663,104 +388,43 @@ export const useClientMediaProcessor = () => {
           message: `Processing ${file.name} (${i + 1}/${files.length})`
         });
 
-        // Create tiny placeholder first
-        const tinyPlaceholder = await createTinyPlaceholder(file);
-        
-        const processedMedia: ProcessedMedia = {
-          id: `${Date.now()}-${i}`,
-          originalFile: file,
-          processedFiles: {},
-          metadata: { width: 0, height: 0, format: '' },
-          tinyPlaceholder
-        };
+        let processedMedia: ProcessedMedia | null = null;
 
         if (file.type.startsWith('image/')) {
-          setProgress({
-            phase: 'encoding',
-            progress: fileProgress + 10,
-            message: `Encoding image ${file.name}...`
-          });
-
-          try {
-            const { blob, width, height } = await processImage(file);
-            processedMedia.processedFiles.image = blob;
-            processedMedia.metadata = { width, height, format: 'webp' };
-          } catch (error) {
-            console.warn('Image processing failed, using original:', error);
-            processedMedia.processedFiles.image = file;
-            processedMedia.metadata = { width: 1920, height: 1080, format: 'original' };
-          }
-          
+          processedMedia = await processImage(file);
         } else if (file.type.startsWith('video/')) {
-          const ffmpegSupported = checkFFmpegSupport();
-          
-          setProgress({
-            phase: 'encoding',
-            progress: fileProgress + 10,
-            message: ffmpegSupported 
-              ? `Converting video to WebM (480p, 720p, 1080p)...`
-              : `Preparing video for server-side processing...`
-          });
-
-          try {
-            let videoResult;
-            if (ffmpegSupported) {
-              videoResult = await processVideo(file);
-            } else {
-              videoResult = await processVideoFallback(file);
-            }
-            
-            processedMedia.processedFiles.video_480p = videoResult.video_480p;
-            processedMedia.processedFiles.video_720p = videoResult.video_720p;
-            processedMedia.processedFiles.video_1080p = videoResult.video_1080p;
-            processedMedia.processedFiles.thumbnail = videoResult.thumbnail;
-            processedMedia.metadata = {
-              width: videoResult.width,
-              height: videoResult.height,
-              duration: videoResult.duration,
-              format: ffmpegSupported ? 'webm' : 'original',
-              compressionRatio: videoResult.compressionRatio,
-              qualityInfo: videoResult.qualityInfo
-            };
-          } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : 'Video processing failed';
-            throw new Error(`Cannot process video: ${errorMsg}. Video format may not be supported or file may be corrupted.`);
-          }
-          
+          processedMedia = await processVideo(file);
         } else if (file.type.startsWith('audio/')) {
-          const ffmpegSupported = checkFFmpegSupport();
-          
-          setProgress({
-            phase: 'encoding',
-            progress: fileProgress + 10,
-            message: ffmpegSupported 
-              ? `Converting audio to WebM/Opus...`
-              : `Preparing audio for server-side processing...`
-          });
-
-          try {
-            let audioResult;
-            if (ffmpegSupported) {
-              audioResult = await processAudio(file);
-            } else {
-              audioResult = await processAudioFallback(file);
-            }
-            
-            processedMedia.processedFiles.audio = audioResult.audio;
-            processedMedia.metadata = {
-              width: 800,
-              height: 800,
-              format: ffmpegSupported ? 'webm' : 'original',
-              compressionRatio: audioResult.compressionRatio,
-              qualityInfo: audioResult.qualityInfo
-            };
-          } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : 'Audio processing failed';
-            throw new Error(`Cannot process audio: ${errorMsg}. Audio format may not be supported or file may be corrupted.`);
-          }
+          processedMedia = await processAudio(file);
         }
 
-        processedFiles.push(processedMedia);
+        if (processedMedia) {
+          processedFiles.push(processedMedia);
+          setProcessingQueue(prev => [...prev, processedMedia!]);
+        } else {
+          // Fallback: create basic processed media
+          const placeholder = await createTinyPlaceholder(file);
+          const fallbackMedia: ProcessedMedia = {
+            id: crypto.randomUUID(),
+            originalFile: file,
+            processedFiles: {},
+            metadata: {
+              width: 0,
+              height: 0,
+              format: file.type,
+              compressionRatio: 0,
+              qualityInfo: {
+                'original': {
+                  size: file.size,
+                  compressionRatio: 0
+                }
+              }
+            },
+            tinyPlaceholder: placeholder
+          };
+          processedFiles.push(fallbackMedia);
+          setProcessingQueue(prev => [...prev, fallbackMedia]);
+        }
       }
 
       setProgress({
@@ -769,7 +433,6 @@ export const useClientMediaProcessor = () => {
         message: 'Processing complete!'
       });
 
-      setProcessingQueue(processedFiles);
       return processedFiles;
       
     } catch (error) {
@@ -790,15 +453,12 @@ export const useClientMediaProcessor = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [isProcessing, createTinyPlaceholder, processImage, checkFFmpegSupport, processVideo, processAudio, toast]);
+  }, [isProcessing, processImage, processVideo, processAudio, createTinyPlaceholder, toast]);
 
-  // Cleanup function
+  // Cleanup
   const cleanup = useCallback(() => {
-    if (ffmpegWorkerRef.current) {
-      ffmpegWorkerRef.current.terminate();
-      ffmpegWorkerRef.current = null;
-    }
     setProcessingQueue([]);
+    setProgress({ phase: 'analyzing', progress: 0, message: '' });
   }, []);
 
   return {

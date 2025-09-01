@@ -95,7 +95,7 @@ export const useSimpleUpload = () => {
           console.log('Large video detected, will use background transcoding service');
           canClientProcess = false;
         } else {
-          const validation = await canProcessVideo(file);
+          const validation = canProcessVideo(file);
           if (!validation.canProcess) {
             console.log('Client-side video processing not available, original format will be used:', validation.reason);
             canClientProcess = false;
