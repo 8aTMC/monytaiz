@@ -70,13 +70,16 @@ export const useSimpleUpload = () => {
 
       // Generate unique file ID and paths
       const fileId = crypto.randomUUID();
-      const originalPath = `incoming/${fileId}-${file.name}`;
       
       // Determine media type
       const mediaType = file.type.startsWith('image/') ? 'image' : 
                        file.type.startsWith('video/') ? 'video' : 
                        file.type.startsWith('audio/') ? 'audio' : 'image';
 
+      // Determine upload strategy based on file size and type
+      const isLargeVideo = mediaType === 'video' && file.size > 50 * 1024 * 1024; // 50MB threshold
+      const uploadPath = isLargeVideo ? `raw/${fileId}-${file.name}` : `incoming/${fileId}-${file.name}`;
+      
       let processedPaths: { [quality: string]: string } = {};
       let processedBlobs: { [quality: string]: Blob } = {};
       let thumbnailPath: string | undefined;
@@ -85,13 +88,18 @@ export const useSimpleUpload = () => {
       let height: number | undefined;
       let qualityInfo: any = {};
 
-      // Check if we can do client-side video processing
+      // Check if we can do client-side video processing (skip for large videos)
       let canClientProcess = true;
       if (mediaType === 'video') {
-        const validation = await canProcessVideo(file);
-        if (!validation.canProcess) {
-          console.log('Client-side video processing not available, original format will be used:', validation.reason);
+        if (isLargeVideo) {
+          console.log('Large video detected, will use background transcoding service');
           canClientProcess = false;
+        } else {
+          const validation = await canProcessVideo(file);
+          if (!validation.canProcess) {
+            console.log('Client-side video processing not available, original format will be used:', validation.reason);
+            canClientProcess = false;
+          }
         }
       }
 
@@ -222,14 +230,25 @@ export const useSimpleUpload = () => {
         }
 
       } else if (mediaType === 'video' && !canClientProcess) {
-        setUploadProgress({
-          phase: 'processing',
-          progress: 30,
-          message: 'Video will be stored in original format...',
-          originalSize,
-          processedSize: originalSize,
-          compressionRatio: 0
-        });
+        if (isLargeVideo) {
+          setUploadProgress({
+            phase: 'processing',
+            progress: 30,
+            message: 'Large video will be processed in background...',
+            originalSize,
+            processedSize: originalSize,
+            compressionRatio: 0
+          });
+        } else {
+          setUploadProgress({
+            phase: 'processing',
+            progress: 30,
+            message: 'Video will be stored in original format...',
+            originalSize,
+            processedSize: originalSize,
+            compressionRatio: 0
+          });
+        }
 
       } else if (mediaType === 'audio') {
         setUploadProgress({
@@ -314,7 +333,7 @@ export const useSimpleUpload = () => {
 
       // Upload original file with progress tracking
       console.log('Uploading original file...');
-      const originalUpload = await supabase.storage.from('content').upload(originalPath, file, { upsert: false });
+      const originalUpload = await supabase.storage.from('content').upload(uploadPath, file, { upsert: false });
       if (originalUpload.error) throw new Error(`Original upload failed: ${originalUpload.error.message}`);
       updateUploadProgress(file.size);
 
@@ -353,7 +372,8 @@ export const useSimpleUpload = () => {
            mediaType === 'audio' ? 'audio/webm' : file.type)
         : file.type; // Keep original mime type if no processing occurred
 
-      const defaultProcessedPath = processedPaths['480p'] || processedPaths.image || processedPaths.audio || originalPath;
+      const defaultProcessedPath = processedPaths['480p'] || processedPaths.image || processedPaths.audio || uploadPath;
+      const processingStatus = isLargeVideo ? 'pending' : 'processed';
 
       // Create database record with comprehensive media info
       const { data: mediaRecord, error: dbError } = await supabase
@@ -365,14 +385,14 @@ export const useSimpleUpload = () => {
           mime_type: finalMimeType,
           original_size_bytes: originalSize,
           optimized_size_bytes: processedSize,
-          original_path: originalPath,
+          original_path: uploadPath,
           processed_path: defaultProcessedPath,
           thumbnail_path: thumbnailPath,
           media_type: mediaType,
-          processing_status: 'processed',
+          processing_status: processingStatus,
           width: width,
           height: height,
-          processed_at: new Date().toISOString(),
+          processed_at: processingStatus === 'processed' ? new Date().toISOString() : null,
           tags: []
         })
         .select()
@@ -382,10 +402,42 @@ export const useSimpleUpload = () => {
         throw new Error(`Database error: ${dbError.message}`);
       }
 
+      // Enqueue transcoding job for large videos
+      if (isLargeVideo) {
+        console.log('🎬 Enqueuing background transcoding job for large video...');
+        try {
+          // Call transcoder service (replace with actual service URL)
+          const transcoderUrl = process.env.NEXT_PUBLIC_TRANSCODER_URL || 'http://localhost:8080';
+          const response = await fetch(`${transcoderUrl}/jobs/transcode`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              bucket: 'content',
+              path: uploadPath,
+              mediaId: mediaRecord.id,
+              crf: 30
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Transcoder service error: ${response.status}`);
+          }
+
+          console.log('✅ Transcoding job enqueued successfully');
+        } catch (transcoderError) {
+          console.warn('⚠️ Failed to enqueue transcoding job (non-critical):', transcoderError);
+          // Don't fail the upload - the video is still stored
+        }
+      }
+
       setUploadProgress({
         phase: 'complete',
         progress: 100,
-        message: `Upload complete! ${compressionRatio > 0 ? `${compressionRatio}% size reduction` : ''}`,
+        message: isLargeVideo 
+          ? 'Upload complete! Video processing in background...'
+          : `Upload complete! ${compressionRatio > 0 ? `${compressionRatio}% size reduction` : ''}`,
         originalSize,
         processedSize,
         compressionRatio
@@ -400,7 +452,7 @@ export const useSimpleUpload = () => {
           await supabase.functions.invoke('media-optimizer', {
             body: {
               mediaId: mediaRecord.id,
-              originalPath,
+              originalPath: uploadPath,
               processedPaths,
               thumbnailPath,
               mimeType: finalMimeType,
@@ -418,6 +470,12 @@ export const useSimpleUpload = () => {
         toast({
           title: "Upload successful",
           description: `${file.name} uploaded${compressionRatio > 0 ? ` with ${compressionRatio}% size reduction` : ''}.`,
+          variant: "default"
+        });
+      } else if (isLargeVideo) {
+        toast({
+          title: "Upload successful",
+          description: `${file.name} uploaded. Large video processing in background...`,
           variant: "default"
         });
       } else {

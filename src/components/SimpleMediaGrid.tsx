@@ -71,6 +71,23 @@ export const SimpleMediaGrid: React.FC<SimpleMediaGridProps> = ({
               </div>
             )}
             
+            {/* Processing status indicator */}
+            {item.processing_status === 'pending' && (
+              <div className="absolute top-2 left-2 bg-amber-500/90 text-white px-2 py-1 rounded text-xs font-medium">
+                Processing...
+              </div>
+            )}
+            {item.processing_status === 'processing' && (
+              <div className="absolute top-2 left-2 bg-blue-500/90 text-white px-2 py-1 rounded text-xs font-medium animate-pulse">
+                Converting...
+              </div>
+            )}
+            {item.processing_status === 'failed' && (
+              <div className="absolute top-2 left-2 bg-red-500/90 text-white px-2 py-1 rounded text-xs font-medium">
+                Failed
+              </div>
+            )}
+            
             {/* Media type indicator */}
             {item.media_type !== 'image' && (
               <div className="absolute top-2 right-2 bg-black/50 rounded-full p-1">
