@@ -225,7 +225,7 @@ div[aria-label="Chat messages"]::-webkit-scrollbar {
   height: 100vh !important;
   background-color: rgba(0, 0, 0, 0.8) !important;
   backdrop-filter: blur(4px) !important;
-  z-index: 2147483647 !important; /* Maximum z-index value */
+  z-index: 100000 !important;
   pointer-events: auto !important;
 }
 
@@ -235,7 +235,7 @@ div[aria-label="Chat messages"]::-webkit-scrollbar {
   left: 50% !important;
   top: 50% !important;
   transform: translate(-50%, -50%) !important;
-  z-index: 1000000 !important;
+  z-index: 200000 !important;
   pointer-events: auto !important;
 }
 
