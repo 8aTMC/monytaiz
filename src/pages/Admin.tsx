@@ -6,7 +6,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { HardDrive, Recycle, LogOut, Shield, Database, Folder, FolderPlus } from 'lucide-react';
+import { HardDrive, Recycle, LogOut, Shield, Database, Folder, FolderPlus, Trash2, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useStorageCleanup } from '@/hooks/useStorageCleanup';
 import { useFolderRecreation } from '@/hooks/useFolderRecreation';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +20,9 @@ const Admin = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [folderCheckLoading, setFolderCheckLoading] = useState(false);
+  const [folderCleanupLoading, setFolderCleanupLoading] = useState(false);
+  const [folderInconsistencies, setFolderInconsistencies] = useState<any>(null);
   const { toast } = useToast();
 
   const { 
@@ -126,6 +129,64 @@ const Admin = () => {
     cleanPhantomFolders('content', ['ff395f9e-2cdb-436c-a928-ab82efe24d67', 'photos']);
   };
 
+  const handleCheckFolderInconsistencies = async () => {
+    setFolderCheckLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('folder-cleanup', {
+        body: { action: 'check_inconsistencies' }
+      });
+
+      if (error) throw error;
+
+      setFolderInconsistencies(data.inconsistencies);
+      toast({
+        title: "Folder Check Complete",
+        description: data.message,
+        variant: data.inconsistencies.orphaned_collections.length > 0 ? "destructive" : "default"
+      });
+    } catch (error: any) {
+      console.error('Folder check error:', error);
+      toast({
+        title: "Check Failed",
+        description: error.message || "Failed to check folder inconsistencies",
+        variant: "destructive"
+      });
+    } finally {
+      setFolderCheckLoading(false);
+    }
+  };
+
+  const handleCleanupOrphanedCollections = async () => {
+    setFolderCleanupLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('folder-cleanup', {
+        body: { action: 'cleanup_orphaned_collections' }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Cleanup Complete",
+        description: data.message,
+        variant: "default"
+      });
+
+      // Refresh the inconsistencies check
+      if (folderInconsistencies) {
+        handleCheckFolderInconsistencies();
+      }
+    } catch (error: any) {
+      console.error('Folder cleanup error:', error);
+      toast({
+        title: "Cleanup Failed",
+        description: error.message || "Failed to cleanup orphaned collections",
+        variant: "destructive"
+      });
+    } finally {
+      setFolderCleanupLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -201,6 +262,57 @@ const Admin = () => {
                 <FolderPlus className="h-4 w-4" />
                 {isRecreatingFolders ? 'Creating...' : 'Recreate Folders'}
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* Folder Management */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Folder className="h-5 w-5" />
+                Folder Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button
+                variant="outline"
+                onClick={handleCheckFolderInconsistencies}
+                disabled={folderCheckLoading || folderCleanupLoading}
+                className="w-full flex items-center gap-2"
+              >
+                <AlertTriangle className="h-4 w-4" />
+                {folderCheckLoading ? 'Checking...' : 'Check Folder Issues'}
+              </Button>
+
+              {folderInconsistencies && (
+                <div className="space-y-2 p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-2 text-sm">
+                    {folderInconsistencies.orphaned_collections.length > 0 ? (
+                      <AlertTriangle className="h-4 w-4 text-orange-500" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    )}
+                    <span>
+                      {folderInconsistencies.orphaned_collections.length} orphaned collections
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Total: {folderInconsistencies.total_collections} collections, {folderInconsistencies.total_file_folders} file folders
+                  </div>
+                </div>
+              )}
+
+              {folderInconsistencies?.orphaned_collections.length > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={handleCleanupOrphanedCollections}
+                  disabled={folderCheckLoading || folderCleanupLoading}
+                  className="w-full flex items-center gap-2 bg-red-50 hover:bg-red-100 border-red-200 text-red-700"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {folderCleanupLoading ? 'Cleaning...' : 'Delete Orphaned Collections'}
+                </Button>
+              )}
             </CardContent>
           </Card>
 
