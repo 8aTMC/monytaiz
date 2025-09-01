@@ -147,18 +147,14 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
     <>
       {/* Custom overlay that covers EVERYTHING including sidebar */}
       <div 
-        className="media-overlay fixed inset-0 bg-black/80 backdrop-blur-sm"
+        className="media-overlay"
         onClick={onClose}
       />
       
       {/* Dialog content positioned above everything */}
       <div 
-        className="media-dialog fixed border bg-background shadow-lg rounded-lg overflow-hidden flex flex-col"
+        className="media-dialog border bg-background shadow-lg rounded-lg overflow-hidden flex flex-col"
         style={{
-          position: 'fixed',
-          left: '50%',
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
           width: 'fit-content',
           height: 'fit-content',
           maxWidth: '90vw',
