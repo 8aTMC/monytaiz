@@ -8,8 +8,10 @@ const corsHeaders = {
 interface OptimizeRequest {
   mediaId: string;
   originalPath: string;
+  processedPath?: string;
   mimeType: string;
   mediaType: 'image' | 'video' | 'audio';
+  skipProcessing?: boolean;
 }
 
 Deno.serve(async (req) => {
@@ -23,15 +25,76 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { mediaId, originalPath, mimeType, mediaType }: OptimizeRequest = await req.json();
+    const { mediaId, originalPath, processedPath, mimeType, mediaType, skipProcessing }: OptimizeRequest = await req.json();
     
-    console.log('Starting optimization for:', { mediaId, originalPath, mimeType, mediaType });
+    console.log('Starting optimization for:', { mediaId, originalPath, processedPath, mimeType, mediaType, skipProcessing });
 
     // Update status to processing
     await supabase
       .from('simple_media')
       .update({ processing_status: 'processing' })
       .eq('id', mediaId);
+
+    // Handle pre-processed images (client-side optimization already complete)
+    if (skipProcessing && mediaType === 'image' && processedPath) {
+      console.log('Skipping processing for pre-optimized image, cleaning up original');
+      
+      try {
+        // Delete original file from storage
+        const { error: deleteError } = await supabase.storage
+          .from('content')
+          .remove([originalPath]);
+        
+        if (deleteError) {
+          console.error('Failed to delete original file:', deleteError);
+          // Don't throw - the processed file is still valid
+        }
+        
+        // Update database to mark as fully processed
+        const { error: updateError } = await supabase
+          .from('simple_media')
+          .update({ 
+            processing_status: 'processed',
+            processed_at: new Date().toISOString()
+          })
+          .eq('id', mediaId);
+
+        if (updateError) {
+          throw new Error(`Failed to update processed image record: ${updateError.message}`);
+        }
+
+        console.log('Pre-processed image cleanup completed for:', mediaId);
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            mediaId,
+            processedPath,
+            cleanedUp: true
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200 
+          }
+        );
+        
+      } catch (error) {
+        console.error('Cleanup error for pre-processed image:', error);
+        // Don't throw - the image is still processed and usable
+        return new Response(
+          JSON.stringify({
+            success: true,
+            mediaId,
+            processedPath,
+            cleanupError: error.message
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200 
+          }
+        );
+      }
+    }
 
     if (mediaType === 'video') {
       console.log('Processing video file for thumbnail generation');
@@ -88,7 +151,8 @@ Deno.serve(async (req) => {
         throw error; // Re-throw to be caught by outer try-catch
       }
     } else if (mediaType === 'image') {
-      // For images, just mark as processed (no additional processing needed for now)
+      // For images without client-side processing, just mark as processed
+      // (This is the fallback case when client-side processing fails)
       const { error: updateError } = await supabase
         .from('simple_media')
         .update({ 
@@ -151,7 +215,11 @@ Deno.serve(async (req) => {
     // Try to update status to failed if we have mediaId
     try {
       const body = await req.clone().json();
-      if (body.mediaId) {        
+      if (body.mediaId) {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
         await supabase
           .from('simple_media')
           .update({
