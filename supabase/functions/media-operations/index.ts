@@ -466,8 +466,12 @@ async function removeFromFolder(supabaseClient: any, userId: string, folderId: s
 
 async function deleteMediaHard(supabaseClient: any, userId: string, mediaIds: string[]) {
   try {
-    // Get media details for storage cleanup - check both tables
-    const [mediaResults, contentResults] = await Promise.all([
+    // Get media details for storage cleanup - check all three tables
+    const [simpleMediaResults, mediaResults, contentResults] = await Promise.all([
+      supabaseClient
+        .from('simple_media')
+        .select('id, processed_path, original_path')
+        .in('id', mediaIds),
       supabaseClient
         .from('media')
         .select('id, storage_path')
@@ -479,20 +483,20 @@ async function deleteMediaHard(supabaseClient: any, userId: string, mediaIds: st
         .eq('is_active', true)
     ])
 
-    if (mediaResults.error && contentResults.error) {
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch media details' }),
-        { status: 500, headers: corsHeaders }
-      )
-    }
-
-    // Combine results from both tables, normalizing file paths
+    // Combine results from all three tables, normalizing file paths
     const allMedia = [
+      ...(simpleMediaResults.data || []).map((item: any) => ({
+        id: item.id,
+        file_paths: [item.processed_path, item.original_path].filter(Boolean)
+      })),
       ...(mediaResults.data || []).map((item: any) => ({ 
         id: item.id, 
-        file_path: item.storage_path 
+        file_paths: [item.storage_path].filter(Boolean)
       })),
-      ...(contentResults.data || [])
+      ...(contentResults.data || []).map((item: any) => ({
+        id: item.id,
+        file_paths: [item.file_path].filter(Boolean)
+      }))
     ]
 
     if (allMedia.length === 0) {
@@ -503,22 +507,47 @@ async function deleteMediaHard(supabaseClient: any, userId: string, mediaIds: st
     }
 
     // Delete from storage first
-    const storagePromises = allMedia.map(async (item: any) => {
-      if (item.file_path) {
-        const { error } = await supabaseClient.storage
-          .from('content')
-          .remove([item.file_path])
-        
-        if (error) {
-          console.error(`Failed to delete storage file ${item.file_path}:`, error)
+    const storagePromises = allMedia.flatMap((item: any) => 
+      item.file_paths.map(async (file_path: string) => {
+        if (file_path) {
+          const { error } = await supabaseClient.storage
+            .from('content')
+            .remove([file_path])
+          
+          if (error) {
+            console.error(`Failed to delete storage file ${file_path}:`, error)
+          }
         }
-      }
-    })
+      })
+    )
 
     await Promise.all(storagePromises)
 
-    // Delete from both database tables
-    const [mediaDeleteResult, contentDeleteResult] = await Promise.all([
+    // Delete related records first to avoid foreign key constraints
+    await Promise.all([
+      // Delete collection items
+      supabaseClient
+        .from('collection_items')
+        .delete()
+        .in('media_id', mediaIds),
+      // Delete fan media grants
+      supabaseClient
+        .from('fan_media_grants')
+        .delete()
+        .in('media_id', mediaIds),
+      // Delete file folder contents
+      supabaseClient
+        .from('file_folder_contents')
+        .delete()
+        .in('media_id', mediaIds)
+    ])
+
+    // Delete from all three database tables
+    const [simpleDeleteResult, mediaDeleteResult, contentDeleteResult] = await Promise.all([
+      supabaseClient
+        .from('simple_media')
+        .delete()
+        .in('id', mediaIds),
       supabaseClient
         .from('media')
         .delete()
@@ -529,13 +558,11 @@ async function deleteMediaHard(supabaseClient: any, userId: string, mediaIds: st
         .in('id', mediaIds)
     ])
 
-    if (mediaDeleteResult.error && contentDeleteResult.error) {
-      console.error('Database delete errors:', mediaDeleteResult.error, contentDeleteResult.error)
-      return new Response(
-        JSON.stringify({ error: 'Failed to delete media from database' }),
-        { status: 500, headers: corsHeaders }
-      )
-    }
+    console.log('Delete results:', {
+      simple: simpleDeleteResult,
+      media: mediaDeleteResult,
+      content: contentDeleteResult
+    })
 
     return new Response(
       JSON.stringify({ 
