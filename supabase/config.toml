@@ -48,6 +48,9 @@ verify_jwt = true
 [functions.video-processor]
 verify_jwt = true
 
+[functions.video-processor-v2]
+verify_jwt = true
+
 [functions.video-thumbnail]
 verify_jwt = true
 

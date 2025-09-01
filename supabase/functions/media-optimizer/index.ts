@@ -101,9 +101,61 @@ Deno.serve(async (req) => {
     }
 
     if (mediaType === 'video') {
-      console.log('Processing video file - converting to WebM with multiple qualities');
+      console.log('🎬 Processing video file - converting to WebM with multiple qualities');
       
       try {
+        // Get file info first to check size before downloading
+        const { data: listData, error: listError } = await supabase.storage
+          .from('content')
+          .list(originalPath.split('/').slice(0, -1).join('/'), {
+            search: originalPath.split('/').pop()
+          });
+        
+        if (listError || !listData?.length) {
+          throw new Error(`Video file not found: ${originalPath}`);
+        }
+        
+        const fileInfo = listData[0];
+        const fileSizeMB = Math.round((fileInfo.metadata?.size || 0) / 1024 / 1024);
+        
+        console.log(`📊 Video file size: ${fileSizeMB}MB`);
+        
+        // Check if file is too large for edge function processing
+        const maxSizeMB = 400; // Conservative limit for edge functions
+        if (fileSizeMB > maxSizeMB) {
+          console.log(`⚠️ File too large for edge function (${fileSizeMB}MB > ${maxSizeMB}MB), using fallback approach`);
+          
+          // For very large files, just mark as processed without conversion
+          // TODO: Implement chunked/streaming processing or external service
+          const { error: updateError } = await supabase
+            .from('simple_media')
+            .update({ 
+              processing_status: 'processed',
+              processed_path: originalPath, // Keep original for now
+              processed_at: new Date().toISOString(),
+              processing_error: `File too large for conversion (${fileSizeMB}MB). Stored as original format.`
+            })
+            .eq('id', mediaId);
+
+          if (updateError) {
+            throw new Error(`Failed to update large video record: ${updateError.message}`);
+          }
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              mediaId,
+              processedPath: originalPath,
+              warning: `File too large for optimization (${fileSizeMB}MB). Stored in original format.`
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200 
+            }
+          );
+        }
+        
+        console.log('⬇️ Downloading video file for processing...');
         // Get the original video file for processing
         const { data: fileData, error: downloadError } = await supabase.storage
           .from('content')
@@ -113,23 +165,52 @@ Deno.serve(async (req) => {
           throw new Error(`Failed to download video for processing: ${downloadError.message}`);
         }
 
+        console.log('📦 Converting to array buffer...');
         // Convert file to ArrayBuffer for FFmpeg processing
         const arrayBuffer = await fileData.arrayBuffer();
+        const fileSizeActual = Math.round(arrayBuffer.byteLength / 1024 / 1024);
+        console.log(`✅ File loaded: ${fileSizeActual}MB`);
         
-        // Call video-processor function for video conversion
-        const { data: processData, error: processError } = await supabase.functions.invoke('video-processor', {
-          body: { 
-            fileData: Array.from(new Uint8Array(arrayBuffer)),
-            fileName: originalPath.split('/').pop(),
-            mediaId: mediaId,
-            mediaType: 'video',
-            targetQualities: ['480p', '720p', '1080p']
-          },
-          headers: { 'Content-Type': 'application/json' },
-        });
+        // Try the new streaming video processor first, fallback to original
+        console.log('🎬 Calling video-processor-v2 for streaming processing...');
+        let processData, processError;
+        
+        try {
+          const response = await supabase.functions.invoke('video-processor-v2', {
+            body: { 
+              fileData: Array.from(new Uint8Array(arrayBuffer)),
+              fileName: originalPath.split('/').pop(),
+              mediaId: mediaId,
+              mediaType: 'video',
+              targetQualities: ['480p', '720p', '1080p']
+            },
+            headers: { 'Content-Type': 'application/json' },
+          });
+          
+          processData = response.data;
+          processError = response.error;
+          
+        } catch (v2Error) {
+          console.warn('⚠️ Video-processor-v2 failed, falling back to original processor:', v2Error);
+          
+          // Fallback to original processor
+          const fallbackResponse = await supabase.functions.invoke('video-processor', {
+            body: { 
+              fileData: Array.from(new Uint8Array(arrayBuffer)),
+              fileName: originalPath.split('/').pop(),
+              mediaId: mediaId,
+              mediaType: 'video',
+              targetQualities: ['480p'] // Only process one quality for fallback
+            },
+            headers: { 'Content-Type': 'application/json' },
+          });
+          
+          processData = fallbackResponse.data;
+          processError = fallbackResponse.error;
+        }
 
         if (processError) {
-          console.error('Video processing failed:', processError);
+          console.error('❌ Video processing failed:', processError);
           throw new Error(`Video processing failed: ${processError.message}`);
         }
 

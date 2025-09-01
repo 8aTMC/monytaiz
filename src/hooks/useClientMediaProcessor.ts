@@ -63,23 +63,41 @@ export const useClientMediaProcessor = () => {
     return canvasRef.current;
   }, []);
 
-  // Check if ffmpeg.wasm is supported
+  // Check if ffmpeg.wasm is supported with extensive logging
   const checkFFmpegSupport = useCallback(() => {
     try {
       const hasWorker = typeof Worker !== 'undefined';
       const hasSharedArrayBuffer = typeof SharedArrayBuffer !== 'undefined';
       const isCrossOriginIsolated = crossOriginIsolated;
+      const hasWebAssembly = typeof WebAssembly !== 'undefined';
       
-      console.log('FFmpeg Support Check:', {
+      console.log('🔍 FFmpeg Support Diagnostic:', {
         hasWorker,
         hasSharedArrayBuffer,
         isCrossOriginIsolated,
-        userAgent: navigator.userAgent
+        hasWebAssembly,
+        userAgent: navigator.userAgent,
+        location: window.location.href,
+        headers: {
+          'Cross-Origin-Embedder-Policy': document.querySelector('meta[http-equiv="Cross-Origin-Embedder-Policy"]')?.getAttribute('content'),
+          'Cross-Origin-Opener-Policy': document.querySelector('meta[http-equiv="Cross-Origin-Opener-Policy"]')?.getAttribute('content')
+        }
       });
       
-      return hasWorker && hasSharedArrayBuffer && isCrossOriginIsolated;
+      // Additional detailed checks
+      if (!hasSharedArrayBuffer) {
+        console.warn('❌ SharedArrayBuffer unavailable - requires COOP/COEP headers');
+      }
+      if (!isCrossOriginIsolated) {
+        console.warn('❌ Cross-Origin Isolation disabled - SharedArrayBuffer will not work');
+      }
+      
+      const isSupported = hasWorker && hasSharedArrayBuffer && isCrossOriginIsolated && hasWebAssembly;
+      console.log(`🎥 Client-side video processing: ${isSupported ? '✅ AVAILABLE' : '❌ UNAVAILABLE - using server fallback'}`);
+      
+      return isSupported;
     } catch (error) {
-      console.error('FFmpeg support check failed:', error);
+      console.error('❌ FFmpeg support check failed:', error);
       return false;
     }
   }, []);
