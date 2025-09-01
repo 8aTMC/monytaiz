@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useVideoConverter } from '@/hooks/useVideoConverter';
 
 export interface ProcessingProgress {
   phase: 'analyzing' | 'encoding' | 'uploading' | 'finalizing' | 'complete' | 'error';
@@ -32,7 +33,46 @@ export const useClientMediaProcessor = () => {
     message: ''
   });
   const canvasRef = useRef<HTMLCanvasElement>();
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const blobUrlsRef = useRef<Set<string>>(new Set());
   const { toast } = useToast();
+  const { convertVideo, checkBrowserSupport, isConverting } = useVideoConverter();
+
+  // Cleanup blob URLs
+  useEffect(() => {
+    return () => {
+      blobUrlsRef.current.forEach(url => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch (error) {
+          console.warn('Failed to revoke blob URL:', error);
+        }
+      });
+      blobUrlsRef.current.clear();
+      
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  // Track blob URL for cleanup
+  const trackBlobUrl = useCallback((url: string) => {
+    blobUrlsRef.current.add(url);
+    return url;
+  }, []);
+
+  // Clean up tracked blob URL
+  const cleanupBlobUrl = useCallback((url: string) => {
+    if (blobUrlsRef.current.has(url)) {
+      try {
+        URL.revokeObjectURL(url);
+        blobUrlsRef.current.delete(url);
+      } catch (error) {
+        console.warn('Failed to revoke blob URL:', error);
+      }
+    }
+  }, []);
 
   // Get canvas for processing
   const getCanvas = useCallback(() => {
@@ -65,7 +105,8 @@ export const useClientMediaProcessor = () => {
   const getVideoInfo = useCallback((file: File): Promise<{ width: number; height: number; duration: number }> => {
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');
-      video.src = URL.createObjectURL(file);
+      const videoUrl = trackBlobUrl(URL.createObjectURL(file));
+      video.src = videoUrl;
       video.muted = true;
       
       video.onloadedmetadata = () => {
@@ -74,16 +115,16 @@ export const useClientMediaProcessor = () => {
           height: video.videoHeight,
           duration: video.duration
         };
-        URL.revokeObjectURL(video.src);
+        cleanupBlobUrl(videoUrl);
         resolve(info);
       };
       
       video.onerror = () => {
-        URL.revokeObjectURL(video.src);
+        cleanupBlobUrl(videoUrl);
         reject(new Error('Failed to load video metadata'));
       };
     });
-  }, []);
+  }, [trackBlobUrl, cleanupBlobUrl]);
 
   // Check if a video can be processed client-side
   const canProcessVideo = useCallback((file: File): { canProcess: boolean; reason?: string } => {
@@ -118,7 +159,7 @@ export const useClientMediaProcessor = () => {
           canvas.height = 8;
           ctx.drawImage(img, 0, 0, 8, 8);
           resolve(canvas.toDataURL('image/png'));
-          URL.revokeObjectURL(img.src);
+          cleanupBlobUrl(img.src);
         };
         img.onerror = () => {
           canvas.width = 8;
@@ -131,8 +172,9 @@ export const useClientMediaProcessor = () => {
           ctx.fillStyle = `hsl(${hue}, 30%, 80%)`;
           ctx.fillRect(0, 0, 8, 8);
           resolve(canvas.toDataURL('image/png'));
+          cleanupBlobUrl(img.src);
         };
-        img.src = URL.createObjectURL(file);
+        img.src = trackBlobUrl(URL.createObjectURL(file));
       } else {
         canvas.width = 8;
         canvas.height = 8;
@@ -146,7 +188,7 @@ export const useClientMediaProcessor = () => {
         resolve(canvas.toDataURL('image/png'));
       }
     });
-  }, [getCanvas]);
+  }, [getCanvas, trackBlobUrl, cleanupBlobUrl]);
 
   // Process image using Canvas
   const processImage = useCallback(async (file: File): Promise<ProcessedMedia | null> => {
@@ -187,13 +229,13 @@ export const useClientMediaProcessor = () => {
             }
           }, 'image/webp', 0.80);
 
-          URL.revokeObjectURL(img.src);
+          cleanupBlobUrl(img.src);
         };
         img.onerror = () => {
           reject(new Error('Failed to load image'));
-          URL.revokeObjectURL(img.src);
+          cleanupBlobUrl(img.src);
         };
-        img.src = URL.createObjectURL(file);
+        img.src = trackBlobUrl(URL.createObjectURL(file));
       });
 
       const placeholder = await createTinyPlaceholder(file);
@@ -220,7 +262,7 @@ export const useClientMediaProcessor = () => {
       console.error('Image processing failed:', error);
       return null;
     }
-  }, [getCanvas, createTinyPlaceholder]);
+  }, [getCanvas, createTinyPlaceholder, trackBlobUrl, cleanupBlobUrl]);
 
   // Helper function to create video thumbnail with proper error handling
   const createVideoThumbnail = useCallback(async (videoElement: HTMLVideoElement, canvas: HTMLCanvasElement): Promise<Blob> => {
@@ -293,10 +335,6 @@ export const useClientMediaProcessor = () => {
       // Create placeholder first
       const placeholder = await createTinyPlaceholder(file);
       
-      // Dynamic import to avoid issues if module fails to load
-      const { useVideoConverter } = await import('./useVideoConverter');
-      const { convertVideo, checkBrowserSupport } = useVideoConverter();
-      
       // Check if video conversion is supported
       if (!checkBrowserSupport()) {
         console.warn('Video conversion not supported in this browser - will use original format');
@@ -322,7 +360,7 @@ export const useClientMediaProcessor = () => {
           const cleanup = () => {
             clearTimeout(timeout);
             if (videoElement.src) {
-              URL.revokeObjectURL(videoElement.src);
+              cleanupBlobUrl(videoElement.src);
             }
           };
           
@@ -366,7 +404,7 @@ export const useClientMediaProcessor = () => {
             reject(new Error('Failed to generate thumbnail'));
           };
           
-          videoElement.src = URL.createObjectURL(file);
+          videoElement.src = trackBlobUrl(URL.createObjectURL(file));
         });
       }
       
@@ -425,7 +463,7 @@ export const useClientMediaProcessor = () => {
         const cleanup = () => {
           clearTimeout(timeout);
           if (videoElement.src) {
-            URL.revokeObjectURL(videoElement.src);
+            cleanupBlobUrl(videoElement.src);
           }
         };
         
@@ -469,7 +507,7 @@ export const useClientMediaProcessor = () => {
           reject(new Error('Failed to generate thumbnail from converted video'));
         };
         
-        videoElement.src = URL.createObjectURL(conversionResult.webmBlob);
+        videoElement.src = trackBlobUrl(URL.createObjectURL(conversionResult.webmBlob));
       });
     } catch (error) {
       console.error('Video conversion error:', error);
@@ -531,18 +569,18 @@ export const useClientMediaProcessor = () => {
             }
             
             if (videoElement.src) {
-              URL.revokeObjectURL(videoElement.src);
+              cleanupBlobUrl(videoElement.src);
             }
           };
           
-          videoElement.src = URL.createObjectURL(file);
+          videoElement.src = trackBlobUrl(URL.createObjectURL(file));
         });
       } catch (fallbackError) {
         console.error('Video fallback processing also failed:', fallbackError);
         return null;
       }
     }
-  }, [getVideoInfo, getCanvas, createTinyPlaceholder, createVideoThumbnail]);
+  }, [getVideoInfo, getCanvas, createTinyPlaceholder, createVideoThumbnail, checkBrowserSupport, convertVideo, trackBlobUrl, cleanupBlobUrl]);
 
   // Audio fallback processing
   const processAudioFallback = useCallback(async (file: File): Promise<ProcessedMedia | null> => {
