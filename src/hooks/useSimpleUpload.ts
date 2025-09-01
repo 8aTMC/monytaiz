@@ -127,9 +127,8 @@ export const useSimpleUpload = () => {
       });
 
       // Upload original file directly to processed folder (skip processing)
-      const processedPath = `processed/${fileId}/${file.name}`;
       console.log('Uploading original file directly to processed folder...');
-      const originalUpload = await supabase.storage.from('content').upload(processedPath, file, { upsert: false });
+      const originalUpload = await supabase.storage.from('content').upload(uploadPath, file, { upsert: false });
       if (originalUpload.error) throw new Error(`Original upload failed: ${originalUpload.error.message}`);
 
       // Upload thumbnail if available
@@ -201,7 +200,7 @@ export const useSimpleUpload = () => {
         processedSize,
         thumbnailPath,
         qualityInfo: file.type.startsWith('video/') ? {
-          original: { path: processedPath, available: true }
+          original: { path: uploadPath, available: true }
         } : null
       };
 
