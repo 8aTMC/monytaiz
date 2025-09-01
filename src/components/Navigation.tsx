@@ -792,7 +792,7 @@ export const Navigation = ({ role }: NavigationProps) => {
                )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-56 p-2 z-[100] bg-background border border-border shadow-lg" side="right" align="end">
+          <PopoverContent className="w-56 p-2 z-10 bg-background border border-border shadow-lg" side="right" align="end">
             <div className="px-3 py-2 border-b border-border mb-2">
               <p className="text-sm font-medium text-foreground">
                 {userProfile?.display_name || userProfile?.username || 'Anonymous'}
