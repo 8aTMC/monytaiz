@@ -407,7 +407,7 @@ export const useSimpleUpload = () => {
         console.log('🎬 Enqueuing background transcoding job for large video...');
         try {
           // Call transcoder service (replace with actual service URL)
-          const transcoderUrl = process.env.NEXT_PUBLIC_TRANSCODER_URL || 'http://localhost:8080';
+          const transcoderUrl = import.meta.env.VITE_TRANSCODER_URL || 'http://localhost:8080';
           const response = await fetch(`${transcoderUrl}/jobs/transcode`, {
             method: 'POST',
             headers: {
