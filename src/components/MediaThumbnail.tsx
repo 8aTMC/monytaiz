@@ -82,7 +82,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     const thumbnailSrc = thumbnailUrl || 
       (item.tiny_placeholder && item.tiny_placeholder !== 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==' ? item.tiny_placeholder : null);
     
-    if (thumbnailSrc) {
+    if (thumbnailSrc && !thumbnailLoading) {
       return (
         <div 
           className={`bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden group ${className}`}

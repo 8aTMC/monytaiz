@@ -63,9 +63,9 @@ export default function SimpleUpload() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
-      'video/*': ['.mp4', '.mov', '.avi', '.mkv'],
-      'audio/*': ['.mp3', '.wav', '.m4a', '.flac']
+      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.tiff'],
+      'video/*': ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.wmv', '.m4v'],
+      'audio/*': ['.mp3', '.wav', '.m4a', '.flac', '.ogg', '.aac', '.opus', '.wma']
     },
     disabled: uploading || isProcessing
   });
@@ -116,7 +116,7 @@ export default function SimpleUpload() {
           <div>
             <h1 className="text-3xl font-bold text-foreground">Upload Media</h1>
             <p className="text-muted-foreground mt-1">
-              Upload images, videos, and audio files. Images are automatically optimized to WebP format.
+              Upload media files with maximum compression. Videos converted to WebM (480p/720p/1080p), audio to Opus format. Never keeps originals.
             </p>
           </div>
           

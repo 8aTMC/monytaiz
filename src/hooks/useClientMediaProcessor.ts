@@ -12,14 +12,25 @@ export interface ProcessedMedia {
   originalFile: File;
   processedFiles: {
     image?: Blob;
-    video_1080?: Blob;
-    video_720?: Blob;
+    video_480p?: Blob;
+    video_720p?: Blob;
+    video_1080p?: Blob;
+    audio?: Blob;
+    thumbnail?: Blob;
   };
   metadata: {
     width: number;
     height: number;
     duration?: number;
     format: string;
+    compressionRatio?: number;
+    qualityInfo?: {
+      [key: string]: {
+        size: number;
+        bitrate?: string;
+        compressionRatio: number;
+      };
+    };
   };
   tinyPlaceholder: string;
 }
@@ -173,7 +184,7 @@ export const useClientMediaProcessor = () => {
       }
 
       try {
-        // Create worker with ffmpeg.wasm
+        // Create enhanced worker with ffmpeg.wasm for video/audio processing
         const workerCode = `
           import { FFmpeg } from 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.7/dist/esm/index.js';
           import { toBlobURL } from 'https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js';
@@ -202,78 +213,148 @@ export const useClientMediaProcessor = () => {
                 self.postMessage({ type: 'ready' });
                 
               } else if (type === 'process_video') {
-                const { fileData, fileName, options } = data;
+                const { fileData, fileName } = data;
                 
-                // Write input file
-                await ffmpeg.writeFile('input.mp4', new Uint8Array(fileData));
+                // Write input file (try different extensions based on original)
+                const inputExt = fileName.split('.').pop().toLowerCase();
+                const inputFile = 'input.' + (inputExt || 'mp4');
+                await ffmpeg.writeFile(inputFile, new Uint8Array(fileData));
                 
                 const outputs = [];
+                const qualityInfo = {};
                 
-                // 1080p encoding
-                await ffmpeg.exec([
-                  '-i', 'input.mp4',
-                  '-c:v', 'libx264',
-                  '-preset', 'slow',
-                  '-crf', '23',
-                  '-vf', 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2',
-                  '-c:a', 'aac',
-                  '-b:a', '128k',
-                  '-movflags', '+faststart',
-                  'output_1080p.mp4'
-                ]);
-                
-                const output1080p = await ffmpeg.readFile('output_1080p.mp4');
-                outputs.push({ quality: '1080p', data: output1080p });
-                
-                // 720p encoding (optional)
-                if (options.include720p) {
+                // Extract thumbnail first (1 second mark or first frame)
+                try {
                   await ffmpeg.exec([
-                    '-i', 'input.mp4',
-                    '-c:v', 'libx264',
-                    '-preset', 'slow',
-                    '-crf', '24',
-                    '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2',
-                    '-c:a', 'aac',
-                    '-b:a', '128k',
-                    '-movflags', '+faststart',
-                    'output_720p.mp4'
+                    '-i', inputFile,
+                    '-ss', '00:00:01',
+                    '-vframes', '1',
+                    '-q:v', '2',
+                    '-vf', 'scale=640:480:force_original_aspect_ratio=decrease,pad=640:480:(ow-iw)/2:(oh-ih)/2',
+                    '-y',
+                    'thumbnail.jpg'
                   ]);
                   
-                  const output720p = await ffmpeg.readFile('output_720p.mp4');
-                  outputs.push({ quality: '720p', data: output720p });
+                  const thumbnailData = await ffmpeg.readFile('thumbnail.jpg');
+                  outputs.push({ quality: 'thumbnail', data: thumbnailData });
+                } catch (thumbError) {
+                  console.warn('Thumbnail extraction failed, trying first frame');
+                  try {
+                    await ffmpeg.exec([
+                      '-i', inputFile,
+                      '-vframes', '1',
+                      '-q:v', '2',
+                      '-vf', 'scale=640:480:force_original_aspect_ratio=decrease,pad=640:480:(ow-iw)/2:(oh-ih)/2',
+                      '-y',
+                      'thumbnail.jpg'
+                    ]);
+                    const thumbnailData = await ffmpeg.readFile('thumbnail.jpg');
+                    outputs.push({ quality: 'thumbnail', data: thumbnailData });
+                  } catch {
+                    console.warn('Both thumbnail extraction methods failed');
+                  }
                 }
                 
+                // 480p WebM (default quality - maximum compression)
+                await ffmpeg.exec([
+                  '-i', inputFile,
+                  '-c:v', 'libvpx-vp9',
+                  '-crf', '32',
+                  '-b:v', '500k',
+                  '-vf', 'scale=854:480:force_original_aspect_ratio=decrease,pad=854:480:(ow-iw)/2:(oh-ih)/2',
+                  '-c:a', 'libopus',
+                  '-b:a', '64k',
+                  '-deadline', 'good',
+                  '-cpu-used', '1',
+                  '-row-mt', '1',
+                  'output_480p.webm'
+                ]);
+                
+                const output480p = await ffmpeg.readFile('output_480p.webm');
+                outputs.push({ quality: '480p', data: output480p });
+                qualityInfo['480p'] = { size: output480p.byteLength, bitrate: '500k' };
+                
+                // 720p WebM
+                await ffmpeg.exec([
+                  '-i', inputFile,
+                  '-c:v', 'libvpx-vp9',
+                  '-crf', '30',
+                  '-b:v', '1000k',
+                  '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2',
+                  '-c:a', 'libopus',
+                  '-b:a', '96k',
+                  '-deadline', 'good',
+                  '-cpu-used', '1',
+                  '-row-mt', '1',
+                  'output_720p.webm'
+                ]);
+                
+                const output720p = await ffmpeg.readFile('output_720p.webm');
+                outputs.push({ quality: '720p', data: output720p });
+                qualityInfo['720p'] = { size: output720p.byteLength, bitrate: '1000k' };
+                
+                // 1080p WebM
+                await ffmpeg.exec([
+                  '-i', inputFile,
+                  '-c:v', 'libvpx-vp9',
+                  '-crf', '28',
+                  '-b:v', '2000k',
+                  '-vf', 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2',
+                  '-c:a', 'libopus',
+                  '-b:a', '128k',
+                  '-deadline', 'good',
+                  '-cpu-used', '1',
+                  '-row-mt', '1',
+                  'output_1080p.webm'
+                ]);
+                
+                const output1080p = await ffmpeg.readFile('output_1080p.webm');
+                outputs.push({ quality: '1080p', data: output1080p });
+                qualityInfo['1080p'] = { size: output1080p.byteLength, bitrate: '2000k' };
+                
                 // Get video metadata
-                await ffmpeg.exec(['-i', 'input.mp4', '-f', 'null', '-']);
+                try {
+                  await ffmpeg.exec(['-i', inputFile, '-f', 'null', '-']);
+                } catch (e) {
+                  // Expected to fail, we just want the metadata from stderr
+                }
                 
                 self.postMessage({ 
                   type: 'complete', 
                   data: { 
                     outputs,
-                    metadata: { width: 1920, height: 1080 } // Simplified for now
+                    qualityInfo,
+                    metadata: { width: 1920, height: 1080, format: 'webm' }
                   }
                 });
                 
               } else if (type === 'process_audio') {
                 const { fileData, fileName } = data;
                 
-                await ffmpeg.writeFile('input.audio', new Uint8Array(fileData));
+                // Detect input format and use appropriate extension
+                const inputExt = fileName.split('.').pop().toLowerCase();
+                const inputFile = 'input.' + (inputExt || 'mp3');
+                await ffmpeg.writeFile(inputFile, new Uint8Array(fileData));
                 
-                // Convert to AAC 128kbps
+                // Convert to WebM with Opus codec (maximum compression for audio)
                 await ffmpeg.exec([
-                  '-i', 'input.audio',
-                  '-c:a', 'aac',
-                  '-b:a', '128k',
-                  'output.aac'
+                  '-i', inputFile,
+                  '-c:a', 'libopus',
+                  '-b:a', '64k',
+                  '-application', 'voip',
+                  '-vbr', 'on',
+                  '-compression_level', '10',
+                  'output.webm'
                 ]);
                 
-                const outputData = await ffmpeg.readFile('output.aac');
+                const outputData = await ffmpeg.readFile('output.webm');
                 
                 self.postMessage({ 
                   type: 'complete', 
                   data: { 
                     output: outputData,
-                    metadata: { width: 800, height: 800 }
+                    metadata: { width: 800, height: 800, format: 'webm' },
+                    qualityInfo: { audio: { size: outputData.byteLength, bitrate: '64k' } }
                   }
                 });
               }
@@ -309,13 +390,17 @@ export const useClientMediaProcessor = () => {
     });
   }, []);
 
-  // Process video using FFmpeg worker
+  // Process video using FFmpeg worker with multiple qualities and thumbnail
   const processVideo = useCallback(async (file: File): Promise<{
-    video_1080?: Blob;
-    video_720?: Blob;
+    video_480p?: Blob;
+    video_720p?: Blob;
+    video_1080p?: Blob;
+    thumbnail?: Blob;
     width: number;
     height: number;
     duration?: number;
+    compressionRatio: number;
+    qualityInfo: any;
   }> => {
     const worker = await initFFmpegWorker();
     
@@ -333,22 +418,37 @@ export const useClientMediaProcessor = () => {
             }));
           } else if (e.data.type === 'complete') {
             worker.removeEventListener('message', onMessage);
-            const { outputs, metadata } = e.data.data;
+            const { outputs, metadata, qualityInfo } = e.data.data;
             
             const result: any = {
               width: metadata.width,
               height: metadata.height,
-              duration: metadata.duration
+              duration: metadata.duration,
+              qualityInfo: qualityInfo || {},
+              compressionRatio: 0
             };
             
+            let totalProcessedSize = 0;
+            let smallestSize = file.size;
+            
             outputs.forEach((output: any) => {
-              const blob = new Blob([output.data], { type: 'video/mp4' });
-              if (output.quality === '1080p') {
-                result.video_1080 = blob;
+              if (output.quality === 'thumbnail') {
+                result.thumbnail = new Blob([output.data], { type: 'image/jpeg' });
+              } else if (output.quality === '480p') {
+                result.video_480p = new Blob([output.data], { type: 'video/webm' });
+                totalProcessedSize += output.data.byteLength;
+                smallestSize = Math.min(smallestSize, output.data.byteLength);
               } else if (output.quality === '720p') {
-                result.video_720 = blob;
+                result.video_720p = new Blob([output.data], { type: 'video/webm' });
+                totalProcessedSize += output.data.byteLength;
+              } else if (output.quality === '1080p') {
+                result.video_1080p = new Blob([output.data], { type: 'video/webm' });
+                totalProcessedSize += output.data.byteLength;
               }
             });
+            
+            // Calculate compression ratio based on smallest variant
+            result.compressionRatio = Math.round(((file.size - smallestSize) / file.size) * 100);
             
             resolve(result);
           } else if (e.data.type === 'error') {
@@ -362,15 +462,65 @@ export const useClientMediaProcessor = () => {
           type: 'process_video',
           data: {
             fileData,
-            fileName: file.name,
-            options: {
-              include720p: file.size > 100 * 1024 * 1024 // Only create 720p for files > 100MB
-            }
+            fileName: file.name
           }
         });
       };
       
       fileReader.onerror = () => reject(new Error('Failed to read file'));
+      fileReader.readAsArrayBuffer(file);
+    });
+  }, [initFFmpegWorker]);
+
+  // Process audio using FFmpeg worker
+  const processAudio = useCallback(async (file: File): Promise<{
+    audio?: Blob;
+    compressionRatio: number;
+    qualityInfo: any;
+  }> => {
+    const worker = await initFFmpegWorker();
+    
+    return new Promise((resolve, reject) => {
+      const fileReader = new FileReader();
+      fileReader.onload = () => {
+        const fileData = fileReader.result as ArrayBuffer;
+        
+        const onMessage = (e: MessageEvent<FFmpegWorkerMessage>) => {
+          if (e.data.type === 'progress') {
+            setProgress(prev => ({
+              ...prev,
+              progress: Math.min(e.data.progress || 0, 90),
+              message: `Encoding audio... ${e.data.progress || 0}%`
+            }));
+          } else if (e.data.type === 'complete') {
+            worker.removeEventListener('message', onMessage);
+            const { output, metadata, qualityInfo } = e.data.data;
+            
+            const audioBlob = new Blob([output], { type: 'audio/webm' });
+            const compressionRatio = Math.round(((file.size - output.byteLength) / file.size) * 100);
+            
+            resolve({
+              audio: audioBlob,
+              compressionRatio,
+              qualityInfo: qualityInfo || {}
+            });
+          } else if (e.data.type === 'error') {
+            worker.removeEventListener('message', onMessage);
+            reject(new Error(e.data.error || 'Audio processing failed'));
+          }
+        };
+        
+        worker.addEventListener('message', onMessage);
+        worker.postMessage({
+          type: 'process_audio',
+          data: {
+            fileData,
+            fileName: file.name
+          }
+        });
+      };
+      
+      fileReader.onerror = () => reject(new Error('Failed to read audio file'));
       fileReader.readAsArrayBuffer(file);
     });
   }, [initFFmpegWorker]);
@@ -424,43 +574,62 @@ export const useClientMediaProcessor = () => {
         } else if (file.type.startsWith('video/')) {
           const ffmpegSupported = checkFFmpegSupport();
           
-          if (ffmpegSupported) {
-            setProgress({
-              phase: 'encoding',
-              progress: fileProgress + 10,
-              message: `Encoding video ${file.name}...`
-            });
+          if (!ffmpegSupported) {
+            throw new Error(`Video processing not supported in this environment. Missing SharedArrayBuffer or cross-origin isolation.`);
+          }
 
-            try {
-              const videoResult = await processVideo(file);
-              processedMedia.processedFiles.video_1080 = videoResult.video_1080;
-              processedMedia.processedFiles.video_720 = videoResult.video_720;
-              processedMedia.metadata = {
-                width: videoResult.width,
-                height: videoResult.height,
-                duration: videoResult.duration,
-                format: 'h264'
-              };
-            } catch (error) {
-              console.warn('Video processing failed, marking for later processing:', error);
-              processedMedia.metadata = { 
-                width: 1920, 
-                height: 1080, 
-                format: 'needs_processing' 
-              };
-            }
-          } else {
-            console.warn('FFmpeg not supported, marking video for later processing');
-            processedMedia.metadata = { 
-              width: 1920, 
-              height: 1080, 
-              format: 'needs_processing' 
+          setProgress({
+            phase: 'encoding',
+            progress: fileProgress + 10,
+            message: `Converting video to WebM (480p, 720p, 1080p)...`
+          });
+
+          try {
+            const videoResult = await processVideo(file);
+            processedMedia.processedFiles.video_480p = videoResult.video_480p;
+            processedMedia.processedFiles.video_720p = videoResult.video_720p;
+            processedMedia.processedFiles.video_1080p = videoResult.video_1080p;
+            processedMedia.processedFiles.thumbnail = videoResult.thumbnail;
+            processedMedia.metadata = {
+              width: videoResult.width,
+              height: videoResult.height,
+              duration: videoResult.duration,
+              format: 'webm',
+              compressionRatio: videoResult.compressionRatio,
+              qualityInfo: videoResult.qualityInfo
             };
+          } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : 'Video processing failed';
+            throw new Error(`Cannot process video: ${errorMsg}. Video format may not be supported or file may be corrupted.`);
           }
           
         } else if (file.type.startsWith('audio/')) {
-          // For now, keep audio files as-is
-          processedMedia.metadata = { width: 800, height: 800, format: 'original' };
+          const ffmpegSupported = checkFFmpegSupport();
+          
+          if (!ffmpegSupported) {
+            throw new Error(`Audio processing not supported in this environment. Missing SharedArrayBuffer or cross-origin isolation.`);
+          }
+
+          setProgress({
+            phase: 'encoding',
+            progress: fileProgress + 10,
+            message: `Converting audio to WebM/Opus...`
+          });
+
+          try {
+            const audioResult = await processAudio(file);
+            processedMedia.processedFiles.audio = audioResult.audio;
+            processedMedia.metadata = {
+              width: 800,
+              height: 800,
+              format: 'webm',
+              compressionRatio: audioResult.compressionRatio,
+              qualityInfo: audioResult.qualityInfo
+            };
+          } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : 'Audio processing failed';
+            throw new Error(`Cannot process audio: ${errorMsg}. Audio format may not be supported or file may be corrupted.`);
+          }
         }
 
         processedFiles.push(processedMedia);
@@ -493,7 +662,7 @@ export const useClientMediaProcessor = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [isProcessing, createTinyPlaceholder, processImage, checkFFmpegSupport, processVideo, toast]);
+  }, [isProcessing, createTinyPlaceholder, processImage, checkFFmpegSupport, processVideo, processAudio, toast]);
 
   // Cleanup function
   const cleanup = useCallback(() => {

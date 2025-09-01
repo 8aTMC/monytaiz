@@ -14,8 +14,11 @@ export interface OptimizedUploadItem {
   originalPath?: string;
   processedPaths?: {
     image?: string;
-    video_1080?: string;
-    video_720?: string;
+    video_1080p?: string;
+    video_720p?: string;
+    video_480p?: string;
+    audio?: string;
+    thumbnail?: string;
   };
   retryable?: boolean;
 }
@@ -179,33 +182,33 @@ export const useOptimizedUpload = () => {
     }
 
     // Upload 1080p video
-    if (processed.processedFiles.video_1080) {
+    if (processed.processedFiles.video_1080p) {
       const video1080Path = `${baseFolder}/video-1080p.mp4`;
       const { data, error } = await supabase.storage
         .from('content')
-        .upload(video1080Path, processed.processedFiles.video_1080, {
+        .upload(video1080Path, processed.processedFiles.video_1080p, {
           cacheControl: '31536000',
           upsert: false,
           contentType: 'video/mp4'
         });
       
       if (error) throw error;
-      uploadedPaths.video_1080 = data.path;
+      uploadedPaths.video_1080p = data.path;
     }
 
     // Upload 720p video (if exists)
-    if (processed.processedFiles.video_720) {
+    if (processed.processedFiles.video_720p) {
       const video720Path = `${baseFolder}/video-720p.mp4`;
       const { data, error } = await supabase.storage
         .from('content')
-        .upload(video720Path, processed.processedFiles.video_720, {
+        .upload(video720Path, processed.processedFiles.video_720p, {
           cacheControl: '31536000',
           upsert: false,
           contentType: 'video/mp4'
         });
       
       if (error) throw error;
-      uploadedPaths.video_720 = data.path;
+      uploadedPaths.video_720p = data.path;
     }
 
     return uploadedPaths;
@@ -225,8 +228,8 @@ export const useOptimizedUpload = () => {
       original_key: originalPath,
       processed: {
         image_key: processedPaths.image,
-        video_1080_key: processedPaths.video_1080,
-        video_720_key: processedPaths.video_720
+        video_1080_key: processedPaths.video_1080p,
+        video_720_key: processedPaths.video_720p
       },
       meta: {
         width: metadata.width,

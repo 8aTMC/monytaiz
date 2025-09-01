@@ -54,12 +54,15 @@ export const useSimpleUpload = () => {
                        file.type.startsWith('video/') ? 'video' : 
                        file.type.startsWith('audio/') ? 'audio' : 'image';
 
-      let processedPath = originalPath;
-      let processedBlob: Blob = file;
+      let processedPaths: { [quality: string]: string } = {};
+      let processedBlobs: { [quality: string]: Blob } = {};
+      let thumbnailPath: string | undefined;
+      let thumbnailBlob: Blob | undefined;
       let width: number | undefined;
       let height: number | undefined;
+      let qualityInfo: any = {};
 
-      // Process images client-side for WebP conversion and compression
+      // Process media client-side for format conversion and compression
       if (mediaType === 'image') {
         setUploadProgress({
           phase: 'processing',
@@ -73,15 +76,16 @@ export const useSimpleUpload = () => {
         try {
           const processedFiles = await processFiles([file]);
           if (processedFiles.length > 0 && processedFiles[0].processedFiles.image) {
-            processedBlob = processedFiles[0].processedFiles.image;
-            processedSize = processedBlob.size;
+            const result = processedFiles[0];
+            processedBlobs.image = result.processedFiles.image;
+            processedSize = processedBlobs.image.size;
             compressionRatio = Math.round(((originalSize - processedSize) / originalSize) * 100);
-            width = processedFiles[0].metadata.width;
-            height = processedFiles[0].metadata.height;
+            width = result.metadata.width;
+            height = result.metadata.height;
             
             // Update processed path with .webp extension
             const baseName = file.name.split('.')[0];
-            processedPath = `processed/${fileId}-${baseName}.webp`;
+            processedPaths.image = `processed/${fileId}-${baseName}.webp`;
             
             setUploadProgress({
               phase: 'processing',
@@ -93,8 +97,98 @@ export const useSimpleUpload = () => {
             });
           }
         } catch (error) {
-          console.warn('Client-side image processing failed, using original:', error);
-          // Continue with original file
+          throw new Error(`Image processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+
+      } else if (mediaType === 'video') {
+        setUploadProgress({
+          phase: 'processing',
+          progress: 10,
+          message: 'Converting video to WebM (multiple qualities)...',
+          originalSize,
+          processedSize,
+          compressionRatio
+        });
+
+        try {
+          const processedFiles = await processFiles([file]);
+          if (processedFiles.length > 0) {
+            const result = processedFiles[0];
+            const baseName = file.name.split('.')[0];
+            
+            // Store all quality variants
+            if (result.processedFiles.video_480p) {
+              processedBlobs['480p'] = result.processedFiles.video_480p;
+              processedPaths['480p'] = `processed/${fileId}-${baseName}_480p.webm`;
+            }
+            if (result.processedFiles.video_720p) {
+              processedBlobs['720p'] = result.processedFiles.video_720p;
+              processedPaths['720p'] = `processed/${fileId}-${baseName}_720p.webm`;
+            }
+            if (result.processedFiles.video_1080p) {
+              processedBlobs['1080p'] = result.processedFiles.video_1080p;
+              processedPaths['1080p'] = `processed/${fileId}-${baseName}_1080p.webm`;
+            }
+            
+            // Store thumbnail
+            if (result.processedFiles.thumbnail) {
+              thumbnailBlob = result.processedFiles.thumbnail;
+              thumbnailPath = `processed/thumbnails/${fileId}-${baseName}_thumb.jpg`;
+            }
+            
+            // Use 480p size for compression calculation
+            processedSize = processedBlobs['480p']?.size || originalSize;
+            compressionRatio = result.metadata.compressionRatio || 0;
+            width = result.metadata.width;
+            height = result.metadata.height;
+            qualityInfo = result.metadata.qualityInfo || {};
+            
+            setUploadProgress({
+              phase: 'processing',
+              progress: 70,
+              message: `Video converted (${compressionRatio}% reduction)`,
+              originalSize,
+              processedSize,
+              compressionRatio
+            });
+          }
+        } catch (error) {
+          throw new Error(`Video processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+
+      } else if (mediaType === 'audio') {
+        setUploadProgress({
+          phase: 'processing',
+          progress: 10,
+          message: 'Converting audio to WebM/Opus...',
+          originalSize,
+          processedSize,
+          compressionRatio
+        });
+
+        try {
+          const processedFiles = await processFiles([file]);
+          if (processedFiles.length > 0 && processedFiles[0].processedFiles.audio) {
+            const result = processedFiles[0];
+            processedBlobs.audio = result.processedFiles.audio;
+            processedSize = processedBlobs.audio.size;
+            compressionRatio = result.metadata.compressionRatio || 0;
+            qualityInfo = result.metadata.qualityInfo || {};
+            
+            const baseName = file.name.split('.')[0];
+            processedPaths.audio = `processed/${fileId}-${baseName}.webm`;
+            
+            setUploadProgress({
+              phase: 'processing',
+              progress: 50,
+              message: `Audio optimized (${compressionRatio}% reduction)`,
+              originalSize,
+              processedSize,
+              compressionRatio
+            });
+          }
+        } catch (error) {
+          throw new Error(`Audio processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       }
 
@@ -107,29 +201,39 @@ export const useSimpleUpload = () => {
         compressionRatio
       });
 
-      // Upload both original and processed files
+      // Build upload promises for all files
       const uploadPromises = [
-        // Upload original to incoming/
-        supabase.storage
-          .from('content')
-          .upload(originalPath, file, { upsert: false }),
-        
-        // Upload processed version to processed/ (or same as original if not processed)
-        processedBlob !== file 
-          ? supabase.storage
-              .from('content')
-              .upload(processedPath, processedBlob, { upsert: false })
-          : Promise.resolve({ error: null })
+        // Always upload original to incoming/
+        supabase.storage.from('content').upload(originalPath, file, { upsert: false })
       ];
 
-      const [originalUpload, processedUpload] = await Promise.all(uploadPromises);
+      // Upload processed files
+      Object.entries(processedBlobs).forEach(([quality, blob]) => {
+        const path = processedPaths[quality];
+        if (path && blob) {
+          uploadPromises.push(
+            supabase.storage.from('content').upload(path, blob, { upsert: false })
+          );
+        }
+      });
 
-      if (originalUpload.error) {
-        throw new Error(`Original upload failed: ${originalUpload.error.message}`);
+      // Upload thumbnail if available
+      if (thumbnailBlob && thumbnailPath) {
+        uploadPromises.push(
+          supabase.storage.from('content').upload(thumbnailPath, thumbnailBlob, { upsert: false })
+        );
       }
 
-      if (processedBlob !== file && processedUpload?.error) {
-        throw new Error(`Processed upload failed: ${processedUpload.error.message}`);
+      const uploadResults = await Promise.all(uploadPromises);
+
+      // Check for upload errors
+      for (let i = 0; i < uploadResults.length; i++) {
+        if (uploadResults[i].error) {
+          const fileName = i === 0 ? 'original' : 
+                         i === uploadResults.length - 1 && thumbnailPath ? 'thumbnail' : 
+                         `processed variant ${i}`;
+          throw new Error(`${fileName} upload failed: ${uploadResults[i].error.message}`);
+        }
       }
 
       setUploadProgress({
@@ -141,23 +245,32 @@ export const useSimpleUpload = () => {
         compressionRatio
       });
 
-      // Create database record with both original and processed info
+      // Determine final mime type and processed path
+      const finalMimeType = mediaType === 'image' ? 'image/webp' :
+                           mediaType === 'video' ? 'video/webm' :
+                           mediaType === 'audio' ? 'audio/webm' : file.type;
+
+      const defaultProcessedPath = processedPaths['480p'] || processedPaths.image || processedPaths.audio || originalPath;
+
+      // Create database record with comprehensive media info
       const { data: mediaRecord, error: dbError } = await supabase
         .from('simple_media')
         .insert({
           creator_id: user.id,
           original_filename: file.name,
           title: file.name.split('.')[0],
-          mime_type: processedBlob !== file ? 'image/webp' : file.type,
+          mime_type: finalMimeType,
           original_size_bytes: originalSize,
           optimized_size_bytes: processedSize,
           original_path: originalPath,
-          processed_path: processedBlob !== file ? processedPath : originalPath,
+          processed_path: defaultProcessedPath,
+          thumbnail_path: thumbnailPath,
           media_type: mediaType,
-          processing_status: processedBlob !== file ? 'processed' : 'pending',
+          processing_status: 'processed',
           width: width,
           height: height,
-          processed_at: processedBlob !== file ? new Date().toISOString() : undefined
+          processed_at: new Date().toISOString(),
+          tags: []
         })
         .select()
         .single();
@@ -165,6 +278,9 @@ export const useSimpleUpload = () => {
       if (dbError) {
         throw new Error(`Database error: ${dbError.message}`);
       }
+
+      // Store quality variants in a separate table or JSON field if needed
+      // For now, we'll use the default processed_path for the 480p/main quality
 
       setUploadProgress({
         phase: 'complete',
@@ -175,33 +291,21 @@ export const useSimpleUpload = () => {
         compressionRatio
       });
 
-      // Only trigger optimizer for non-image files or failed image processing
-      if (mediaType !== 'image' || processedBlob === file) {
-        supabase.functions.invoke('media-optimizer', {
-          body: {
-            mediaId: mediaRecord.id,
-            originalPath,
-            mimeType: file.type,
-            mediaType
-          }
-        }).catch(error => {
-          console.error('Background optimization failed:', error);
-        });
-      } else {
-        // For successfully processed images, trigger cleanup of original
-        supabase.functions.invoke('media-optimizer', {
-          body: {
-            mediaId: mediaRecord.id,
-            originalPath,
-            processedPath,
-            mimeType: 'image/webp',
-            mediaType: 'image',
-            skipProcessing: true // Flag to skip processing and just cleanup
-          }
-        }).catch(error => {
-          console.error('Background cleanup failed:', error);
-        });
-      }
+      // Trigger cleanup of original file since processing is complete
+      supabase.functions.invoke('media-optimizer', {
+        body: {
+          mediaId: mediaRecord.id,
+          originalPath,
+          processedPaths,
+          thumbnailPath,
+          mimeType: finalMimeType,
+          mediaType,
+          skipProcessing: true, // Processing already done client-side
+          qualityInfo
+        }
+      }).catch(error => {
+        console.error('Background cleanup failed:', error);
+      });
 
       toast({
         title: "Upload successful",
@@ -210,7 +314,14 @@ export const useSimpleUpload = () => {
           : `${file.name} uploaded successfully`,
       });
 
-      return { ...mediaRecord, compressionRatio, processedSize };
+      return { 
+        ...mediaRecord, 
+        compressionRatio, 
+        processedSize, 
+        qualityInfo,
+        processedPaths,
+        thumbnailPath 
+      };
 
     } catch (error) {
       console.error('Upload error:', error);

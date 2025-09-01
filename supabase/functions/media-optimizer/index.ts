@@ -9,9 +9,12 @@ interface OptimizeRequest {
   mediaId: string;
   originalPath: string;
   processedPath?: string;
+  processedPaths?: { [quality: string]: string };
+  thumbnailPath?: string;
   mimeType: string;
   mediaType: 'image' | 'video' | 'audio';
   skipProcessing?: boolean;
+  qualityInfo?: any;
 }
 
 Deno.serve(async (req) => {
@@ -25,9 +28,19 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { mediaId, originalPath, processedPath, mimeType, mediaType, skipProcessing }: OptimizeRequest = await req.json();
+    const { 
+      mediaId, 
+      originalPath, 
+      processedPath, 
+      processedPaths, 
+      thumbnailPath, 
+      mimeType, 
+      mediaType, 
+      skipProcessing,
+      qualityInfo 
+    }: OptimizeRequest = await req.json();
     
-    console.log('Starting optimization for:', { mediaId, originalPath, processedPath, mimeType, mediaType, skipProcessing });
+    console.log('Starting optimization for:', { mediaId, originalPath, processedPaths, thumbnailPath, mimeType, mediaType, skipProcessing });
 
     // Update status to processing
     await supabase
@@ -35,42 +48,31 @@ Deno.serve(async (req) => {
       .update({ processing_status: 'processing' })
       .eq('id', mediaId);
 
-    // Handle pre-processed images (client-side optimization already complete)
-    if (skipProcessing && mediaType === 'image' && processedPath) {
-      console.log('Skipping processing for pre-optimized image, cleaning up original');
+    // Handle pre-processed media (client-side optimization already complete)
+    if (skipProcessing) {
+      console.log(`Cleaning up original file for pre-processed ${mediaType}:`, mediaId);
       
       try {
-        // Delete original file from storage
+        // Delete original file from storage (never keep originals)
         const { error: deleteError } = await supabase.storage
           .from('content')
           .remove([originalPath]);
         
         if (deleteError) {
           console.error('Failed to delete original file:', deleteError);
-          // Don't throw - the processed file is still valid
+          // Don't throw - the processed files are still valid
         }
         
-        // Update database to mark as fully processed
-        const { error: updateError } = await supabase
-          .from('simple_media')
-          .update({ 
-            processing_status: 'processed',
-            processed_at: new Date().toISOString()
-          })
-          .eq('id', mediaId);
-
-        if (updateError) {
-          throw new Error(`Failed to update processed image record: ${updateError.message}`);
-        }
-
-        console.log('Pre-processed image cleanup completed for:', mediaId);
+        console.log(`Pre-processed ${mediaType} cleanup completed for:`, mediaId);
         
         return new Response(
           JSON.stringify({
             success: true,
             mediaId,
-            processedPath,
-            cleanedUp: true
+            processedPaths: processedPaths || { default: processedPath },
+            thumbnailPath,
+            cleanedUp: true,
+            qualityInfo
           }),
           { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -79,14 +81,16 @@ Deno.serve(async (req) => {
         );
         
       } catch (error) {
-        console.error('Cleanup error for pre-processed image:', error);
-        // Don't throw - the image is still processed and usable
+        console.error(`Cleanup error for pre-processed ${mediaType}:`, error);
+        // Don't throw - the media is still processed and usable
         return new Response(
           JSON.stringify({
             success: true,
             mediaId,
-            processedPath,
-            cleanupError: error.message
+            processedPaths: processedPaths || { default: processedPath },
+            thumbnailPath,
+            cleanupError: error.message,
+            qualityInfo
           }),
           { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
