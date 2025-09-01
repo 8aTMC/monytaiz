@@ -5,133 +5,137 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface ThumbnailRequest {
-  bucket: string;
-  path: string;
-  mediaId: string;
-}
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL')!,
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+);
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log('🎬 Video thumbnail generator started');
+
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const { bucket, path, mediaId } = await req.json();
 
-    const { bucket, path, mediaId }: ThumbnailRequest = await req.json();
-    
-    console.log(`Generating thumbnail for video: ${path}`);
+    if (!bucket || !path || !mediaId) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Missing required parameters: bucket, path, mediaId'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
-    // Download the original video
+    console.log(`📹 Generating thumbnail for: ${bucket}/${path}`);
+
+    // Download video file
     const { data: videoData, error: downloadError } = await supabase.storage
       .from(bucket)
       .download(path);
-    
-    if (downloadError) {
-      throw new Error(`Failed to download video: ${downloadError.message}`);
+
+    if (downloadError || !videoData) {
+      throw new Error(`Failed to download video: ${downloadError?.message || 'No data'}`);
     }
 
-    // Write video to temporary file
-    const tempVideoPath = `/tmp/input_${mediaId}.mp4`;
-    const videoBytes = new Uint8Array(await videoData.arrayBuffer());
-    await Deno.writeFile(tempVideoPath, videoBytes);
+    // Write video to temp file
+    const tempVideoPath = `/tmp/video_${mediaId}.mp4`;
+    const videoBuffer = await videoData.arrayBuffer();
+    await Deno.writeFile(tempVideoPath, new Uint8Array(videoBuffer));
 
-    // Generate thumbnail using FFmpeg at 1 second mark
-    const thumbnailPath = `/tmp/thumbnail_${mediaId}.jpg`;
+    console.log(`💾 Video saved to: ${tempVideoPath}`);
+
+    // Generate thumbnail using ffmpeg
+    const thumbnailPath = `/tmp/thumb_${mediaId}.jpg`;
     
-    const ffmpegCommand = new Deno.Command("ffmpeg", {
-      args: [
-        '-i', tempVideoPath,
-        '-ss', '00:00:01',
-        '-vframes', '1',
-        '-q:v', '2',
-        '-vf', 'scale=640:480:force_original_aspect_ratio=decrease,pad=640:480:(ow-iw)/2:(oh-ih)/2',
-        '-y',
-        thumbnailPath
-      ],
-      stdout: "piped",
-      stderr: "piped",
+    const ffmpegArgs = [
+      '-i', tempVideoPath,
+      '-ss', '00:00:01',        // Seek to 1 second
+      '-vframes', '1',          // Extract 1 frame
+      '-q:v', '2',              // High quality
+      '-vf', 'scale=320:240',   // Resize to reasonable thumbnail size
+      '-y',                     // Overwrite existing
+      thumbnailPath
+    ];
+
+    console.log('🔄 Running FFmpeg for thumbnail generation...');
+    
+    const ffmpeg = new Deno.Command('ffmpeg', {
+      args: ffmpegArgs,
+      stdout: 'piped',
+      stderr: 'piped'
     });
 
-    const process = ffmpegCommand.spawn();
-    const { success, stderr } = await process.output();
+    const ffmpegResult = await ffmpeg.output();
 
-    if (!success) {
-      const errorText = new TextDecoder().decode(stderr);
-      console.error('Thumbnail generation failed:', errorText);
-      
-      // Fallback: try first frame
-      const fallbackCommand = new Deno.Command("ffmpeg", {
-        args: [
-          '-i', tempVideoPath,
-          '-vframes', '1',
-          '-q:v', '2',
-          '-vf', 'scale=640:480:force_original_aspect_ratio=decrease,pad=640:480:(ow-iw)/2:(oh-ih)/2',
-          '-y',
-          thumbnailPath
-        ],
-        stdout: "piped",
-        stderr: "piped",
-      });
-
-      const fallbackProcess = fallbackCommand.spawn();
-      const fallbackResult = await fallbackProcess.output();
-      
-      if (!fallbackResult.success) {
-        throw new Error('Both thumbnail extraction methods failed');
-      }
+    if (!ffmpegResult.success) {
+      const stderr = new TextDecoder().decode(ffmpegResult.stderr);
+      throw new Error(`FFmpeg failed: ${stderr}`);
     }
 
-    // Upload thumbnail to Supabase
+    console.log('✅ Thumbnail generated successfully');
+
+    // Read thumbnail and upload to storage
     const thumbnailData = await Deno.readFile(thumbnailPath);
-    const thumbnailFileName = `thumbnails/${mediaId}-thumbnail.jpg`;
-    
+    const thumbnailStoragePath = `thumbnails/${mediaId}.jpg`;
+
     const { error: uploadError } = await supabase.storage
       .from('content')
-      .upload(thumbnailFileName, thumbnailData, {
+      .upload(thumbnailStoragePath, thumbnailData, {
         contentType: 'image/jpeg',
         upsert: true
       });
 
     if (uploadError) {
-      throw new Error(`Failed to upload thumbnail: ${uploadError.message}`);
+      throw new Error(`Thumbnail upload failed: ${uploadError.message}`);
     }
 
-    // Clean up temporary files
+    console.log(`📤 Thumbnail uploaded to: ${thumbnailStoragePath}`);
+
+    // Update media record with thumbnail path
+    const { error: updateError } = await supabase
+      .from('simple_media')
+      .update({
+        thumbnail_path: thumbnailStoragePath,
+        processing_status: 'completed',
+        processed_at: new Date().toISOString()
+      })
+      .eq('id', mediaId);
+
+    if (updateError) {
+      console.error('Failed to update media record:', updateError);
+    }
+
+    // Cleanup temp files
     try {
       await Deno.remove(tempVideoPath);
       await Deno.remove(thumbnailPath);
-    } catch (cleanupError) {
-      console.warn('Failed to cleanup temporary files:', cleanupError);
+    } catch (e) {
+      console.warn('Failed to cleanup temp files:', e);
     }
 
-    console.log(`Thumbnail generated successfully: ${thumbnailFileName}`);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        thumbnailPath: thumbnailFileName
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    return new Response(JSON.stringify({
+      success: true,
+      thumbnailPath: thumbnailStoragePath,
+      message: 'Thumbnail generated successfully'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
-    console.error('Thumbnail generation error:', error);
-    return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        success: false 
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
-      }
-    );
+    console.error('❌ Thumbnail generation error:', error);
+    
+    return new Response(JSON.stringify({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      details: 'Check edge function logs for more information'
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

@@ -126,9 +126,10 @@ export const useSimpleUpload = () => {
         compressionRatio
       });
 
-      // Upload original file
-      console.log('Uploading original file...');
-      const originalUpload = await supabase.storage.from('content').upload(uploadPath, file, { upsert: false });
+      // Upload original file directly to processed folder (skip processing)
+      const processedPath = `processed/${fileId}/${file.name}`;
+      console.log('Uploading original file directly to processed folder...');
+      const originalUpload = await supabase.storage.from('content').upload(processedPath, file, { upsert: false });
       if (originalUpload.error) throw new Error(`Original upload failed: ${originalUpload.error.message}`);
 
       // Upload thumbnail if available
@@ -228,7 +229,9 @@ export const useSimpleUpload = () => {
         compressionRatio, 
         processedSize,
         thumbnailPath,
-        qualityInfo: null // Add qualityInfo for compatibility
+        qualityInfo: file.type.startsWith('video/') ? {
+          original: { path: processedPath, available: true }
+        } : null
       };
 
     } catch (error) {

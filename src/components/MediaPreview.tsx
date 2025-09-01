@@ -123,7 +123,7 @@ export const MediaPreview = ({
           {/* Quality Selector for Videos */}
           {isAdmin && item.media_type === 'video' && Object.keys(qualityUrls).length > 0 && (
             <QualitySelector
-              qualities={qualityUrls}
+              availableQualities={Object.keys(qualityUrls)}
               currentQuality={currentQuality}
               onQualityChange={setCurrentQuality}
               className="justify-center"
