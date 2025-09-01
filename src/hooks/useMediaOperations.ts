@@ -19,7 +19,7 @@ export interface Collection {
 
 export const useMediaOperations = (callbacks?: {
   onRefreshNeeded?: () => void;
-  onCountsRefreshNeeded?: () => void;
+  onCountsRefreshNeeded?: (affectedFolderIds?: string[]) => void;
 }) => {
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
@@ -116,7 +116,7 @@ export const useMediaOperations = (callbacks?: {
 
       // Trigger refresh of content and counts
       callbacks?.onRefreshNeeded?.()
-      callbacks?.onCountsRefreshNeeded?.()
+      callbacks?.onCountsRefreshNeeded?.([folderId])
 
       return data
     } catch (error: any) {
@@ -169,8 +169,9 @@ export const useMediaOperations = (callbacks?: {
         description: `Permanently deleted ${totalFiles} files`
       })
 
-      // Trigger refresh of content and counts
+      // Trigger refresh of content and counts  
       callbacks?.onRefreshNeeded?.()
+      // Don't refresh folder structure for deletions, only refresh counts
       callbacks?.onCountsRefreshNeeded?.()
 
       return { success: true, deleted_count: totalFiles };

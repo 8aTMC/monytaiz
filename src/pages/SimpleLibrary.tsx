@@ -140,9 +140,15 @@ export default function SimpleLibrary() {
     deleteMediaHard 
   } = useMediaOperations({
     onRefreshNeeded: fetchMedia,
-    onCountsRefreshNeeded: () => {
-      fetchFolders();
-      refreshFolderCounts();
+    onCountsRefreshNeeded: (affectedFolderIds?: string[]) => {
+      // Only refresh folder structure if new folders were created (affectedFolderIds indicates copy operation)
+      if (affectedFolderIds?.length) {
+        // For copy operations, refresh the specific folder counts
+        refreshFolderCounts();
+      } else {
+        // For delete operations, only refresh counts without refetching folder structure  
+        refreshFolderCounts();
+      }
     }
   });
 
@@ -498,6 +504,7 @@ export default function SimpleLibrary() {
     if (!selectedItems.size) return;
     
     const itemIds = Array.from(selectedItems);
+    const currentFolder = selectedCategory; // Track current folder when deletion starts
     const isCustomFolder = customFolders.some(folder => folder.id === selectedCategory);
     
     // Optimistic update - immediately clear selection and show success
@@ -524,18 +531,11 @@ export default function SimpleLibrary() {
     try {
       // Perform actual operation in background
       if (isCustomFolder) {
-        // Just remove from folder, don't wait for refresh
-        removeFromFolder(selectedCategory, itemIds).then(() => {
-          // Background refresh of actual counts
-          refreshFolderCounts();
-        });
+        // Just remove from folder - callbacks will handle refresh
+        removeFromFolder(selectedCategory, itemIds);
       } else {
-        // Permanently delete files, don't wait for refresh  
-        deleteMediaHard(itemIds).then(() => {
-          // Background refresh of data
-          fetchMedia();
-          refreshFolderCounts();
-        });
+        // Permanently delete files - callbacks will handle refresh
+        deleteMediaHard(itemIds);
       }
     } catch (error) {
       console.error('Delete error:', error);
