@@ -276,85 +276,106 @@ async function copyToFolder(supabaseClient: any, userId: string, folderId: strin
   try {
     console.log('Copy to folder request:', { userId, folderId, mediaIds: mediaIds.length })
 
-    // Return immediate success response
-    const response = new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: `Copying ${mediaIds.length} items to folder`
-      }),
-      { headers: corsHeaders }
-    )
+    // Validate folder exists and user has access to it
+    const { data: folder, error: folderError } = await supabaseClient
+      .from('file_folders')
+      .select('id, creator_id')
+      .eq('id', folderId)
+      .single()
 
-    // Use background task for actual copy operation
-    EdgeRuntime.waitUntil((async () => {
-      try {
-        // Validate folder exists and user has access to it
-        const { data: folder, error: folderError } = await supabaseClient
-          .from('file_folders')
-          .select('id, creator_id')
-          .eq('id', folderId)
-          .single()
+    if (folderError || !folder || folder.creator_id !== userId) {
+      console.error('Folder validation error:', { folderError, folder, folderId })
+      return new Response(
+        JSON.stringify({ error: 'Folder not found or access denied' }),
+        { status: 403, headers: corsHeaders }
+      )
+    }
 
-        if (folderError || !folder || folder.creator_id !== userId) {
-          console.error('Background folder validation error:', { folderError, folder, folderId })
-          return
-        }
+    // Check what media exists in simple_media table
+    const { data: existingMedia, error: mediaError } = await supabaseClient
+      .from('simple_media')
+      .select('id, creator_id')
+      .in('id', mediaIds)
 
-        // Check what media exists in simple_media table
-        const { data: existingMedia, error: mediaError } = await supabaseClient
-          .from('simple_media')
-          .select('id, creator_id')
-          .in('id', mediaIds)
+    if (mediaError) {
+      console.error('Media validation error:', mediaError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to validate media' }),
+        { status: 500, headers: corsHeaders }
+      )
+    }
 
-        if (mediaError) {
-          console.error('Background media validation error:', mediaError)
-          return
-        }
+    const existingIds = (existingMedia || []).map((item: any) => item.id)
+    
+    if (existingIds.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, message: 'No valid media items found to copy' }),
+        { headers: corsHeaders }
+      )
+    }
+    
+    // Check for existing entries to avoid duplicates
+    const { data: existingEntries, error: existingError } = await supabaseClient
+      .from('file_folder_contents')
+      .select('media_id')
+      .eq('folder_id', folderId)
+      .in('media_id', existingIds)
 
-        const existingIds = (existingMedia || []).map((item: any) => item.id)
-        
-        // Check for existing entries to avoid duplicates
-        const { data: existingEntries, error: existingError } = await supabaseClient
-          .from('file_folder_contents')
-          .select('media_id')
-          .eq('folder_id', folderId)
-          .in('media_id', existingIds)
+    if (existingError) {
+      console.error('Existing entries check error:', existingError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to check existing entries' }),
+        { status: 500, headers: corsHeaders }
+      )
+    }
 
-        if (existingError) {
-          console.error('Background existing entries check error:', existingError)
-          return
-        }
+    // Filter out already existing entries
+    const alreadyInFolder = (existingEntries || []).map((item: any) => item.media_id)
+    const itemsToInsert = existingIds
+      .filter(id => !alreadyInFolder.includes(id))
+      .map(mediaId => ({
+        folder_id: folderId,
+        media_id: mediaId,
+        added_by: userId
+      }))
 
-        // Filter out already existing entries
-        const alreadyInFolder = (existingEntries || []).map((item: any) => item.media_id)
-        const itemsToInsert = existingIds
-          .filter(id => !alreadyInFolder.includes(id))
-          .map(mediaId => ({
-            folder_id: folderId,
-            media_id: mediaId,
-            added_by: userId
-          }))
+    if (itemsToInsert.length > 0) {
+      // Bulk insert new entries - this is synchronous and will complete before returning
+      const { error: insertError } = await supabaseClient
+        .from('file_folder_contents')    
+        .insert(itemsToInsert)
 
-        if (itemsToInsert.length > 0) {
-          // Bulk insert new entries
-          const { error: insertError } = await supabaseClient
-            .from('file_folder_contents')
-            .insert(itemsToInsert)
-
-          if (insertError) {
-            console.error('Background insert error:', insertError)
-          } else {
-            console.log(`Successfully copied ${itemsToInsert.length} items to folder ${folderId}`)
-          }
-        } else {
-          console.log('All items were already in the folder')
-        }
-      } catch (bgError) {
-        console.error('Background copy task error:', bgError)
+      if (insertError) {
+        console.error('Insert error:', insertError)
+        return new Response(
+          JSON.stringify({ error: 'Failed to copy items to folder' }),
+          { status: 500, headers: corsHeaders }
+        )
       }
-    })())
 
-    return response
+      console.log(`Successfully copied ${itemsToInsert.length} items to folder ${folderId}`)
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: `Successfully copied ${itemsToInsert.length} items to folder`,
+          copiedCount: itemsToInsert.length,
+          skippedCount: alreadyInFolder.length
+        }),
+        { headers: corsHeaders }
+      )
+    } else {
+      console.log('All items were already in the folder')
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'All items were already in the folder',
+          copiedCount: 0,
+          skippedCount: alreadyInFolder.length
+        }),
+        { headers: corsHeaders }
+      )
+    }
   } catch (error: any) {
     console.error('Copy to folder error:', error)
     return new Response(

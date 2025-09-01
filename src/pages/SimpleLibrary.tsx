@@ -76,15 +76,35 @@ export default function SimpleLibrary() {
 
   // Fetch counts for all custom folders
   const refreshFolderCounts = useCallback(async (folders?: any[]) => {
-    const foldersToCount = folders || customFolders;
-    if (!foldersToCount.length) return;
-
+    console.log('Refreshing folder counts...');
+    
     try {
+      // If no folders provided, get the latest list from the database
+      let foldersToCount = folders;
+      if (!foldersToCount) {
+        const { data: latestFolders, error: foldersError } = await supabase
+          .from('file_folders')
+          .select('id, name')
+          .order('created_at', { ascending: false });
+        
+        if (foldersError) {
+          console.error('Error fetching folders for count refresh:', foldersError);
+          return;
+        }
+        
+        foldersToCount = latestFolders || [];
+      }
+      
+      if (!foldersToCount.length) {
+        console.log('No folders to count');
+        return;
+      }
+
       const counts: Record<string, number> = {};
       
-      // Fetch count for each folder
-      await Promise.all(
-        foldersToCount.map(async (folder) => {
+      // Fetch count for each folder with better error handling
+      const countPromises = foldersToCount.map(async (folder) => {
+        try {
           const { count, error } = await supabase
             .from('file_folder_contents')
             .select('*', { count: 'exact' })
@@ -92,18 +112,25 @@ export default function SimpleLibrary() {
           
           if (!error) {
             counts[folder.id] = count || 0;
+            console.log(`Folder ${folder.name || folder.id}: ${count || 0} items`);
           } else {
-            console.error(`Error counting folder ${folder.id}:`, error);
+            console.error(`Error counting folder ${folder.name || folder.id}:`, error);
             counts[folder.id] = 0;
           }
-        })
-      );
+        } catch (err) {
+          console.error(`Exception counting folder ${folder.name || folder.id}:`, err);
+          counts[folder.id] = 0;
+        }
+      });
       
+      await Promise.all(countPromises);
+      
+      console.log('Updated folder counts:', counts);
       setFolderCounts(counts);
     } catch (error: any) {
       console.error('Error refreshing folder counts:', error);
     }
-  }, [customFolders]);
+  }, []); // Remove customFolders dependency to avoid race conditions
   
   // Media operations
   const { 
@@ -433,12 +460,15 @@ export default function SimpleLibrary() {
     try {
       const itemIds = Array.from(selectedItems);
       
-      // Copy to each selected folder
-      for (const folderId of folderIds) {
-        await copyToCollection(folderId, itemIds);
-      }
+      // Copy to each selected folder and wait for completion
+      const copyResults = await Promise.all(
+        folderIds.map(folderId => copyToCollection(folderId, itemIds))
+      );
       
-      // Refresh folder counts and content after successful copy
+      // Small delay to ensure database transaction is fully committed
+      await new Promise(resolve => setTimeout(resolve, 250));
+      
+      // Refresh folder counts after all copies are complete
       await refreshFolderCounts();
       
       // If currently viewing a folder that was copied to, refresh its content
@@ -451,9 +481,16 @@ export default function SimpleLibrary() {
       toast({
         title: "Success",
         description: `Copied ${itemIds.length} item(s) to ${folderIds.length} folder(s)`,
+        duration: 3000
       });
     } catch (error) {
       console.error('Copy error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to copy items. Please try again.",
+        variant: "destructive",
+        duration: 3000
+      });
     }
   }, [selectedItems, copyToCollection, handleClearSelection, toast, refreshFolderCounts, customFolders, selectedCategory, fetchFolderContent]);
 
