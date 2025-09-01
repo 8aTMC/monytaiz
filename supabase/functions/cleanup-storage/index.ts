@@ -120,24 +120,20 @@ Deno.serve(async (req) => {
       result.errors.push(`Error cleaning empty folders: ${folderError}`);
     }
 
+    console.log('Cleanup completed:', result);
+    
+    return json({
+      success: result.errors.length === 0,
+      ...result,
+      message: `Cleanup completed: ${result.deletedFiles} files deleted, ${result.clearedReferences} references cleared, ${result.errors.length} errors`
+    });
+
   } catch (error) {
-    result.errors.push(`Unexpected error: ${error instanceof Error ? error.message : String(error)}`);
+    console.error('Clean incoming error:', error);
+    return json({ 
+      success: false,
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : String(error)
+    }, 500);
   }
-
-  console.log('Cleanup completed:', result);
-  
-  return json({
-    success: result.errors.length === 0,
-    ...result,
-    message: `Cleanup completed: ${result.deletedFiles} files deleted, ${result.clearedReferences} references cleared, ${result.errors.length} errors`
-  });
-
-} catch (error) {
-  console.error('Clean incoming error:', error);
-  return json({ 
-    success: false,
-    error: 'Internal server error',
-    message: error instanceof Error ? error.message : String(error)
-  }, 500);
-}
 });
