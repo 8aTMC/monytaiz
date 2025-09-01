@@ -35,6 +35,7 @@ export default function SimpleLibrary() {
   const [foldersLoading, setFoldersLoading] = useState(false);
   const [folderContent, setFolderContent] = useState<string[]>([]);
   const [folderContentLoading, setFolderContentLoading] = useState(false);
+  const [folderCounts, setFolderCounts] = useState<Record<string, number>>({});
   const { toast } = useToast();
 
   // Fetch folders from database
@@ -58,6 +59,9 @@ export default function SimpleLibrary() {
       }));
 
       setCustomFolders(folders);
+      
+      // Fetch counts for all folders
+      await refreshFolderCounts(folders);
     } catch (error: any) {
       console.error('Error fetching folders:', error);
       toast({
@@ -69,11 +73,45 @@ export default function SimpleLibrary() {
       setFoldersLoading(false);
     }
   }, [toast]);
+
+  // Fetch counts for all custom folders
+  const refreshFolderCounts = useCallback(async (folders?: any[]) => {
+    const foldersToCount = folders || customFolders;
+    if (!foldersToCount.length) return;
+
+    try {
+      const counts: Record<string, number> = {};
+      
+      // Fetch count for each folder
+      await Promise.all(
+        foldersToCount.map(async (folder) => {
+          const { count, error } = await supabase
+            .from('file_folder_contents')
+            .select('*', { count: 'exact' })
+            .eq('folder_id', folder.id);
+          
+          if (!error) {
+            counts[folder.id] = count || 0;
+          } else {
+            console.error(`Error counting folder ${folder.id}:`, error);
+            counts[folder.id] = 0;
+          }
+        })
+      );
+      
+      setFolderCounts(counts);
+    } catch (error: any) {
+      console.error('Error refreshing folder counts:', error);
+    }
+  }, [customFolders]);
   
   // Media operations
   const { copyToCollection, loading: mediaOperationsLoading } = useMediaOperations({
     onRefreshNeeded: fetchMedia,
-    onCountsRefreshNeeded: fetchFolders
+    onCountsRefreshNeeded: () => {
+      fetchFolders();
+      refreshFolderCounts();
+    }
   });
 
   useEffect(() => {
@@ -169,8 +207,13 @@ export default function SimpleLibrary() {
       // Check if it's a custom folder
       const isCustomFolder = customFolders.some(folder => folder.id === selectedCategory);
       if (isCustomFolder) {
-        // Filter media to only show items in the selected folder
-        filtered = filtered.filter(item => folderContent.includes(item.id));
+        // Only show items in the selected folder if we have folder content loaded
+        if (folderContent.length > 0) {
+          filtered = filtered.filter(item => folderContent.includes(item.id));
+        } else {
+          // No content loaded yet, show empty
+          return [];
+        }
       } else {
         // For other categories (stories, livestreams, messages), return empty for now
         return [];
@@ -214,7 +257,7 @@ export default function SimpleLibrary() {
     });
     
     return sorted;
-  }, [convertedMedia, searchQuery, selectedFilter, sortBy, selectedCategory]);
+  }, [convertedMedia, searchQuery, selectedFilter, sortBy, selectedCategory, customFolders, folderContent]);
 
   // Default categories for sidebar - stable
   const defaultCategories = useMemo(() => [
@@ -257,17 +300,13 @@ export default function SimpleLibrary() {
       'messages': 0
     };
     
-    // Add counts for custom folders
+    // Add counts for custom folders from the folderCounts state
     customFolders.forEach(folder => {
-      if (selectedCategory === folder.id) {
-        counts[folder.id] = folderContent.length;
-      } else {
-        counts[folder.id] = 0; // We could fetch counts for all folders, but it's expensive
-      }
+      counts[folder.id] = folderCounts[folder.id] || 0;
     });
     
     return counts;
-  }, [media.length, customFolders, selectedCategory, folderContent.length]);
+  }, [media.length, customFolders, folderCounts]);
 
   // Selection handlers - stable
   const handleToggleItem = useCallback((itemId: string) => {
@@ -366,12 +405,13 @@ export default function SimpleLibrary() {
     setSelectedCategory(categoryId);
     handleClearSelection();
     
+    // Clear folder content first to avoid showing wrong content
+    setFolderContent([]);
+    
     // If selecting a custom folder, fetch its content
     const isCustomFolder = customFolders.some(folder => folder.id === categoryId);
     if (isCustomFolder) {
       fetchFolderContent(categoryId);
-    } else {
-      setFolderContent([]);
     }
   }, [handleClearSelection, customFolders, fetchFolderContent]);
 
@@ -393,11 +433,24 @@ export default function SimpleLibrary() {
         await copyToCollection(folderId, itemIds);
       }
       
+      // Refresh folder counts and content after successful copy
+      await refreshFolderCounts();
+      
+      // If currently viewing a folder that was copied to, refresh its content
+      if (customFolders.some(folder => folder.id === selectedCategory) && folderIds.includes(selectedCategory)) {
+        fetchFolderContent(selectedCategory);
+      }
+      
       handleClearSelection();
+      
+      toast({
+        title: "Success",
+        description: `Copied ${itemIds.length} item(s) to ${folderIds.length} folder(s)`,
+      });
     } catch (error) {
       console.error('Copy error:', error);
     }
-  }, [selectedItems, copyToCollection, handleClearSelection, toast]);
+  }, [selectedItems, copyToCollection, handleClearSelection, toast, refreshFolderCounts, customFolders, selectedCategory, fetchFolderContent]);
 
   const handleDelete = useCallback(() => {
     // TODO: Implement delete functionality
