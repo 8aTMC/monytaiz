@@ -24,6 +24,12 @@ interface RemoveFromCollectionRequest {
   media_ids: string[]
 }
 
+interface RemoveFromFolderRequest {
+  action: 'remove_from_folder'
+  folder_id: string
+  media_ids: string[]
+}
+
 interface DeleteMediaRequest {
   action: 'delete_media_hard'
   media_ids: string[]
@@ -47,7 +53,7 @@ interface ForceDeleteGhostFilesRequest {
   media_ids?: string[]
 }
 
-type RequestBody = CopyToCollectionRequest | CopyToFolderRequest | RemoveFromCollectionRequest | DeleteMediaRequest | CreateCollectionRequest | StorageOptimizationRequest | CleanOrphanedRecordsRequest | ForceDeleteGhostFilesRequest
+type RequestBody = CopyToCollectionRequest | CopyToFolderRequest | RemoveFromCollectionRequest | RemoveFromFolderRequest | DeleteMediaRequest | CreateCollectionRequest | StorageOptimizationRequest | CleanOrphanedRecordsRequest | ForceDeleteGhostFilesRequest
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -102,6 +108,9 @@ serve(async (req) => {
       
       case 'remove_from_collection':
         return await removeFromCollection(supabaseClient, user.id, body.collection_id, body.media_ids)
+      
+      case 'remove_from_folder':
+        return await removeFromFolder(supabaseClient, user.id, body.folder_id, body.media_ids)
       
       case 'delete_media_hard':
         return await deleteMediaHard(supabaseClient, user.id, body.media_ids)
@@ -433,6 +442,62 @@ async function removeFromCollection(supabaseClient: any, userId: string, collect
     )
   } catch (error) {
     console.error('Remove from collection error:', error)
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: corsHeaders }
+    )
+  }
+}
+
+async function removeFromFolder(supabaseClient: any, userId: string, folderId: string, mediaIds: string[]) {
+  try {
+    console.log('Remove from folder request:', { userId, folderId, mediaIds: mediaIds.length })
+
+    // Validate folder exists and user has access to it
+    const { data: folder, error: folderError } = await supabaseClient
+      .from('file_folders')
+      .select('id, creator_id')
+      .eq('id', folderId)
+      .single()
+
+    if (folderError || !folder) {
+      console.error('Folder validation error:', { folderError, folder, folderId })
+      return new Response(
+        JSON.stringify({ error: 'Folder not found or access denied' }),
+        { status: 404, headers: corsHeaders }
+      )
+    }
+
+    // Verify user has permission to remove from this folder
+    if (folder.creator_id !== userId) {
+      console.error('Permission denied:', { folderCreatorId: folder.creator_id, userId })
+      return new Response(
+        JSON.stringify({ error: 'Permission denied: folder does not belong to user' }),
+        { status: 403, headers: corsHeaders }
+      )
+    }
+
+    // Delete from file_folder_contents
+    const { error } = await supabaseClient
+      .from('file_folder_contents')
+      .delete()
+      .eq('folder_id', folderId)
+      .in('media_id', mediaIds)
+
+    if (error) {
+      console.error('Remove from folder error:', error)
+      return new Response(
+        JSON.stringify({ error: 'Failed to remove from folder' }),
+        { status: 500, headers: corsHeaders }
+      )
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, message: `Removed ${mediaIds.length} items from folder` }),
+      { headers: corsHeaders }
+    )
+  } catch (error) {
+    console.error('Remove from folder error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: corsHeaders }

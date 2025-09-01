@@ -96,6 +96,42 @@ export const useMediaOperations = (callbacks?: {
     }
   }
 
+  const removeFromFolder = async (folderId: string, mediaIds: string[]) => {
+    setLoading(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('media-operations', {
+        body: {
+          action: 'remove_from_folder',
+          folder_id: folderId,
+          media_ids: mediaIds
+        }
+      })
+
+      if (error) throw error
+
+      toast({
+        title: "Success",
+        description: data.message || `Removed ${mediaIds.length} items from folder`
+      })
+
+      // Trigger refresh of content and counts
+      callbacks?.onRefreshNeeded?.()
+      callbacks?.onCountsRefreshNeeded?.()
+
+      return data
+    } catch (error: any) {
+      console.error('Remove from folder error:', error)
+      toast({
+        title: "Error", 
+        description: error.message || "Failed to remove from folder",
+        variant: "destructive"
+      })
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const deleteMediaHard = async (
     mediaIds: string[], 
     onProgress?: (deletedCount: number, totalCount: number) => void
@@ -190,6 +226,7 @@ export const useMediaOperations = (callbacks?: {
     loading,
     copyToCollection,
     removeFromCollection,
+    removeFromFolder,
     deleteMediaHard,
     createCollection
   }

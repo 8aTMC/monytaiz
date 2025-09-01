@@ -106,7 +106,12 @@ export default function SimpleLibrary() {
   }, [customFolders]);
   
   // Media operations
-  const { copyToCollection, loading: mediaOperationsLoading } = useMediaOperations({
+  const { 
+    loading: mediaOperationsLoading, 
+    copyToCollection, 
+    removeFromFolder,
+    deleteMediaHard 
+  } = useMediaOperations({
     onRefreshNeeded: fetchMedia,
     onCountsRefreshNeeded: () => {
       fetchFolders();
@@ -452,10 +457,49 @@ export default function SimpleLibrary() {
     }
   }, [selectedItems, copyToCollection, handleClearSelection, toast, refreshFolderCounts, customFolders, selectedCategory, fetchFolderContent]);
 
-  const handleDelete = useCallback(() => {
-    // TODO: Implement delete functionality
+  const handleDelete = useCallback(async () => {
+    if (!selectedItems.size) return;
+    
     console.log('Delete selected items');
-  }, []);
+    const itemIds = Array.from(selectedItems);
+    
+    try {
+      // Check if we're in a custom folder - if so, remove from folder only
+      const isCustomFolder = customFolders.some(folder => folder.id === selectedCategory);
+      if (isCustomFolder) {
+        await removeFromFolder(selectedCategory, itemIds);
+        
+        // Refresh folder content and counts
+        await Promise.all([
+          fetchFolderContent(selectedCategory),
+          refreshFolderCounts()
+        ]);
+      } else {
+        // For 'all' category, permanently delete the files
+        await deleteMediaHard(itemIds);
+        
+        // Refresh all data
+        await Promise.all([
+          fetchMedia(),
+          refreshFolderCounts()
+        ]);
+      }
+      
+      handleClearSelection();
+      
+      toast({
+        title: "Success",
+        description: `${isCustomFolder ? 'Removed' : 'Deleted'} ${itemIds.length} item(s)`,
+      });
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete items",
+        variant: "destructive"
+      });
+    }
+  }, [selectedItems, selectedCategory, removeFromFolder, deleteMediaHard, fetchFolderContent, refreshFolderCounts, fetchMedia, handleClearSelection, toast, customFolders]);
 
   return (
     <>
