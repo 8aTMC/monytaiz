@@ -245,14 +245,23 @@ export default function SimpleLibrary() {
 
   // Stable item click handler
   const handleItemClick = useCallback((item: any, event: React.MouseEvent, index: number) => {
-    console.log('Item clicked:', item.id, index);
+    console.log('Item clicked:', item.id, index, 'detail:', event.detail);
     event.preventDefault();
     event.stopPropagation();
     
-    if (selecting) {
+    // Check if this is a double-click (force preview regardless of selection mode)
+    if (event.detail === 2) {
+      console.log('Double-click detected - forcing preview');
+      const originalItem = media.find(m => m.id === item.id);
+      if (originalItem) {
+        setSelectedItem(originalItem);
+        setIsPreviewOpen(true);
+      }
+    } else if (selecting) {
+      // Single click in selection mode - toggle selection
       handleToggleItem(item.id);
     } else {
-      // Find original item for preview
+      // Single click in normal mode - open preview
       const originalItem = media.find(m => m.id === item.id);
       if (originalItem) {
         setSelectedItem(originalItem);
