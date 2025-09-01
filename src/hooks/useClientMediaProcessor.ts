@@ -9,13 +9,21 @@ export interface ProcessingProgress {
 }
 
 export interface ProcessedMedia {
+  id: string;
   original: File;
-  processed: File;
+  originalFile: File; // Alias for compatibility  
+  processed?: File;
   thumbnail: Blob | null;
+  processedBlobs: Map<string, Blob>;
+  tinyPlaceholder: string | null;
   metadata: {
     width: number;
     height: number;
     duration: number;
+    format: string;
+    originalSize: number;
+    processedSize: number;
+    compressionRatio: number;
   };
 }
 
@@ -241,17 +249,20 @@ export const useClientMediaProcessor = () => {
 
       return {
         id: crypto.randomUUID(),
-        originalFile: file,
-        processedBlobs,
+        original: file,
+        originalFile: file, // Alias for compatibility
+        thumbnail: result.blob, // Use the actual blob instead of canvas data URL
+        processedBlobs: processedBlobs,
+        tinyPlaceholder: placeholder,
         metadata: {
           width: result.width,
           height: result.height,
-          format: result.blob.type,
+          duration: 0,
+          format: result.blob.type.includes('webp') ? 'webp' : 'jpeg',
           originalSize: file.size,
           processedSize: result.blob.size,
-          compressionRatio
-        },
-        tinyPlaceholder: placeholder
+          compressionRatio: Math.round(((file.size - result.blob.size) / file.size) * 100)
+        }
       };
     } catch (error) {
       console.error('Image processing failed:', error);
@@ -302,15 +313,15 @@ export const useClientMediaProcessor = () => {
           
           if ('requestVideoFrameCallback' in video) {
             video.currentTime = seekTime;
-            (video as any).requestVideoFrameCallback(captureFrame);
+            (video as HTMLVideoElement & { requestVideoFrameCallback: any }).requestVideoFrameCallback(captureFrame);
           } else {
             const handleSeeked = () => {
-              video.removeEventListener('seeked', handleSeeked);
+              (video as HTMLVideoElement).removeEventListener('seeked', handleSeeked);
               captureFrame();
             };
             
-            video.addEventListener('seeked', handleSeeked);
-            video.currentTime = seekTime;
+            (video as HTMLVideoElement).addEventListener('seeked', handleSeeked);
+            (video as HTMLVideoElement).currentTime = seekTime;
           }
         };
         
@@ -363,26 +374,44 @@ export const useClientMediaProcessor = () => {
         progress: 100
       });
 
-      // Return original file - backend will compress
       return {
+        id: crypto.randomUUID(),
         original: file,
-        processed: file, // Upload original, backend compresses
+        originalFile: file, // Alias for compatibility
+        processed: file,
         thumbnail,
-        metadata
+        processedBlobs: new Map(),
+        tinyPlaceholder: null,
+        metadata: {
+          width: metadata.width,
+          height: metadata.height,
+          duration: metadata.duration,
+          format: 'mp4',
+          originalSize: file.size,
+          processedSize: file.size,
+          compressionRatio: 1
+        }
       };
 
     } catch (error) {
       console.error('❌ Video processing failed:', error);
       
-      // Fallback: return original file without thumbnail
       return {
+        id: crypto.randomUUID(),
         original: file,
+        originalFile: file, // Alias for compatibility
         processed: file,
         thumbnail: null,
+        processedBlobs: new Map(),
+        tinyPlaceholder: null,
         metadata: {
           width: 0,
           height: 0,
-          duration: 0
+          duration: 0,
+          format: 'mp4',
+          originalSize: file.size,
+          processedSize: file.size,
+          compressionRatio: 1
         }
       };
     }
@@ -399,18 +428,20 @@ export const useClientMediaProcessor = () => {
 
       return {
         id: crypto.randomUUID(),
-        originalFile: file,
+        original: file,
+        originalFile: file, // Alias for compatibility
+        thumbnail: null,
         processedBlobs,
+        tinyPlaceholder: placeholder,
         metadata: {
           width: 0,
           height: 0,
           duration: 0,
-          format: file.type,
+          format: file.type.split('/')[1] || 'audio',
           originalSize: file.size,
           processedSize: file.size,
           compressionRatio: 0
-        },
-        tinyPlaceholder: placeholder
+        }
       };
     } catch (error) {
       console.error('Audio processing failed:', error);
@@ -482,17 +513,20 @@ export const useClientMediaProcessor = () => {
           const placeholder = await createTinyPlaceholder(file);
           const fallbackMedia: ProcessedMedia = {
             id: crypto.randomUUID(),
-            originalFile: file,
+            original: file,
+            originalFile: file, // Alias for compatibility
+            thumbnail: null,
             processedBlobs: new Map<string, Blob>(),
+            tinyPlaceholder: placeholder,
             metadata: {
               width: 0,
               height: 0,
+              duration: 0,
               format: file.type,
               originalSize: file.size,
               processedSize: file.size,
               compressionRatio: 0
-            },
-            tinyPlaceholder: placeholder
+            }
           };
           processedFiles.push(fallbackMedia);
           setProcessingQueue(prev => [...prev, fallbackMedia]);

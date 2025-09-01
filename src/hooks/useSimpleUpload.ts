@@ -227,7 +227,8 @@ export const useSimpleUpload = () => {
         ...mediaRecord, 
         compressionRatio, 
         processedSize,
-        thumbnailPath 
+        thumbnailPath,
+        qualityInfo: null // Add qualityInfo for compatibility
       };
 
     } catch (error) {
