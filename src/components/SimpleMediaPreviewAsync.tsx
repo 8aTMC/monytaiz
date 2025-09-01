@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { X, Download, AtSign, Hash, FolderOpen, FileText, DollarSign } from 'lucide-react';
 import { SimpleMediaItem, useSimpleMedia } from '@/hooks/useSimpleMedia';
@@ -143,7 +144,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
 
   if (!isOpen) return null;
 
-  return (
+  return ReactDOM.createPortal(
     <>
       {/* Custom overlay that covers EVERYTHING including sidebar */}
       <div 
@@ -408,6 +409,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
           />
         </>
       )}
-    </>
+    </>,
+    document.body
   );
 };
