@@ -85,11 +85,13 @@ export const useSimpleUpload = () => {
       let height: number | undefined;
       let qualityInfo: any = {};
 
-      // Validate video files before processing
+      // Check if we can do client-side video processing
+      let canClientProcess = true;
       if (mediaType === 'video') {
         const validation = await canProcessVideo(file);
         if (!validation.canProcess) {
-          throw new Error(validation.reason || 'Video cannot be processed');
+          console.log('Client-side video processing not available, will use server-side processing:', validation.reason);
+          canClientProcess = false;
         }
       }
 
@@ -132,7 +134,7 @@ export const useSimpleUpload = () => {
           // Continue with original file - server will handle processing
         }
 
-      } else if (mediaType === 'video') {
+      } else if (mediaType === 'video' && canClientProcess) {
         setUploadProgress({
           phase: 'processing',
           progress: 10,
@@ -215,8 +217,19 @@ export const useSimpleUpload = () => {
           }
         } catch (error) {
           console.error('Client-side video processing failed:', error);
-          throw new Error('Video processing failed. Please try a smaller file or different format.');
+          console.log('Will fall back to server-side processing');
+          // Continue without client-side processing - server will handle it
         }
+
+      } else if (mediaType === 'video' && !canClientProcess) {
+        setUploadProgress({
+          phase: 'processing',
+          progress: 30,
+          message: 'Will process video on server...',
+          originalSize,
+          processedSize: originalSize,
+          compressionRatio: 0
+        });
 
       } else if (mediaType === 'audio') {
         setUploadProgress({
