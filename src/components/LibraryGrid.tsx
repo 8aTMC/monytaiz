@@ -19,6 +19,7 @@ interface MediaItem {
   created_at: string;
   updated_at: string;
   tiny_placeholder?: string;
+  thumbnail_path?: string;
   width?: number;
   height?: number;
 }
@@ -148,6 +149,7 @@ const LibraryGridComponent = ({
                   storage_path: item.storage_path,
                   title: item.title,
                   tiny_placeholder: item.tiny_placeholder,
+                  thumbnail_path: item.thumbnail_path,
                   width: item.width,
                   height: item.height
                 }}
