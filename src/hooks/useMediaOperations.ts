@@ -39,7 +39,8 @@ export const useMediaOperations = (callbacks?: {
 
       toast({
         title: "Success",
-        description: data.message || `Copied ${mediaIds.length} items to collection`
+        description: data.message || `Copied ${mediaIds.length} items to collection`,
+        duration: 3000
       })
 
       // Trigger refresh of content and counts
@@ -75,7 +76,8 @@ export const useMediaOperations = (callbacks?: {
 
       toast({
         title: "Success",
-        description: data.message || `Removed ${mediaIds.length} items from collection`
+        description: data.message || `Removed ${mediaIds.length} items from collection`,
+        duration: 3000
       })
 
       // Trigger refresh of content and counts
@@ -111,7 +113,8 @@ export const useMediaOperations = (callbacks?: {
 
       toast({
         title: "Success",
-        description: data.message || `Removed ${mediaIds.length} items from folder`
+        description: data.message || `Removed ${mediaIds.length} items from folder`,
+        duration: 3000
       })
 
       // Trigger refresh of content and counts
@@ -166,7 +169,8 @@ export const useMediaOperations = (callbacks?: {
 
       toast({
         title: "Success",
-        description: `Permanently deleted ${totalFiles} files`
+        description: `Permanently deleted ${totalFiles} files`,
+        duration: 3000
       })
 
       // Trigger refresh of content and counts  
@@ -202,7 +206,8 @@ export const useMediaOperations = (callbacks?: {
 
       toast({
         title: "Success",
-        description: data.message || `Created collection "${name}"`
+        description: data.message || `Created collection "${name}"`,
+        duration: 3000
       })
 
       // Trigger refresh of content and counts for new collection

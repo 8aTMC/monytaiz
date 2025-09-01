@@ -419,45 +419,42 @@ async function removeFromFolder(supabaseClient: any, userId: string, folderId: s
   try {
     console.log('Remove from folder request:', { userId, folderId, mediaIds: mediaIds.length })
 
-    // Return immediate success response
-    const response = new Response(
-      JSON.stringify({ success: true, message: `Removing ${mediaIds.length} items from folder` }),
+    // Validate folder exists and user has access to it
+    const { data: folder, error: folderError } = await supabaseClient
+      .from('file_folders')
+      .select('id, creator_id')
+      .eq('id', folderId)
+      .single()
+
+    if (folderError || !folder || folder.creator_id !== userId) {
+      console.error('Folder validation error:', { folderError, folder, folderId })
+      return new Response(
+        JSON.stringify({ error: 'Folder not found or access denied' }),
+        { status: 403, headers: corsHeaders }
+      )
+    }
+
+    // Bulk delete from file_folder_contents synchronously
+    const { error } = await supabaseClient
+      .from('file_folder_contents')
+      .delete()
+      .eq('folder_id', folderId)
+      .in('media_id', mediaIds)
+
+    if (error) {
+      console.error('Remove from folder error:', error)
+      return new Response(
+        JSON.stringify({ error: 'Failed to remove from folder' }),
+        { status: 500, headers: corsHeaders }
+      )
+    }
+
+    console.log(`Successfully removed ${mediaIds.length} items from folder ${folderId}`)
+
+    return new Response(
+      JSON.stringify({ success: true, message: `Removed ${mediaIds.length} items from folder` }),
       { headers: corsHeaders }
     )
-
-    // Use background task for actual deletion
-    EdgeRuntime.waitUntil((async () => {
-      try {
-        // Validate folder exists and user has access to it
-        const { data: folder, error: folderError } = await supabaseClient
-          .from('file_folders')
-          .select('id, creator_id')
-          .eq('id', folderId)
-          .single()
-
-        if (folderError || !folder || folder.creator_id !== userId) {
-          console.error('Folder validation error in background:', { folderError, folder, folderId })
-          return
-        }
-
-        // Bulk delete from file_folder_contents
-        const { error } = await supabaseClient
-          .from('file_folder_contents')
-          .delete()
-          .eq('folder_id', folderId)
-          .in('media_id', mediaIds)
-
-        if (error) {
-          console.error('Background remove from folder error:', error)
-        } else {
-          console.log(`Successfully removed ${mediaIds.length} items from folder ${folderId}`)
-        }
-      } catch (bgError) {
-        console.error('Background task error:', bgError)
-      }
-    })())
-
-    return response
   } catch (error) {
     console.error('Remove from folder error:', error)
     return new Response(
