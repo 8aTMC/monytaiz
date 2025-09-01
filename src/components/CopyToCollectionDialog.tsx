@@ -11,12 +11,12 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Search, Plus, Folder } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
-import { useMediaOperations } from '@/hooks/useMediaOperations'
+
 
 interface Collection {
   id: string
   name: string
-  system: boolean
+  color?: string
 }
 
 interface CopyToCollectionDialogProps {
@@ -36,7 +36,7 @@ export const CopyToCollectionDialog: React.FC<CopyToCollectionDialogProps> = ({
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set())
   const [showNewFolder, setShowNewFolder] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
-  const { createCollection, loading: createLoading } = useMediaOperations()
+  const [createLoading, setCreateLoading] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -48,9 +48,8 @@ export const CopyToCollectionDialog: React.FC<CopyToCollectionDialogProps> = ({
     setLoading(true)
     try {
       const { data, error } = await supabase
-        .from('collections')
-        .select('id, name, system')
-        .eq('system', false)
+        .from('file_folders')
+        .select('id, name, color')
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -64,15 +63,28 @@ export const CopyToCollectionDialog: React.FC<CopyToCollectionDialogProps> = ({
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return
-
+    
+    setCreateLoading(true)
     try {
-      const newCollection = await createCollection(newFolderName.trim())
-      setCollections(prev => [newCollection, ...prev])
+      const { data: newFolder, error } = await supabase
+        .from('file_folders')
+        .insert({
+          name: newFolderName.trim(),
+          color: '#3B82F6'
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      setCollections(prev => [newFolder, ...prev])
       setNewFolderName('')
       setShowNewFolder(false)
-      setSelectedFolders(new Set([newCollection.id]))
+      setSelectedFolders(new Set([newFolder.id]))
     } catch (error) {
       console.error('Error creating folder:', error)
+    } finally {
+      setCreateLoading(false)
     }
   }
 
