@@ -9,16 +9,21 @@ import { Upload, Zap, TrendingDown, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { FileUploadRowWithMetadata, UploadedFileWithMetadata } from '@/components/FileUploadRowWithMetadata';
 import { DetailedUploadProgressBar } from '@/components/DetailedUploadProgressBar';
+import { VideoValidationError } from '@/components/VideoValidationError';
 
 export default function SimpleUpload() {
   const navigate = useNavigate();
   const { uploading, uploadFile, uploadProgress, isProcessing } = useSimpleUpload();
-  const [files, setFiles] = useState<(UploadedFileWithMetadata & { compressionRatio?: number; processedSize?: number; qualityInfo?: any })[]>([]);
+  const [files, setFiles] = useState<(UploadedFileWithMetadata & { 
+    compressionRatio?: number; 
+    processedSize?: number; 
+    qualityInfo?: any;
+  })[]>([]);
   const [currentUploadProgress, setCurrentUploadProgress] = useState(0);
   const [currentUploadingFile, setCurrentUploadingFile] = useState<string | null>(null);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    const newFiles: (UploadedFileWithMetadata & { compressionRatio?: number; processedSize?: number })[] = acceptedFiles.map(file => ({
+    const newFiles = acceptedFiles.map(file => ({
       file,
       id: crypto.randomUUID(),
       status: 'uploading' as const,
@@ -53,9 +58,23 @@ export default function SimpleUpload() {
             : f
         ));
       } catch (error) {
+        console.error('Upload failed:', error);
+        
+        // Check if it's a validation error
+        const isValidationError = error instanceof Error && (
+          error.message.includes('File too large') ||
+          error.message.includes('Resolution too high') ||
+          error.message.includes('Video processing not available') ||
+          error.message.includes('cannot be processed')
+        );
+        
         setFiles(prev => prev.map(f => 
           f.id === fileToUpload.id 
-            ? { ...f, status: 'error', error: error instanceof Error ? error.message : 'Upload failed' }
+            ? { 
+                ...f, 
+                status: isValidationError ? 'validation_error' as const : 'error' as const,
+                error: error instanceof Error ? error.message : 'Upload failed' 
+              }
             : f
         ));
       }
@@ -246,76 +265,86 @@ export default function SimpleUpload() {
             </div>
             
             {files.map((uploadedFile) => (
-              <Card key={uploadedFile.id} className="p-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="flex-shrink-0 w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
-                        <Upload className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                      
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">{uploadedFile.file.name}</p>
-                        <div className="text-xs text-muted-foreground">
-                          {formatSizeComparison(
-                            uploadedFile.file.size, 
-                            uploadedFile.processedSize, 
-                            uploadedFile.compressionRatio
+              <div key={uploadedFile.id}>
+                {uploadedFile.status === 'validation_error' && uploadedFile.error ? (
+                  <VideoValidationError
+                    error={uploadedFile.error}
+                    file={uploadedFile.file}
+                    onRemove={() => removeFile(uploadedFile.id)}
+                  />
+                ) : (
+                  <Card className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="flex-shrink-0 w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                            <Upload className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                          
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{uploadedFile.file.name}</p>
+                            <div className="text-xs text-muted-foreground">
+                              {formatSizeComparison(
+                                uploadedFile.file.size, 
+                                uploadedFile.processedSize, 
+                                uploadedFile.compressionRatio
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          {uploadedFile.status === 'completed' && uploadedFile.compressionRatio && uploadedFile.compressionRatio > 0 && (
+                            <div className="text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full">
+                              {uploadedFile.compressionRatio}% saved
+                            </div>
                           )}
+                          
+                          <div className="text-xs px-2 py-1 rounded-full capitalize" style={{
+                            backgroundColor: uploadedFile.status === 'completed' ? 'hsl(var(--success) / 0.1)' : 
+                                           uploadedFile.status === 'error' ? 'hsl(var(--destructive) / 0.1)' : 'hsl(var(--muted))',
+                            color: uploadedFile.status === 'completed' ? 'hsl(var(--success))' : 
+                                   uploadedFile.status === 'error' ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))'
+                          }}>
+                            {uploadedFile.status}
+                          </div>
+                          
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => removeFile(uploadedFile.id)}
+                            disabled={uploading}
+                          >
+                            Remove
+                          </Button>
                         </div>
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      {uploadedFile.status === 'completed' && uploadedFile.compressionRatio && uploadedFile.compressionRatio > 0 && (
-                        <div className="text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full">
-                          {uploadedFile.compressionRatio}% saved
+
+                      {/* Quality breakdown for video files */}
+                      {uploadedFile.qualityInfo && uploadedFile.file.type.startsWith('video/') && (
+                        <div className="bg-muted/30 rounded-lg p-3">
+                          <p className="text-xs font-medium text-muted-foreground mb-2">Quality Variants Generated</p>
+                          <div className="grid grid-cols-3 gap-2 text-xs">
+                            {Object.entries(uploadedFile.qualityInfo).map(([quality, info]: [string, any]) => (
+                              <div key={quality} className="bg-background rounded p-2">
+                                <p className="font-medium">{quality}</p>
+                                <p className="text-muted-foreground">{formatFileSize(info.size || 0)}</p>
+                                {info.compressionRatio && (
+                                  <p className="text-emerald-600">-{info.compressionRatio}%</p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
                       
-                      <div className="text-xs px-2 py-1 rounded-full capitalize" style={{
-                        backgroundColor: uploadedFile.status === 'completed' ? 'hsl(var(--success) / 0.1)' : 
-                                       uploadedFile.status === 'error' ? 'hsl(var(--destructive) / 0.1)' : 'hsl(var(--muted))',
-                        color: uploadedFile.status === 'completed' ? 'hsl(var(--success))' : 
-                               uploadedFile.status === 'error' ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))'
-                      }}>
-                        {uploadedFile.status}
-                      </div>
-                      
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => removeFile(uploadedFile.id)}
-                        disabled={uploading}
-                      >
-                        Remove
-                      </Button>
+                      {uploadedFile.error && uploadedFile.status !== 'validation_error' && (
+                        <p className="text-xs text-destructive mt-2">{uploadedFile.error}</p>
+                      )}
                     </div>
-                  </div>
-
-                  {/* Quality breakdown for video files */}
-                  {uploadedFile.qualityInfo && uploadedFile.file.type.startsWith('video/') && (
-                    <div className="bg-muted/30 rounded-lg p-3">
-                      <p className="text-xs font-medium text-muted-foreground mb-2">Quality Variants Generated</p>
-                      <div className="grid grid-cols-3 gap-2 text-xs">
-                        {Object.entries(uploadedFile.qualityInfo).map(([quality, info]: [string, any]) => (
-                          <div key={quality} className="bg-background rounded p-2">
-                            <p className="font-medium">{quality}</p>
-                            <p className="text-muted-foreground">{formatFileSize(info.size || 0)}</p>
-                            {info.compressionRatio && (
-                              <p className="text-emerald-600">-{info.compressionRatio}%</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {uploadedFile.error && (
-                    <p className="text-xs text-destructive mt-2">{uploadedFile.error}</p>
-                  )}
-                </div>
-              </Card>
+                  </Card>
+                )}
+              </div>
             ))}
           </div>
         )}

@@ -43,7 +43,7 @@ export const useSimpleUpload = () => {
     message: 'Starting...'
   });
   const { toast } = useToast();
-  const { processFiles, isProcessing, progress: processingProgress } = useClientMediaProcessor();
+  const { processFiles, isProcessing, progress: processingProgress, canProcessVideo } = useClientMediaProcessor();
 
   const uploadFile = useCallback(async (file: File) => {
     setUploading(true);
@@ -84,6 +84,14 @@ export const useSimpleUpload = () => {
       let width: number | undefined;
       let height: number | undefined;
       let qualityInfo: any = {};
+
+      // Validate video files before processing
+      if (mediaType === 'video') {
+        const validation = await canProcessVideo(file);
+        if (!validation.canProcess) {
+          throw new Error(validation.reason || 'Video cannot be processed');
+        }
+      }
 
       // Process media client-side for format conversion and compression
       if (mediaType === 'image') {
@@ -206,16 +214,8 @@ export const useSimpleUpload = () => {
             });
           }
         } catch (error) {
-          console.warn('Client-side video processing failed, will use server-side processing:', error);
-          // Continue with original file - server will handle processing
-          setUploadProgress({
-            phase: 'processing',
-            progress: 30,
-            message: 'Processing video on server...',
-            originalSize,
-            processedSize: originalSize,
-            compressionRatio: 0
-          });
+          console.error('Client-side video processing failed:', error);
+          throw new Error('Video processing failed. Please try a smaller file or different format.');
         }
 
       } else if (mediaType === 'audio') {

@@ -26,7 +26,7 @@ import { SimpleMediaItem } from '@/hooks/useSimpleMedia';
 export interface UploadedFileWithMetadata {
   file: File;
   id: string;
-  status: 'uploading' | 'completed' | 'error';
+  status: 'uploading' | 'completed' | 'error' | 'validation_error';
   error?: string;
   metadata: {
     mentions: string[];

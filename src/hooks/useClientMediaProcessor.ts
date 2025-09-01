@@ -74,7 +74,69 @@ export const useClientMediaProcessor = () => {
     }
   }, []);
 
-  // Fallback processing for environments without SharedArrayBuffer
+  // Check video dimensions and file size
+  const getVideoInfo = useCallback((file: File): Promise<{ width: number; height: number; duration: number }> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      const url = URL.createObjectURL(file);
+      
+      video.onloadedmetadata = () => {
+        URL.revokeObjectURL(url);
+        resolve({
+          width: video.videoWidth,
+          height: video.videoHeight,
+          duration: video.duration
+        });
+      };
+      
+      video.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Failed to load video metadata'));
+      };
+      
+      video.src = url;
+    });
+  }, []);
+
+  // Validate if we can process this video
+  const canProcessVideo = useCallback(async (file: File): Promise<{ canProcess: boolean; reason?: string; info?: any }> => {
+    const maxFileSize = 200 * 1024 * 1024; // 200MB limit
+    const maxResolution = 1920; // 1080p width limit
+    
+    if (file.size > maxFileSize) {
+      return { 
+        canProcess: false, 
+        reason: `File too large (${Math.round(file.size / 1024 / 1024)}MB). Maximum: 200MB` 
+      };
+    }
+
+    try {
+      const info = await getVideoInfo(file);
+      
+      if (info.width > maxResolution || info.height > maxResolution) {
+        return { 
+          canProcess: false, 
+          reason: `Resolution too high (${info.width}x${info.height}). Maximum: 1920x1080` 
+        };
+      }
+
+      if (!checkFFmpegSupport()) {
+        return { 
+          canProcess: false, 
+          reason: 'Video processing not available in this environment (requires SharedArrayBuffer)' 
+        };
+      }
+
+      return { canProcess: true, info };
+    } catch (error) {
+      return { 
+        canProcess: false, 
+        reason: 'Failed to analyze video file' 
+      };
+    }
+  }, [checkFFmpegSupport, getVideoInfo]);
+
+  // Fallback processing - DO NOT USE ORIGINAL FILE
   const processVideoFallback = useCallback(async (file: File): Promise<{
     video_480p?: Blob;
     video_720p?: Blob;
@@ -86,54 +148,9 @@ export const useClientMediaProcessor = () => {
     compressionRatio: number;
     qualityInfo: any;
   }> => {
-    console.log('Using fallback video processing (server-side)');
-    
-    // For fallback, we'll return the original file as 480p and generate a placeholder thumbnail
-    const canvas = getCanvas();
-    const ctx = canvas.getContext('2d');
-    
-    // Create a simple placeholder thumbnail
-    canvas.width = 640;
-    canvas.height = 480;
-    if (ctx) {
-      const gradient = ctx.createLinearGradient(0, 0, 640, 480);
-      gradient.addColorStop(0, '#1f2937');
-      gradient.addColorStop(1, '#374151');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, 640, 480);
-      
-      // Add play icon
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-      ctx.beginPath();
-      ctx.moveTo(240, 180);
-      ctx.lineTo(400, 240);
-      ctx.lineTo(240, 300);
-      ctx.closePath();
-      ctx.fill();
-      
-      // Add text
-      ctx.fillStyle = 'white';
-      ctx.font = '16px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('Video Thumbnail', 320, 350);
-      ctx.fillText(`${file.name}`, 320, 370);
-    }
-    
-    return new Promise((resolve) => {
-      canvas.toBlob((thumbnailBlob) => {
-        resolve({
-          video_480p: file, // Use original file for now
-          thumbnail: thumbnailBlob || new Blob([''], { type: 'image/jpeg' }),
-          width: 854,
-          height: 480,
-          compressionRatio: 0, // No compression in fallback
-          qualityInfo: {
-            '480p': { size: file.size, bitrate: 'original' }
-          }
-        });
-      }, 'image/jpeg', 0.8);
-    });
-  }, [getCanvas]);
+    // This should never be called now - we validate before processing
+    throw new Error('Video processing fallback should not be used. Use server-side processing instead.');
+  }, []);
 
   // Fallback processing for audio without FFmpeg
   const processAudioFallback = useCallback(async (file: File): Promise<{
@@ -766,6 +783,7 @@ export const useClientMediaProcessor = () => {
     progress,
     processingQueue,
     checkFFmpegSupport,
+    canProcessVideo,
     cleanup
   };
 };
