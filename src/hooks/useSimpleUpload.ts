@@ -78,8 +78,8 @@ export const useSimpleUpload = () => {
                        file.type.startsWith('video/') ? 'video' : 
                        file.type.startsWith('audio/') ? 'audio' : 'image';
 
-      // Always use incoming folder for processing
-      const uploadPath = `incoming/${fileId}-${file.name}`;
+      // Upload directly to processed folder (no processing needed)
+      const uploadPath = `processed/${fileId}-${file.name}`;
       
       let thumbnailPath: string | undefined;
       let thumbnailBlob: Blob | undefined;
@@ -103,10 +103,10 @@ export const useSimpleUpload = () => {
             const result = processedFiles[0];
             const baseName = file.name.split('.')[0];
             
-            // Store thumbnail
+            // Store thumbnail in thumbnails folder
             if (result.thumbnail) {
               thumbnailBlob = result.thumbnail;
-              thumbnailPath = `processed/thumbnails/${fileId}-${baseName}_thumb.jpg`;
+              thumbnailPath = `thumbnails/${fileId}-${baseName}_thumb.jpg`;
             }
             
             width = result.metadata.width;
@@ -183,40 +183,11 @@ export const useSimpleUpload = () => {
         compressionRatio
       });
 
-      // Trigger video processing for video files
-      if (file.type.startsWith('video/')) {
-        console.log('📡 Triggering video processing for compression...');
-        
-        try {
-          // Call video-processor-v2 for intelligent compression
-          const { data: processResult, error: processError } = await supabase.functions.invoke('video-processor-v2', {
-            body: {
-              streamingMode: true,
-              bucket: 'content',
-              path: uploadPath,
-              fileName: file.name,
-              targetQualities: ['original', '1080p', '720p', '480p'],
-              mediaId: mediaRecord.id
-            }
-          });
-
-          if (processError) {
-            console.warn('⚠️ Video processing failed but upload succeeded:', processError);
-          } else {
-            console.log('✅ Video processing completed:', processResult);
-          }
-        } catch (processError) {
-          console.warn('⚠️ Video processing failed but upload succeeded:', processError);
-        }
-      } else if (processMedia) {
-        // Regular post-processing for non-video files
-        try {
-          await processMedia('content', uploadPath, true);
-          console.log('✅ Post-processing completed');
-        } catch (postProcessError) {
-          console.warn('⚠️ Post-processing failed but upload succeeded:', postProcessError);
-        }
-      }
+      console.log('✅ File uploaded successfully:', { 
+        id: mediaRecord.id, 
+        path: uploadPath,
+        thumbnailPath 
+      });
 
       toast({
         title: "Upload successful",
