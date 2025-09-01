@@ -100,13 +100,13 @@ export const useClientMediaProcessor = () => {
 
   // Validate if we can process this video
   const canProcessVideo = useCallback(async (file: File): Promise<{ canProcess: boolean; reason?: string; info?: any }> => {
-    const maxFileSize = 200 * 1024 * 1024; // 200MB limit
-    const maxResolution = 1920; // 1080p width limit
+    const maxFileSize = 9216 * 1024 * 1024; // 9GB limit (9,216 MB)
+    const maxResolution = 4096; // 4K width limit (will be downscaled to 1080p)
     
     if (file.size > maxFileSize) {
       return { 
         canProcess: false, 
-        reason: `File too large (${Math.round(file.size / 1024 / 1024)}MB). Maximum: 200MB` 
+        reason: `File too large (${Math.round(file.size / 1024 / 1024)}MB). Maximum: 9,216MB` 
       };
     }
 
@@ -116,7 +116,7 @@ export const useClientMediaProcessor = () => {
       if (info.width > maxResolution || info.height > maxResolution) {
         return { 
           canProcess: false, 
-          reason: `Resolution too high (${info.width}x${info.height}). Maximum: 1920x1080` 
+          reason: `Resolution too high (${info.width}x${info.height}). Maximum: 4096x4096` 
         };
       }
 
