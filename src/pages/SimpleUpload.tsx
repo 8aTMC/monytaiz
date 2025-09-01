@@ -166,21 +166,29 @@ export default function SimpleUpload() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">
-              {reviewMode ? 'Review Files' : 'Upload Media'}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {reviewMode 
-                ? 'Review your selected files before uploading. You can edit metadata and remove files.'
-                : 'Upload media files with maximum compression. Videos converted to WebM (480p/720p/1080p), audio to Opus format. Never keeps originals.'
-              }
-            </p>
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">
+                {reviewMode ? 'Review Files' : 'Upload Media'}
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                {reviewMode 
+                  ? 'Review your selected files before uploading. You can edit metadata and remove files.'
+                  : 'Upload media files with maximum compression. Videos converted to WebM (480p/720p/1080p), audio to Opus format. Never keeps originals.'
+                }
+              </p>
+            </div>
+            
+            {hasCompletedFiles && !reviewMode && (
+              <Button onClick={() => navigate('/library')}>
+                View Library ({completedFiles})
+              </Button>
+            )}
           </div>
           
           {reviewMode && files.length > 0 && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 mt-4">
               <Button 
                 variant="outline" 
                 onClick={clearUpload}
@@ -197,12 +205,6 @@ export default function SimpleUpload() {
                 Start Upload ({files.length} files)
               </Button>
             </div>
-          )}
-          
-          {hasCompletedFiles && !reviewMode && (
-            <Button onClick={() => navigate('/library')}>
-              View Library ({completedFiles})
-            </Button>
           )}
         </div>
 
