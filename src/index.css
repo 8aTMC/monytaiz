@@ -224,7 +224,8 @@ div[aria-label="Chat messages"]::-webkit-scrollbar {
   width: 100vw !important;
   height: 100vh !important;
   background-color: rgba(0, 0, 0, 0.8) !important;
-  z-index: 999999 !important;
+  backdrop-filter: blur(4px) !important;
+  z-index: 2147483647 !important; /* Maximum z-index value */
   pointer-events: auto !important;
 }
 
