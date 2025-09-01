@@ -249,12 +249,25 @@ export default function SimpleLibrary() {
   ], []);
 
   // Category counts - stable
-  const categoryCounts = useMemo(() => ({
-    'all-files': media.length,
-    'stories': 0,
-    'livestreams': 0,
-    'messages': 0
-  }), [media.length]);
+  const categoryCounts = useMemo(() => {
+    const counts = {
+      'all-files': media.length,
+      'stories': 0,
+      'livestreams': 0,
+      'messages': 0
+    };
+    
+    // Add counts for custom folders
+    customFolders.forEach(folder => {
+      if (selectedCategory === folder.id) {
+        counts[folder.id] = folderContent.length;
+      } else {
+        counts[folder.id] = 0; // We could fetch counts for all folders, but it's expensive
+      }
+    });
+    
+    return counts;
+  }, [media.length, customFolders, selectedCategory, folderContent.length]);
 
   // Selection handlers - stable
   const handleToggleItem = useCallback((itemId: string) => {
@@ -478,14 +491,14 @@ export default function SimpleLibrary() {
                   selectedCount={selectedItems.size}
                   totalCount={filteredMedia.length}
                   currentView={selectedCategory}
-                  isCustomFolder={false}
+                  isCustomFolder={customFolders.some(folder => folder.id === selectedCategory)}
                   onClearSelection={handleClearSelection}
                   onSelectAll={handleSelectAll}
                   onCopy={handleCopy}
                   onDelete={handleDelete}
                 />
               )}
-              {loading ? (
+              {loading || folderContentLoading ? (
                 <LibraryGrid
                   content={[]}
                   selectedItems={selectedItems}
@@ -507,18 +520,22 @@ export default function SimpleLibrary() {
                 <div className="flex flex-col items-center justify-center h-64 text-center">
                   <FileImage className="h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold text-foreground mb-2">
-                    {media.length === 0 ? 'No content yet' : 'No matches found'}
+                    {media.length === 0 ? 'No content yet' : 
+                     customFolders.some(folder => folder.id === selectedCategory) ? 'Folder is empty' : 
+                     'No matches found'}
                   </h3>
                   <p className="text-muted-foreground">
                     {media.length === 0 
                       ? 'Upload some content to get started with your library.'
+                      : customFolders.some(folder => folder.id === selectedCategory)
+                      ? 'Copy some files to this folder to see them here.'
                       : 'Try adjusting your search or filter criteria.'
                     }
                   </p>
                 </div>
               ) : (
                 <LibraryGrid
-                  content={convertedMedia}
+                  content={filteredMedia}
                   selectedItems={selectedItems}
                   selecting={selecting}
                   onItemClick={handleItemClick}
