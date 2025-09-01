@@ -33,6 +33,14 @@ async function processVideoWithFFmpeg(
   compressionInfo: { [quality: string]: { size: number; bitrate: string; compressionRatio: number } };
   totalCompressedSize: number;
 }> {
+  console.log(`Starting video processing for ${fileName}`);
+  console.log(`Available memory: ${Math.round(Deno.memoryUsage().rss / 1024 / 1024)}MB`);
+  
+  // Memory check before processing
+  const memUsage = Deno.memoryUsage();
+  if (memUsage.rss > 120 * 1024 * 1024) { // 120MB threshold
+    throw new Error('Insufficient memory for video processing');
+  }
   const results: { [quality: string]: string } = {};
   const compressionInfo: { [quality: string]: { size: number; bitrate: string; compressionRatio: number } } = {};
   let totalCompressedSize = 0;
@@ -73,18 +81,24 @@ async function processVideoWithFFmpeg(
         continue;
     }
 
+    // Use more aggressive compression settings to reduce memory usage
     const ffmpegCommand = new Deno.Command("ffmpeg", {
       args: [
         '-i', inputPath,
         '-c:v', 'libvpx-vp9',
         '-crf', crf,
         '-b:v', bitrate,
+        '-maxrate', bitrate,
+        '-bufsize', (parseInt(bitrate.replace('k', '')) * 2) + 'k',
         '-vf', scale,
         '-c:a', 'libopus',
         '-b:a', '64k',
-        '-deadline', 'good',
-        '-cpu-used', '1',
-        '-row-mt', '1',
+        '-threads', '2', // Limit threads to reduce memory usage
+        '-deadline', 'realtime', // Faster but larger files
+        '-cpu-used', '4', // Faster encoding, less memory
+        '-tile-columns', '1',
+        '-tile-rows', '0',
+        '-frame-parallel', '0', // Disable frame parallelism to save memory
         '-y',
         outputPath
       ],

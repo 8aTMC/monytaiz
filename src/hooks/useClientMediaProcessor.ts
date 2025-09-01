@@ -66,10 +66,20 @@ export const useClientMediaProcessor = () => {
   // Check if ffmpeg.wasm is supported
   const checkFFmpegSupport = useCallback(() => {
     try {
-      return typeof Worker !== 'undefined' && 
-             typeof SharedArrayBuffer !== 'undefined' && 
-             crossOriginIsolated;
-    } catch {
+      const hasWorker = typeof Worker !== 'undefined';
+      const hasSharedArrayBuffer = typeof SharedArrayBuffer !== 'undefined';
+      const isCrossOriginIsolated = crossOriginIsolated;
+      
+      console.log('FFmpeg Support Check:', {
+        hasWorker,
+        hasSharedArrayBuffer,
+        isCrossOriginIsolated,
+        userAgent: navigator.userAgent
+      });
+      
+      return hasWorker && hasSharedArrayBuffer && isCrossOriginIsolated;
+    } catch (error) {
+      console.error('FFmpeg support check failed:', error);
       return false;
     }
   }, []);
@@ -123,7 +133,8 @@ export const useClientMediaProcessor = () => {
       if (!checkFFmpegSupport()) {
         return { 
           canProcess: false, 
-          reason: 'Video processing not available in this environment (requires SharedArrayBuffer)' 
+          reason: 'Client-side video processing unavailable. Server-side processing will be used instead.',
+          info 
         };
       }
 

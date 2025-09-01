@@ -47,3 +47,9 @@ verify_jwt = true
 
 [functions.video-processor]
 verify_jwt = true
+
+[functions.video-thumbnail]
+verify_jwt = true
+
+[functions.media-optimizer]
+verify_jwt = true
