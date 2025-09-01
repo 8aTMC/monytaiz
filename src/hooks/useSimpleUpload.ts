@@ -161,7 +161,7 @@ export const useSimpleUpload = () => {
           processed_path: uploadPath,
           thumbnail_path: thumbnailPath,
           media_type: mediaType,
-          processing_status: 'pending',
+          processing_status: 'processed',
           width: width,
           height: height,
           tags: []
