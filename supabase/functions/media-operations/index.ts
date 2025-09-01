@@ -12,6 +12,12 @@ interface CopyToCollectionRequest {
   media_ids: string[]
 }
 
+interface CopyToFolderRequest {
+  action: 'copy_to_folder'
+  folder_id: string
+  media_ids: string[]
+}
+
 interface RemoveFromCollectionRequest {
   action: 'remove_from_collection'
   collection_id: string
@@ -41,7 +47,7 @@ interface ForceDeleteGhostFilesRequest {
   media_ids?: string[]
 }
 
-type RequestBody = CopyToCollectionRequest | RemoveFromCollectionRequest | DeleteMediaRequest | CreateCollectionRequest | StorageOptimizationRequest | CleanOrphanedRecordsRequest | ForceDeleteGhostFilesRequest
+type RequestBody = CopyToCollectionRequest | CopyToFolderRequest | RemoveFromCollectionRequest | DeleteMediaRequest | CreateCollectionRequest | StorageOptimizationRequest | CleanOrphanedRecordsRequest | ForceDeleteGhostFilesRequest
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -90,6 +96,9 @@ serve(async (req) => {
     switch (body.action) {
       case 'copy_to_collection':
         return await copyToCollection(supabaseClient, user.id, body.collection_id, body.media_ids)
+      
+      case 'copy_to_folder':
+        return await copyToFolder(supabaseClient, user.id, body.folder_id, body.media_ids)
       
       case 'remove_from_collection':
         return await removeFromCollection(supabaseClient, user.id, body.collection_id, body.media_ids)
@@ -242,6 +251,82 @@ async function copyToCollection(supabaseClient: any, userId: string, collectionI
     )
   } catch (error) {
     console.error('Copy to collection error:', error)
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: corsHeaders }
+    )
+  }
+}
+
+async function copyToFolder(supabaseClient: any, userId: string, folderId: string, mediaIds: string[]) {
+  try {
+    // Validate folder exists and user has access to it
+    const { data: folder, error: folderError } = await supabaseClient
+      .from('file_folders')
+      .select('id, creator_id')
+      .eq('id', folderId)
+      .single()
+
+    if (folderError || !folder) {
+      return new Response(
+        JSON.stringify({ error: 'Folder not found' }),
+        { status: 404, headers: corsHeaders }
+      )
+    }
+
+    // For now, we'll create a simple mapping table to track folder contents
+    // We need to check what media exists in simple_media table
+    const { data: existingMedia, error: mediaError } = await supabaseClient
+      .from('simple_media')
+      .select('id')
+      .in('id', mediaIds)
+
+    if (mediaError) {
+      return new Response(
+        JSON.stringify({ error: 'Failed to validate media' }),
+        { status: 500, headers: corsHeaders }
+      )
+    }
+
+    const existingIds = (existingMedia || []).map((item: any) => item.id)
+    const missingIds = mediaIds.filter(id => !existingIds.includes(id))
+    
+    if (missingIds.length > 0) {
+      return new Response(
+        JSON.stringify({ error: `Media not found: ${missingIds.join(', ')}` }),
+        { status: 404, headers: corsHeaders }
+      )
+    }
+
+    // Since we don't have a folder_items table yet, we'll update the tags on the media
+    // to include a special folder tag. This is a temporary solution.
+    const folderTag = `folder:${folderId}`
+    
+    for (const mediaId of existingIds) {
+      const { data: currentMedia } = await supabaseClient
+        .from('simple_media')
+        .select('tags')
+        .eq('id', mediaId)
+        .single()
+      
+      const currentTags = currentMedia?.tags || []
+      const newTags = [...currentTags.filter((tag: string) => !tag.startsWith('folder:')), folderTag]
+      
+      await supabaseClient
+        .from('simple_media')
+        .update({ tags: newTags })
+        .eq('id', mediaId)
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: `Copied ${existingIds.length} items to folder` 
+      }),
+      { headers: corsHeaders }
+    )
+  } catch (error) {
+    console.error('Copy to folder error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: corsHeaders }

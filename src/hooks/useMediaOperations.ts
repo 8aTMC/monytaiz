@@ -29,8 +29,8 @@ export const useMediaOperations = (callbacks?: {
     try {
       const { data, error } = await supabase.functions.invoke('media-operations', {
         body: {
-          action: 'copy_to_collection',
-          collection_id: collectionId,
+          action: 'copy_to_folder',
+          folder_id: collectionId,
           media_ids: mediaIds
         }
       })

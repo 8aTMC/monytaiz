@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Database, MessageSquare, Zap, FileImage, Search, Folder } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useMediaOperations } from '@/hooks/useMediaOperations';
 
 export default function SimpleLibrary() {
   const { media, loading, error, fetchMedia, getFullUrlAsync } = useSimpleMedia();
@@ -66,6 +67,12 @@ export default function SimpleLibrary() {
       setFoldersLoading(false);
     }
   }, [toast]);
+  
+  // Media operations
+  const { copyToCollection, loading: mediaOperationsLoading } = useMediaOperations({
+    onRefreshNeeded: fetchMedia,
+    onCountsRefreshNeeded: fetchFolders
+  });
 
   useEffect(() => {
     fetchMedia();
@@ -315,10 +322,29 @@ export default function SimpleLibrary() {
     handleClearSelection();
   }, [handleClearSelection]);
 
-  const handleCopy = useCallback((collectionIds: string[]) => {
-    // TODO: Implement copy functionality
-    console.log('Copy items to collections:', collectionIds);
-  }, []);
+  const handleCopy = useCallback(async (folderIds: string[]) => {
+    if (selectedItems.size === 0 || folderIds.length === 0) {
+      toast({
+        title: "Error",
+        description: "No items or folders selected",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      const itemIds = Array.from(selectedItems);
+      
+      // Copy to each selected folder
+      for (const folderId of folderIds) {
+        await copyToCollection(folderId, itemIds);
+      }
+      
+      handleClearSelection();
+    } catch (error) {
+      console.error('Copy error:', error);
+    }
+  }, [selectedItems, copyToCollection, handleClearSelection, toast]);
 
   const handleDelete = useCallback(() => {
     // TODO: Implement delete functionality
