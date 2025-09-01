@@ -3,14 +3,37 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useClientMediaProcessor } from './useClientMediaProcessor';
 
-interface UploadProgress {
+interface QualityProgress {
+  resolution: string;
+  targetSize?: number;
+  actualSize?: number;
+  compressionRatio?: number;
+  encodingProgress: number;
+  status: 'pending' | 'processing' | 'complete' | 'error';
+}
+
+interface ProcessingPhase {
+  name: string;
+  progress: number;
+  status: 'pending' | 'active' | 'complete' | 'error';
+}
+
+interface DetailedUploadProgress {
   phase: 'processing' | 'uploading' | 'complete';
   progress: number;
   message: string;
   originalSize?: number;
   processedSize?: number;
   compressionRatio?: number;
+  bytesUploaded?: number;
+  totalBytes?: number;
+  uploadSpeed?: string;
+  eta?: string;
+  qualityProgress?: Record<string, QualityProgress>;
+  processingPhases?: ProcessingPhase[];
 }
+
+interface UploadProgress extends DetailedUploadProgress {}
 
 export const useSimpleUpload = () => {
   const [uploading, setUploading] = useState(false);
@@ -117,18 +140,46 @@ export const useSimpleUpload = () => {
             const result = processedFiles[0];
             const baseName = file.name.split('.')[0];
             
+            // Initialize quality progress tracking
+            const qualityProgress: Record<string, QualityProgress> = {
+              '480p': { resolution: '480p', encodingProgress: 0, status: 'pending' },
+              '720p': { resolution: '720p', encodingProgress: 0, status: 'pending' },
+              '1080p': { resolution: '1080p', encodingProgress: 0, status: 'pending' }
+            };
+            
             // Store all quality variants
             if (result.processedFiles.video_480p) {
               processedBlobs['480p'] = result.processedFiles.video_480p;
               processedPaths['480p'] = `processed/${fileId}-${baseName}_480p.webm`;
+              qualityProgress['480p'] = {
+                resolution: '480p',
+                actualSize: result.processedFiles.video_480p.size,
+                compressionRatio: Math.round(((originalSize - result.processedFiles.video_480p.size) / originalSize) * 100),
+                encodingProgress: 100,
+                status: 'complete'
+              };
             }
             if (result.processedFiles.video_720p) {
               processedBlobs['720p'] = result.processedFiles.video_720p;
               processedPaths['720p'] = `processed/${fileId}-${baseName}_720p.webm`;
+              qualityProgress['720p'] = {
+                resolution: '720p',
+                actualSize: result.processedFiles.video_720p.size,
+                compressionRatio: Math.round(((originalSize - result.processedFiles.video_720p.size) / originalSize) * 100),
+                encodingProgress: 100,
+                status: 'complete'
+              };
             }
             if (result.processedFiles.video_1080p) {
               processedBlobs['1080p'] = result.processedFiles.video_1080p;
               processedPaths['1080p'] = `processed/${fileId}-${baseName}_1080p.webm`;
+              qualityProgress['1080p'] = {
+                resolution: '1080p',
+                actualSize: result.processedFiles.video_1080p.size,
+                compressionRatio: Math.round(((originalSize - result.processedFiles.video_1080p.size) / originalSize) * 100),
+                encodingProgress: 100,
+                status: 'complete'
+              };
             }
             
             // Store thumbnail
@@ -150,7 +201,8 @@ export const useSimpleUpload = () => {
               message: `Video converted (${compressionRatio}% reduction)`,
               originalSize,
               processedSize,
-              compressionRatio
+              compressionRatio,
+              qualityProgress
             });
           }
         } catch (error) {
@@ -220,40 +272,58 @@ export const useSimpleUpload = () => {
         compressionRatio
       });
 
-      // Build upload promises for all files
-      const uploadPromises = [
-        // Always upload original to incoming/
-        supabase.storage.from('content').upload(originalPath, file, { upsert: false })
-      ];
+      // Calculate total bytes to upload
+      const totalUploadBytes = file.size + Object.values(processedBlobs).reduce((sum, blob) => sum + blob.size, 0) + (thumbnailBlob?.size || 0);
+      let uploadedBytes = 0;
+      const uploadStartTime = Date.now();
 
-      // Upload processed files
-      Object.entries(processedBlobs).forEach(([quality, blob]) => {
+      // Helper function to update upload progress
+      const updateUploadProgress = (additionalBytes: number) => {
+        uploadedBytes += additionalBytes;
+        const elapsed = (Date.now() - uploadStartTime) / 1000;
+        const speed = elapsed > 0 ? uploadedBytes / elapsed : 0;
+        const remaining = totalUploadBytes - uploadedBytes;
+        const eta = speed > 0 ? remaining / speed : 0;
+        
+        setUploadProgress({
+          phase: 'uploading',
+          progress: 60 + (uploadedBytes / totalUploadBytes) * 20,
+          message: `Uploading files... ${Math.round((uploadedBytes / totalUploadBytes) * 100)}%`,
+          originalSize,
+          processedSize,
+          compressionRatio,
+          bytesUploaded: uploadedBytes,
+          totalBytes: totalUploadBytes,
+          uploadSpeed: `${(speed / (1024 * 1024)).toFixed(1)} MB/s`,
+          eta: eta > 0 ? `${Math.round(eta)}s remaining` : undefined
+        });
+      };
+
+      // Upload original file with progress tracking
+      console.log('Uploading original file...');
+      const originalUpload = await supabase.storage.from('content').upload(originalPath, file, { upsert: false });
+      if (originalUpload.error) throw new Error(`Original upload failed: ${originalUpload.error.message}`);
+      updateUploadProgress(file.size);
+
+      // Upload processed files sequentially with progress tracking
+      for (const [quality, blob] of Object.entries(processedBlobs)) {
         const path = processedPaths[quality];
         if (path && blob) {
-          uploadPromises.push(
-            supabase.storage.from('content').upload(path, blob, { upsert: false })
-          );
+          console.log(`Uploading ${quality} variant...`);
+          const upload = await supabase.storage.from('content').upload(path, blob, { upsert: false });
+          if (upload.error) throw new Error(`${quality} upload failed: ${upload.error.message}`);
+          updateUploadProgress(blob.size);
         }
-      });
+      }
 
       // Upload thumbnail if available
       if (thumbnailBlob && thumbnailPath) {
-        uploadPromises.push(
-          supabase.storage.from('content').upload(thumbnailPath, thumbnailBlob, { upsert: false })
-        );
+        console.log('Uploading thumbnail...');
+        const thumbnailUpload = await supabase.storage.from('content').upload(thumbnailPath, thumbnailBlob, { upsert: false });
+        if (thumbnailUpload.error) throw new Error(`Thumbnail upload failed: ${thumbnailUpload.error.message}`);
+        updateUploadProgress(thumbnailBlob.size);
       }
 
-      const uploadResults = await Promise.all(uploadPromises);
-
-      // Check for upload errors
-      for (let i = 0; i < uploadResults.length; i++) {
-        if (uploadResults[i].error) {
-          const fileName = i === 0 ? 'original' : 
-                         i === uploadResults.length - 1 && thumbnailPath ? 'thumbnail' : 
-                         `processed variant ${i}`;
-          throw new Error(`${fileName} upload failed: ${uploadResults[i].error.message}`);
-        }
-      }
 
       setUploadProgress({
         phase: 'uploading',

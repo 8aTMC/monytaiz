@@ -5,15 +5,17 @@ import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Upload, Zap } from 'lucide-react';
+import { Upload, Zap, TrendingDown, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { FileUploadRowWithMetadata, UploadedFileWithMetadata } from '@/components/FileUploadRowWithMetadata';
+import { DetailedUploadProgressBar } from '@/components/DetailedUploadProgressBar';
 
 export default function SimpleUpload() {
   const navigate = useNavigate();
   const { uploading, uploadFile, uploadProgress, isProcessing } = useSimpleUpload();
-  const [files, setFiles] = useState<(UploadedFileWithMetadata & { compressionRatio?: number; processedSize?: number })[]>([]);
+  const [files, setFiles] = useState<(UploadedFileWithMetadata & { compressionRatio?: number; processedSize?: number; qualityInfo?: any })[]>([]);
   const [currentUploadProgress, setCurrentUploadProgress] = useState(0);
+  const [currentUploadingFile, setCurrentUploadingFile] = useState<string | null>(null);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const newFiles: (UploadedFileWithMetadata & { compressionRatio?: number; processedSize?: number })[] = acceptedFiles.map(file => ({
@@ -34,6 +36,7 @@ export default function SimpleUpload() {
     // Upload files one by one
     for (let i = 0; i < newFiles.length; i++) {
       const fileToUpload = newFiles[i];
+      setCurrentUploadingFile(fileToUpload.id);
       
       try {
         const result = await uploadFile(fileToUpload.file);
@@ -44,7 +47,8 @@ export default function SimpleUpload() {
                 ...f, 
                 status: 'completed',
                 compressionRatio: result.compressionRatio,
-                processedSize: result.processedSize
+                processedSize: result.processedSize,
+                qualityInfo: result.qualityInfo
               }
             : f
         ));
@@ -58,6 +62,8 @@ export default function SimpleUpload() {
       
       setCurrentUploadProgress(((i + 1) / newFiles.length) * 100);
     }
+    
+    setCurrentUploadingFile(null);
   }, [uploadFile]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -159,115 +165,156 @@ export default function SimpleUpload() {
           </div>
         </Card>
 
-        {/* Processing & Upload Progress */}
+        {/* Enhanced Processing & Upload Progress */}
         {(isProcessing || uploading) && (
-          <Card className="p-4 mb-6">
-            <div className="space-y-4">
-              {/* Current File Processing */}
-              {uploadProgress.phase !== 'complete' && (
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">{uploadProgress.message}</span>
-                    <span className="text-sm text-muted-foreground">{uploadProgress.progress}%</span>
-                  </div>
-                  <Progress value={uploadProgress.progress} className="h-2" />
-                  
-                  {/* Size information */}
-                  {uploadProgress.originalSize && (
-                    <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
-                      <span>Original: {formatFileSize(uploadProgress.originalSize)}</span>
-                      {uploadProgress.processedSize && uploadProgress.compressionRatio ? (
-                        <span className="text-emerald-600 font-medium">
-                          Processed: {formatFileSize(uploadProgress.processedSize)} 
-                          ({uploadProgress.compressionRatio}% reduction)
-                        </span>
-                      ) : (
-                        <span>Processing...</span>
-                      )}
+          <div className="space-y-4 mb-6">
+            {/* Overall Progress Summary */}
+            {files.length > 1 && (
+              <Card className="p-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Upload className="w-4 h-4 text-primary" />
+                      <span className="font-medium">Upload Progress</span>
                     </div>
-                  )}
-                </div>
-              )}
-              
-              {/* Overall Progress */}
-              {files.length > 1 && (
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Overall Progress</span>
-                    <span className="text-sm text-muted-foreground">{Math.round(currentUploadProgress)}%</span>
+                    <span className="text-sm text-muted-foreground">
+                      {files.filter(f => f.status === 'completed').length} / {files.length} completed
+                    </span>
                   </div>
                   <Progress value={currentUploadProgress} className="h-2" />
+                  
+                  {/* Statistics */}
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Files</p>
+                      <p className="font-medium">{files.filter(f => f.status === 'completed').length}/{files.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Total Saved</p>
+                      <p className="font-medium text-emerald-600">
+                        {formatFileSize(files.reduce((acc, f) => {
+                          if (f.compressionRatio && f.processedSize) {
+                            return acc + (f.file.size - f.processedSize);
+                          }
+                          return acc;
+                        }, 0))}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Avg Compression</p>
+                      <p className="font-medium text-emerald-600">
+                        {Math.round(files.reduce((acc, f, _, arr) => acc + (f.compressionRatio || 0), 0) / files.length)}%
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Current File Detailed Progress */}
+            {uploadProgress.phase !== 'complete' && currentUploadingFile && (
+              <DetailedUploadProgressBar
+                fileName={files.find(f => f.id === currentUploadingFile)?.file.name || 'Processing...'}
+                fileType={files.find(f => f.id === currentUploadingFile)?.file.type || ''}
+                progress={uploadProgress}
+                isActive={true}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Files List with Enhanced Display */}
+        {files.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium">Files</h3>
+              {files.some(f => f.status === 'completed' && f.compressionRatio) && (
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <TrendingDown className="w-4 h-4 text-emerald-600" />
+                    <span>
+                      Total saved: {formatFileSize(files.reduce((acc, f) => {
+                        if (f.compressionRatio && f.processedSize) {
+                          return acc + (f.file.size - f.processedSize);
+                        }
+                        return acc;
+                      }, 0))}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
-          </Card>
-        )}
-
-        {/* Legacy upload progress for compatibility */}
-        {uploading && files.length > 0 && !uploadProgress.originalSize && (
-          <Card className="p-4 mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Uploading files...</span>
-              <span className="text-sm text-muted-foreground">{Math.round(currentUploadProgress)}%</span>
-            </div>
-            <Progress value={currentUploadProgress} className="h-2" />
-          </Card>
-        )}
-
-        {/* Files List */}
-        {files.length > 0 && (
-          <div className="space-y-3">
-            <h3 className="text-lg font-medium">Files</h3>
+            
             {files.map((uploadedFile) => (
               <Card key={uploadedFile.id} className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="flex-shrink-0 w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
-                      <Upload className="w-5 h-5 text-muted-foreground" />
-                    </div>
-                    
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">{uploadedFile.file.name}</p>
-                      <div className="text-xs text-muted-foreground">
-                        {formatSizeComparison(
-                          uploadedFile.file.size, 
-                          uploadedFile.processedSize, 
-                          uploadedFile.compressionRatio
-                        )}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex-shrink-0 w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                        <Upload className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                      
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{uploadedFile.file.name}</p>
+                        <div className="text-xs text-muted-foreground">
+                          {formatSizeComparison(
+                            uploadedFile.file.size, 
+                            uploadedFile.processedSize, 
+                            uploadedFile.compressionRatio
+                          )}
+                        </div>
                       </div>
                     </div>
+                    
+                    <div className="flex items-center gap-2">
+                      {uploadedFile.status === 'completed' && uploadedFile.compressionRatio && uploadedFile.compressionRatio > 0 && (
+                        <div className="text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full">
+                          {uploadedFile.compressionRatio}% saved
+                        </div>
+                      )}
+                      
+                      <div className="text-xs px-2 py-1 rounded-full capitalize" style={{
+                        backgroundColor: uploadedFile.status === 'completed' ? 'hsl(var(--success) / 0.1)' : 
+                                       uploadedFile.status === 'error' ? 'hsl(var(--destructive) / 0.1)' : 'hsl(var(--muted))',
+                        color: uploadedFile.status === 'completed' ? 'hsl(var(--success))' : 
+                               uploadedFile.status === 'error' ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))'
+                      }}>
+                        {uploadedFile.status}
+                      </div>
+                      
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => removeFile(uploadedFile.id)}
+                        disabled={uploading}
+                      >
+                        Remove
+                      </Button>
+                    </div>
                   </div>
+
+                  {/* Quality breakdown for video files */}
+                  {uploadedFile.qualityInfo && uploadedFile.file.type.startsWith('video/') && (
+                    <div className="bg-muted/30 rounded-lg p-3">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Quality Variants Generated</p>
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        {Object.entries(uploadedFile.qualityInfo).map(([quality, info]: [string, any]) => (
+                          <div key={quality} className="bg-background rounded p-2">
+                            <p className="font-medium">{quality}</p>
+                            <p className="text-muted-foreground">{formatFileSize(info.size || 0)}</p>
+                            {info.compressionRatio && (
+                              <p className="text-emerald-600">-{info.compressionRatio}%</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   
-                  <div className="flex items-center gap-2">
-                    {uploadedFile.status === 'completed' && uploadedFile.compressionRatio && uploadedFile.compressionRatio > 0 && (
-                      <div className="text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full">
-                        {uploadedFile.compressionRatio}% saved
-                      </div>
-                    )}
-                    
-                    <div className="text-xs px-2 py-1 rounded-full capitalize" style={{
-                      backgroundColor: uploadedFile.status === 'completed' ? '#dcfce7' : 
-                                     uploadedFile.status === 'error' ? '#fef2f2' : '#f3f4f6',
-                      color: uploadedFile.status === 'completed' ? '#166534' : 
-                             uploadedFile.status === 'error' ? '#dc2626' : '#6b7280'
-                    }}>
-                      {uploadedFile.status}
-                    </div>
-                    
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => removeFile(uploadedFile.id)}
-                      disabled={uploading}
-                    >
-                      Remove
-                    </Button>
-                  </div>
+                  {uploadedFile.error && (
+                    <p className="text-xs text-destructive mt-2">{uploadedFile.error}</p>
+                  )}
                 </div>
-                
-                {uploadedFile.error && (
-                  <p className="text-xs text-red-600 mt-2">{uploadedFile.error}</p>
-                )}
               </Card>
             ))}
           </div>
