@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,7 @@ export const EditTitleDialog: React.FC<EditTitleDialogProps> = ({
   title,
   onTitleChange,
 }) => {
+  console.log('EditTitleDialog render - open:', open, 'title:', title);
   const [localTitle, setLocalTitle] = useState(title || '');
   const maxLength = 50;
 
@@ -44,6 +45,9 @@ export const EditTitleDialog: React.FC<EditTitleDialogProps> = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Title</DialogTitle>
+          <DialogDescription>
+            Change the title for this media item (maximum 50 characters).
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">

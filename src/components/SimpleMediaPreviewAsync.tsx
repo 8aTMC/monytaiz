@@ -195,14 +195,18 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
               <h2 className="text-lg font-semibold truncate">
                 {item?.title || item?.original_filename || 'Untitled'}
               </h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setEditTitleDialogOpen(true)}
-                className="h-6 w-6 p-0 opacity-60 hover:opacity-100"
-              >
-                <Edit className="h-3 w-3" />
-              </Button>
+               <Button
+                 variant="ghost"
+                 size="sm"
+                 onClick={() => {
+                   console.log('Edit button clicked, opening dialog');
+                   setEditTitleDialogOpen(true);
+                 }}
+                 className="h-6 w-6 p-0 opacity-60 hover:opacity-100"
+                 aria-label="Edit title"
+               >
+                 <Edit className="h-3 w-3" />
+               </Button>
             </div>
             <div className="flex gap-2">
               <Button
