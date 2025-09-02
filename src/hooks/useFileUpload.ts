@@ -12,6 +12,7 @@ export interface FileUploadItem {
   uploadedBytes?: number;
   totalBytes?: number;
   isPaused?: boolean;
+  selected?: boolean;
   metadata?: {
     mentions: string[];
     tags: string[];
@@ -126,6 +127,7 @@ export const useFileUpload = () => {
           status: 'pending',
           uploadedBytes: 0,
           totalBytes: file.size,
+          selected: false,
           metadata: {
             mentions: [],
             tags: [],
@@ -731,6 +733,64 @@ export const useFileUpload = () => {
     ));
   }, []);
 
+  // Selection management functions
+  const toggleFileSelection = useCallback((id: string) => {
+    setUploadQueue(prev => prev.map(item => 
+      item.id === id ? { ...item, selected: !item.selected } : item
+    ));
+  }, []);
+
+  const selectAllFiles = useCallback(() => {
+    const allSelected = uploadQueue.every(item => item.selected);
+    setUploadQueue(prev => prev.map(item => ({ ...item, selected: !allSelected })));
+  }, [uploadQueue]);
+
+  const clearSelection = useCallback(() => {
+    setUploadQueue(prev => prev.map(item => ({ ...item, selected: false })));
+  }, []);
+
+  const updateSelectedFilesMetadata = useCallback((metadata: Partial<FileUploadItem['metadata']>) => {
+    setUploadQueue(prev => prev.map(item => {
+      if (!item.selected) return item;
+      
+      const currentMetadata = item.metadata || {
+        mentions: [],
+        tags: [],
+        folders: [],
+        description: '',
+        suggestedPrice: null,
+      };
+      
+      // Merge arrays for mentions, tags, and folders (no duplicates)
+      const mergedMetadata = { ...currentMetadata };
+      
+      if (metadata.mentions) {
+        const existingMentions = currentMetadata.mentions || [];
+        mergedMetadata.mentions = [...new Set([...existingMentions, ...metadata.mentions])];
+      }
+      
+      if (metadata.tags) {
+        const existingTags = currentMetadata.tags || [];
+        mergedMetadata.tags = [...new Set([...existingTags, ...metadata.tags])];
+      }
+      
+      if (metadata.folders) {
+        const existingFolders = currentMetadata.folders || [];
+        mergedMetadata.folders = [...new Set([...existingFolders, ...metadata.folders])];
+      }
+      
+      return {
+        ...item,
+        metadata: mergedMetadata
+      };
+    }));
+  }, []);
+
+  // Computed selection properties
+  const selectedFiles = uploadQueue.filter(item => item.selected);
+  const hasSelection = selectedFiles.length > 0;
+  const allSelected = uploadQueue.length > 0 && uploadQueue.every(item => item.selected);
+
   return {
     uploadQueue,
     isUploading,
@@ -744,6 +804,13 @@ export const useFileUpload = () => {
     clearQueue,
     cancelAllUploads,
     updateFileMetadata,
+    toggleFileSelection,
+    selectAllFiles,
+    clearSelection,
+    updateSelectedFilesMetadata,
+    selectedFiles,
+    hasSelection,
+    allSelected,
     processedCount: uploadQueue.filter(f => f.status === 'completed').length,
     totalCount: uploadQueue.length,
   };

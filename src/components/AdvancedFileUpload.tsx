@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Upload, X, Play, CheckCircle, AlertCircle, RefreshCw, Pause, Clock } from 'lucide-react';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { EnhancedFileUploadRow } from './EnhancedFileUploadRow';
+import { BatchMetadataToolbar } from './BatchMetadataToolbar';
 import { cn } from '@/lib/utils';
 
 export const AdvancedFileUpload = () => {
@@ -23,7 +24,14 @@ export const AdvancedFileUpload = () => {
     cancelUpload,
     clearQueue,
     cancelAllUploads,
-    updateFileMetadata
+    updateFileMetadata,
+    toggleFileSelection,
+    selectAllFiles,
+    clearSelection,
+    updateSelectedFilesMetadata,
+    selectedFiles,
+    hasSelection,
+    allSelected
   } = useFileUpload();
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -148,6 +156,17 @@ export const AdvancedFileUpload = () => {
           </div>
         )}
 
+        {/* Batch Selection Toolbar */}
+        {hasSelection && (
+          <BatchMetadataToolbar
+            selectedCount={selectedFiles.length}
+            allSelected={allSelected}
+            onSelectAll={selectAllFiles}
+            onClearSelection={clearSelection}
+            onUpdateMetadata={updateSelectedFilesMetadata}
+          />
+        )}
+
         {/* Upload Status */}
         {isUploading && uploadQueue.length > 0 && (
           <div className="bg-muted/20 border border-border rounded-lg p-4 mb-4">
@@ -223,6 +242,7 @@ export const AdvancedFileUpload = () => {
                     onResume={resumeUpload}
                     onCancel={cancelUpload}
                     onMetadataChange={updateFileMetadata}
+                    onToggleSelection={toggleFileSelection}
                     getStatusIcon={getStatusIcon}
                     formatFileSize={formatFileSize}
                   />

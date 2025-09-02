@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   FileImage, 
   FileVideo, 
@@ -39,6 +40,7 @@ interface EnhancedFileUploadRowProps {
   onResume?: (id: string) => void;
   onCancel?: (id: string) => void;
   onMetadataChange: (id: string, metadata: Partial<FileUploadItem['metadata']>) => void;
+  onToggleSelection?: (id: string) => void;
   getStatusIcon: (status: string) => React.ReactNode;
   formatFileSize: (bytes: number) => string;
 }
@@ -53,6 +55,7 @@ export function EnhancedFileUploadRow({
   onResume,
   onCancel,
   onMetadataChange,
+  onToggleSelection,
   getStatusIcon,
   formatFileSize
 }: EnhancedFileUploadRowProps) {
@@ -90,9 +93,21 @@ export function EnhancedFileUploadRow({
   const isCurrentlyUploading = item.status === 'uploading';
   const canEditMetadata = !isUploading || item.status === 'pending' || item.status === 'error';
 
+  // Get highlighting class based on metadata and selection
+  const getHighlightClass = () => {
+    const hasMetadata = item.metadata?.mentions?.length || item.metadata?.tags?.length || item.metadata?.folders?.length;
+    const hasDetails = item.metadata?.description || item.metadata?.suggestedPrice;
+    
+    if (item.selected && hasMetadata) return "bg-green-100 border-green-300 dark:bg-green-950 dark:border-green-700";
+    if (item.selected) return "bg-primary/10 border-primary";
+    if (hasMetadata) return "bg-green-50 border-green-200 dark:bg-green-950/50 dark:border-green-800";
+    if (hasDetails) return "bg-blue-50 border-blue-200 dark:bg-blue-950/50 dark:border-blue-800";
+    return "hover:bg-muted/50";
+  };
+
   return (
     <>
-      <Card className="p-4 hover:bg-muted/50 transition-colors">
+      <Card className={`p-4 transition-colors ${getHighlightClass()}`}>
         <div className="space-y-3">
           {/* File Info Row */}
           <div 
@@ -100,6 +115,17 @@ export function EnhancedFileUploadRow({
             onDoubleClick={handleDoubleClick}
             title="Double-click to preview"
           >
+            {/* Selection checkbox */}
+            {onToggleSelection && (
+              <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                <Checkbox
+                  checked={item.selected || false}
+                  onCheckedChange={() => onToggleSelection(item.id)}
+                  disabled={isCurrentlyUploading}
+                />
+              </div>
+            )}
+            
             <div className="text-muted-foreground">
               {getFileIcon(item.file)}
             </div>
