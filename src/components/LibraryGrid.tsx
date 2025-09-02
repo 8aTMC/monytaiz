@@ -156,7 +156,7 @@ const LibraryGridComponent = ({
               />
               
               {/* Enhanced Categories with improved styling */}
-              <div className="absolute bottom-3 left-3 right-3 z-10">
+              <div className="absolute bottom-3 left-3 right-10 z-10">
                 <div className="text-xs text-white bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 truncate font-medium">
                   {(() => {
                     const defaultTags = ['upload', 'story', 'livestream', 'message'];
