@@ -6,7 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Upload, X, Play, CheckCircle, AlertCircle, RefreshCw, Pause, Clock } from 'lucide-react';
 import { useFileUpload } from '@/hooks/useFileUpload';
-import { FileUploadRow } from './FileUploadRow';
+import { EnhancedFileUploadRow } from './EnhancedFileUploadRow';
 import { cn } from '@/lib/utils';
 
 export const AdvancedFileUpload = () => {
@@ -22,7 +22,8 @@ export const AdvancedFileUpload = () => {
     resumeUpload,
     cancelUpload,
     clearQueue,
-    cancelAllUploads
+    cancelAllUploads,
+    updateFileMetadata
   } = useFileUpload();
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -211,7 +212,7 @@ export const AdvancedFileUpload = () => {
             <ScrollArea className="flex-1">
               <div className="space-y-2">
                 {uploadQueue.map((item, index) => (
-                  <FileUploadRow
+                  <EnhancedFileUploadRow
                     key={item.id}
                     item={item}
                     index={index}
@@ -221,6 +222,7 @@ export const AdvancedFileUpload = () => {
                     onPause={pauseUpload}
                     onResume={resumeUpload}
                     onCancel={cancelUpload}
+                    onMetadataChange={updateFileMetadata}
                     getStatusIcon={getStatusIcon}
                     formatFileSize={formatFileSize}
                   />

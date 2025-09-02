@@ -12,6 +12,13 @@ export interface FileUploadItem {
   uploadedBytes?: number;
   totalBytes?: number;
   isPaused?: boolean;
+  metadata?: {
+    mentions: string[];
+    tags: string[];
+    folders: string[];
+    description: string;
+    suggestedPrice: number | null;
+  };
 }
 
 const FILE_LIMITS = {
@@ -119,6 +126,13 @@ export const useFileUpload = () => {
           status: 'pending',
           uploadedBytes: 0,
           totalBytes: file.size,
+          metadata: {
+            mentions: [],
+            tags: [],
+            folders: [],
+            description: '',
+            suggestedPrice: null,
+          },
         });
         
         cumulativeSize += file.size;
@@ -448,19 +462,23 @@ export const useFileUpload = () => {
       });
 
       const insertPayload = {
-        title: file.name.replace(/\.[^/.]+$/, ""), // Remove extension
+        title: item.metadata?.description || file.name.replace(/\.[^/.]+$/, ""), // Use description or remove extension
+        description: item.metadata?.description || null,
+        tags: item.metadata?.tags || [],
+        mentions: item.metadata?.mentions || [],
+        suggested_price_cents: item.metadata?.suggestedPrice ? Math.round(item.metadata.suggestedPrice * 100) : 0,
         original_filename: file.name,
-        file_path: data!.path,
-        content_type: fileType,
+        original_path: data!.path,
         mime_type: file.type,
-        file_size: file.size,
+        media_type: fileType,
+        original_size_bytes: file.size,
         creator_id: userData.user.id,
       };
       
       console.log('Insert payload:', insertPayload);
       
       const { data: insertData, error: dbError } = await supabase
-        .from('content_files')
+        .from('simple_media')
         .insert(insertPayload)
         .select();
 
@@ -477,6 +495,29 @@ export const useFileUpload = () => {
       }
       
       console.log('Database insert successful:', insertData);
+
+      // Add to folders if specified
+      if (item.metadata?.folders && item.metadata.folders.length > 0 && insertData?.[0]?.id) {
+        try {
+          const folderAssignments = item.metadata.folders.map(folderId => ({
+            media_id: insertData[0].id,
+            collection_id: folderId,
+            added_by: userData.user.id,
+          }));
+
+          const { error: folderError } = await supabase
+            .from('collection_items')
+            .insert(folderAssignments);
+
+          if (folderError) {
+            console.warn('Folder assignment failed:', folderError);
+          } else {
+            console.log('Folder assignments successful');
+          }
+        } catch (folderAssignError) {
+          console.warn('Folder assignment error:', folderAssignError);
+        }
+      }
 
       // Post-process media for fast loading with timeout and better error handling
       try {
@@ -681,6 +722,15 @@ export const useFileUpload = () => {
     });
   }, [isUploading, uploadQueue, cancelUpload, toast]);
 
+  const updateFileMetadata = useCallback((id: string, metadata: Partial<FileUploadItem['metadata']>) => {
+    setUploadQueue(prev => prev.map(item => 
+      item.id === id ? { 
+        ...item, 
+        metadata: { ...item.metadata, ...metadata } 
+      } : item
+    ));
+  }, []);
+
   return {
     uploadQueue,
     isUploading,
@@ -693,6 +743,7 @@ export const useFileUpload = () => {
     startUpload,
     clearQueue,
     cancelAllUploads,
+    updateFileMetadata,
     processedCount: uploadQueue.filter(f => f.status === 'completed').length,
     totalCount: uploadQueue.length,
   };
