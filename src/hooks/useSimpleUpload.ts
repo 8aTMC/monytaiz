@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useClientMediaProcessor, type ProcessedMedia } from './useClientMediaProcessor';
 import { useMediaPostProcess } from './useMediaPostProcess';
+import { generateVideoThumbnail } from '@/lib/videoThumbnail';
 
 interface QualityProgress {
   resolution: string;
@@ -86,26 +87,56 @@ export const useSimpleUpload = () => {
       let width: number | undefined;
       let height: number | undefined;
 
-      // For videos, get dimensions but don't generate thumbnail yet
+      // For videos, generate thumbnail client-side
       if (mediaType === 'video') {
         setUploadProgress({
           phase: 'processing',
           progress: 30,
-          message: 'Analyzing video...',
+          message: 'Generating thumbnail...',
           originalSize,
           processedSize: originalSize,
           compressionRatio: 0
         });
 
         try {
-          const processedFiles = await processFiles([file]);
-          if (processedFiles.length > 0) {
-            const result = processedFiles[0];
-            width = result.metadata.width;
-            height = result.metadata.height;
+          // Generate thumbnail on client-side
+          const { blob: thumbnailBlob } = await generateVideoThumbnail(file, {
+            width: 320,
+            height: 180,
+            quality: 0.8,
+            timePosition: 1
+          });
+          
+          // Upload thumbnail to storage
+          const thumbnailFilename = `thumbnails/${fileId}-thumbnail.jpg`;
+          const thumbnailUpload = await supabase.storage
+            .from('content')
+            .upload(thumbnailFilename, thumbnailBlob, { 
+              contentType: 'image/jpeg',
+              upsert: false 
+            });
+
+          if (thumbnailUpload.error) {
+            console.warn('Thumbnail upload failed:', thumbnailUpload.error);
+          } else {
+            thumbnailPath = thumbnailFilename;
+            console.log('✅ Thumbnail uploaded:', thumbnailPath);
+          }
+
+          // Try to get video dimensions using processFiles as fallback
+          try {
+            const processedFiles = await processFiles([file]);
+            if (processedFiles.length > 0) {
+              const result = processedFiles[0];
+              width = result.metadata.width;
+              height = result.metadata.height;
+            }
+          } catch (error) {
+            console.warn('Video analysis failed:', error);
           }
         } catch (error) {
-          console.warn('Video analysis failed:', error);
+          console.warn('Client-side thumbnail generation failed:', error);
+          // Continue without thumbnail - video will still be processed
         }
       }
 
@@ -123,7 +154,7 @@ export const useSimpleUpload = () => {
       const originalUpload = await supabase.storage.from('content').upload(uploadPath, file, { upsert: false });
       if (originalUpload.error) throw new Error(`Original upload failed: ${originalUpload.error.message}`);
 
-      // Skip thumbnail upload here - will be handled by edge function for videos
+      // Thumbnail already generated and uploaded for videos above
 
       setUploadProgress({
         phase: 'uploading',
@@ -146,7 +177,7 @@ export const useSimpleUpload = () => {
           optimized_size_bytes: processedSize,
           original_path: uploadPath,
           processed_path: uploadPath,
-          thumbnail_path: mediaType === 'video' ? null : thumbnailPath,
+          thumbnail_path: thumbnailPath,
           media_type: mediaType,
           processing_status: 'processed', // Always mark as processed so it shows in library
           width: width,
@@ -160,40 +191,7 @@ export const useSimpleUpload = () => {
         throw new Error(`Database error: ${dbError.message}`);
       }
 
-      // For videos, generate thumbnail using edge function
-      if (mediaType === 'video') {
-        setUploadProgress({
-          phase: 'processing',
-          progress: 90,
-          message: 'Generating thumbnail...',
-          originalSize,
-          processedSize,
-          compressionRatio
-        });
-
-        try {
-          const { data: thumbnailResult, error: thumbnailError } = await supabase.functions.invoke('video-thumbnail', {
-            body: {
-              bucket: 'content',
-              path: uploadPath,
-              mediaId: mediaRecord.id
-            }
-          });
-
-          if (thumbnailError) {
-            console.warn('Thumbnail generation failed:', thumbnailError);
-            // Don't throw error - video is already marked as processed
-          } else if (thumbnailResult?.success) {
-            console.log('✅ Thumbnail generated:', thumbnailResult.thumbnailPath);
-            if (thumbnailResult.skippedThumbnail) {
-              console.log('📝 Thumbnail skipped due to file size or error');
-            }
-          }
-        } catch (error) {
-          console.warn('Thumbnail generation error:', error);
-          // Don't throw error - video is already marked as processed
-        }
-      }
+      // Thumbnail generation is now handled client-side above
 
       setUploadProgress({
         phase: 'complete',
@@ -207,7 +205,7 @@ export const useSimpleUpload = () => {
       console.log('✅ File uploaded successfully:', { 
         id: mediaRecord.id, 
         path: uploadPath,
-        thumbnailPath: mediaType === 'video' ? 'generating...' : thumbnailPath
+        thumbnailPath: thumbnailPath
       });
 
       toast({
