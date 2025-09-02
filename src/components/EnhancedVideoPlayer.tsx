@@ -26,7 +26,7 @@ interface EnhancedVideoPlayerProps {
 
 export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   src,
-  aspectRatio = '16/9',
+  aspectRatio: propAspectRatio,
   className = '',
   onError,
   qualities = [],
@@ -46,6 +46,7 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showControls, setShowControls] = useState(true);
   const [isBuffering, setIsBuffering] = useState(false);
+  const [videoAspectRatio, setVideoAspectRatio] = useState(propAspectRatio || '16/9');
 
   const playbackSpeeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
@@ -147,6 +148,13 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
       setIsBuffering(false);
       onError?.(e);
     };
+    const handleLoadedMetadata = () => {
+      // Update aspect ratio based on video's natural dimensions
+      if (video.videoWidth && video.videoHeight) {
+        const calculatedAspectRatio = `${video.videoWidth}/${video.videoHeight}`;
+        setVideoAspectRatio(calculatedAspectRatio);
+      }
+    };
 
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
@@ -156,6 +164,7 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     video.addEventListener('waiting', handleWaiting);
     video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('error', handleError);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
 
     return () => {
       video.removeEventListener('play', handlePlay);
@@ -166,6 +175,7 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
       video.removeEventListener('waiting', handleWaiting);
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('error', handleError);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
     };
   }, [onError]);
 
@@ -237,13 +247,13 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     <div 
       ref={containerRef}
       className={`relative group rounded-xl overflow-hidden bg-black ${className}`}
-      style={{ aspectRatio }}
+      style={{ aspectRatio: videoAspectRatio }}
       tabIndex={0}
     >
       <video 
         ref={videoRef}
         src={src}
-        className="w-full h-full object-contain"
+        className="w-full h-full object-cover"
         preload="metadata"
         onDoubleClick={toggleFullscreen}
         onClick={togglePlayPause}
