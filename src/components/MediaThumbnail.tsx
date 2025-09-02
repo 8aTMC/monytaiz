@@ -118,7 +118,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
             decoding="async"
           />
           {/* Media type icon */}
-          <div className="absolute top-2 right-8 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
+          <div className="absolute bottom-2 right-2 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
             {item.type === 'video' && <Video className="w-3.5 h-3.5 text-white" />}
             {item.type === 'audio' && <FileAudio className="w-3.5 h-3.5 text-white" />}
           </div>
@@ -182,7 +182,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
             }}
           />
           {/* Media type icon */}
-          <div className="absolute top-2 right-8 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
+          <div className="absolute bottom-2 right-2 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
             <Image className="w-3.5 h-3.5 text-white" />
           </div>
         </>

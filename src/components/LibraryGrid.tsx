@@ -156,26 +156,16 @@ const LibraryGridComponent = ({
               />
               
               {/* Enhanced Categories with improved styling */}
-              <div className="absolute bottom-3 left-3 right-3 z-10 flex items-center justify-between">
-                <div className="flex-1 mr-2">
-                  <div className="text-xs text-white bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 truncate font-medium">
-                    {(() => {
-                      const defaultTags = ['upload', 'story', 'livestream', 'message'];
-                      const customTags = item.tags.filter(tag => 
-                        !defaultTags.includes(tag.toLowerCase()) && 
-                        !tag.startsWith('folder:')
-                      );
-                      return customTags.length > 0 ? customTags.join(', ') : item.origin;
-                    })()}
-                  </div>
-                </div>
-                
-                {/* File type indicator */}
-                <div className="flex-shrink-0">
-                  <div className={`w-2 h-2 rounded-full ${
-                    item.type === 'video' ? 'bg-red-400' :
-                    item.type === 'audio' ? 'bg-green-400' : 'bg-blue-400'
-                  }`}></div>
+              <div className="absolute bottom-3 left-3 right-3 z-10">
+                <div className="text-xs text-white bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 truncate font-medium">
+                  {(() => {
+                    const defaultTags = ['upload', 'story', 'livestream', 'message'];
+                    const customTags = item.tags.filter(tag => 
+                      !defaultTags.includes(tag.toLowerCase()) && 
+                      !tag.startsWith('folder:')
+                    );
+                    return customTags.length > 0 ? customTags.join(', ') : item.origin;
+                  })()}
                 </div>
               </div>
               
