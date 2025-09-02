@@ -42,7 +42,7 @@ export const useSimpleMedia = () => {
       const { data, error } = await supabase
         .from('simple_media')
         .select('*')
-        .eq('processing_status', 'processed')
+        .or('processing_status.eq.processed,and(processing_status.eq.pending,created_at.lt.' + new Date(Date.now() - 5 * 60 * 1000).toISOString() + ')')
         .order('created_at', { ascending: false });
 
       if (error) throw error;

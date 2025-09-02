@@ -148,7 +148,7 @@ export const useSimpleUpload = () => {
           processed_path: uploadPath,
           thumbnail_path: mediaType === 'video' ? null : thumbnailPath,
           media_type: mediaType,
-          processing_status: mediaType === 'video' ? 'pending' : 'processed',
+          processing_status: 'processed', // Always mark as processed so it shows in library
           width: width,
           height: height,
           tags: []
@@ -182,11 +182,16 @@ export const useSimpleUpload = () => {
 
           if (thumbnailError) {
             console.warn('Thumbnail generation failed:', thumbnailError);
+            // Don't throw error - video is already marked as processed
           } else if (thumbnailResult?.success) {
             console.log('✅ Thumbnail generated:', thumbnailResult.thumbnailPath);
+            if (thumbnailResult.skippedThumbnail) {
+              console.log('📝 Thumbnail skipped due to file size or error');
+            }
           }
         } catch (error) {
           console.warn('Thumbnail generation error:', error);
+          // Don't throw error - video is already marked as processed
         }
       }
 

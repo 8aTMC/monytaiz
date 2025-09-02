@@ -40,8 +40,31 @@ Deno.serve(async (req) => {
 
     if (fileInfoError) {
       console.log('Could not get file info, proceeding with download...');
-    } else if (fileInfo && fileInfo.size > 100 * 1024 * 1024) { // 100MB limit
-      throw new Error(`File too large for thumbnail generation: ${(fileInfo.size / 1024 / 1024).toFixed(1)}MB. Maximum: 100MB`);
+    } else if (fileInfo && fileInfo.size > 500 * 1024 * 1024) { // 500MB limit
+      // Don't throw error, just mark as processed without thumbnail
+      console.log(`File too large for thumbnail generation: ${(fileInfo.size / 1024 / 1024).toFixed(1)}MB. Marking as processed without thumbnail.`);
+      
+      // Update media record as processed without thumbnail
+      const { error: updateError } = await supabase
+        .from('simple_media')
+        .update({
+          processing_status: 'processed',
+          processed_at: new Date().toISOString(),
+          processing_error: `File too large for thumbnail: ${(fileInfo.size / 1024 / 1024).toFixed(1)}MB`
+        })
+        .eq('id', mediaId);
+
+      if (updateError) {
+        console.error('Failed to update media record:', updateError);
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Video processed without thumbnail due to file size',
+        skippedThumbnail: true
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Download video file with streaming approach
@@ -142,7 +165,7 @@ Deno.serve(async (req) => {
       .from('simple_media')
       .update({
         thumbnail_path: thumbnailStoragePath,
-        processing_status: 'completed',
+        processing_status: 'processed',
         processed_at: new Date().toISOString()
       })
       .eq('id', mediaId);
@@ -170,12 +193,31 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('❌ Thumbnail generation error:', error);
     
+    // Even if thumbnail generation fails, mark video as processed so it shows in library
+    try {
+      const { error: updateError } = await supabase
+        .from('simple_media')
+        .update({
+          processing_status: 'processed',
+          processed_at: new Date().toISOString(),
+          processing_error: error instanceof Error ? error.message : 'Unknown error'
+        })
+        .eq('id', mediaId);
+
+      if (updateError) {
+        console.error('Failed to update media record after error:', updateError);
+      }
+    } catch (updateErr) {
+      console.error('Failed to update media record:', updateErr);
+    }
+    
     return new Response(JSON.stringify({
-      success: false,
+      success: true, // Return success so video is still processed
       error: error instanceof Error ? error.message : 'Unknown error',
-      details: 'Check edge function logs for more information'
+      message: 'Video processed without thumbnail due to error',
+      skippedThumbnail: true
     }), {
-      status: 500,
+      status: 200, // Return 200 so upload process continues
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
