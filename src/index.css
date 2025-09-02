@@ -214,7 +214,9 @@ div[aria-label="Chat messages"]::-webkit-scrollbar {
   scrollbar-color: hsl(var(--muted-foreground) / 0.3) hsl(var(--muted));
 }
 
-/* Media preview overlay - ensure it covers everything including sidebar */
+/* Organized Z-Index System - increments of 10 */
+
+/* Media Preview Layer (130-150) */
 .media-overlay {
   position: fixed !important;
   top: 0 !important;
@@ -225,36 +227,26 @@ div[aria-label="Chat messages"]::-webkit-scrollbar {
   height: 100vh !important;
   background-color: rgba(0, 0, 0, 0.8) !important;
   backdrop-filter: blur(4px) !important;
-  z-index: 100000 !important;
+  z-index: 130 !important;
   pointer-events: auto !important;
 }
 
-/* Media preview dialog - highest z-index */
 .media-dialog {
   position: fixed !important;
   left: 50% !important;
   top: 50% !important;
   transform: translate(-50%, -50%) !important;
-  z-index: 200000 !important;
+  z-index: 140 !important;
   pointer-events: auto !important;
 }
 
-/* Media preview z-indexes */
-.media-overlay {
-  z-index: 100000 !important;
-}
-
-.media-dialog {
-  z-index: 200000 !important;
-}
-
-/* Ensure all dialogs appear above media preview - much higher z-index */
+/* Modal/Dialog Layer (100-120) - Ensure dialogs appear above media preview */
 [data-radix-dialog-overlay] {
-  z-index: 1000000 !important;
+  z-index: 100 !important;
 }
 
 [data-radix-dialog-content] {
-  z-index: 1000001 !important;
+  z-index: 110 !important;
 }
 
 /* Responsive sidebar auto-collapse - force collapse on narrow screens only when collapsed */
