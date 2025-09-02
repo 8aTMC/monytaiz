@@ -48,7 +48,7 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   const [isBuffering, setIsBuffering] = useState(false);
   const [videoAspectRatio, setVideoAspectRatio] = useState(propAspectRatio || '16/9');
 
-  const playbackSpeeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
+  const playbackSpeeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 5];
 
   // Format time display
   const formatTime = (time: number) => {
