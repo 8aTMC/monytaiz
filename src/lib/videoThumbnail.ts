@@ -17,6 +17,8 @@ export const generateVideoThumbnail = (
   options: ThumbnailOptions = {}
 ): Promise<{ blob: Blob; dataUrl: string }> => {
   return new Promise((resolve, reject) => {
+    const TIMEOUT_MS = 10000; // 10 second timeout
+    let timeoutId: NodeJS.Timeout;
     const {
       width = 320,
       height = 180,
@@ -31,10 +33,12 @@ export const generateVideoThumbnail = (
     video.muted = true;
 
     const cleanup = () => {
+      if (timeoutId) clearTimeout(timeoutId);
       video.removeEventListener('loadedmetadata', onLoadedMetadata);
       video.removeEventListener('seeked', onSeeked);
       video.removeEventListener('error', onError);
-      URL.revokeObjectURL(video.src);
+      if (video.src) URL.revokeObjectURL(video.src);
+      video.remove();
     };
 
     const onError = () => {
@@ -43,9 +47,19 @@ export const generateVideoThumbnail = (
     };
 
     const onLoadedMetadata = () => {
-      // Set time position (but not beyond video duration)
-      const seekTime = Math.min(timePosition, video.duration - 0.1);
-      video.currentTime = seekTime;
+      try {
+        // Validate video duration
+        if (!video.duration || video.duration <= 0 || !isFinite(video.duration)) {
+          throw new Error('Invalid video duration');
+        }
+        
+        // Set time position (but not beyond video duration)
+        const seekTime = Math.min(timePosition, Math.max(0, video.duration - 0.1));
+        video.currentTime = seekTime;
+      } catch (error) {
+        cleanup();
+        reject(new Error('Failed to process video metadata'));
+      }
     };
 
     const onSeeked = () => {
@@ -111,12 +125,23 @@ export const generateVideoThumbnail = (
       }
     };
 
+    // Set up timeout
+    timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new Error('Video thumbnail generation timed out'));
+    }, TIMEOUT_MS);
+
     // Set up event listeners
     video.addEventListener('loadedmetadata', onLoadedMetadata);
     video.addEventListener('seeked', onSeeked);
     video.addEventListener('error', onError);
 
     // Start loading video
-    video.src = URL.createObjectURL(file);
+    try {
+      video.src = URL.createObjectURL(file);
+    } catch (error) {
+      cleanup();
+      reject(new Error('Failed to create video URL'));
+    }
   });
 };

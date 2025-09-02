@@ -99,19 +99,29 @@ export const useSimpleUpload = () => {
         });
 
         try {
-          // Generate thumbnail on client-side
-          const { blob: thumbnailBlob } = await generateVideoThumbnail(file, {
+          // Add timeout wrapper for thumbnail generation
+          const thumbnailPromise = generateVideoThumbnail(file, {
             width: 320,
             height: 180,
             quality: 0.8,
             timePosition: 1
           });
+
+          // Race between thumbnail generation and timeout
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('Thumbnail generation timeout')), 15000);
+          });
+
+          const { blob: generatedThumbnail } = await Promise.race([
+            thumbnailPromise,
+            timeoutPromise
+          ]);
           
           // Upload thumbnail to storage
           const thumbnailFilename = `thumbnails/${fileId}-thumbnail.jpg`;
           const thumbnailUpload = await supabase.storage
             .from('content')
-            .upload(thumbnailFilename, thumbnailBlob, { 
+            .upload(thumbnailFilename, generatedThumbnail, { 
               contentType: 'image/jpeg',
               upsert: false 
             });
@@ -136,7 +146,7 @@ export const useSimpleUpload = () => {
           }
         } catch (error) {
           console.warn('Client-side thumbnail generation failed:', error);
-          // Continue without thumbnail - video will still be processed
+          // Continue without thumbnail - video upload will proceed normally
         }
       }
 
