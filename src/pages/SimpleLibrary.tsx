@@ -197,6 +197,7 @@ export default function SimpleLibrary() {
       title: item.title,
       origin: 'upload' as const,
       storage_path: item.processed_path || '',
+      thumbnail_path: item.thumbnail_path,
       mime: item.mime_type,
       type: item.media_type as 'image' | 'video' | 'audio',
       size_bytes: item.optimized_size_bytes || item.original_size_bytes,
