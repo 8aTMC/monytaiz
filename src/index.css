@@ -239,22 +239,22 @@ div[aria-label="Chat messages"]::-webkit-scrollbar {
   pointer-events: auto !important;
 }
 
+/* Media preview z-indexes */
+.media-overlay {
+  z-index: 100000 !important;
+}
+
+.media-dialog {
+  z-index: 200000 !important;
+}
+
 /* Ensure all dialogs appear above media preview - much higher z-index */
 [data-radix-dialog-overlay] {
-  z-index: 999998 !important;
+  z-index: 1000000 !important;
 }
 
 [data-radix-dialog-content] {
-  z-index: 999999 !important;
-}
-
-/* Specific override for dialogs within portals */
-[data-radix-portal] [data-radix-dialog-overlay] {
-  z-index: 999998 !important;
-}
-
-[data-radix-portal] [data-radix-dialog-content] {
-  z-index: 999999 !important;
+  z-index: 1000001 !important;
 }
 
 /* Responsive sidebar auto-collapse - force collapse on narrow screens only when collapsed */
