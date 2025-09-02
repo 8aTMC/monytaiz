@@ -269,6 +269,17 @@ export function FileReviewRow({ file, onRemove, onMetadataChange, formatFileSize
         file={file.file}
         open={previewDialogOpen}
         onOpenChange={setPreviewDialogOpen}
+        mentions={file.metadata?.mentions || []}
+        tags={file.metadata?.tags || []}
+        folders={file.metadata?.folders || []}
+        description={file.metadata?.description || ''}
+        suggestedPrice={file.metadata?.suggestedPrice ? file.metadata.suggestedPrice * 100 : 0}
+        title={file.file.name}
+        onMentionsChange={onMetadataChange ? (mentions) => handleMetadataUpdate('mentions', mentions) : undefined}
+        onTagsChange={onMetadataChange ? (tags) => handleMetadataUpdate('tags', tags) : undefined}
+        onFoldersChange={onMetadataChange ? (folders) => handleMetadataUpdate('folders', folders) : undefined}
+        onDescriptionChange={onMetadataChange ? (description) => handleMetadataUpdate('description', description) : undefined}
+        onPriceChange={onMetadataChange ? (price) => handleMetadataUpdate('suggestedPrice', price ? price / 100 : null) : undefined}
       />
     </>
   );

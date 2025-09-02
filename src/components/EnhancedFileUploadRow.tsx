@@ -305,14 +305,21 @@ export function EnhancedFileUploadRow({
       />
 
       {/* Preview dialog */}
-      {console.log('Rendering FilePreviewDialog, open:', previewDialogOpen)}
       <FilePreviewDialog
         file={item.file}
         open={previewDialogOpen}
-        onOpenChange={(open) => {
-          console.log('FilePreviewDialog onOpenChange:', open);
-          setPreviewDialogOpen(open);
-        }}
+        onOpenChange={setPreviewDialogOpen}
+        mentions={item.metadata?.mentions || []}
+        tags={item.metadata?.tags || []}
+        folders={item.metadata?.folders || []}
+        description={item.metadata?.description || ''}
+        suggestedPrice={item.metadata?.suggestedPrice ? item.metadata.suggestedPrice * 100 : 0}
+        title={item.file.name}
+        onMentionsChange={(mentions) => handleMetadataUpdate('mentions', mentions)}
+        onTagsChange={(tags) => handleMetadataUpdate('tags', tags)}
+        onFoldersChange={(folders) => handleMetadataUpdate('folders', folders)}
+        onDescriptionChange={(description) => handleMetadataUpdate('description', description)}
+        onPriceChange={(price) => handleMetadataUpdate('suggestedPrice', price ? price / 100 : null)}
       />
     </>
   );
