@@ -17,6 +17,7 @@ import { useMediaOperations } from '@/hooks/useMediaOperations';
 export default function SimpleLibrary() {
   const { media, loading, error, fetchMedia, getFullUrlAsync } = useSimpleMedia();
   const [selectedItem, setSelectedItem] = useState<SimpleMediaItem | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
   // Selection state
@@ -162,7 +163,24 @@ export default function SimpleLibrary() {
     console.log('Preview closed');
     setIsPreviewOpen(false);
     setSelectedItem(null);
+    setSelectedIndex(0);
   }, []);
+
+  const handlePrevious = useCallback(() => {
+    if (selectedIndex > 0) {
+      const newIndex = selectedIndex - 1;
+      setSelectedIndex(newIndex);
+      setSelectedItem(media[newIndex] || null);
+    }
+  }, [selectedIndex, media]);
+
+  const handleNext = useCallback(() => {
+    if (selectedIndex < media.length - 1) {
+      const newIndex = selectedIndex + 1;
+      setSelectedIndex(newIndex);
+      setSelectedItem(media[newIndex] || null);
+    }
+  }, [selectedIndex, media]);
 
   const handleFilterChange = useCallback((filter: string) => {
     console.log('Filter changed to:', filter);
@@ -384,6 +402,8 @@ export default function SimpleLibrary() {
       console.log('Double-click detected - forcing preview');
       const originalItem = media.find(m => m.id === item.id);
       if (originalItem) {
+        const mediaIndex = media.findIndex(m => m.id === item.id);
+        setSelectedIndex(mediaIndex >= 0 ? mediaIndex : 0);
         setSelectedItem(originalItem);
         setIsPreviewOpen(true);
       }
@@ -394,6 +414,8 @@ export default function SimpleLibrary() {
       // Single click in normal mode - open preview
       const originalItem = media.find(m => m.id === item.id);
       if (originalItem) {
+        const mediaIndex = media.findIndex(m => m.id === item.id);
+        setSelectedIndex(mediaIndex >= 0 ? mediaIndex : 0);
         setSelectedItem(originalItem);
         setIsPreviewOpen(true);
       }
@@ -706,6 +728,10 @@ export default function SimpleLibrary() {
           isOpen={isPreviewOpen}
           onClose={handlePreviewClose}
           getFullUrlAsync={getFullUrlAsync}
+          mediaItems={media}
+          selectedIndex={selectedIndex}
+          onPrevious={handlePrevious}
+          onNext={handleNext}
         />
       )}
     </>

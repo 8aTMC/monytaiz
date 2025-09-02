@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Button } from '@/components/ui/button';
-import { X, Download, AtSign, Hash, FolderOpen, FileText, DollarSign } from 'lucide-react';
+import { X, Download, AtSign, Hash, FolderOpen, FileText, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
 import { SimpleMediaItem, useSimpleMedia } from '@/hooks/useSimpleMedia';
 import { MentionsDialog } from './MentionsDialog';
 import { TagsDialog } from './TagsDialog';
@@ -15,13 +15,21 @@ interface SimpleMediaPreviewAsyncProps {
   isOpen: boolean;
   onClose: () => void;
   getFullUrlAsync: (item: SimpleMediaItem) => Promise<string | null>;
+  mediaItems?: SimpleMediaItem[];
+  selectedIndex?: number;
+  onPrevious?: () => void;
+  onNext?: () => void;
 }
 
 export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = ({
   item,
   isOpen,
   onClose,
-  getFullUrlAsync
+  getFullUrlAsync,
+  mediaItems = [],
+  selectedIndex = 0,
+  onPrevious,
+  onNext
 }) => {
   const [fullUrl, setFullUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -266,8 +274,8 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                         title={item.title || item.original_filename}
                       />
                     </div>
-                  )}
-               </div>
+                   )}
+                </div>
               ) : (
                 <div 
                   className="flex items-center justify-center text-muted-foreground bg-muted/20 rounded-lg"
@@ -282,8 +290,31 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                     <p>Media not available</p>
                   </div>
                 </div>
-              )}
+               )}
             </div>
+
+            {/* Navigation arrows */}
+            {mediaItems.length > 1 && selectedIndex > 0 && onPrevious && (
+              <Button
+                variant="secondary"
+                size="icon"
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-background/20 backdrop-blur-sm border-0 hover:bg-background/40"
+                onClick={onPrevious}
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </Button>
+            )}
+            
+            {mediaItems.length > 1 && selectedIndex < mediaItems.length - 1 && onNext && (
+              <Button
+                variant="secondary"
+                size="icon"
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-background/20 backdrop-blur-sm border-0 hover:bg-background/40"
+                onClick={onNext}
+              >
+                <ChevronRight className="h-6 w-6" />
+              </Button>
+            )}
          </div>
 
         {/* Metadata Editing Menu Bar */}
