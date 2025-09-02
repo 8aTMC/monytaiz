@@ -27,7 +27,19 @@ interface MediaThumbnailProps {
 
 export const MediaThumbnail = ({ item, className = "", isPublic = false }: MediaThumbnailProps) => {
   const { loadOptimizedMedia, currentUrl, isLoading, error, clearMedia } = useOptimizedMediaDisplay();
-  const { thumbnailUrl, loading: thumbnailLoading } = useThumbnailUrl(item.thumbnail_path);
+  
+  // Construct correct thumbnail path for videos with _thumb suffix
+  const getVideoThumbnailPath = () => {
+    if (item.type === 'video' && item.title) {
+      // Remove file extension from title if present
+      const titleWithoutExt = item.title.replace(/\.[^/.]+$/, '');
+      return `thumbnails/${titleWithoutExt}_thumb.jpg`;
+    }
+    return item.thumbnail_path;
+  };
+
+  const correctThumbnailPath = getVideoThumbnailPath();
+  const { thumbnailUrl, loading: thumbnailLoading } = useThumbnailUrl(correctThumbnailPath);
 
   // Create stable media item object to prevent infinite re-renders
   const stableMediaItem = useMemo(() => ({
@@ -36,7 +48,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     storage_path: item.storage_path || item.file_path,
     path: item.path,
     tiny_placeholder: item.tiny_placeholder,
-    thumbnail_path: item.thumbnail_path,
+    thumbnail_path: correctThumbnailPath,
     width: item.width,
     height: item.height
   }), [
@@ -46,7 +58,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     item.file_path, 
     item.path, 
     item.tiny_placeholder,
-    item.thumbnail_path,
+    correctThumbnailPath,
     item.width, 
     item.height
   ]);
@@ -76,15 +88,20 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     };
   }, [stableMediaItem.id, stableMediaItem.type, stableMediaItem.storage_path, stableMediaItem.path, stableMediaItem.thumbnail_path]);
 
-  // Calculate aspect ratio with limits for consistent grid display
+  // Calculate aspect ratio with consistent heights for grid display
   const calculateAspectRatio = () => {
+    // Force videos to use 1:1 aspect ratio for consistent grid height
+    if (item.type === 'video') {
+      return '1';
+    }
+    
     if (!item.width || !item.height) {
-      return item.type === 'video' ? '16/9' : '1';
+      return '1';
     }
     
     const ratio = item.width / item.height;
-    // Limit extreme aspect ratios for better grid consistency
-    const clampedRatio = Math.max(0.5, Math.min(2.5, ratio));
+    // Limit aspect ratios for consistent grid display
+    const clampedRatio = Math.max(0.75, Math.min(1.33, ratio));
     return clampedRatio.toFixed(3);
   };
   
