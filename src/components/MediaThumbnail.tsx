@@ -1,6 +1,6 @@
 
 import { useEffect, useMemo } from 'react';
-import { Image, Video, FileAudio, Play } from 'lucide-react';
+import { Image, Video, FileAudio } from 'lucide-react';
 import { useOptimizedMediaDisplay } from '@/hooks/useOptimizedMediaDisplay';
 import { useThumbnailUrl } from '@/hooks/useThumbnailUrl';
 
@@ -117,20 +117,11 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
             loading="lazy"
             decoding="async"
           />
-          {item.type === 'video' && (
-            <>
-              {/* Play button overlay */}
-              <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
-                <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg">
-                  <Play className="w-5 h-5 text-primary ml-0.5" />
-                </div>
-              </div>
-              {/* Video label */}
-              <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                Video
-              </div>
-            </>
-          )}
+          {/* Media type icon */}
+          <div className="absolute top-2 right-8 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
+            {item.type === 'video' && <Video className="w-3.5 h-3.5 text-white" />}
+            {item.type === 'audio' && <FileAudio className="w-3.5 h-3.5 text-white" />}
+          </div>
         </div>
       );
     }
@@ -176,19 +167,25 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     >
       {/* Show current URL if available */}
       {currentUrl && !error && (
-        <img
-          src={currentUrl}
-          alt={item.title || 'Media thumbnail'}
-          className="w-full h-full object-cover transition-opacity duration-200"
-          loading="lazy"
-          decoding="async"
-          width={aspectWidth}
-          height={aspectHeight}
-          onError={(e) => {
-            // Hide broken image
-            e.currentTarget.style.display = 'none';
-          }}
-        />
+        <>
+          <img
+            src={currentUrl}
+            alt={item.title || 'Media thumbnail'}
+            className="w-full h-full object-cover transition-opacity duration-200"
+            loading="lazy"
+            decoding="async"
+            width={aspectWidth}
+            height={aspectHeight}
+            onError={(e) => {
+              // Hide broken image
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+          {/* Media type icon */}
+          <div className="absolute top-2 right-8 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
+            <Image className="w-3.5 h-3.5 text-white" />
+          </div>
+        </>
       )}
 
       {/* Error state */}
