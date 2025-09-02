@@ -28,18 +28,9 @@ interface MediaThumbnailProps {
 export const MediaThumbnail = ({ item, className = "", isPublic = false }: MediaThumbnailProps) => {
   const { loadOptimizedMedia, currentUrl, isLoading, error, clearMedia } = useOptimizedMediaDisplay();
   
-  // Construct correct thumbnail path for videos with _thumb suffix
-  const getVideoThumbnailPath = () => {
-    if (item.type === 'video' && item.title) {
-      // Remove file extension from title if present
-      const titleWithoutExt = item.title.replace(/\.[^/.]+$/, '');
-      return `thumbnails/${titleWithoutExt}_thumb.jpg`;
-    }
-    return item.thumbnail_path;
-  };
-
-  const correctThumbnailPath = getVideoThumbnailPath();
-  const { thumbnailUrl, loading: thumbnailLoading } = useThumbnailUrl(correctThumbnailPath);
+  // Use the exact thumbnail_path from database - don't reconstruct it
+  console.log('MediaThumbnail - item thumbnail_path:', item.thumbnail_path, 'type:', item.type);
+  const { thumbnailUrl, loading: thumbnailLoading } = useThumbnailUrl(item.thumbnail_path);
 
   // Create stable media item object to prevent infinite re-renders
   const stableMediaItem = useMemo(() => ({
@@ -48,7 +39,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     storage_path: item.storage_path || item.file_path,
     path: item.path,
     tiny_placeholder: item.tiny_placeholder,
-    thumbnail_path: correctThumbnailPath,
+    thumbnail_path: item.thumbnail_path,
     width: item.width,
     height: item.height
   }), [
@@ -58,7 +49,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     item.file_path, 
     item.path, 
     item.tiny_placeholder,
-    correctThumbnailPath,
+    item.thumbnail_path,
     item.width, 
     item.height
   ]);

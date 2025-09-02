@@ -16,6 +16,8 @@ export const useThumbnailUrl = (thumbnailPath?: string) => {
       setLoading(true);
       setError(null);
       
+      console.log('useThumbnailUrl - Attempting to load thumbnail:', thumbnailPath);
+      
       try {
         const { data, error: urlError } = await supabase.storage
           .from('content')
@@ -23,13 +25,16 @@ export const useThumbnailUrl = (thumbnailPath?: string) => {
 
         if (urlError) {
           console.error('Error generating thumbnail URL:', urlError);
+          console.log('Failed path:', thumbnailPath);
           setError(urlError.message);
           setThumbnailUrl(null);
         } else {
+          console.log('Successfully generated thumbnail URL for:', thumbnailPath);
           setThumbnailUrl(data.signedUrl);
         }
       } catch (err) {
         console.error('Error generating thumbnail URL:', err);
+        console.log('Failed path:', thumbnailPath);
         setError('Failed to generate thumbnail URL');
         setThumbnailUrl(null);
       } finally {
