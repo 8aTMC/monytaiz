@@ -33,7 +33,18 @@ Deno.serve(async (req) => {
 
     console.log(`📹 Generating thumbnail for: ${bucket}/${path}`);
 
-    // Download video file
+    // First, check the file info to get size
+    const { data: fileInfo, error: fileInfoError } = await supabase.storage
+      .from(bucket)
+      .info(path);
+
+    if (fileInfoError) {
+      console.log('Could not get file info, proceeding with download...');
+    } else if (fileInfo && fileInfo.size > 100 * 1024 * 1024) { // 100MB limit
+      throw new Error(`File too large for thumbnail generation: ${(fileInfo.size / 1024 / 1024).toFixed(1)}MB. Maximum: 100MB`);
+    }
+
+    // Download video file with streaming approach
     const { data: videoData, error: downloadError } = await supabase.storage
       .from(bucket)
       .download(path);
@@ -42,22 +53,31 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to download video: ${downloadError?.message || 'No data'}`);
     }
 
-    // Write video to temp file
+    // Write video to temp file using streaming
     const tempVideoPath = `/tmp/video_${mediaId}.mp4`;
-    const videoBuffer = await videoData.arrayBuffer();
-    await Deno.writeFile(tempVideoPath, new Uint8Array(videoBuffer));
+    
+    // Use ReadableStream to avoid loading entire file into memory at once
+    const videoStream = videoData.stream();
+    const fileHandle = await Deno.open(tempVideoPath, { write: true, create: true });
+    
+    try {
+      await videoStream.pipeTo(fileHandle.writable);
+    } finally {
+      fileHandle.close();
+    }
 
     console.log(`💾 Video saved to: ${tempVideoPath}`);
 
-    // Generate thumbnail using ffmpeg
+    // Generate thumbnail using ffmpeg with memory-efficient settings
     const thumbnailPath = `/tmp/thumb_${mediaId}.jpg`;
     
     const ffmpegArgs = [
       '-i', tempVideoPath,
       '-ss', '00:00:01',        // Seek to 1 second
       '-vframes', '1',          // Extract 1 frame
-      '-q:v', '2',              // High quality
-      '-vf', 'scale=320:240',   // Resize to reasonable thumbnail size
+      '-q:v', '3',              // Good quality but smaller file
+      '-vf', 'scale=320:240:force_original_aspect_ratio=decrease', // Smart scaling
+      '-threads', '1',          // Limit thread usage for memory efficiency
       '-y',                     // Overwrite existing
       thumbnailPath
     ];
@@ -70,7 +90,15 @@ Deno.serve(async (req) => {
       stderr: 'piped'
     });
 
-    const ffmpegResult = await ffmpeg.output();
+    // Set a timeout for FFmpeg process
+    const timeoutMs = 30000; // 30 seconds
+    const ffmpegPromise = ffmpeg.output();
+    
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('FFmpeg timeout after 30 seconds')), timeoutMs);
+    });
+
+    const ffmpegResult = await Promise.race([ffmpegPromise, timeoutPromise]);
 
     if (!ffmpegResult.success) {
       const stderr = new TextDecoder().decode(ffmpegResult.stderr);
