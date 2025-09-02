@@ -30,6 +30,7 @@ export const FolderSelectDialog = ({
   onFoldersChange,
 }: FolderSelectDialogProps) => {
   const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderDescription, setNewFolderDescription] = useState('');
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loading, setLoading] = useState(false);
@@ -80,13 +81,22 @@ export const FolderSelectDialog = ({
   const createNewFolder = async () => {
     if (!newFolderName.trim() || !user?.id) return;
 
+    if (newFolderName.length > 30) {
+      toast({
+        title: "Validation Error",
+        description: "Folder name must be 30 characters or less",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setCreating(true);
     try {
       const { data, error } = await supabase
         .from('file_folders')
         .insert({
           name: newFolderName.trim(),
-          description: null,
+          description: newFolderDescription.trim() || null,
           creator_id: user.id,
         })
         .select()
@@ -115,6 +125,7 @@ export const FolderSelectDialog = ({
       setFolders(prev => [...prev, newFolder]);
       onFoldersChange([...selectedFolders, newFolder.id]);
       setNewFolderName('');
+      setNewFolderDescription('');
       setIsCreatingFolder(false);
 
       toast({

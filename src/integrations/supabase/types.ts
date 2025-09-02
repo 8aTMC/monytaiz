@@ -147,6 +147,36 @@ export type Database = {
           },
         ]
       }
+      collaborators: {
+        Row: {
+          created_at: string
+          creator_id: string
+          id: string
+          name: string
+          profile_picture_url: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          id?: string
+          name: string
+          profile_picture_url?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          id?: string
+          name?: string
+          profile_picture_url?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       collection_items: {
         Row: {
           added_at: string | null
@@ -1206,6 +1236,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      saved_tags: {
+        Row: {
+          created_at: string
+          creator_id: string
+          id: string
+          last_used_at: string
+          tag_name: string
+          usage_count: number
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          id?: string
+          last_used_at?: string
+          tag_name: string
+          usage_count?: number
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          id?: string
+          last_used_at?: string
+          tag_name?: string
+          usage_count?: number
+        }
+        Relationships: []
       }
       simple_media: {
         Row: {

@@ -3,115 +3,128 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { DollarSign, AlertCircle } from 'lucide-react';
-
-const MAX_PRICE = 10000.00;
+import { DollarSign } from 'lucide-react';
 
 interface PriceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  price: number | null;
+  price?: number;
   onPriceChange: (price: number | null) => void;
 }
 
-export const PriceDialog = ({
-  open,
-  onOpenChange,
-  price,
-  onPriceChange,
-}: PriceDialogProps) => {
-  const [inputValue, setInputValue] = useState(price?.toString() || '');
-  const [error, setError] = useState('');
+export function PriceDialog({ open, onOpenChange, price = 0, onPriceChange }: PriceDialogProps) {
+  const [inputValue, setInputValue] = useState((price / 100).toFixed(2));
 
-  const handleSave = () => {
-    const numericValue = parseFloat(inputValue);
+  // Format price input to handle both comma and dot as decimal separators
+  const formatPriceInput = (value: string): string => {
+    // Replace comma with dot for decimal separator
+    let formatted = value.replace(/,/g, '.');
     
-    if (isNaN(numericValue) || numericValue < 0) {
-      setError('Please enter a valid price');
-      return;
+    // Remove any characters that aren't digits, decimal points, or negative signs
+    formatted = formatted.replace(/[^\d.-]/g, '');
+    
+    // Ensure only one decimal point
+    const parts = formatted.split('.');
+    if (parts.length > 2) {
+      formatted = parts[0] + '.' + parts.slice(1).join('');
     }
     
-    if (numericValue > MAX_PRICE) {
-      setError(`Maximum price is $${MAX_PRICE.toLocaleString()}`);
-      return;
+    // Limit to 2 decimal places
+    if (parts[1] && parts[1].length > 2) {
+      formatted = parts[0] + '.' + parts[1].substring(0, 2);
     }
     
-    setError('');
-    onPriceChange(numericValue);
-    onOpenChange(false);
-  };
-
-  const handleClear = () => {
-    setInputValue('');
-    setError('');
-    onPriceChange(null);
-    onOpenChange(false);
+    return formatted;
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setInputValue(value);
-    
-    // Clear error when user starts typing
-    if (error) {
-      setError('');
+    const formatted = formatPriceInput(e.target.value);
+    setInputValue(formatted);
+  };
+
+  const handleSave = () => {
+    const numericValue = parseFloat(inputValue);
+    if (isNaN(numericValue) || numericValue < 0) {
+      onPriceChange(0);
+    } else {
+      // Round to 2 decimal places and convert to cents
+      const roundedValue = Math.round(numericValue * 100) / 100;
+      onPriceChange(roundedValue);
     }
-    
-    // Prevent input above max value
-    const numericValue = parseFloat(value);
-    if (!isNaN(numericValue) && numericValue > MAX_PRICE) {
-      setError(`Maximum price is $${MAX_PRICE.toLocaleString()}`);
+    onOpenChange(false);
+  };
+
+  const handleCancel = () => {
+    setInputValue((price / 100).toFixed(2));
+    onOpenChange(false);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSave();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancel();
     }
   };
 
+  // Format display value with proper thousands separators
+  const formatDisplayValue = (value: number): string => {
+    return value.toLocaleString('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
+
+  const previewValue = parseFloat(inputValue) || 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
-          <DialogTitle>Set Suggested Price</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5" />
+            Set Suggested Price
+          </DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
-          <div>
-            <Label htmlFor="price" className="text-sm font-medium">
-              Suggested Price
+          <div className="space-y-2">
+            <Label htmlFor="price-input" className="text-sm font-medium">
+              Price (USD)
             </Label>
-            <div className="relative mt-1">
+            <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                id="price"
-                type="number"
-                step="0.01"
-                min="0"
-                max={MAX_PRICE}
+                id="price-input"
                 placeholder="0.00"
                 value={inputValue}
                 onChange={handleInputChange}
+                onKeyPress={handleKeyPress}
                 className="pl-9"
+                autoFocus
               />
             </div>
-            {error && (
-              <div className="flex items-center gap-2 text-sm text-destructive mt-1">
-                <AlertCircle className="h-4 w-4" />
-                {error}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground mt-1">
-              This price will be used for AI recommendations (Max: ${MAX_PRICE.toLocaleString()})
+            <p className="text-xs text-muted-foreground">
+              Use either comma (,) or dot (.) as decimal separator. Both will be converted to dot format.
             </p>
           </div>
-          
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={handleClear}>
-              Clear
-            </Button>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+
+          {previewValue > 0 && (
+            <div className="p-3 bg-accent rounded-lg">
+              <p className="text-sm text-muted-foreground">Preview:</p>
+              <p className="text-lg font-semibold">{formatDisplayValue(previewValue)}</p>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={handleCancel}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleSave}
-              disabled={!!error && inputValue !== ''}
-            >
+            <Button onClick={handleSave}>
               Save Price
             </Button>
           </div>
@@ -119,4 +132,4 @@ export const PriceDialog = ({
       </DialogContent>
     </Dialog>
   );
-};
+}
