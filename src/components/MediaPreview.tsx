@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { QualitySelector } from './QualitySelector';
 import { Play, Pause, Volume2, VolumeX, Maximize2 } from 'lucide-react';
+import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
 
 interface MediaPreviewProps {
   open: boolean;
@@ -192,13 +193,10 @@ export const MediaPreview = ({
 
             {item.media_type === 'audio' && currentUrl && (
               <div className="p-8 text-center">
-                <audio
+                <CustomAudioPlayer
                   src={currentUrl}
-                  controls
-                  className="w-full max-w-md mx-auto"
-                >
-                  Your browser does not support audio playback.
-                </audio>
+                  title={item.title || 'Audio File'}
+                />
               </div>
             )}
           </div>

@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Play, Pause, Volume2, VolumeX, Maximize } from 'lucide-react';
+import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
 
 interface FilePreviewDialogProps {
   open: boolean;
@@ -231,10 +232,10 @@ export const FilePreviewDialog = ({
                 <div className="w-24 h-24 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
                   <Volume2 className="w-12 h-12 text-muted-foreground" />
                 </div>
-                <audio
+                <CustomAudioPlayer
                   src={fileUrl}
-                  className="w-full"
-                  controls
+                  title={file.name}
+                  className="mt-4"
                 />
               </div>
             )}

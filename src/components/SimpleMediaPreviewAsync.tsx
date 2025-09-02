@@ -8,6 +8,7 @@ import { TagsDialog } from './TagsDialog';
 import { FolderSelectDialog } from './FolderSelectDialog';
 import { DescriptionDialog } from './DescriptionDialog';
 import { PriceDialog } from './PriceDialog';
+import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
 
 interface SimpleMediaPreviewAsyncProps {
   item: SimpleMediaItem | null;
@@ -260,18 +261,10 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                  )}
                   {item?.media_type === 'audio' && (
                     <div className="flex items-center justify-center w-full h-full">
-                      <audio
+                      <CustomAudioPlayer
                         src={fullUrl}
-                        controls
-                        className="w-3/4"
-                        preload="metadata"
-                        onError={(e) => {
-                          console.error('Failed to load audio:', e);
-                          setFullUrl(null);
-                        }}
-                      >
-                        Your browser does not support audio playback.
-                      </audio>
+                        title={item.title || item.original_filename}
+                      />
                     </div>
                   )}
                </div>
