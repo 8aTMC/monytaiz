@@ -277,6 +277,8 @@ export function FileUploadRowWithMetadata({
           isOpen={previewDialogOpen}
           onClose={() => setPreviewDialogOpen(false)}
           getFullUrlAsync={mockGetFullUrlAsync}
+          updateMediaMetadata={async () => {}} // Mock function for upload component
+          addToFolders={async () => {}} // Mock function for upload component
         />
       )}
     </>

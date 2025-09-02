@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useMediaOperations } from '@/hooks/useMediaOperations';
 
 export default function SimpleLibrary() {
-  const { media, loading, error, fetchMedia, getFullUrlAsync } = useSimpleMedia();
+  const { media, loading, error, fetchMedia, getFullUrlAsync, updateMediaMetadata, addToFolders } = useSimpleMedia();
   const [selectedItem, setSelectedItem] = useState<SimpleMediaItem | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -732,6 +732,8 @@ export default function SimpleLibrary() {
           selectedIndex={selectedIndex}
           onPrevious={handlePrevious}
           onNext={handleNext}
+          updateMediaMetadata={updateMediaMetadata}
+          addToFolders={addToFolders}
         />
       )}
     </>

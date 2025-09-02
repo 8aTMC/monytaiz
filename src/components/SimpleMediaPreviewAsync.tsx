@@ -20,6 +20,8 @@ interface SimpleMediaPreviewAsyncProps {
   selectedIndex?: number;
   onPrevious?: () => void;
   onNext?: () => void;
+  updateMediaMetadata: (mediaId: string, metadata: Partial<Pick<SimpleMediaItem, 'title' | 'description' | 'tags' | 'mentions' | 'suggested_price_cents'>>) => Promise<any>;
+  addToFolders: (mediaId: string, folderIds: string[]) => Promise<void>;
 }
 
 export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = ({
@@ -30,7 +32,9 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
   mediaItems = [],
   selectedIndex = 0,
   onPrevious,
-  onNext
+  onNext,
+  updateMediaMetadata,
+  addToFolders
 }) => {
   const [fullUrl, setFullUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -46,8 +50,8 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
   // Folder selection state
   const [selectedFolders, setSelectedFolders] = useState<string[]>([]);
   
-  // Use the media hook for updates
-  const { updateMediaMetadata, addToFolders, getMediaFolders } = useSimpleMedia();
+  // Use the passed functions instead of creating a new useSimpleMedia instance
+  const { getMediaFolders } = useSimpleMedia();
 
   useEffect(() => {
     if (!item || !isOpen) {
