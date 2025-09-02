@@ -1,8 +1,9 @@
 
 import { useEffect, useMemo } from 'react';
-import { Image, Video, AudioWaveform } from 'lucide-react';
+import { Image, Video } from 'lucide-react';
 import { useOptimizedMediaDisplay } from '@/hooks/useOptimizedMediaDisplay';
 import { useThumbnailUrl } from '@/hooks/useThumbnailUrl';
+import { WaveformIcon } from '@/components/icons/WaveformIcon';
 
 interface MediaThumbnailProps {
   item: {
@@ -58,7 +59,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     switch (type) {
       case 'image': return <Image className="h-8 w-8" />;
       case 'video': return <Video className="h-8 w-8" />;
-      case 'audio': return <AudioWaveform className="h-10 w-10" />;
+      case 'audio': return <WaveformIcon className="h-10 w-10" />;
       default: return <Image className="h-8 w-8" />;
     }
   };
@@ -120,7 +121,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
           {/* Media type icon */}
           <div className="absolute bottom-3 right-2 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
             {item.type === 'video' && <Video className="w-3.5 h-3.5 text-white" />}
-            {item.type === 'audio' && <AudioWaveform className="w-5 h-4 text-white" />}
+            {item.type === 'audio' && <WaveformIcon className="w-5 h-4 text-white" />}
           </div>
         </div>
       );
