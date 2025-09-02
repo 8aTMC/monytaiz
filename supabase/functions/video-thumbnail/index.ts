@@ -82,11 +82,19 @@ Deno.serve(async (req) => {
     // Read thumbnail and upload to storage
     const thumbnailData = await Deno.readFile(thumbnailPath);
     
-    // Get the original filename from the path to create a meaningful thumbnail name
+    // Get the file ID and original filename from the path
     const pathParts = path.split('/');
     const originalFilename = pathParts[pathParts.length - 1];
-    const filenameWithoutExt = originalFilename.replace(/\.[^/.]+$/, '');
-    const thumbnailStoragePath = `thumbnails/${filenameWithoutExt}_thumb.jpg`;
+    
+    // Extract the fileId and base filename (format: "fileId-originalname.ext")
+    const fileIdMatch = originalFilename.match(/^([a-f0-9-]{36})-(.+)$/);
+    if (!fileIdMatch) {
+      throw new Error(`Invalid filename format: ${originalFilename}`);
+    }
+    
+    const [, fileId, baseFilename] = fileIdMatch;
+    const filenameWithoutExt = baseFilename.replace(/\.[^/.]+$/, '');
+    const thumbnailStoragePath = `thumbnails/${fileId}-${filenameWithoutExt}_thumb.jpg`;
 
     const { error: uploadError } = await supabase.storage
       .from('content')

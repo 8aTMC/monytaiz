@@ -86,12 +86,12 @@ export const useSimpleUpload = () => {
       let width: number | undefined;
       let height: number | undefined;
 
-      // For videos, create thumbnail only
+      // For videos, get dimensions but don't generate thumbnail yet
       if (mediaType === 'video') {
         setUploadProgress({
           phase: 'processing',
           progress: 30,
-          message: 'Creating video thumbnail...',
+          message: 'Analyzing video...',
           originalSize,
           processedSize: originalSize,
           compressionRatio: 0
@@ -101,19 +101,11 @@ export const useSimpleUpload = () => {
           const processedFiles = await processFiles([file]);
           if (processedFiles.length > 0) {
             const result = processedFiles[0];
-            const baseName = file.name.split('.')[0];
-            
-            // Store thumbnail in thumbnails folder
-            if (result.thumbnail) {
-              thumbnailBlob = result.thumbnail;
-              thumbnailPath = `thumbnails/${fileId}-${baseName}_thumb.jpg`;
-            }
-            
             width = result.metadata.width;
             height = result.metadata.height;
           }
         } catch (error) {
-          console.warn('Video thumbnail creation failed:', error);
+          console.warn('Video analysis failed:', error);
         }
       }
 
@@ -131,12 +123,7 @@ export const useSimpleUpload = () => {
       const originalUpload = await supabase.storage.from('content').upload(uploadPath, file, { upsert: false });
       if (originalUpload.error) throw new Error(`Original upload failed: ${originalUpload.error.message}`);
 
-      // Upload thumbnail if available
-      if (thumbnailBlob && thumbnailPath) {
-        console.log('Uploading thumbnail...');
-        const thumbnailUpload = await supabase.storage.from('content').upload(thumbnailPath, thumbnailBlob, { upsert: false });
-        if (thumbnailUpload.error) throw new Error(`Thumbnail upload failed: ${thumbnailUpload.error.message}`);
-      }
+      // Skip thumbnail upload here - will be handled by edge function for videos
 
       setUploadProgress({
         phase: 'uploading',
@@ -159,9 +146,9 @@ export const useSimpleUpload = () => {
           optimized_size_bytes: processedSize,
           original_path: uploadPath,
           processed_path: uploadPath,
-          thumbnail_path: thumbnailPath,
+          thumbnail_path: mediaType === 'video' ? null : thumbnailPath,
           media_type: mediaType,
-          processing_status: 'processed',
+          processing_status: mediaType === 'video' ? 'pending' : 'processed',
           width: width,
           height: height,
           tags: []
@@ -171,6 +158,36 @@ export const useSimpleUpload = () => {
 
       if (dbError) {
         throw new Error(`Database error: ${dbError.message}`);
+      }
+
+      // For videos, generate thumbnail using edge function
+      if (mediaType === 'video') {
+        setUploadProgress({
+          phase: 'processing',
+          progress: 90,
+          message: 'Generating thumbnail...',
+          originalSize,
+          processedSize,
+          compressionRatio
+        });
+
+        try {
+          const { data: thumbnailResult, error: thumbnailError } = await supabase.functions.invoke('video-thumbnail', {
+            body: {
+              bucket: 'content',
+              path: uploadPath,
+              mediaId: mediaRecord.id
+            }
+          });
+
+          if (thumbnailError) {
+            console.warn('Thumbnail generation failed:', thumbnailError);
+          } else if (thumbnailResult?.success) {
+            console.log('✅ Thumbnail generated:', thumbnailResult.thumbnailPath);
+          }
+        } catch (error) {
+          console.warn('Thumbnail generation error:', error);
+        }
       }
 
       setUploadProgress({
@@ -185,7 +202,7 @@ export const useSimpleUpload = () => {
       console.log('✅ File uploaded successfully:', { 
         id: mediaRecord.id, 
         path: uploadPath,
-        thumbnailPath 
+        thumbnailPath: mediaType === 'video' ? 'generating...' : thumbnailPath
       });
 
       toast({
