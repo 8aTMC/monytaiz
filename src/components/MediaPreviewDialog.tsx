@@ -7,6 +7,7 @@ import { useSidebar } from '@/components/Navigation';
 import { useProgressiveMediaLoading } from '@/hooks/useProgressiveMediaLoading';
 import { useIntersectionPreloader } from '@/hooks/useIntersectionPreloader';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
+import { EnhancedVideoPlayer } from '@/components/EnhancedVideoPlayer';
 
 // Use the MediaItem interface from ContentLibrary
 interface MediaItem {
@@ -310,20 +311,14 @@ export const MediaPreviewDialog = ({
                   )}
 
                   {typeValue === 'video' && getCurrentUrl() && (
-                    <video 
+                    <EnhancedVideoPlayer
                       src={getCurrentUrl()}
-                      controls 
-                      className="w-full h-auto object-contain rounded max-h-[70vh]"
-                      style={{
-                        aspectRatio: item.width && item.height ? `${item.width}/${item.height}` : '16/9'
-                      }}
-                      preload="metadata"
+                      aspectRatio={item.width && item.height ? `${item.width}/${item.height}` : '16/9'}
+                      className="max-h-[70vh]"
                       onError={(e) => {
                         console.error('Failed to load secure video:', e);
                       }}
-                    >
-                      Your browser does not support the video tag.
-                    </video>
+                    />
                   )}
 
                   {typeValue === 'audio' && getCurrentUrl() && (
