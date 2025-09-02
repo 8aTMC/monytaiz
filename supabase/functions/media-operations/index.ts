@@ -470,7 +470,7 @@ async function deleteMediaHard(supabaseClient: any, userId: string, mediaIds: st
     const [simpleMediaResults, mediaResults, contentResults] = await Promise.all([
       supabaseClient
         .from('simple_media')
-        .select('id, processed_path, original_path')
+        .select('id, processed_path, original_path, thumbnail_path')
         .in('id', mediaIds),
       supabaseClient
         .from('media')
@@ -487,7 +487,7 @@ async function deleteMediaHard(supabaseClient: any, userId: string, mediaIds: st
     const allMedia = [
       ...(simpleMediaResults.data || []).map((item: any) => ({
         id: item.id,
-        file_paths: [item.processed_path, item.original_path].filter(Boolean)
+        file_paths: [item.processed_path, item.original_path, item.thumbnail_path].filter(Boolean)
       })),
       ...(mediaResults.data || []).map((item: any) => ({ 
         id: item.id, 
