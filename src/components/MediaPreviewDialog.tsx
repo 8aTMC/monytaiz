@@ -6,7 +6,6 @@ import { Image, Video, FileAudio, FileText, X, ChevronLeft, ChevronRight, Check 
 import { useSidebar } from '@/components/Navigation';
 import { useProgressiveMediaLoading } from '@/hooks/useProgressiveMediaLoading';
 import { useIntersectionPreloader } from '@/hooks/useIntersectionPreloader';
-import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
 
 // Use the MediaItem interface from ContentLibrary
 interface MediaItem {
@@ -329,10 +328,17 @@ export const MediaPreviewDialog = ({
                   {typeValue === 'audio' && getCurrentUrl() && (
                     <div className="flex flex-col items-center gap-4 p-8">
                       <FileAudio className="h-16 w-16 text-muted-foreground" />
-                      <CustomAudioPlayer
-                        src={getCurrentUrl()}
-                        title={item.title || 'Audio File'}
-                      />
+                      <audio 
+                        src={getCurrentUrl()} 
+                        controls 
+                        className="w-full max-w-md" 
+                        preload="metadata"
+                        onError={(e) => {
+                          console.error('Failed to load secure audio:', e);
+                        }}
+                      >
+                        Your browser does not support the audio tag.
+                      </audio>
                     </div>
                   )}
 

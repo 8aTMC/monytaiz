@@ -19,7 +19,6 @@ import { useSecureMedia } from '@/hooks/useSecureMedia';
 import { QualitySelector } from '@/components/QualitySelector';
 import { format } from 'date-fns';
 import { SimpleMediaItem } from '@/hooks/useSimpleMedia';
-import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
 
 interface SimpleMediaPreviewProps {
   mediaItems: SimpleMediaItem[];
@@ -138,10 +137,10 @@ export const SimpleMediaPreview: React.FC<SimpleMediaPreviewProps> = ({
               
               {currentItem.media_type === 'audio' && mediaUrl && (
                 <div className="flex justify-center">
-                  <CustomAudioPlayer
-                    src={mediaUrl}
-                    title={currentItem.title || currentItem.original_filename}
-                  />
+                  <audio controls className="w-full max-w-md">
+                    <source src={mediaUrl} type={currentItem.mime_type} />
+                    Your browser does not support the audio tag.
+                  </audio>
                 </div>
               )}
             </div>
