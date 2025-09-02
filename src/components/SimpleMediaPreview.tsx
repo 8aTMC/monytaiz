@@ -13,7 +13,9 @@ import {
   Image as ImageIcon,
   Video,
   Music,
-  Tag
+  Tag,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useSecureMedia } from '@/hooks/useSecureMedia';
 import { QualitySelector } from '@/components/QualitySelector';
@@ -146,6 +148,29 @@ export const SimpleMediaPreview: React.FC<SimpleMediaPreviewProps> = ({
               )}
             </div>
           </div>
+
+          {/* Navigation arrows */}
+          {selectedIndex > 0 && (
+            <Button
+              variant="secondary"
+              size="icon"
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-background/20 backdrop-blur-sm border-0 hover:bg-background/40"
+              onClick={onPrevious}
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </Button>
+          )}
+          
+          {selectedIndex < mediaItems.length - 1 && (
+            <Button
+              variant="secondary"
+              size="icon"
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-background/20 backdrop-blur-sm border-0 hover:bg-background/40"
+              onClick={onNext}
+            >
+              <ChevronRight className="h-6 w-6" />
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
