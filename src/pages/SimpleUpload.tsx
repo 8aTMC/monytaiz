@@ -11,10 +11,14 @@ import { FileUploadRowWithMetadata, UploadedFileWithMetadata } from '@/component
 import { DetailedUploadProgressBar } from '@/components/DetailedUploadProgressBar';
 import { VideoValidationError } from '@/components/VideoValidationError';
 import { FileReviewRow } from '@/components/FileReviewRow';
+import { SelectionHeader } from '@/components/SelectionHeader';
+import { BatchMetadataToolbar } from '@/components/BatchMetadataToolbar';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SimpleUpload() {
   const navigate = useNavigate();
   const { uploading, uploadFile, uploadProgress } = useDirectUpload();
+  const { toast } = useToast();
   const [files, setFiles] = useState<(UploadedFileWithMetadata & { 
     compressionRatio?: number; 
     processedSize?: number; 
@@ -23,6 +27,62 @@ export default function SimpleUpload() {
   const [currentUploadProgress, setCurrentUploadProgress] = useState(0);
   const [currentUploadingFile, setCurrentUploadingFile] = useState<string | null>(null);
   const [reviewMode, setReviewMode] = useState(false);
+  
+  // Selection state management
+  const selectedFiles = files.filter(f => f.selected);
+  const hasSelection = selectedFiles.length > 0;
+  const allSelected = files.length > 0 && selectedFiles.length === files.length;
+
+  // Selection functions
+  const toggleFileSelection = useCallback((fileId: string, selected: boolean) => {
+    setFiles(prev => prev.map(f => 
+      f.id === fileId ? { ...f, selected } : f
+    ));
+  }, []);
+
+  const selectAllFiles = useCallback(() => {
+    setFiles(prev => prev.map(f => ({ ...f, selected: true })));
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setFiles(prev => prev.map(f => ({ ...f, selected: false })));
+  }, []);
+
+  const updateSelectedFilesMetadata = useCallback((metadata: Partial<UploadedFileWithMetadata['metadata']>) => {
+    setFiles(prev => prev.map(f => {
+      if (!f.selected) return f;
+      
+      // Merge metadata for selected files - combine arrays for mentions, tags, folders
+      const updatedMetadata = { ...f.metadata };
+      
+      if (metadata.mentions) {
+        const existingMentions = new Set(f.metadata.mentions);
+        metadata.mentions.forEach(mention => existingMentions.add(mention));
+        updatedMetadata.mentions = Array.from(existingMentions);
+      }
+      
+      if (metadata.tags) {
+        const existingTags = new Set(f.metadata.tags);
+        metadata.tags.forEach(tag => existingTags.add(tag));
+        updatedMetadata.tags = Array.from(existingTags);
+      }
+      
+      if (metadata.folders) {
+        const existingFolders = new Set(f.metadata.folders);
+        metadata.folders.forEach(folder => existingFolders.add(folder));
+        updatedMetadata.folders = Array.from(existingFolders);
+      }
+      
+      return { ...f, metadata: updatedMetadata };
+    }));
+    
+    clearSelection();
+    toast({
+      title: "Batch changes applied",
+      description: `Metadata updated for ${selectedFiles.length} files`,
+      variant: "default",
+    });
+  }, [selectedFiles.length, clearSelection, toast]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const newFiles = acceptedFiles.map(file => ({
@@ -242,15 +302,26 @@ export default function SimpleUpload() {
           </Card>
         )}
 
-        {/* Review Mode - File List with Thumbnails */}
+        {/* Review Mode - File List with Selection and Batch Controls */}
         {reviewMode && files.length > 0 && (
           <div className="space-y-4 mb-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">Selected Files ({files.length})</h3>
-              <p className="text-sm text-muted-foreground">
-                Total size: {formatFileSize(files.reduce((acc, f) => acc + f.file.size, 0))}
-              </p>
-            </div>
+            {/* File count and selection header */}
+            <SelectionHeader
+              totalFiles={files.length}
+              selectedCount={selectedFiles.length}
+              allSelected={allSelected}
+              onSelectAll={selectAllFiles}
+              onClearSelection={clearSelection}
+            />
+            
+            {/* Batch metadata toolbar */}
+            {hasSelection && (
+              <BatchMetadataToolbar
+                selectedCount={selectedFiles.length}
+                onClearSelection={clearSelection}
+                onUpdateMetadata={updateSelectedFilesMetadata}
+              />
+            )}
             
             <div className="space-y-3">
               {files.map((file) => (
@@ -259,6 +330,7 @@ export default function SimpleUpload() {
                   file={file}
                   onRemove={removeFile}
                   onMetadataChange={handleMetadataChange}
+                  onSelectionChange={toggleFileSelection}
                   formatFileSize={formatFileSize}
                 />
               ))}

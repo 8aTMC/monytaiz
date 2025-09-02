@@ -28,6 +28,7 @@ export interface UploadedFileWithMetadata {
   id: string;
   status: 'pending' | 'uploading' | 'completed' | 'error' | 'validation_error';
   error?: string;
+  selected?: boolean;
   metadata: {
     mentions: string[];
     tags: string[];

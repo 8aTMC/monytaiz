@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FileImage, FileVideo, FileAudio, X, AtSign, Hash, FolderOpen, FileText, DollarSign, Eye } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { UploadedFileWithMetadata } from '@/components/FileUploadRowWithMetadata';
 import { MentionsDialog } from './MentionsDialog';
 import { TagsDialog } from './TagsDialog';
@@ -15,10 +16,11 @@ interface FileReviewRowProps {
   file: UploadedFileWithMetadata;
   onRemove: (id: string) => void;
   onMetadataChange?: (id: string, metadata: Partial<UploadedFileWithMetadata['metadata']>) => void;
+  onSelectionChange?: (id: string, selected: boolean) => void;
   formatFileSize: (bytes: number) => string;
 }
 
-export function FileReviewRow({ file, onRemove, onMetadataChange, formatFileSize }: FileReviewRowProps) {
+export function FileReviewRow({ file, onRemove, onMetadataChange, onSelectionChange, formatFileSize }: FileReviewRowProps) {
   const [thumbnail, setThumbnail] = useState<string | null>(null);
   
   // Dialog states
@@ -82,14 +84,43 @@ export function FileReviewRow({ file, onRemove, onMetadataChange, formatFileSize
     return <FileImage className="w-6 h-6" />;
   };
 
+  // Determine card styling based on selection and metadata
+  const hasMetadata = file.metadata.mentions.length > 0 || 
+                     file.metadata.tags.length > 0 || 
+                     file.metadata.folders.length > 0;
+  const hasContentData = file.metadata.description || 
+                        (file.metadata.suggestedPrice && file.metadata.suggestedPrice > 0);
+  
+  let cardClassName = "p-4 hover:bg-muted/50 transition-colors cursor-pointer relative";
+  
+  if (file.selected) {
+    cardClassName = hasMetadata 
+      ? "p-4 transition-colors cursor-pointer relative bg-green-100 border-green-300 hover:bg-green-100"
+      : "p-4 transition-colors cursor-pointer relative bg-primary/10 border-primary hover:bg-primary/10";
+  } else if (hasMetadata) {
+    cardClassName = "p-4 transition-colors cursor-pointer relative bg-green-50 border-green-200 hover:bg-green-100";
+  } else if (hasContentData) {
+    cardClassName = "p-4 transition-colors cursor-pointer relative bg-blue-50 border-blue-200 hover:bg-blue-100";
+  }
+
   return (
     <>
       <Card 
-        className="p-4 hover:bg-muted/50 transition-colors cursor-pointer" 
+        className={cardClassName}
         onDoubleClick={handleDoubleClick}
         title="Double-click to preview"
       >
         <div className="flex items-center gap-4">
+          {/* Selection Checkbox */}
+          {onSelectionChange && (
+            <div className="flex-shrink-0">
+              <Checkbox
+                checked={file.selected || false}
+                onCheckedChange={(checked) => onSelectionChange(file.id, checked === true)}
+                className="w-5 h-5"
+              />
+            </div>
+          )}
           {/* Thumbnail */}
           <div className="flex-shrink-0 w-20 h-16 bg-muted rounded-lg overflow-hidden flex items-center justify-center">
             {thumbnail ? (
