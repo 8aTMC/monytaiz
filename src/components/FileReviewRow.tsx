@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileImage, FileVideo, FileAudio, X, AtSign, Hash, FolderOpen, FileText, DollarSign } from 'lucide-react';
+import { FileImage, FileVideo, FileAudio, X, AtSign, Hash, FolderOpen, FileText, DollarSign, Eye } from 'lucide-react';
 import { UploadedFileWithMetadata } from '@/components/FileUploadRowWithMetadata';
 import { MentionsDialog } from './MentionsDialog';
 import { TagsDialog } from './TagsDialog';
 import { FolderSelectDialog } from './FolderSelectDialog';
 import { DescriptionDialog } from './DescriptionDialog';
 import { PriceDialog } from './PriceDialog';
+import { FilePreviewDialog } from './FilePreviewDialog';
 
 interface FileReviewRowProps {
   file: UploadedFileWithMetadata;
@@ -26,7 +27,13 @@ export function FileReviewRow({ file, onRemove, onMetadataChange, formatFileSize
   const [foldersDialogOpen, setFoldersDialogOpen] = useState(false);
   const [descriptionDialogOpen, setDescriptionDialogOpen] = useState(false);
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
 
+  const handleDoubleClick = () => {
+    console.log('Double-click detected on file:', file.file.name);
+    setPreviewDialogOpen(true);
+  };
+  
   const handleMetadataUpdate = (field: keyof UploadedFileWithMetadata['metadata'], value: any) => {
     if (onMetadataChange) {
       onMetadataChange(file.id, { [field]: value });
@@ -77,7 +84,11 @@ export function FileReviewRow({ file, onRemove, onMetadataChange, formatFileSize
 
   return (
     <>
-      <Card className="p-4">
+      <Card 
+        className="p-4 hover:bg-muted/50 transition-colors cursor-pointer" 
+        onDoubleClick={handleDoubleClick}
+        title="Double-click to preview"
+      >
         <div className="flex items-center gap-4">
           {/* Thumbnail */}
           <div className="flex-shrink-0 w-20 h-16 bg-muted rounded-lg overflow-hidden flex items-center justify-center">
@@ -135,6 +146,15 @@ export function FileReviewRow({ file, onRemove, onMetadataChange, formatFileSize
 
               {/* Actions */}
               <div className="flex items-center gap-2 ml-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDoubleClick}
+                  className="text-xs"
+                >
+                  <Eye className="w-4 h-4 mr-1" />
+                  Preview
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -243,6 +263,13 @@ export function FileReviewRow({ file, onRemove, onMetadataChange, formatFileSize
           />
         </>
       )}
+      
+      {/* Preview dialog */}
+      <FilePreviewDialog
+        file={file.file}
+        open={previewDialogOpen}
+        onOpenChange={setPreviewDialogOpen}
+      />
     </>
   );
 }

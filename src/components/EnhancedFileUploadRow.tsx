@@ -83,6 +83,7 @@ export function EnhancedFileUploadRow({
   };
 
   const handleDoubleClick = () => {
+    console.log('Double-click detected on file:', item.file.name);
     setPreviewDialogOpen(true);
   };
 
@@ -97,6 +98,7 @@ export function EnhancedFileUploadRow({
           <div 
             className="flex items-center gap-4 cursor-pointer" 
             onDoubleClick={handleDoubleClick}
+            title="Double-click to preview"
           >
             <div className="text-muted-foreground">
               {getFileIcon(item.file)}
@@ -303,10 +305,14 @@ export function EnhancedFileUploadRow({
       />
 
       {/* Preview dialog */}
+      {console.log('Rendering FilePreviewDialog, open:', previewDialogOpen)}
       <FilePreviewDialog
         file={item.file}
         open={previewDialogOpen}
-        onOpenChange={setPreviewDialogOpen}
+        onOpenChange={(open) => {
+          console.log('FilePreviewDialog onOpenChange:', open);
+          setPreviewDialogOpen(open);
+        }}
       />
     </>
   );
