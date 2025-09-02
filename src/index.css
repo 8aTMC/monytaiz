@@ -227,7 +227,7 @@ div[aria-label="Chat messages"]::-webkit-scrollbar {
   height: 100vh !important;
   background-color: rgba(0, 0, 0, 0.8) !important;
   backdrop-filter: blur(4px) !important;
-  z-index: 130 !important;
+  z-index: 100 !important;
   pointer-events: auto !important;
 }
 
@@ -236,17 +236,17 @@ div[aria-label="Chat messages"]::-webkit-scrollbar {
   left: 50% !important;
   top: 50% !important;
   transform: translate(-50%, -50%) !important;
-  z-index: 140 !important;
+  z-index: 110 !important;
   pointer-events: auto !important;
 }
 
 /* Modal/Dialog Layer (100-120) - Ensure dialogs appear above media preview */
 [data-radix-dialog-overlay] {
-  z-index: 100 !important;
+  z-index: 130 !important;
 }
 
 [data-radix-dialog-content] {
-  z-index: 110 !important;
+  z-index: 140 !important;
 }
 
 /* Responsive sidebar auto-collapse - force collapse on narrow screens only when collapsed */
