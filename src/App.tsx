@@ -27,6 +27,7 @@ import FanDashboard from "./pages/FanDashboard";
 import ManagementMessages from "./pages/ManagementMessages";
 import { AIManagement } from "./pages/AIManagement";
 import TagManagement from "./pages/TagManagement";
+import Collaborators from "./pages/Collaborators";
 import NotFound from "./pages/NotFound";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -163,6 +164,13 @@ const App = () => (
               <ProtectedRoute>
                 <Layout>
                   <TagManagement />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/collaborators" element={
+              <ProtectedRoute>
+                <Layout>
+                  <Collaborators />
                 </Layout>
               </ProtectedRoute>
             } />
