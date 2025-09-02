@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { useSimpleUpload } from '@/hooks/useSimpleUpload';
+import { useDirectUpload } from '@/hooks/useDirectUpload';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -14,7 +14,7 @@ import { FileReviewRow } from '@/components/FileReviewRow';
 
 export default function SimpleUpload() {
   const navigate = useNavigate();
-  const { uploading, uploadFile, uploadProgress, isProcessing } = useSimpleUpload();
+  const { uploading, uploadFile, uploadProgress } = useDirectUpload();
   const [files, setFiles] = useState<(UploadedFileWithMetadata & { 
     compressionRatio?: number; 
     processedSize?: number; 
@@ -114,7 +114,7 @@ export default function SimpleUpload() {
       'video/*': ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.wmv', '.m4v'],
       'audio/*': ['.mp3', '.wav', '.m4a', '.flac', '.ogg', '.aac', '.opus', '.wma']
     },
-    disabled: uploading || isProcessing || reviewMode
+    disabled: uploading || reviewMode
   });
 
   const removeFile = (id: string) => {
@@ -174,8 +174,8 @@ export default function SimpleUpload() {
               </h1>
               <p className="text-muted-foreground mt-1">
                 {reviewMode 
-                  ? 'Review your selected files before uploading. You can edit metadata and remove files.'
-                  : 'Upload media files with maximum compression. Videos converted to WebM (480p/720p/1080p), audio to Opus format. Never keeps originals.'
+                      ? 'Review your selected files before uploading. You can edit metadata and remove files.'
+                      : 'Ultra-fast direct uploads. Files are immediately available in your library.'
                 }
               </p>
             </div>
@@ -219,7 +219,7 @@ export default function SimpleUpload() {
                   ? 'border-primary bg-primary/5' 
                   : 'border-muted-foreground/25 hover:border-primary/50'
                 }
-                ${(uploading || isProcessing) ? 'opacity-50 cursor-not-allowed' : ''}
+                ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
               `}
             >
               <input {...getInputProps()} />
@@ -270,15 +270,15 @@ export default function SimpleUpload() {
                   Ready to upload {files.length} file{files.length === 1 ? '' : 's'}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Files will be processed and compressed during upload. You can edit metadata for each file above.
+                  Files will be uploaded directly with no processing delays. Thumbnails generated in background.
                 </p>
               </div>
             </Card>
           </div>
         )}
 
-        {/* Enhanced Processing & Upload Progress */}
-        {(isProcessing || uploading) && (
+        {/* Enhanced Upload Progress */}
+        {uploading && (
           <div className="space-y-4 mb-6">
             {/* Overall Progress Summary */}
             {files.length > 1 && (
@@ -295,42 +295,47 @@ export default function SimpleUpload() {
                   </div>
                   <Progress value={currentUploadProgress} className="h-2" />
                   
-                  {/* Statistics */}
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Files</p>
-                      <p className="font-medium">{files.filter(f => f.status === 'completed').length}/{files.length}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Total Saved</p>
-                      <p className="font-medium text-emerald-600">
-                        {formatFileSize(files.reduce((acc, f) => {
-                          if (f.compressionRatio && f.processedSize) {
-                            return acc + (f.file.size - f.processedSize);
-                          }
-                          return acc;
-                        }, 0))}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Avg Compression</p>
-                      <p className="font-medium text-emerald-600">
-                        {Math.round(files.reduce((acc, f, _, arr) => acc + (f.compressionRatio || 0), 0) / files.length)}%
-                      </p>
-                    </div>
-                  </div>
+            {/* Statistics - Remove compression stats since no processing */}
+            <div className="grid grid-cols-2 gap-4 text-center">
+              <div>
+                <p className="text-xs text-muted-foreground">Files</p>
+                <p className="font-medium">{files.filter(f => f.status === 'completed').length}/{files.length}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Total Size</p>
+                <p className="font-medium text-primary">
+                  {formatFileSize(files.reduce((acc, f) => {
+                    if (f.status === 'completed') {
+                      return acc + f.file.size;
+                    }
+                    return acc;
+                  }, 0))}
+                </p>
+              </div>
+            </div>
                 </div>
               </Card>
             )}
 
             {/* Current File Detailed Progress */}
-            {uploadProgress.phase !== 'complete' && currentUploadingFile && (
+            {uploadProgress.phase !== 'complete' && uploadProgress.phase !== 'error' && currentUploadingFile && (
               <DetailedUploadProgressBar
                 fileName={files.find(f => f.id === currentUploadingFile)?.file.name || 'Processing...'}
                 fileType={files.find(f => f.id === currentUploadingFile)?.file.type || ''}
-                progress={uploadProgress}
+                progress={uploadProgress as any}
                 isActive={true}
               />
+            )}
+
+            {/* Error Display */}
+            {uploadProgress.phase === 'error' && (
+              <Card className="p-4 border-destructive">
+                <div className="flex items-center gap-2 text-destructive">
+                  <Upload className="w-4 h-4" />
+                  <span className="font-medium">Upload Error</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">{uploadProgress.message}</p>
+              </Card>
             )}
           </div>
         )}
