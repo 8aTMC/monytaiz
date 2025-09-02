@@ -25,7 +25,7 @@ interface SimpleMediaPreviewAsyncProps {
 }
 
 export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = ({
-  item,
+  item: propItem,
   isOpen,
   onClose,
   getFullUrlAsync,
@@ -36,6 +36,8 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
   updateMediaMetadata,
   addToFolders
 }) => {
+  // Local item state for instant updates
+  const [item, setItem] = useState<SimpleMediaItem | null>(propItem);
   const [fullUrl, setFullUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   
@@ -52,6 +54,11 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
   
   // Use the passed functions instead of creating a new useSimpleMedia instance
   const { getMediaFolders } = useSimpleMedia();
+  
+  // Update local item when prop changes
+  useEffect(() => {
+    setItem(propItem);
+  }, [propItem]);
 
   useEffect(() => {
     if (!item || !isOpen) {
@@ -92,18 +99,28 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
   const handleMentionsChange = async (mentions: string[]) => {
     if (!item) return;
     try {
+      // Update local state immediately for instant UI feedback
+      setItem(prevItem => prevItem ? { ...prevItem, mentions } : null);
+      
       await updateMediaMetadata(item.id, { mentions });
     } catch (error) {
       console.error('Error updating mentions:', error);
+      // Revert on error
+      setItem(prevItem => prevItem ? { ...prevItem, mentions: item.mentions } : null);
     }
   };
 
   const handleTagsChange = async (tags: string[]) => {
     if (!item) return;
     try {
+      // Update local state immediately for instant UI feedback
+      setItem(prevItem => prevItem ? { ...prevItem, tags } : null);
+      
       await updateMediaMetadata(item.id, { tags });
     } catch (error) {
       console.error('Error updating tags:', error);
+      // Revert on error
+      setItem(prevItem => prevItem ? { ...prevItem, tags: item.tags } : null);
     }
   };
 
@@ -120,9 +137,14 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
   const handleDescriptionChange = async (description: string) => {
     if (!item) return;
     try {
+      // Update local state immediately for instant UI feedback
+      setItem(prevItem => prevItem ? { ...prevItem, description } : null);
+      
       await updateMediaMetadata(item.id, { description });
     } catch (error) {
       console.error('Error updating description:', error);
+      // Revert on error
+      setItem(prevItem => prevItem ? { ...prevItem, description: item.description } : null);
     }
   };
 
@@ -130,18 +152,29 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
     if (!item) return;
     try {
       const suggested_price_cents = price ? Math.round(price * 100) : 0;
+      
+      // Update local state immediately for instant UI feedback
+      setItem(prevItem => prevItem ? { ...prevItem, suggested_price_cents } : null);
+      
       await updateMediaMetadata(item.id, { suggested_price_cents });
     } catch (error) {
       console.error('Error updating price:', error);
+      // Revert on error
+      setItem(prevItem => prevItem ? { ...prevItem, suggested_price_cents: item.suggested_price_cents } : null);
     }
   };
 
   const handleTitleChange = async (title: string) => {
     if (!item) return;
     try {
+      // Update local state immediately for instant UI feedback
+      setItem(prevItem => prevItem ? { ...prevItem, title } : null);
+      
       await updateMediaMetadata(item.id, { title });
     } catch (error) {
       console.error('Error updating title:', error);
+      // Revert on error
+      setItem(prevItem => prevItem ? { ...prevItem, title: item.title } : null);
     }
   };
 
