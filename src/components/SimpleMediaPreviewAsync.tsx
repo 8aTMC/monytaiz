@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Button } from '@/components/ui/button';
-import { X, Download, AtSign, Hash, FolderOpen, FileText, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Download, AtSign, Hash, FolderOpen, FileText, DollarSign, ChevronLeft, ChevronRight, Edit } from 'lucide-react';
 import { SimpleMediaItem, useSimpleMedia } from '@/hooks/useSimpleMedia';
 import { MentionsDialog } from './MentionsDialog';
 import { TagsDialog } from './TagsDialog';
 import { FolderSelectDialog } from './FolderSelectDialog';
 import { DescriptionDialog } from './DescriptionDialog';
 import { PriceDialog } from './PriceDialog';
+import { EditTitleDialog } from './EditTitleDialog';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
 
 interface SimpleMediaPreviewAsyncProps {
@@ -40,6 +41,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
   const [foldersDialogOpen, setFoldersDialogOpen] = useState(false);
   const [descriptionDialogOpen, setDescriptionDialogOpen] = useState(false);
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
+  const [editTitleDialogOpen, setEditTitleDialogOpen] = useState(false);
   
   // Folder selection state
   const [selectedFolders, setSelectedFolders] = useState<string[]>([]);
@@ -130,6 +132,15 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
     }
   };
 
+  const handleTitleChange = async (title: string) => {
+    if (!item) return;
+    try {
+      await updateMediaMetadata(item.id, { title });
+    } catch (error) {
+      console.error('Error updating title:', error);
+    }
+  };
+
   if (!item) return null;
 
   const handleDownload = () => {
@@ -180,9 +191,19 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
         {/* Header */}
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold truncate pr-4">
-              {item?.title || item?.original_filename || 'Untitled'}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold truncate">
+                {item?.title || item?.original_filename || 'Untitled'}
+              </h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditTitleDialogOpen(true)}
+                className="h-6 w-6 p-0 opacity-60 hover:opacity-100"
+              >
+                <Edit className="h-3 w-3" />
+              </Button>
+            </div>
             <div className="flex gap-2">
               <Button
                 variant="ghost"
@@ -430,6 +451,13 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
             onOpenChange={setPriceDialogOpen}
             price={item.suggested_price_cents ? item.suggested_price_cents / 100 : null}
             onPriceChange={handlePriceChange}
+          />
+          
+          <EditTitleDialog
+            open={editTitleDialogOpen}
+            onOpenChange={setEditTitleDialogOpen}
+            title={item.title || ''}
+            onTitleChange={handleTitleChange}
           />
         </>
       )}
