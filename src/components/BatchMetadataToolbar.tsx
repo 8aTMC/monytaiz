@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { AtSign, Hash, FolderOpen, CheckSquare, Square, X, Save } from 'lucide-react';
+import { AtSign, Hash, FolderOpen, Save } from 'lucide-react';
 import { MentionsDialog } from './MentionsDialog';
 import { TagsDialog } from './TagsDialog';
 import { FolderSelectDialog } from './FolderSelectDialog';
@@ -10,16 +10,12 @@ import { useToast } from '@/hooks/use-toast';
 
 interface BatchMetadataToolbarProps {
   selectedCount: number;
-  allSelected: boolean;
-  onSelectAll: () => void;
   onClearSelection: () => void;
   onUpdateMetadata: (metadata: Partial<FileUploadItem['metadata']>) => void;
 }
 
 export const BatchMetadataToolbar = ({
   selectedCount,
-  allSelected,
-  onSelectAll,
   onClearSelection,
   onUpdateMetadata
 }: BatchMetadataToolbarProps) => {
@@ -39,75 +35,55 @@ export const BatchMetadataToolbar = ({
 
   return (
     <>
-      <Card className="p-4 mb-4 bg-primary/5 border-primary/20">
+      <Card className="p-3 mb-4 bg-primary/5 border-primary/20">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onSelectAll}
-                className="flex items-center gap-1"
-              >
-                {allSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-                {allSelected ? 'Deselect All' : 'Select All'}
-              </Button>
-              <span className="text-sm font-medium">
-                {selectedCount} file{selectedCount !== 1 ? 's' : ''} selected
-              </span>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setMentionsDialogOpen(true)}
-                className="flex items-center gap-1"
-              >
-                <AtSign className="w-4 h-4" />
-                Add Mentions
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setTagsDialogOpen(true)}
-                className="flex items-center gap-1"
-              >
-                <Hash className="w-4 h-4" />
-                Add Tags
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setFoldersDialogOpen(true)}
-                className="flex items-center gap-1"
-              >
-                <FolderOpen className="w-4 h-4" />
-                Add to Folders
-              </Button>
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-primary">
+              {selectedCount} file{selectedCount !== 1 ? 's' : ''} selected
+            </span>
+            <span className="text-xs text-muted-foreground">
+              • Add metadata to selected files
+            </span>
           </div>
           
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={onClearSelection}
-              className="flex items-center gap-1"
+              onClick={() => setMentionsDialogOpen(true)}
+              className="flex items-center gap-1 h-8"
             >
-              <X className="w-4 h-4" />
-              Cancel Selection
+              <AtSign className="w-4 h-4" />
+              Mentions
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setTagsDialogOpen(true)}
+              className="flex items-center gap-1 h-8"
+            >
+              <Hash className="w-4 h-4" />
+              Tags
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFoldersDialogOpen(true)}
+              className="flex items-center gap-1 h-8"
+            >
+              <FolderOpen className="w-4 h-4" />
+              Folders
             </Button>
             
             <Button
               size="sm"
               onClick={handleSave}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 h-8"
             >
               <Save className="w-4 h-4" />
-              Save Changes
+              Apply
             </Button>
           </div>
         </div>

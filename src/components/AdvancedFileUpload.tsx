@@ -8,6 +8,7 @@ import { Upload, X, Play, CheckCircle, AlertCircle, RefreshCw, Pause, Clock } fr
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { EnhancedFileUploadRow } from './EnhancedFileUploadRow';
 import { BatchMetadataToolbar } from './BatchMetadataToolbar';
+import { SelectionHeader } from './SelectionHeader';
 import { cn } from '@/lib/utils';
 
 export const AdvancedFileUpload = () => {
@@ -156,12 +157,19 @@ export const AdvancedFileUpload = () => {
           </div>
         )}
 
-        {/* Batch Selection Toolbar */}
+        {/* Selection Header - Always visible when files exist */}
+        <SelectionHeader
+          totalFiles={uploadQueue.length}
+          selectedCount={selectedFiles.length}
+          allSelected={allSelected}
+          onSelectAll={selectAllFiles}
+          onClearSelection={clearSelection}
+        />
+
+        {/* Batch Metadata Toolbar - Only when files are selected */}
         {hasSelection && (
           <BatchMetadataToolbar
             selectedCount={selectedFiles.length}
-            allSelected={allSelected}
-            onSelectAll={selectAllFiles}
             onClearSelection={clearSelection}
             onUpdateMetadata={updateSelectedFilesMetadata}
           />
@@ -215,13 +223,6 @@ export const AdvancedFileUpload = () => {
               className="hidden"
               accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.mov,.webm,.avi,.mkv,.mp3,.wav,.aac,.ogg,.pdf,.doc,.docx,.txt,.rtf"
             />
-          </div>
-        )}
-
-        {/* Files List Header */}
-        {uploadQueue.length > 0 && (
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold">Files</h3>
           </div>
         )}
 
