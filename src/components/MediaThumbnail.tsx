@@ -120,7 +120,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
           {/* Media type icon */}
           <div className="absolute bottom-3 right-2 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
             {item.type === 'video' && <Video className="w-3.5 h-3.5 text-white" />}
-            {item.type === 'audio' && <AudioWaveform className="w-4 h-4 text-white" />}
+            {item.type === 'audio' && <AudioWaveform className="w-5 h-4 text-white" />}
           </div>
         </div>
       );
