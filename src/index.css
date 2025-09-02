@@ -239,6 +239,15 @@ div[aria-label="Chat messages"]::-webkit-scrollbar {
   pointer-events: auto !important;
 }
 
+/* Ensure all dialogs appear above media preview */
+[data-radix-dialog-overlay] {
+  z-index: 300000 !important;
+}
+
+[data-radix-dialog-content] {
+  z-index: 300001 !important;
+}
+
 /* Responsive sidebar auto-collapse - force collapse on narrow screens only when collapsed */
 @media (max-width: 1023px) {
   [data-auto-collapse]:not([data-manually-opened]) {
