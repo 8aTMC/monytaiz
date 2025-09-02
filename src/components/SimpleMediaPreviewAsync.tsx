@@ -10,6 +10,7 @@ import { DescriptionDialog } from './DescriptionDialog';
 import { PriceDialog } from './PriceDialog';
 import { EditTitleDialog } from './EditTitleDialog';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
+import { EnhancedVideoPlayer } from '@/components/EnhancedVideoPlayer';
 
 interface SimpleMediaPreviewAsyncProps {
   item: SimpleMediaItem | null;
@@ -317,20 +318,17 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                          }}
                        />
                      )}
-                     {item?.media_type === 'video' && (
-                       <video
-                         src={fullUrl}
-                         controls
-                         className="w-full h-full object-contain"
-                         preload="metadata"
-                         onError={(e) => {
-                           console.error('Failed to load video:', e);
-                           setFullUrl(null);
-                         }}
-                       >
-                         Your browser does not support video playback.
-                       </video>
-                     )}
+                      {item?.media_type === 'video' && (
+                        <EnhancedVideoPlayer
+                          src={fullUrl}
+                          aspectRatio={aspectRatio}
+                          className="w-full h-full"
+                          onError={(e) => {
+                            console.error('Failed to load video:', e);
+                            setFullUrl(null);
+                          }}
+                        />
+                      )}
                       {item?.media_type === 'audio' && (
                         <div className="flex items-center justify-center w-full h-full">
                           <CustomAudioPlayer
