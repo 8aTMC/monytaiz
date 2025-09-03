@@ -209,35 +209,23 @@ export const FilePreviewDialog = ({
             onClick={(e) => e.stopPropagation()}
           >
 
-            {/* SUPER VISIBLE DEBUG PANEL */}
+            {/* Debug panel - Keep for now */}
             <div 
-              className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50"
-              style={{ zIndex: 20000 }}
+              className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground p-2 rounded text-xs z-50"
             >
-              <div className="text-xs font-mono space-y-1">
-                <div><strong>DEBUG - FilePreviewDialog:</strong></div>
-                <div>files: {files ? `array[${files.length}]` : 'undefined'}</div>
-                <div>currentIndex: {currentIndex ?? 'undefined'}</div>
-                <div>onPrevious: {onPrevious ? 'function' : 'undefined'}</div>
-                <div>onNext: {onNext ? 'function' : 'undefined'}</div>
-                <div>condition: {files && files.length > 1 ? 'TRUE' : 'FALSE'}</div>
-                <div>show arrows: {(files && files.length > 1) ? 'YES' : 'NO'}</div>
-              </div>
+              Navigation: {files && files.length > 1 ? `${currentIndex! + 1}/${files.length}` : 'Single file'}
             </div>
 
             {/* Navigation buttons positioned relative to dialog container */}
             {files && files.length > 1 && (
               <>
-                {/* Left navigation button - SUPER BRIGHT */}
+                {/* Left navigation button */}
                 <Button
                   variant="secondary"
                   size="icon" 
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-yellow-400 border-4 border-red-500 shadow-2xl hover:bg-yellow-300 hover:scale-125 transition-all duration-200"
-                  style={{ zIndex: 10030 }}
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 z-50 shadow-lg bg-background/80 backdrop-blur-sm border hover:bg-background/90"
                   disabled={currentIndex == null || currentIndex <= 0}
                   onClick={(e) => {
-                    console.log('🔥 LEFT ARROW CLICKED! 🔥', { currentIndex, onPrevious: !!onPrevious });
-                    alert('LEFT ARROW CLICKED!');
                     e.preventDefault();
                     e.stopPropagation();
                     if (onPrevious && currentIndex != null && currentIndex > 0) {
@@ -245,19 +233,16 @@ export const FilePreviewDialog = ({
                     }
                   }}
                 >
-                  <ChevronLeft className="h-8 w-8 text-red-600 font-bold" />
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
                 
-                {/* Right navigation button - SUPER BRIGHT */}
+                {/* Right navigation button */}
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-yellow-400 border-4 border-red-500 shadow-2xl hover:bg-yellow-300 hover:scale-125 transition-all duration-200"
-                  style={{ zIndex: 10030 }}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 z-50 shadow-lg bg-background/80 backdrop-blur-sm border hover:bg-background/90"
                   disabled={currentIndex == null || currentIndex >= files.length - 1}
                   onClick={(e) => {
-                    console.log('🔥 RIGHT ARROW CLICKED! 🔥', { currentIndex, files: files?.length, onNext: !!onNext });
-                    alert('RIGHT ARROW CLICKED!');
                     e.preventDefault();
                     e.stopPropagation();
                     if (onNext && currentIndex != null && currentIndex < files.length - 1) {
@@ -265,7 +250,7 @@ export const FilePreviewDialog = ({
                     }
                   }}
                 >
-                  <ChevronRight className="h-8 w-8 text-red-600 font-bold" />
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </>
             )}

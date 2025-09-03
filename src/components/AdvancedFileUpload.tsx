@@ -65,12 +65,13 @@ export const AdvancedFileUpload = () => {
     }
   }, [addFiles]);
 
-  // Centralized preview functions
+  // Centralized preview functions with validation
   const openPreview = useCallback((index: number) => {
-    // Ensure synchronized state updates
-    setPreviewIndex(index);
-    setPreviewOpen(true);
-  }, []);
+    if (index >= 0 && index < uploadQueue.length) {
+      setPreviewIndex(index);
+      setPreviewOpen(true);
+    }
+  }, [uploadQueue.length]);
 
   const closePreview = useCallback(() => {
     setPreviewOpen(false);
@@ -78,18 +79,22 @@ export const AdvancedFileUpload = () => {
   }, []);
 
   const handlePrevious = useCallback(() => {
-    if (previewIndex !== null && previewIndex > 0) {
-      const newIndex = previewIndex - 1;
-      setPreviewIndex(newIndex);
-    }
-  }, [previewIndex]);
+    setPreviewIndex(prev => {
+      if (prev !== null && prev > 0) {
+        return prev - 1;
+      }
+      return prev;
+    });
+  }, []);
 
   const handleNext = useCallback(() => {
-    if (previewIndex !== null && previewIndex < uploadQueue.length - 1) {
-      const newIndex = previewIndex + 1;
-      setPreviewIndex(newIndex);
-    }
-  }, [previewIndex, uploadQueue.length]);
+    setPreviewIndex(prev => {
+      if (prev !== null && prev < uploadQueue.length - 1) {
+        return prev + 1;
+      }
+      return prev;
+    });
+  }, [uploadQueue.length]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -336,54 +341,26 @@ export const AdvancedFileUpload = () => {
 
       </CardContent>
 
-      {/* SUPER VISIBLE DEBUG PANEL - AdvancedFileUpload */}
+      {/* Debug indicator - Keep minimal */}
       {previewOpen && (
         <div 
-          className="fixed top-4 right-4 bg-blue-500 text-white p-4 rounded-lg shadow-lg z-40"
-          style={{ zIndex: 19999 }}
+          className="fixed top-4 right-4 bg-secondary text-secondary-foreground p-2 rounded text-xs shadow-lg z-40"
         >
-          <div className="text-xs font-mono space-y-1 max-w-sm">
-            <div><strong>DEBUG - AdvancedFileUpload:</strong></div>
-            <div>previewIndex: {previewIndex ?? 'null'}</div>
-            <div>previewOpen: {previewOpen ? 'true' : 'false'}</div>
-            <div>uploadQueue.length: {uploadQueue.length}</div>
-            <div>uploadQueue[{previewIndex}]: {uploadQueue[previewIndex] ? 'EXISTS' : 'undefined'}</div>
-            <div>filesArray length: {uploadQueue?.map(item => item.file).length || 0}</div>
-            <div>handlePrevious: {handlePrevious ? 'function' : 'undefined'}</div>
-            <div>handleNext: {handleNext ? 'function' : 'undefined'}</div>
-            <div>condition check: {previewIndex !== null && uploadQueue[previewIndex] ? 'PASS' : 'FAIL'}</div>
-          </div>
+          Preview active: {previewIndex! + 1}/{uploadQueue.length}
         </div>
       )}
 
-      {/* Centralized File Preview Dialog */}
-      {(() => {
-        // DEBUG LOGS - Check state values
-        console.log('=== PREVIEW DIALOG RENDER DEBUG ===');
-        console.log('previewIndex:', previewIndex);
-        console.log('previewOpen:', previewOpen);
-        console.log('uploadQueue.length:', uploadQueue.length);
-        console.log('uploadQueue[previewIndex]:', uploadQueue[previewIndex]);
-        console.log('condition result:', previewIndex !== null && uploadQueue[previewIndex]);
-        
-        const filesArray = uploadQueue?.map(item => item.file) || [];
-        console.log('files array:', filesArray);
-        console.log('files array length:', filesArray.length);
-        console.log('handlePrevious function:', !!handlePrevious);
-        console.log('handleNext function:', !!handleNext);
-        console.log('=== END DEBUG ===');
-        
-        if (previewIndex !== null && uploadQueue[previewIndex]) {
-          return (
-            <FilePreviewDialog
-              file={uploadQueue[previewIndex].file}
-              open={previewOpen}
-              onOpenChange={closePreview}
-              // Navigation props - NOW INCLUDED!
-              files={filesArray}
-              currentIndex={previewIndex}
-              onPrevious={handlePrevious}
-              onNext={handleNext}
+      {/* Centralized File Preview Dialog - Simplified Logic */}
+      {previewOpen && previewIndex !== null && uploadQueue[previewIndex] && (
+        <FilePreviewDialog
+          file={uploadQueue[previewIndex].file}
+          open={previewOpen}
+          onOpenChange={closePreview}
+          // Navigation props - Always pass these when dialog is open
+          files={uploadQueue.map(item => item.file)}
+          currentIndex={previewIndex}
+          onPrevious={handlePrevious}
+          onNext={handleNext}
           // Metadata props
           mentions={uploadQueue[previewIndex].metadata?.mentions || []}
           tags={uploadQueue[previewIndex].metadata?.tags || []}
@@ -391,17 +368,14 @@ export const AdvancedFileUpload = () => {
           description={uploadQueue[previewIndex].metadata?.description || ''}
           suggestedPrice={uploadQueue[previewIndex].metadata?.suggestedPrice ? uploadQueue[previewIndex].metadata!.suggestedPrice! * 100 : 0}
           title={uploadQueue[previewIndex].file.name}
-              // Metadata change handlers
-              onMentionsChange={(mentions) => handlePreviewMetadataUpdate('mentions', mentions)}
-              onTagsChange={(tags) => handlePreviewMetadataUpdate('tags', tags)}
-              onFoldersChange={(folders) => handlePreviewMetadataUpdate('folders', folders)}
-              onDescriptionChange={(description) => handlePreviewMetadataUpdate('description', description)}
-              onPriceChange={(price) => handlePreviewMetadataUpdate('suggestedPrice', price ? price / 100 : null)}
-            />
-          );
-        }
-        return null;
-      })()}
+          // Metadata change handlers
+          onMentionsChange={(mentions) => handlePreviewMetadataUpdate('mentions', mentions)}
+          onTagsChange={(tags) => handlePreviewMetadataUpdate('tags', tags)}
+          onFoldersChange={(folders) => handlePreviewMetadataUpdate('folders', folders)}
+          onDescriptionChange={(description) => handlePreviewMetadataUpdate('description', description)}
+          onPriceChange={(price) => handlePreviewMetadataUpdate('suggestedPrice', price ? price / 100 : null)}
+        />
+      )}
     </Card>
   );
 };
