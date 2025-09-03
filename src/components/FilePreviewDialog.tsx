@@ -274,6 +274,31 @@ export const FilePreviewDialog = ({
                     aspectRatio: aspectRatio
                   }}
                 >
+                  {/* Navigation arrows positioned directly on media container */}
+                  {files && files.length > 1 && currentIndex !== undefined && currentIndex > 0 && onPrevious && (
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-background/20 backdrop-blur-sm border-0 hover:bg-background/40"
+                      style={{ zIndex: 10010 }}
+                      onClick={onPrevious}
+                    >
+                      <ChevronLeft className="h-6 w-6" />
+                    </Button>
+                  )}
+                  
+                  {files && files.length > 1 && currentIndex !== undefined && currentIndex < files.length - 1 && onNext && (
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-background/20 backdrop-blur-sm border-0 hover:bg-background/40"
+                      style={{ zIndex: 10010 }}
+                      onClick={onNext}
+                    >
+                      <ChevronRight className="h-6 w-6" />
+                    </Button>
+                  )}
+
                   {fileType === 'image' && fileUrl && (
                     <img
                       src={fileUrl}
@@ -412,31 +437,6 @@ export const FilePreviewDialog = ({
                   )}
                 </div>
               </div>
-              
-              {/* Navigation arrows positioned outside media container */}
-              {files && files.length > 1 && currentIndex !== undefined && currentIndex > 0 && onPrevious && (
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-background/20 backdrop-blur-sm border-0 hover:bg-background/40"
-                  style={{ zIndex: 10010 }}
-                  onClick={onPrevious}
-                >
-                  <ChevronLeft className="h-6 w-6" />
-                </Button>
-              )}
-              
-              {files && files.length > 1 && currentIndex !== undefined && currentIndex < files.length - 1 && onNext && (
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-background/20 backdrop-blur-sm border-0 hover:bg-background/40"
-                  style={{ zIndex: 10010 }}
-                  onClick={onNext}
-                >
-                  <ChevronRight className="h-6 w-6" />
-                </Button>
-              )}
             </div>
 
             {/* Metadata Editing Menu Bar */}
