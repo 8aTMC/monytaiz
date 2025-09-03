@@ -274,6 +274,55 @@ export const FilePreviewDialog = ({
 
             {/* Content */}
             <div className="flex-1 overflow-auto relative">
+              {/* Navigation buttons positioned outside media container */}
+              {files && files.length > 1 && (
+                <>
+                  {/* Left navigation button */}
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm border-2 border-white shadow-lg hover:bg-white hover:scale-110 transition-all duration-200"
+                    style={{ zIndex: 10030 }}
+                    disabled={currentIndex == null || currentIndex <= 0}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('🔍 Left arrow clicked! currentIndex:', currentIndex, 'files.length:', files?.length, 'onPrevious exists:', !!onPrevious);
+                      if (onPrevious && currentIndex != null && currentIndex > 0) {
+                        console.log('🔍 Calling onPrevious...');
+                        onPrevious();
+                      } else {
+                        console.log('🔍 onPrevious not called - conditions not met');
+                      }
+                    }}
+                  >
+                    <ChevronLeft className="h-6 w-6 text-black" />
+                  </Button>
+                  
+                  {/* Right navigation button */}
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm border-2 border-white shadow-lg hover:bg-white hover:scale-110 transition-all duration-200"
+                    style={{ zIndex: 10030 }}
+                    disabled={currentIndex == null || currentIndex >= files.length - 1}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('🔍 Right arrow clicked! currentIndex:', currentIndex, 'files.length:', files?.length, 'onNext exists:', !!onNext);
+                      if (onNext && currentIndex != null && currentIndex < files.length - 1) {
+                        console.log('🔍 Calling onNext...');
+                        onNext();
+                      } else {
+                        console.log('🔍 onNext not called - conditions not met');
+                      }
+                    }}
+                  >
+                    <ChevronRight className="h-6 w-6 text-black" />
+                  </Button>
+                </>
+              )}
+
               {/* Media Display */}
               <div className="p-4">
                 <div 
@@ -281,50 +330,10 @@ export const FilePreviewDialog = ({
                   style={{
                     width: containerWidth,
                     height: containerHeight,
-                    aspectRatio: aspectRatio
+                    aspectRatio: aspectRatio,
+                    pointerEvents: 'auto'
                   }}
                 >
-                  {/* Navigation arrows - always visible with click logic */}
-                  
-                  {/* Left arrow - always show but disable click when can't go previous */}
-                   <Button
-                     variant="secondary"
-                     size="icon"
-                     className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm border-2 border-white shadow-lg hover:bg-white hover:scale-110 transition-all duration-200"
-                     style={{ zIndex: 10020 }}
-                     disabled={!files || files.length <= 1 || currentIndex == null || currentIndex <= 0}
-                     onClick={() => {
-                       console.log('🔍 Left arrow clicked! currentIndex:', currentIndex, 'files.length:', files?.length, 'onPrevious exists:', !!onPrevious);
-                       if (onPrevious && currentIndex != null && currentIndex > 0) {
-                         console.log('🔍 Calling onPrevious...');
-                         onPrevious();
-                       } else {
-                         console.log('🔍 onPrevious not called - conditions not met');
-                       }
-                     }}
-                   >
-                     <ChevronLeft className="h-6 w-6 text-black" />
-                   </Button>
-                  
-                  {/* Right arrow - always show but disable click when can't go next */}
-                   <Button
-                     variant="secondary"
-                     size="icon"
-                     className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm border-2 border-white shadow-lg hover:bg-white hover:scale-110 transition-all duration-200"
-                     style={{ zIndex: 10020 }}
-                     disabled={!files || files.length <= 1 || currentIndex == null || currentIndex >= files.length - 1}
-                     onClick={() => {
-                       console.log('🔍 Right arrow clicked! currentIndex:', currentIndex, 'files.length:', files?.length, 'onNext exists:', !!onNext);
-                       if (onNext && currentIndex != null && currentIndex < files.length - 1) {
-                         console.log('🔍 Calling onNext...');
-                         onNext();
-                       } else {
-                         console.log('🔍 onNext not called - conditions not met');
-                       }
-                     }}
-                   >
-                     <ChevronRight className="h-6 w-6 text-black" />
-                   </Button>
 
                   {fileType === 'image' && fileUrl && (
                     <img
