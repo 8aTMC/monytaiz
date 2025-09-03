@@ -233,14 +233,6 @@ export const FilePreviewDialog = ({
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleDownload}
-                    disabled={!fileUrl}
-                  >
-                    <Download className="w-4 h-4" />
-                  </Button>
                   <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
                     <X className="w-4 h-4" />
                   </Button>

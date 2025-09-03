@@ -246,6 +246,22 @@ export const AdvancedFileUpload = () => {
                     onToggleSelection={toggleFileSelection}
                     getStatusIcon={getStatusIcon}
                     formatFileSize={formatFileSize}
+                    files={uploadQueue}
+                    currentIndex={index}
+                    onPrevious={() => {
+                      const prevIndex = index - 1;
+                      if (prevIndex >= 0) {
+                        const prevItem = uploadQueue[prevIndex];
+                        // Focus on previous item (could trigger preview)
+                      }
+                    }}
+                    onNext={() => {
+                      const nextIndex = index + 1;
+                      if (nextIndex < uploadQueue.length) {
+                        const nextItem = uploadQueue[nextIndex];
+                        // Focus on next item (could trigger preview)
+                      }
+                    }}
                   />
                 ))}
               </div>
