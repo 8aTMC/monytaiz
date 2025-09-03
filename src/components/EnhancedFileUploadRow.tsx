@@ -349,15 +349,15 @@ export function EnhancedFileUploadRow({
         description={item.metadata?.description || ''}
         suggestedPrice={item.metadata?.suggestedPrice ? item.metadata.suggestedPrice * 100 : 0}
         title={item.file.name}
+        files={files?.map(f => f.file)}
+        currentIndex={currentIndex}
+        onPrevious={onPrevious}
+        onNext={onNext}
         onMentionsChange={(mentions) => handleMetadataUpdate('mentions', mentions)}
         onTagsChange={(tags) => handleMetadataUpdate('tags', tags)}
         onFoldersChange={(folders) => handleMetadataUpdate('folders', folders)}
         onDescriptionChange={(description) => handleMetadataUpdate('description', description)}
         onPriceChange={(price) => handleMetadataUpdate('suggestedPrice', price ? price / 100 : null)}
-        files={files?.map(f => f.file)}
-        currentIndex={currentIndex}
-        onPrevious={onPrevious}
-        onNext={onNext}
       />
     </>
   );

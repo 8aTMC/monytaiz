@@ -272,7 +272,7 @@ export const FilePreviewDialog = ({
                     <Button
                       variant="secondary"
                       size="sm"
-                      className="absolute left-6 top-1/2 transform -translate-y-1/2 z-10 opacity-80 hover:opacity-100"
+                      className="absolute left-6 top-1/2 transform -translate-y-1/2 z-[100] opacity-80 hover:opacity-100 shadow-lg"
                       onClick={onPrevious}
                       disabled={currentIndex === 0}
                     >
@@ -281,7 +281,7 @@ export const FilePreviewDialog = ({
                     <Button
                       variant="secondary"  
                       size="sm"
-                      className="absolute right-6 top-1/2 transform -translate-y-1/2 z-10 opacity-80 hover:opacity-100"
+                      className="absolute right-6 top-1/2 transform -translate-y-1/2 z-[100] opacity-80 hover:opacity-100 shadow-lg"
                       onClick={onNext}
                       disabled={currentIndex === files.length - 1}
                     >
