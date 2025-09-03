@@ -267,27 +267,26 @@ export const FilePreviewDialog = ({
               {/* Media Display */}
               <div className="p-4 relative">
                 {/* Navigation arrows */}
-                {files && files.length > 1 && (
-                  <>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="absolute left-6 top-1/2 transform -translate-y-1/2 z-[100] opacity-80 hover:opacity-100 shadow-lg"
-                      onClick={onPrevious}
-                      disabled={currentIndex === 0}
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="secondary"  
-                      size="sm"
-                      className="absolute right-6 top-1/2 transform -translate-y-1/2 z-[100] opacity-80 hover:opacity-100 shadow-lg"
-                      onClick={onNext}
-                      disabled={currentIndex === files.length - 1}
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </>
+                {files && files.length > 1 && currentIndex !== undefined && currentIndex > 0 && onPrevious && (
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-background/20 backdrop-blur-sm border-0 hover:bg-background/40 z-[100]"
+                    onClick={onPrevious}
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </Button>
+                )}
+                
+                {files && files.length > 1 && currentIndex !== undefined && currentIndex < files.length - 1 && onNext && (
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-background/20 backdrop-blur-sm border-0 hover:bg-background/40 z-[100]"
+                    onClick={onNext}
+                  >
+                    <ChevronRight className="h-6 w-6" />
+                  </Button>
                 )}
                 
                 <div 
