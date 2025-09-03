@@ -343,8 +343,8 @@ export const FileUploadRow = ({
         file={item.file}
         files={items?.map(i => i.file)}
         currentIndex={index}
-        onPrevious={index > 0 ? () => onNavigateToFile?.(index - 1) : undefined}
-        onNext={items && index < items.length - 1 ? () => onNavigateToFile?.(index + 1) : undefined}
+        onPrevious={onNavigateToFile ? () => onNavigateToFile(index - 1) : undefined}
+        onNext={onNavigateToFile ? () => onNavigateToFile(index + 1) : undefined}
       />
     </>
   );
