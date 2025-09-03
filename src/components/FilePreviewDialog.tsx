@@ -164,7 +164,14 @@ export const FilePreviewDialog = ({
   if (!open) return null;
 
   // Debug logging for navigation state
-  console.log('🔍 FilePreview Debug:', { currentIndex, filesLength: files?.length, hasOnPrevious: !!onPrevious, hasOnNext: !!onNext });
+  console.log('🔍 FilePreviewDialog Props:', {
+    open,
+    currentIndex,
+    filesLength: files?.length,
+    hasOnPrevious: !!onPrevious,
+    hasOnNext: !!onNext,
+    file: file?.name
+  });
 
   // Add styles for the modal overlay (same as library viewer)
   const overlayStyles = `
@@ -277,35 +284,39 @@ export const FilePreviewDialog = ({
                     aspectRatio: aspectRatio
                   }}
                 >
-                  {/* DEBUG: Always show navigation arrows for testing */}
+                  {/* Navigation arrows with proper functionality */}
                   
-                  {/* Left arrow - always show for debugging */}
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-red-500/80 backdrop-blur-sm border-2 border-white hover:bg-red-600/80"
-                    style={{ zIndex: 10020 }}
-                    onClick={() => {
-                      console.log('🔍 Left arrow clicked! currentIndex:', currentIndex, 'onPrevious:', !!onPrevious);
-                      onPrevious?.();
-                    }}
-                  >
-                    <ChevronLeft className="h-6 w-6 text-white" />
-                  </Button>
+                  {/* Left arrow - show when can go previous */}
+                  {files && files.length > 1 && currentIndex !== undefined && currentIndex > 0 && onPrevious && (
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-background/80 backdrop-blur-sm border border-border hover:bg-background/90"
+                      style={{ zIndex: 10020 }}
+                      onClick={() => {
+                        console.log('🔍 Left arrow clicked! currentIndex:', currentIndex, 'moving to:', currentIndex - 1);
+                        onPrevious();
+                      }}
+                    >
+                      <ChevronLeft className="h-6 w-6 text-foreground" />
+                    </Button>
+                  )}
                   
-                  {/* Right arrow - always show for debugging */}
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-blue-500/80 backdrop-blur-sm border-2 border-white hover:bg-blue-600/80"
-                    style={{ zIndex: 10020 }}
-                    onClick={() => {
-                      console.log('🔍 Right arrow clicked! currentIndex:', currentIndex, 'onNext:', !!onNext);
-                      onNext?.();
-                    }}
-                  >
-                    <ChevronRight className="h-6 w-6 text-white" />
-                  </Button>
+                  {/* Right arrow - show when can go next */}
+                  {files && files.length > 1 && currentIndex !== undefined && currentIndex < files.length - 1 && onNext && (
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-background/80 backdrop-blur-sm border border-border hover:bg-background/90"
+                      style={{ zIndex: 10020 }}
+                      onClick={() => {
+                        console.log('🔍 Right arrow clicked! currentIndex:', currentIndex, 'moving to:', currentIndex + 1);
+                        onNext();
+                      }}
+                    >
+                      <ChevronRight className="h-6 w-6 text-foreground" />
+                    </Button>
+                  )}
 
                   {fileType === 'image' && fileUrl && (
                     <img
