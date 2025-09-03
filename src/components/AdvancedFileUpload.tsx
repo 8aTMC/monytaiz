@@ -342,7 +342,7 @@ export const AdvancedFileUpload = () => {
       </CardContent>
 
       {/* Centralized File Preview Dialog */}
-      {previewIndex !== null && uploadQueue[previewIndex] && (
+      {previewIndex != null && uploadQueue[previewIndex] && (
         <FilePreviewDialog
           file={uploadQueue[previewIndex].file}
           open={previewOpen}
