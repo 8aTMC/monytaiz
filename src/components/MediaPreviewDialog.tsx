@@ -50,6 +50,9 @@ export const MediaPreviewDialog = ({
   onItemChange,
   selecting,
 }: MediaPreviewDialogProps) => {
+  // Debug logging
+  console.log('MediaPreviewDialog render:', { selecting, itemId: item?.id, hasItem: !!item });
+  
   const sidebar = useSidebar();
   const { 
     loadProgressiveMedia, 
@@ -350,8 +353,9 @@ export const MediaPreviewDialog = ({
           {/* Selection checkbox in top right corner - only show when selecting */}
           {selecting && (
             <div 
-              className="absolute right-14 top-4 z-10"
+              className="absolute right-16 top-4 z-20 bg-red-500/50 p-1 rounded"
               onClick={(e) => {
+                console.log('Selection checkbox clicked for item:', item.id);
                 e.stopPropagation();
                 onToggleSelection(item.id);
               }}
