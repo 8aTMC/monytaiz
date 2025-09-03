@@ -120,10 +120,19 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   }, [currentTime, duration]);
 
   // Handle playback rate change
-  const handlePlaybackRateChange = useCallback((rate: number) => {
+  const handlePlaybackRateChange = useCallback((rate: number, event?: React.MouseEvent) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     if (!videoRef.current) return;
-    videoRef.current.playbackRate = rate;
-    setPlaybackRate(rate);
+    
+    try {
+      videoRef.current.playbackRate = rate;
+      setPlaybackRate(rate);
+    } catch (error) {
+      console.error('Failed to set playback rate:', error);
+    }
   }, []);
 
   // Video event handlers
@@ -154,6 +163,12 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
         const calculatedAspectRatio = `${video.videoWidth}/${video.videoHeight}`;
         setVideoAspectRatio(calculatedAspectRatio);
       }
+      // Initialize playback rate from video element
+      setPlaybackRate(video.playbackRate || 1);
+    };
+    const handleRateChange = () => {
+      // Sync playback rate state with actual video playback rate
+      setPlaybackRate(video.playbackRate);
     };
 
     video.addEventListener('play', handlePlay);
@@ -165,6 +180,7 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('error', handleError);
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('ratechange', handleRateChange);
 
     return () => {
       video.removeEventListener('play', handlePlay);
@@ -176,6 +192,7 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('error', handleError);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('ratechange', handleRateChange);
     };
   }, [onError]);
 
@@ -355,7 +372,7 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
                 {playbackSpeeds.map((speed) => (
                   <DropdownMenuItem
                     key={speed}
-                    onClick={() => handlePlaybackRateChange(speed)}
+                    onClick={(e) => handlePlaybackRateChange(speed, e)}
                     className={`cursor-pointer ${playbackRate === speed ? 'bg-accent' : 'hover:bg-accent/50'}`}
                   >
                     {speed}x
