@@ -348,15 +348,15 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
                   size="sm"
                   className="text-white hover:bg-white/20 px-2 py-1 text-xs"
                 >
-                  {playbackRate}x
+                  {playbackRate || 1}x
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent>
+              <DropdownMenuContent className="bg-background border z-50">
                 {playbackSpeeds.map((speed) => (
                   <DropdownMenuItem
                     key={speed}
                     onClick={() => handlePlaybackRateChange(speed)}
-                    className={playbackRate === speed ? 'bg-accent' : ''}
+                    className={`cursor-pointer ${playbackRate === speed ? 'bg-accent' : 'hover:bg-accent/50'}`}
                   >
                     {speed}x
                   </DropdownMenuItem>
