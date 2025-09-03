@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { X, Download, AtSign, Hash, FolderOpen, FileText, DollarSign, ChevronLeft, ChevronRight, Edit } from 'lucide-react';
 import { SimpleMediaItem, useSimpleMedia } from '@/hooks/useSimpleMedia';
 import { MentionsDialog } from './MentionsDialog';
@@ -23,6 +24,9 @@ interface SimpleMediaPreviewAsyncProps {
   onNext?: () => void;
   updateMediaMetadata: (mediaId: string, metadata: Partial<Pick<SimpleMediaItem, 'title' | 'description' | 'tags' | 'mentions' | 'suggested_price_cents'>>) => Promise<any>;
   addToFolders: (mediaId: string, folderIds: string[]) => Promise<void>;
+  selecting?: boolean;
+  selectedItems?: Set<string>;
+  onToggleSelection?: (itemId: string) => void;
 }
 
 export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = ({
@@ -35,7 +39,10 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
   onPrevious,
   onNext,
   updateMediaMetadata,
-  addToFolders
+  addToFolders,
+  selecting = false,
+  selectedItems = new Set(),
+  onToggleSelection
 }) => {
   // Local item state for instant updates
   const [item, setItem] = useState<SimpleMediaItem | null>(propItem);
@@ -247,20 +254,36 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                    >
                      <Edit className="h-3 w-3" />
                    </Button>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleDownload}
-                    disabled={!fullUrl || loading}
-                  >
-                    <Download className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={onClose}>
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   {/* Selection checkbox - only shown when selecting is active */}
+                   {selecting && onToggleSelection && (
+                     <div 
+                       className="flex items-center justify-center w-8 h-8 cursor-pointer rounded hover:bg-muted/50 transition-colors z-[220]"
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         onToggleSelection(item.id);
+                       }}
+                     >
+                       <Checkbox
+                         checked={selectedItems.has(item.id)}
+                         onChange={() => {}} // Handled by parent div onClick
+                         className="h-4 w-4"
+                       />
+                     </div>
+                   )}
+                   <Button
+                     variant="ghost"
+                     size="sm"
+                     onClick={handleDownload}
+                     disabled={!fullUrl || loading}
+                   >
+                     <Download className="w-4 h-4" />
+                   </Button>
+                   <Button variant="ghost" size="sm" onClick={onClose}>
+                     <X className="w-4 h-4" />
+                   </Button>
+                 </div>
               </div>
               
               {/* File Info Tags */}

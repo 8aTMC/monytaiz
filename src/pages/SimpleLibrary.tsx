@@ -734,6 +734,9 @@ export default function SimpleLibrary() {
           onNext={handleNext}
           updateMediaMetadata={updateMediaMetadata}
           addToFolders={addToFolders}
+          selecting={selecting}
+          selectedItems={selectedItems}
+          onToggleSelection={handleToggleItem}
         />
       )}
     </>
