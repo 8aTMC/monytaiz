@@ -83,6 +83,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Check for existing session with validation
     const initializeAuth = async () => {
       try {
+        // Clear any corrupted data first
+        if (localStorage.getItem('supabase.auth.token') === 'undefined' || 
+            sessionStorage.getItem('supabase.auth.token') === 'undefined') {
+          localStorage.removeItem('supabase.auth.token');
+          localStorage.removeItem('sb-alzyzfjzwvofmjccirjq-auth-token');
+          sessionStorage.clear();
+        }
+        
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -94,17 +102,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
         
         if (session) {
-          // Validate the session by testing it
-          const { error: userError } = await supabase.auth.getUser();
-          if (userError) {
-            console.warn('Invalid session on init, clearing');
-            await supabase.auth.signOut({ scope: 'local' });
-            setSession(null);
-            setUser(null);
-          } else {
-            setSession(session);
-            setUser(session.user);
-          }
+          // Simple validation without additional API calls
+          setSession(session);
+          setUser(session.user);
         } else {
           setSession(null);
           setUser(null);
@@ -113,6 +113,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         console.error('Auth initialization error:', error);
         setSession(null);
         setUser(null);
+        // Clear potentially corrupted data
+        localStorage.removeItem('supabase.auth.token');
+        localStorage.removeItem('sb-alzyzfjzwvofmjccirjq-auth-token');
+        sessionStorage.clear();
       } finally {
         setLoading(false);
       }
@@ -127,22 +131,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       console.log('Attempting to sign out...');
       
-      // First try normal sign out
+      // Clear local state immediately
+      setSession(null);
+      setUser(null);
+      
+      // Clear any cached auth data first
+      localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('sb-alzyzfjzwvofmjccirjq-auth-token');
+      sessionStorage.clear();
+      
+      // Then attempt server sign out
       const { error } = await supabase.auth.signOut();
       
       if (error) {
         console.warn('Server signOut failed:', error);
-        // If server sign out fails, force local cleanup
+        // Force local cleanup even if server fails
         await supabase.auth.signOut({ scope: 'local' });
       }
-      
-      // Force clear local state regardless of server response
-      setSession(null);
-      setUser(null);
-      
-      // Clear any cached auth data
-      localStorage.removeItem('supabase.auth.token');
-      sessionStorage.clear();
       
       console.log('Sign out completed');
       
@@ -158,6 +163,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setSession(null);
       setUser(null);
       localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('sb-alzyzfjzwvofmjccirjq-auth-token');
       sessionStorage.clear();
       
       // Still redirect to clear the state
