@@ -414,27 +414,25 @@ export const FilePreviewDialog = ({
               </div>
               
               {/* Navigation arrows positioned outside media container */}
-              {files && files.length > 1 && currentIndex !== undefined && onPrevious && (
+              {files && files.length > 1 && currentIndex !== undefined && currentIndex > 0 && onPrevious && (
                 <Button
                   variant="secondary"
                   size="icon"
                   className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-background/20 backdrop-blur-sm border-0 hover:bg-background/40"
                   style={{ zIndex: 10010 }}
                   onClick={onPrevious}
-                  disabled={currentIndex <= 0}
                 >
                   <ChevronLeft className="h-6 w-6" />
                 </Button>
               )}
               
-              {files && files.length > 1 && currentIndex !== undefined && onNext && (
+              {files && files.length > 1 && currentIndex !== undefined && currentIndex < files.length - 1 && onNext && (
                 <Button
                   variant="secondary"
                   size="icon"
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-background/20 backdrop-blur-sm border-0 hover:bg-background/40"
                   style={{ zIndex: 10010 }}
                   onClick={onNext}
-                  disabled={currentIndex >= files.length - 1}
                 >
                   <ChevronRight className="h-6 w-6" />
                 </Button>
