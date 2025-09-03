@@ -68,6 +68,8 @@ export const AdvancedFileUpload = () => {
   // Centralized preview functions
   const openPreview = useCallback((index: number) => {
     console.log('🔍 Opening preview for index:', index, 'total files:', uploadQueue.length);
+    console.log('🔍 UploadQueue files:', uploadQueue.map(item => item.file.name));
+    console.log('🔍 Files array that will be passed:', uploadQueue.map(item => item.file));
     // Ensure synchronized state updates
     setPreviewIndex(index);
     setPreviewOpen(true);
