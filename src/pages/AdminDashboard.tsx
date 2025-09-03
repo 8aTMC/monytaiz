@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Navigation, useSidebar } from '@/components/Navigation';
 import { User } from '@supabase/supabase-js';
+import { HealthMonitor } from '@/components/HealthMonitor';
 
 const AdminDashboard = () => {
   const { t } = useTranslation();
