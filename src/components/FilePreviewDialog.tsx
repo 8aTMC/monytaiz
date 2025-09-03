@@ -173,6 +173,15 @@ export const FilePreviewDialog = ({
     file: file?.name
   });
 
+  // 🔍 DEBUG: Navigation condition check
+  console.log('🔍 Navigation Condition Check:', {
+    files: files,
+    filesLength: files?.length,
+    hasFiles: !!files,
+    moreThanOne: files && files.length > 1,
+    shouldShowNav: files && files.length > 1
+  });
+
   // Add styles for the modal overlay (same as library viewer)
   const overlayStyles = `
     .media-overlay {
