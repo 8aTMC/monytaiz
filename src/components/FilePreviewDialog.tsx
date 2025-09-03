@@ -62,6 +62,8 @@ export const FilePreviewDialog = ({
   onPriceChange,
   onTitleChange
 }: FilePreviewDialogProps) => {
+  // Early return if no file or dialog is closed
+  if (!open || !file) return null;
   const [fileUrl, setFileUrl] = useState<string>('');
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -70,17 +72,9 @@ export const FilePreviewDialog = ({
   const [videoQualityInfo, setVideoQualityInfo] = useState<VideoQualityInfo | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Enhanced debug logging on props change
-  useEffect(() => {
-    console.log('=== FilePreviewDialog: Props Debug ===');
-    console.log('files prop:', files);
-    console.log('files?.length:', files?.length);
-    console.log('totalFiles prop:', totalFiles);
-    console.log('currentIndex:', currentIndex);
-    console.log('files array content:', files?.map(f => ({ name: f.name, size: f.size })));
-    console.log('Should show navigation (files):', files && files.length > 1);
-    console.log('Should show navigation (backup):', totalFiles && totalFiles > 1);
-  }, [files, totalFiles, currentIndex]);
+  // Determine if we should show navigation
+  const shouldShowNavigation = (files && files.length > 1) || (totalFiles && totalFiles > 1);
+  const fileCount = files?.length || totalFiles || 0;
 
   // Dialog states
   const [mentionsDialogOpen, setMentionsDialogOpen] = useState(false);
@@ -176,7 +170,7 @@ export const FilePreviewDialog = ({
   const containerHeight = '506px';
   const aspectRatio = '16/9';
 
-  if (!open) return null;
+  
 
 
   // Add styles for the modal overlay (same as library viewer)
@@ -224,59 +218,27 @@ export const FilePreviewDialog = ({
             onClick={(e) => e.stopPropagation()}
           >
 
-            {/* Debug panel - Temporary for testing */}
-            <div 
-              className="bg-muted/80 text-foreground p-3 rounded-md text-xs font-mono space-y-1 border" 
-              style={{ zIndex: 10100, position: 'relative' }}
-            >
-              <div className="text-sm font-semibold">Navigation Debug</div>
-              <div>Index: {currentIndex} | Files: {files?.length || 0} | Total: {totalFiles || 0}</div>
-              <div>Functions: prev={!!onPrevious} next={!!onNext}</div>
-              <div>Files prop type: {Array.isArray(files) ? 'array' : typeof files}</div>
-              <div>Should show nav (files): {files && files.length > 1 ? 'YES' : 'NO'}</div>
-              <div>Should show nav (backup): {totalFiles && totalFiles > 1 ? 'YES' : 'NO'}</div>
-              <div className="font-bold">
-                Navigation: {(files && files.length > 1) || (totalFiles && totalFiles > 1) ? `${currentIndex! + 1}/${files?.length || totalFiles || 0}` : 'Single file'}
-              </div>
-            </div>
-
-            {/* Navigation buttons - Enhanced detection with backup method */}
-            {((files && files.length > 1) || (totalFiles && totalFiles > 1)) && (
+            {/* Navigation buttons */}
+            {shouldShowNavigation && (
               <>
                 {/* Left navigation button - BRIGHT AND VISIBLE */}
                 <Button
                   variant="secondary"
                   size="icon" 
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 z-50 shadow-2xl bg-blue-500 hover:bg-blue-600 border-2 border-white text-white"
-                  style={{ zIndex: 10050 }}
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 z-50 shadow-lg"
                   disabled={currentIndex == null || currentIndex <= 0}
-                  onClick={(e) => {
-                    console.log('LEFT ARROW CLICKED!', { currentIndex, onPrevious: !!onPrevious });
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (onPrevious && currentIndex != null && currentIndex > 0) {
-                      onPrevious();
-                    }
-                  }}
+                  onClick={onPrevious}
                 >
                   <ChevronLeft className="h-6 w-6" />
                 </Button>
                 
-                {/* Right navigation button - BRIGHT AND VISIBLE */}
+                {/* Right navigation button */}
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 z-50 shadow-2xl bg-blue-500 hover:bg-blue-600 border-2 border-white text-white"
-                  style={{ zIndex: 10050 }}
-                  disabled={currentIndex == null || currentIndex >= (files?.length || totalFiles || 1) - 1}
-                  onClick={(e) => {
-                    console.log('RIGHT ARROW CLICKED!', { currentIndex, files: files?.length, totalFiles, onNext: !!onNext });
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (onNext && currentIndex != null && currentIndex < (files?.length || totalFiles || 1) - 1) {
-                      onNext();
-                    }
-                  }}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 z-50 shadow-lg"
+                  disabled={currentIndex == null || currentIndex >= fileCount - 1}
+                  onClick={onNext}
                 >
                   <ChevronRight className="h-6 w-6" />
                 </Button>
@@ -301,9 +263,9 @@ export const FilePreviewDialog = ({
                     </Button>
                   )}
                   {/* File counter */}
-                  {files && currentIndex !== undefined && (
+                  {shouldShowNavigation && currentIndex !== undefined && (
                     <span className="text-sm text-muted-foreground ml-2">
-                      {currentIndex + 1} of {files.length}
+                      {currentIndex + 1} of {fileCount}
                     </span>
                   )}
                 </div>

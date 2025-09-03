@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState, useEffect } from 'react';
+import { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,21 +41,11 @@ export const AdvancedFileUpload = () => {
     allSelected
   } = useFileUpload();
 
-  // Create files array outside of JSX to avoid IIFE issues
-  const filesArray = uploadQueue.map(item => item.file);
-  
-  // Debug logging with useEffect to avoid render issues
-  useEffect(() => {
-    if (previewOpen && previewIndex !== null) {
-      console.log('=== AdvancedFileUpload: FilePreviewDialog State ===');
-      console.log('uploadQueue.length:', uploadQueue.length);
-      console.log('uploadQueue items:', uploadQueue.map(item => ({ id: item.id, fileName: item.file.name })));
-      console.log('filesArray created:', filesArray.length, 'files');
-      console.log('filesArray content:', filesArray.map(f => ({ name: f.name, size: f.size })));
-      console.log('currentIndex:', previewIndex);
-      console.log('Should show navigation:', filesArray.length > 1);
-    }
-  }, [previewOpen, previewIndex, uploadQueue.length, filesArray.length]);
+  // Stable files array using useMemo to prevent React reconciliation issues
+  const filesArray = useMemo(() => 
+    uploadQueue.map(item => item.file), 
+    [uploadQueue]
+  );
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -357,45 +347,30 @@ export const AdvancedFileUpload = () => {
 
       </CardContent>
 
-      {/* Enhanced Debug indicator */}
-      {previewOpen && (
-        <div 
-          className="fixed top-4 right-4 bg-secondary text-secondary-foreground p-2 rounded text-xs shadow-lg z-40 space-y-1"
-        >
-          <div>Preview: {previewIndex! + 1}/{uploadQueue.length}</div>
-          <div>Queue length: {uploadQueue.length}</div>
-          <div>Files mapped: {uploadQueue.map(item => item.file).length}</div>
-          <div>Should show arrows: {uploadQueue.length > 1 ? 'YES' : 'NO'}</div>
-        </div>
-      )}
-
-      {/* Centralized File Preview Dialog - Fixed IIFE Issue */}
-      {previewOpen && previewIndex !== null && uploadQueue[previewIndex] && (
-        <FilePreviewDialog
-          file={uploadQueue[previewIndex].file}
-          open={previewOpen}
-          onOpenChange={closePreview}
-          // Navigation props - Always pass these when dialog is open
-          files={filesArray}
-          totalFiles={uploadQueue.length} // Backup detection method
-          currentIndex={previewIndex}
-          onPrevious={handlePrevious}
-          onNext={handleNext}
-          // Metadata props
-          mentions={uploadQueue[previewIndex].metadata?.mentions || []}
-          tags={uploadQueue[previewIndex].metadata?.tags || []}
-          folders={uploadQueue[previewIndex].metadata?.folders || []}
-          description={uploadQueue[previewIndex].metadata?.description || ''}
-          suggestedPrice={uploadQueue[previewIndex].metadata?.suggestedPrice ? uploadQueue[previewIndex].metadata!.suggestedPrice! * 100 : 0}
-          title={uploadQueue[previewIndex].file.name}
-          // Metadata change handlers
-          onMentionsChange={(mentions) => handlePreviewMetadataUpdate('mentions', mentions)}
-          onTagsChange={(tags) => handlePreviewMetadataUpdate('tags', tags)}
-          onFoldersChange={(folders) => handlePreviewMetadataUpdate('folders', folders)}
-          onDescriptionChange={(description) => handlePreviewMetadataUpdate('description', description)}
-          onPriceChange={(price) => handlePreviewMetadataUpdate('suggestedPrice', price ? price / 100 : null)}
-        />
-      )}
+      <FilePreviewDialog
+        file={previewIndex !== null ? uploadQueue[previewIndex]?.file : null}
+        open={previewOpen}
+        onOpenChange={closePreview}
+        // Navigation props 
+        files={filesArray}
+        totalFiles={uploadQueue.length}
+        currentIndex={previewIndex}
+        onPrevious={handlePrevious}
+        onNext={handleNext}
+        // Metadata props
+        mentions={previewIndex !== null ? uploadQueue[previewIndex]?.metadata?.mentions || [] : []}
+        tags={previewIndex !== null ? uploadQueue[previewIndex]?.metadata?.tags || [] : []}
+        folders={previewIndex !== null ? uploadQueue[previewIndex]?.metadata?.folders || [] : []}
+        description={previewIndex !== null ? uploadQueue[previewIndex]?.metadata?.description || '' : ''}
+        suggestedPrice={previewIndex !== null && uploadQueue[previewIndex]?.metadata?.suggestedPrice ? uploadQueue[previewIndex].metadata!.suggestedPrice! * 100 : 0}
+        title={previewIndex !== null ? uploadQueue[previewIndex]?.file.name : ''}
+        // Metadata change handlers
+        onMentionsChange={(mentions) => handlePreviewMetadataUpdate('mentions', mentions)}
+        onTagsChange={(tags) => handlePreviewMetadataUpdate('tags', tags)}
+        onFoldersChange={(folders) => handlePreviewMetadataUpdate('folders', folders)}
+        onDescriptionChange={(description) => handlePreviewMetadataUpdate('description', description)}
+        onPriceChange={(price) => handlePreviewMetadataUpdate('suggestedPrice', price ? price / 100 : null)}
+      />
     </Card>
   );
 };
