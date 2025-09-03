@@ -290,7 +290,7 @@ export const FilePreviewDialog = ({
                   <Button
                     variant="secondary"
                     size="icon"
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-background/80 backdrop-blur-sm border border-border hover:bg-background/90"
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm border-2 border-white shadow-lg hover:bg-white hover:scale-110 transition-all duration-200"
                     style={{ zIndex: 10020 }}
                     disabled={!files || files.length <= 1 || currentIndex === undefined || currentIndex <= 0 || !onPrevious}
                     onClick={() => {
@@ -300,14 +300,14 @@ export const FilePreviewDialog = ({
                       }
                     }}
                   >
-                    <ChevronLeft className="h-6 w-6 text-foreground" />
+                    <ChevronLeft className="h-6 w-6 text-black" />
                   </Button>
                   
                   {/* Right arrow - always show but disable click when can't go next */}
                   <Button
                     variant="secondary"
                     size="icon"
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-background/80 backdrop-blur-sm border border-border hover:bg-background/90"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm border-2 border-white shadow-lg hover:bg-white hover:scale-110 transition-all duration-200"
                     style={{ zIndex: 10020 }}
                     disabled={!files || files.length <= 1 || currentIndex === undefined || currentIndex >= files.length - 1 || !onNext}
                     onClick={() => {
@@ -317,7 +317,7 @@ export const FilePreviewDialog = ({
                       }
                     }}
                   >
-                    <ChevronRight className="h-6 w-6 text-foreground" />
+                    <ChevronRight className="h-6 w-6 text-black" />
                   </Button>
 
                   {fileType === 'image' && fileUrl && (
