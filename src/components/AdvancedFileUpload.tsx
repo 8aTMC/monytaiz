@@ -67,13 +67,10 @@ export const AdvancedFileUpload = () => {
 
   // Centralized preview functions
   const openPreview = useCallback((index: number) => {
-    console.log('🔍 Opening preview for index:', index, 'total files:', uploadQueue.length);
-    console.log('🔍 UploadQueue files:', uploadQueue.map(item => item.file.name));
-    console.log('🔍 Files array that will be passed:', uploadQueue.map(item => item.file));
     // Ensure synchronized state updates
     setPreviewIndex(index);
     setPreviewOpen(true);
-  }, [uploadQueue.length]);
+  }, []);
 
   const closePreview = useCallback(() => {
     setPreviewOpen(false);
@@ -81,19 +78,15 @@ export const AdvancedFileUpload = () => {
   }, []);
 
   const handlePrevious = useCallback(() => {
-    console.log('🔍 AdvancedFileUpload handlePrevious called, current previewIndex:', previewIndex);
     if (previewIndex !== null && previewIndex > 0) {
       const newIndex = previewIndex - 1;
-      console.log('🔍 Moving to previous index:', newIndex);
       setPreviewIndex(newIndex);
     }
   }, [previewIndex]);
 
   const handleNext = useCallback(() => {
-    console.log('🔍 AdvancedFileUpload handleNext called, current previewIndex:', previewIndex);
     if (previewIndex !== null && previewIndex < uploadQueue.length - 1) {
       const newIndex = previewIndex + 1;
-      console.log('🔍 Moving to next index:', newIndex);
       setPreviewIndex(newIndex);
     }
   }, [previewIndex, uploadQueue.length]);
@@ -350,7 +343,7 @@ export const AdvancedFileUpload = () => {
           open={previewOpen}
           onOpenChange={closePreview}
           // Navigation props - NOW INCLUDED!
-          files={uploadQueue.map(item => item.file)}
+          files={uploadQueue?.map(item => item.file) || []}
           currentIndex={previewIndex}
           onPrevious={handlePrevious}
           onNext={handleNext}

@@ -163,26 +163,6 @@ export const FilePreviewDialog = ({
 
   if (!open) return null;
 
-  // Debug logging for navigation state
-  console.log('🔍 FilePreviewDialog Props:', {
-    open,
-    currentIndex,
-    filesLength: files?.length,
-    hasOnPrevious: !!onPrevious,
-    hasOnNext: !!onNext,
-    file: file?.name,
-    files: files ? files.map(f => f.name) : 'undefined'
-  });
-
-  // 🔍 DEBUG: Navigation condition check
-  console.log('🔍 Navigation Condition Check:', {
-    files: files ? 'exists' : 'undefined',
-    filesLength: files?.length,
-    hasFiles: !!files,
-    moreThanOne: files && files.length > 1,
-    shouldShowNav: files && files.length > 1,
-    exactFilesValue: files
-  });
 
   // Add styles for the modal overlay (same as library viewer)
   const overlayStyles = `
@@ -231,80 +211,42 @@ export const FilePreviewDialog = ({
             {/* Navigation buttons positioned relative to dialog container */}
             {files && files.length > 1 && (
               <>
-                <div style={{ 
-                  position: 'absolute', 
-                  top: '10px', 
-                  left: '10px', 
-                  background: 'red', 
-                  color: 'white', 
-                  padding: '5px', 
-                  fontSize: '12px', 
-                  zIndex: 10040,
-                  borderRadius: '4px'
-                }}>
-                  DEBUG: Navigation showing - Files: {files?.length} | Index: {currentIndex}
-                </div>
                 {/* Left navigation button */}
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-red-500/90 backdrop-blur-sm border-2 border-red-400 shadow-lg hover:bg-red-400 hover:scale-110 transition-all duration-200"
+                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm border-2 border-white shadow-lg hover:bg-white hover:scale-110 transition-all duration-200"
                   style={{ zIndex: 10030 }}
                   disabled={currentIndex == null || currentIndex <= 0}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('🔍 Left arrow clicked! currentIndex:', currentIndex, 'files.length:', files?.length, 'onPrevious exists:', !!onPrevious);
                     if (onPrevious && currentIndex != null && currentIndex > 0) {
-                      console.log('🔍 Calling onPrevious...');
                       onPrevious();
-                    } else {
-                      console.log('🔍 onPrevious not called - conditions not met');
                     }
                   }}
                 >
-                  <ChevronLeft className="h-6 w-6 text-white" />
+                  <ChevronLeft className="h-6 w-6 text-black" />
                 </Button>
                 
                 {/* Right navigation button */}
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-red-500/90 backdrop-blur-sm border-2 border-red-400 shadow-lg hover:bg-red-400 hover:scale-110 transition-all duration-200"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm border-2 border-white shadow-lg hover:bg-white hover:scale-110 transition-all duration-200"
                   style={{ zIndex: 10030 }}
                   disabled={currentIndex == null || currentIndex >= files.length - 1}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('🔍 Right arrow clicked! currentIndex:', currentIndex, 'files.length:', files?.length, 'onNext exists:', !!onNext);
                     if (onNext && currentIndex != null && currentIndex < files.length - 1) {
-                      console.log('🔍 Calling onNext...');
                       onNext();
-                    } else {
-                      console.log('🔍 onNext not called - conditions not met');
                     }
                   }}
                 >
-                  <ChevronRight className="h-6 w-6 text-white" />
+                  <ChevronRight className="h-6 w-6 text-black" />
                 </Button>
               </>
-            )}
-            
-            {/* DEBUG: Show when navigation condition fails */}
-            {!(files && files.length > 1) && (
-              <div style={{ 
-                position: 'absolute', 
-                top: '10px', 
-                left: '10px', 
-                background: 'orange', 
-                color: 'white', 
-                padding: '5px', 
-                fontSize: '12px', 
-                zIndex: 10040,
-                borderRadius: '4px'
-              }}>
-                DEBUG: Navigation hidden - Files: {files ? files.length : 'undefined'} | condition: {String(files && files.length > 1)}
-              </div>
             )}
             {/* Header */}
             <div className="p-4 border-b">
