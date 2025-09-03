@@ -277,39 +277,35 @@ export const FilePreviewDialog = ({
                     aspectRatio: aspectRatio
                   }}
                 >
-                  {/* DEBUG: Navigation arrows with conditional logic */}
+                  {/* DEBUG: Always show navigation arrows for testing */}
                   
-                  {/* Left arrow - only show if not first item */}
-                  {files && files.length > 1 && currentIndex !== undefined && currentIndex > 0 && onPrevious && (
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-red-500/80 backdrop-blur-sm border-2 border-white hover:bg-red-600/80"
-                      style={{ zIndex: 10020 }}
-                      onClick={() => {
-                        console.log('🔍 Left arrow clicked! currentIndex:', currentIndex);
-                        onPrevious?.();
-                      }}
-                    >
-                      <ChevronLeft className="h-6 w-6 text-white" />
-                    </Button>
-                  )}
+                  {/* Left arrow - always show for debugging */}
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-red-500/80 backdrop-blur-sm border-2 border-white hover:bg-red-600/80"
+                    style={{ zIndex: 10020 }}
+                    onClick={() => {
+                      console.log('🔍 Left arrow clicked! currentIndex:', currentIndex, 'onPrevious:', !!onPrevious);
+                      onPrevious?.();
+                    }}
+                  >
+                    <ChevronLeft className="h-6 w-6 text-white" />
+                  </Button>
                   
-                  {/* Right arrow - only show if not last item */}
-                  {files && files.length > 1 && currentIndex !== undefined && currentIndex < files.length - 1 && onNext && (
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-blue-500/80 backdrop-blur-sm border-2 border-white hover:bg-blue-600/80"
-                      style={{ zIndex: 10020 }}
-                      onClick={() => {
-                        console.log('🔍 Right arrow clicked! currentIndex:', currentIndex);
-                        onNext?.();
-                      }}
-                    >
-                      <ChevronRight className="h-6 w-6 text-white" />
-                    </Button>
-                  )}
+                  {/* Right arrow - always show for debugging */}
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-blue-500/80 backdrop-blur-sm border-2 border-white hover:bg-blue-600/80"
+                    style={{ zIndex: 10020 }}
+                    onClick={() => {
+                      console.log('🔍 Right arrow clicked! currentIndex:', currentIndex, 'onNext:', !!onNext);
+                      onNext?.();
+                    }}
+                  >
+                    <ChevronRight className="h-6 w-6 text-white" />
+                  </Button>
 
                   {fileType === 'image' && fileUrl && (
                     <img
