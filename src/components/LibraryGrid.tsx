@@ -167,22 +167,21 @@ const LibraryGridComponent = ({
                   );
                   const displayText = customTags.length > 0 ? customTags.join(', ') : 'No Tags';
                   const hasCustomTags = customTags.length > 0;
+                  const tooltipContent = hasCustomTags ? customTags.join(', ') : 'No Tags';
                   
-                  return hasCustomTags ? (
+                  return (
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div className="text-xs text-white bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 truncate font-medium cursor-help">
+                        <div className={`text-xs bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 truncate font-medium cursor-help ${
+                          hasCustomTags ? 'text-white' : 'text-white/70'
+                        }`}>
                           {displayText}
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p className="max-w-xs break-words">{customTags.join(', ')}</p>
+                        <p className="max-w-xs break-words">{tooltipContent}</p>
                       </TooltipContent>
                     </Tooltip>
-                  ) : (
-                    <div className="text-xs text-white/70 bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 font-medium">
-                      {displayText}
-                    </div>
                   );
                 })()}
               </div>
