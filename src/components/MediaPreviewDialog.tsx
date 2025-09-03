@@ -356,10 +356,10 @@ export const MediaPreviewDialog = ({
             </div>
           </div>
 
-          {/* Selection checkbox - positioned absolutely within dialog */}
+          {/* Selection checkbox - positioned to avoid overlap with close button */}
           {selecting && (
             <div 
-              className="absolute top-4 right-4 z-50 bg-primary p-3 rounded-lg border-2 border-white shadow-2xl"
+              className="absolute top-4 right-16 z-[220] bg-primary p-3 rounded-lg border-2 border-white shadow-2xl"
               onClick={(e) => {
                 console.log('✅ Selection checkbox clicked for item:', item.id);
                 e.stopPropagation();
@@ -381,7 +381,7 @@ export const MediaPreviewDialog = ({
             <Button
               variant="secondary"
               size="icon"
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-background/80 backdrop-blur-sm"
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-[220] bg-background/80 backdrop-blur-sm"
               onClick={handlePrevious}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -392,7 +392,7 @@ export const MediaPreviewDialog = ({
             <Button
               variant="secondary"
               size="icon"
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-background/80 backdrop-blur-sm"
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-[220] bg-background/80 backdrop-blur-sm"
               onClick={handleNext}
             >
               <ChevronRight className="h-4 w-4" />
@@ -402,7 +402,7 @@ export const MediaPreviewDialog = ({
           {/* Close button */}
           <button
             onClick={() => onOpenChange(false)}
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 z-10"
+            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 z-[220]"
           >
             <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
