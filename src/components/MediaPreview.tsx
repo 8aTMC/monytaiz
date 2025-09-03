@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { QualitySelector } from './QualitySelector';
 import { Play, Pause, Volume2, VolumeX, Maximize2 } from 'lucide-react';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
+import { VideoQualityBadge } from './VideoQualityBadge';
+import { detectVideoQuality, VideoQualityInfo } from '@/lib/videoQuality';
 
 interface MediaPreviewProps {
   open: boolean;
@@ -30,33 +31,23 @@ export const MediaPreview = ({
   item, 
   isAdmin = false 
 }: MediaPreviewProps) => {
-  const [currentQuality, setCurrentQuality] = useState('480p');
   const [currentUrl, setCurrentUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  
-  // Generate quality URLs based on processed path
-  const getQualityUrls = () => {
-    if (!item.processed_path || item.media_type !== 'video') return {};
-    
-    const basePath = item.processed_path.replace(/\.(webm|mp4)$/, '');
-    return {
-      '480p': `${basePath}_480p.webm`,
-      '720p': `${basePath}_720p.webm`,
-      '1080p': `${basePath}_1080p.webm`
-    };
-  };
-
-  const qualityUrls = getQualityUrls();
+  const [videoQualityInfo, setVideoQualityInfo] = useState<VideoQualityInfo | null>(null);
   
   useEffect(() => {
-    if (item.media_type === 'video' && qualityUrls[currentQuality as keyof typeof qualityUrls]) {
-      setCurrentUrl(qualityUrls[currentQuality as keyof typeof qualityUrls]);
-    } else if (item.processed_path) {
+    if (item.processed_path) {
       setCurrentUrl(item.processed_path);
     }
-  }, [currentQuality, item.processed_path, item.media_type, qualityUrls]);
+    
+    // Get video quality info from dimensions
+    if (item.media_type === 'video' && item.width && item.height) {
+      const qualityInfo = detectVideoQuality(item.width, item.height);
+      setVideoQualityInfo(qualityInfo);
+    }
+  }, [item.processed_path, item.media_type, item.width, item.height]);
 
   const formatFileSize = (bytes: number) => {
     const sizes = ['B', 'KB', 'MB', 'GB'];
@@ -111,6 +102,14 @@ export const MediaPreview = ({
               <Badge variant="secondary" className="capitalize">
                 {item.media_type}
               </Badge>
+              {videoQualityInfo && (
+                <VideoQualityBadge 
+                  qualityInfo={videoQualityInfo}
+                  showResolution={true}
+                  width={item.width}
+                  height={item.height}
+                />
+              )}
               {compressionRatio > 0 && (
                 <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
                   {compressionRatio}% compressed
@@ -121,16 +120,6 @@ export const MediaPreview = ({
         </DialogHeader>
         
         <div className="space-y-4">
-          {/* Quality Selector for Videos */}
-          {isAdmin && item.media_type === 'video' && Object.keys(qualityUrls).length > 0 && (
-            <QualitySelector
-              availableQualities={Object.keys(qualityUrls)}
-              currentQuality={currentQuality}
-              onQualityChange={setCurrentQuality}
-              className="justify-center"
-            />
-          )}
-
           {/* Media Display */}
           <div className="relative bg-muted rounded-lg overflow-hidden">
             {item.media_type === 'image' && currentUrl && (
@@ -233,20 +222,6 @@ export const MediaPreview = ({
             )}
           </div>
 
-          {/* Quality Information for Videos */}
-          {isAdmin && item.media_type === 'video' && Object.keys(qualityUrls).length > 0 && (
-            <div className="p-4 bg-muted/50 rounded-lg">
-              <h4 className="text-sm font-medium text-muted-foreground mb-2">Available Qualities</h4>
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                {Object.entries(qualityUrls).map(([quality, url]) => (
-                  <div key={quality} className="text-center p-2 bg-background rounded border">
-                    <div className="font-medium">{quality}</div>
-                    <div className="text-muted-foreground">WebM</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </DialogContent>
     </Dialog>

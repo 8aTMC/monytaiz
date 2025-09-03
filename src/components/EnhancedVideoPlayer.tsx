@@ -12,26 +12,21 @@ import {
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Slider } from './ui/slider';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { VideoQualityBadge } from './VideoQualityBadge';
+import { getVideoMetadata, VideoQualityInfo } from '@/lib/videoQuality';
 
 interface EnhancedVideoPlayerProps {
   src: string;
   aspectRatio?: string;
   className?: string;
   onError?: (error: any) => void;
-  qualities?: Array<{ label: string; value: string; url: string }>;
-  currentQuality?: string;
-  onQualityChange?: (quality: string) => void;
 }
 
 export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   src,
   aspectRatio: propAspectRatio,
   className = '',
-  onError,
-  qualities = [],
-  currentQuality,
-  onQualityChange
+  onError
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,6 +42,7 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   const [showControls, setShowControls] = useState(true);
   const [isBuffering, setIsBuffering] = useState(false);
   const [videoAspectRatio, setVideoAspectRatio] = useState(propAspectRatio || '16/9');
+  const [videoQualityInfo, setVideoQualityInfo] = useState<VideoQualityInfo | null>(null);
 
   const playbackSpeeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 5];
 
@@ -159,6 +155,10 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
       if (video.videoWidth && video.videoHeight) {
         const calculatedAspectRatio = `${video.videoWidth}/${video.videoHeight}`;
         setVideoAspectRatio(calculatedAspectRatio);
+        
+        // Get video quality info
+        const qualityInfo = getVideoMetadata(video);
+        setVideoQualityInfo(qualityInfo);
       }
       // Initialize playback rate from video element
       setPlaybackRate(video.playbackRate || 1);
@@ -373,30 +373,14 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
               ))}
             </div>
 
-            {/* Quality Selector */}
-            {qualities.length > 0 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-white hover:bg-white/20 p-2"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  {qualities.map((quality) => (
-                    <DropdownMenuItem
-                      key={quality.value}
-                      onClick={() => onQualityChange?.(quality.value)}
-                      className={currentQuality === quality.value ? 'bg-accent' : ''}
-                    >
-                      {quality.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+            {/* Video Quality Badge */}
+            {videoQualityInfo && (
+              <div className="flex items-center">
+                <VideoQualityBadge 
+                  qualityInfo={videoQualityInfo}
+                  className="text-white bg-black/50 border-white/20"
+                />
+              </div>
             )}
 
             <Button

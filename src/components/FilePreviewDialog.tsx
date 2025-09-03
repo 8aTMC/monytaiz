@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X, Download, AtSign, Hash, FolderOpen, FileText, DollarSign, Edit, Play, Pause, Volume2, VolumeX, Maximize } from 'lucide-react';
+import { VideoQualityBadge } from './VideoQualityBadge';
+import { getVideoMetadataFromFile, VideoQualityInfo } from '@/lib/videoQuality';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
 import { MentionsDialog } from './MentionsDialog';
 import { TagsDialog } from './TagsDialog';
@@ -51,9 +53,9 @@ export const FilePreviewDialog = ({
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [videoQuality, setVideoQuality] = useState<'SD' | 'HD' | '4K'>('HD');
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [videoQualityInfo, setVideoQualityInfo] = useState<VideoQualityInfo | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Dialog states
@@ -68,6 +70,12 @@ export const FilePreviewDialog = ({
     if (file) {
       const url = URL.createObjectURL(file);
       setFileUrl(url);
+      
+      // Get video quality info for video files
+      if (getFileType() === 'video') {
+        getVideoMetadataFromFile(file).then(setVideoQualityInfo);
+      }
+      
       return () => URL.revokeObjectURL(url);
     }
   }, [file]);
@@ -217,6 +225,12 @@ export const FilePreviewDialog = ({
                     {formatFileSize(file.size)}
                   </span>
                 </div>
+                {videoQualityInfo && (
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium">Quality:</span>
+                    <VideoQualityBadge qualityInfo={videoQualityInfo} />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -245,11 +259,7 @@ export const FilePreviewDialog = ({
                       <video
                         ref={videoRef}
                         src={fileUrl}
-                        className={`w-full h-full object-contain transition-all duration-300 ${
-                          videoQuality === 'SD' ? 'filter brightness-90 contrast-90' : 
-                          videoQuality === 'HD' ? '' : 
-                          'filter brightness-110 contrast-110 saturate-110'
-                        }`}
+                        className="w-full h-full object-contain"
                         controls={false}
                         muted={isMuted}
                         onPlay={() => setIsPlaying(true)}
@@ -297,20 +307,15 @@ export const FilePreviewDialog = ({
                           {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                         </Button>
                         
-                        {/* Quality selector */}
-                        <div className="flex gap-1">
-                          {['SD', 'HD', '4K'].map((quality) => (
-                            <Button
-                              key={quality}
-                              variant={videoQuality === quality ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => setVideoQuality(quality as any)}
-                              className="text-xs h-7 px-2"
-                            >
-                              {quality}
-                            </Button>
-                          ))}
-                        </div>
+                        {/* Quality badge */}
+                        {videoQualityInfo && (
+                          <VideoQualityBadge 
+                            qualityInfo={videoQualityInfo}
+                            showResolution={true}
+                            width={videoRef.current?.videoWidth}
+                            height={videoRef.current?.videoHeight}
+                          />
+                        )}
                       </div>
                       
                       {/* Fullscreen Button */}
