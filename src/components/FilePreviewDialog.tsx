@@ -62,8 +62,6 @@ export const FilePreviewDialog = ({
   onPriceChange,
   onTitleChange
 }: FilePreviewDialogProps) => {
-  // Early return if no file or dialog is closed
-  if (!open || !file) return null;
   const [fileUrl, setFileUrl] = useState<string>('');
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -83,6 +81,20 @@ export const FilePreviewDialog = ({
   const [descriptionDialogOpen, setDescriptionDialogOpen] = useState(false);
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
   const [editTitleDialogOpen, setEditTitleDialogOpen] = useState(false);
+
+  // Early return after hooks are declared
+  if (!open || !file) return null;
+
+  // Debug navigation values
+  console.log('FilePreviewDialog Navigation Debug:', {
+    files: files?.length,
+    totalFiles,
+    currentIndex,
+    shouldShowNavigation,
+    fileCount,
+    hasPrevious: onPrevious,
+    hasNext: onNext
+  });
 
   useEffect(() => {
     if (file) {
