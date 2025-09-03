@@ -163,17 +163,6 @@ export const FilePreviewDialog = ({
 
   if (!open) return null;
 
-  // DEBUG: Log navigation props to see what's happening
-  console.log('🔍 FilePreviewDialog DEBUG:', {
-    filesLength: files?.length,
-    currentIndex,
-    hasOnPrevious: !!onPrevious,
-    hasOnNext: !!onNext,
-    leftArrowCondition: files && files.length > 1 && currentIndex !== undefined && currentIndex > 0 && onPrevious,
-    rightArrowCondition: files && files.length > 1 && currentIndex !== undefined && currentIndex < files.length - 1 && onNext,
-    files: files?.map(f => f.name)
-  });
-
   // Add styles for the modal overlay (same as library viewer)
   const overlayStyles = `
     .media-overlay {
@@ -285,37 +274,8 @@ export const FilePreviewDialog = ({
                     aspectRatio: aspectRatio
                   }}
                 >
-                  {/* DEBUG: Force show navigation arrows to test if they're rendering */}
-                  {/* Left arrow - always show for debugging */}
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-red-500/80 backdrop-blur-sm border-2 border-white hover:bg-red-600/80"
-                    style={{ zIndex: 10020 }}
-                    onClick={() => {
-                      console.log('🔍 Left arrow clicked!');
-                      onPrevious?.();
-                    }}
-                  >
-                    <ChevronLeft className="h-6 w-6 text-white" />
-                  </Button>
-                  
-                  {/* Right arrow - always show for debugging */}
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-blue-500/80 backdrop-blur-sm border-2 border-white hover:bg-blue-600/80"
-                    style={{ zIndex: 10020 }}
-                    onClick={() => {
-                      console.log('🔍 Right arrow clicked!');
-                      onNext?.();
-                    }}
-                  >
-                    <ChevronRight className="h-6 w-6 text-white" />
-                  </Button>
-
-                  {/* Original conditional arrows (hidden for now) */}
-                  {false && files && files.length > 1 && currentIndex !== undefined && currentIndex > 0 && onPrevious && (
+                  {/* Navigation arrows */}
+                  {files && files.length > 1 && currentIndex !== undefined && currentIndex > 0 && onPrevious && (
                     <Button
                       variant="secondary"
                       size="icon"
@@ -323,11 +283,11 @@ export const FilePreviewDialog = ({
                       style={{ zIndex: 10010 }}
                       onClick={onPrevious}
                     >
-                      <ChevronLeft className="h-6 w-6" />
+                      <ChevronLeft className="h-6 w-6 text-white" />
                     </Button>
                   )}
                   
-                  {false && files && files.length > 1 && currentIndex !== undefined && currentIndex < files.length - 1 && onNext && (
+                  {files && files.length > 1 && currentIndex !== undefined && currentIndex < files.length - 1 && onNext && (
                     <Button
                       variant="secondary"
                       size="icon"
@@ -335,7 +295,7 @@ export const FilePreviewDialog = ({
                       style={{ zIndex: 10010 }}
                       onClick={onNext}
                     >
-                      <ChevronRight className="h-6 w-6" />
+                      <ChevronRight className="h-6 w-6 text-white" />
                     </Button>
                   )}
 
