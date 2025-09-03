@@ -23,6 +23,10 @@ interface OptimizedFileUploadRowProps {
   onRetry: (id: string) => void;
   getStatusIcon: (status: string) => React.ReactNode;
   formatFileSize: (bytes: number) => string;
+  files?: OptimizedUploadItem[];
+  currentIndex?: number;
+  onPrevious?: () => void;
+  onNext?: () => void;
 }
 
 export const OptimizedFileUploadRow = ({
@@ -34,6 +38,10 @@ export const OptimizedFileUploadRow = ({
   onRetry,
   getStatusIcon,
   formatFileSize,
+  files,
+  currentIndex,
+  onPrevious,
+  onNext,
 }: OptimizedFileUploadRowProps) => {
   const [showCreatorDialog, setShowCreatorDialog] = useState(false);
   const [showFolderDialog, setShowFolderDialog] = useState(false);
@@ -338,6 +346,10 @@ export const OptimizedFileUploadRow = ({
         open={showPreviewDialog}
         onOpenChange={setShowPreviewDialog}
         file={item.originalFile}
+        files={files?.map(f => f.originalFile)}
+        currentIndex={currentIndex}
+        onPrevious={onPrevious}
+        onNext={onNext}
       />
     </>
   );

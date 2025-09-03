@@ -43,6 +43,10 @@ interface EnhancedFileUploadRowProps {
   onToggleSelection?: (id: string) => void;
   getStatusIcon: (status: string) => React.ReactNode;
   formatFileSize: (bytes: number) => string;
+  files?: FileUploadItem[];
+  currentIndex?: number;
+  onPrevious?: () => void;
+  onNext?: () => void;
 }
 
 export function EnhancedFileUploadRow({
@@ -57,7 +61,11 @@ export function EnhancedFileUploadRow({
   onMetadataChange,
   onToggleSelection,
   getStatusIcon,
-  formatFileSize
+  formatFileSize,
+  files,
+  currentIndex,
+  onPrevious,
+  onNext
 }: EnhancedFileUploadRowProps) {
   // Dialog states
   const [mentionsDialogOpen, setMentionsDialogOpen] = useState(false);
@@ -346,6 +354,10 @@ export function EnhancedFileUploadRow({
         onFoldersChange={(folders) => handleMetadataUpdate('folders', folders)}
         onDescriptionChange={(description) => handleMetadataUpdate('description', description)}
         onPriceChange={(price) => handleMetadataUpdate('suggestedPrice', price ? price / 100 : null)}
+        files={files?.map(f => f.file)}
+        currentIndex={currentIndex}
+        onPrevious={onPrevious}
+        onNext={onNext}
       />
     </>
   );
