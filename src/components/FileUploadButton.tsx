@@ -21,7 +21,7 @@ const fileTypes: FileTypeConfig[] = [
     type: 'images',
     icon: Image,
     label: 'Photos',
-    accept: '.jpg,.jpeg,.png,.webp,.gif',
+    accept: '.jpg,.jpeg,.png,.webp,.gif,.avif',
     color: 'text-blue-500'
   },
   {
@@ -35,7 +35,7 @@ const fileTypes: FileTypeConfig[] = [
     type: 'audio',
     icon: Music,
     label: 'Audio',
-    accept: '.mp3,.wav,.aac,.ogg',
+    accept: '.mp3,.wav,.aac,.ogg,.flac,.opus',
     color: 'text-green-500'
   },
   {

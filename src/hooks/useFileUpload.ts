@@ -13,6 +13,7 @@ export interface FileUploadItem {
   totalBytes?: number;
   isPaused?: boolean;
   selected?: boolean;
+  needsConversion?: boolean;
   metadata?: {
     mentions: string[];
     tags: string[];
@@ -33,10 +34,26 @@ const MAX_UPLOAD_SIZE = 10 * 1024 * 1024 * 1024; // 10GB total per upload sessio
 
 const ALLOWED_TYPES = {
   video: ['.mp4', '.mov', '.webm', '.avi', '.mkv'],
-  image: ['.jpg', '.jpeg', '.png', '.webp', '.gif'],
-  audio: ['.mp3', '.wav', '.aac', '.ogg'],
+  image: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'],
+  audio: ['.mp3', '.wav', '.aac', '.ogg', '.flac', '.opus'],
   document: ['.pdf', '.doc', '.docx', '.txt', '.rtf'],
 };
+
+// Formats that require conversion but we can handle
+const CONVERSION_FORMATS = {
+  audio: ['.mp3', '.wav', '.aac', '.ogg', '.flac', '.opus'], // Convert to WebM/Opus
+  image: ['.jpg', '.jpeg', '.png', '.gif', '.avif'], // Convert to WebP
+  video: ['.mp4', '.mov', '.avi', '.mkv'] // Keep as-is, backend processing
+};
+
+// Formats we cannot support (will be filtered out with error message)
+const UNSUPPORTED_FORMATS = [
+  '.tiff', '.tif', // TIFF images
+  '.heic', '.heif', // HEIC images
+  '.flv', // Flash video
+  '.wmv', // Windows Media Video  
+  '.hevc', '.h265' // HEVC codec files
+];
 
 const getFileType = (file: File): keyof typeof FILE_LIMITS => {
   const extension = '.' + file.name.split('.').pop()?.toLowerCase();
@@ -47,6 +64,17 @@ const getFileType = (file: File): keyof typeof FILE_LIMITS => {
   if (ALLOWED_TYPES.document.includes(extension)) return 'document';
   
   throw new Error(`Unsupported file type: ${extension}`);
+};
+
+const isUnsupportedFormat = (file: File): boolean => {
+  const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+  return UNSUPPORTED_FORMATS.includes(extension);
+};
+
+const needsConversion = (file: File): boolean => {
+  const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+  const fileType = getFileType(file);
+  return CONVERSION_FORMATS[fileType]?.includes(extension) || false;
 };
 
 const getStorageFolder = (fileType: keyof typeof FILE_LIMITS): string => {
@@ -75,6 +103,11 @@ export const useFileUpload = () => {
 
   const validateFile = useCallback((file: File) => {
     try {
+      // Check for unsupported formats first
+      if (isUnsupportedFormat(file)) {
+        throw new Error(`Unsupported format. File type not supported by the platform.`);
+      }
+      
       const fileType = getFileType(file);
       const maxSize = FILE_LIMITS[fileType];
       
@@ -85,7 +118,7 @@ export const useFileUpload = () => {
         throw new Error(`File too large. Max size for ${fileType}: ${sizeLabel}`);
       }
       
-      return { fileType, valid: true };
+      return { fileType, valid: true, needsConversion: needsConversion(file) };
     } catch (error) {
       return { valid: false, error: error instanceof Error ? error.message : 'Invalid file' };
     }
@@ -103,6 +136,7 @@ export const useFileUpload = () => {
 
     const validFiles: FileUploadItem[] = [];
     const errors: string[] = [];
+    const unsupportedFiles: string[] = [];
     
     // Calculate current upload size from existing queue
     const currentUploadSize = uploadQueue.reduce((total, item) => total + item.file.size, 0);
@@ -111,6 +145,12 @@ export const useFileUpload = () => {
     let totalFiles = files.length;
 
     files.forEach((file, index) => {
+      // Check for unsupported formats first
+      if (isUnsupportedFormat(file)) {
+        unsupportedFiles.push(file.name);
+        return;
+      }
+      
       const validation = validateFile(file);
       
       if (validation.valid) {
@@ -128,6 +168,7 @@ export const useFileUpload = () => {
           uploadedBytes: 0,
           totalBytes: file.size,
           selected: false,
+          needsConversion: validation.needsConversion || false,
           metadata: {
             mentions: [],
             tags: [],
@@ -144,7 +185,16 @@ export const useFileUpload = () => {
       }
     });
 
-    // Show error messages for rejected files
+    // Show messages for unsupported files
+    if (unsupportedFiles.length > 0) {
+      toast({
+        title: "Unsupported files ignored",
+        description: `${unsupportedFiles.length} unsupported file${unsupportedFiles.length > 1 ? 's' : ''} were ignored. Only supported types have been added.`,
+        variant: "destructive",
+      });
+    }
+
+     // Show error messages for other rejected files
     if (errors.length > 0) {
       toast({
         title: "Some files were rejected",

@@ -132,6 +132,22 @@
         "unpinnedSuccess": "Conversation unpinned successfully",
         "error": "Failed to toggle pin status"
       }
+    },
+    "fileFormats": {
+      "title": "Supported File Formats",
+      "supported": "Supported Formats",
+      "unsupported": "Unsupported Formats",
+      "conversion": {
+        "audio": "All audio files are converted to WebM format with Opus codec for optimal streaming and reduced file size.",
+        "image": "Images are converted to WebP format at 80% quality for faster loading while maintaining visual quality.",
+        "video": "Videos are uploaded in their original format with backend processing for multiple quality levels."
+      },
+      "messages": {
+        "unsupportedIgnored": "Unsupported files ignored",
+        "unsupportedDescription": "{count} unsupported file{plural} were ignored. Only supported types have been added.",
+        "filesAdded": "Files added",
+        "filesAddedDescription": "{count} file(s) ready for upload ({size}GB total)"
+      }
     }
   }
 }
