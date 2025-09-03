@@ -14,11 +14,13 @@ import { PriceDialog } from './PriceDialog';
 import { EditTitleDialog } from './EditTitleDialog';
 
 interface FilePreviewDialogProps {
+  file: File;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  file: File;
+  
   // Navigation props
   files?: File[];
+  totalFiles?: number; // Backup detection method
   currentIndex?: number;
   onPrevious?: () => void;
   onNext?: () => void;
@@ -39,10 +41,11 @@ interface FilePreviewDialogProps {
 }
 
 export const FilePreviewDialog = ({
+  file,
   open,
   onOpenChange,
-  file,
   files,
+  totalFiles,
   currentIndex,
   onPrevious,
   onNext,
@@ -59,13 +62,25 @@ export const FilePreviewDialog = ({
   onPriceChange,
   onTitleChange
 }: FilePreviewDialogProps) => {
-  const [fileUrl, setFileUrl] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [fileUrl, setFileUrl] = useState<string>('');
+  const [videoDuration, setVideoDuration] = useState<number>(0);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [isVideoMuted, setIsVideoMuted] = useState(false);
+  const [videoCurrentTime, setVideoCurrentTime] = useState(0);
   const [videoQualityInfo, setVideoQualityInfo] = useState<VideoQualityInfo | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Enhanced debug logging on props change
+  useEffect(() => {
+    console.log('=== FilePreviewDialog: Props Debug ===');
+    console.log('files prop:', files);
+    console.log('files?.length:', files?.length);
+    console.log('totalFiles prop:', totalFiles);
+    console.log('currentIndex:', currentIndex);
+    console.log('files array content:', files?.map(f => ({ name: f.name, size: f.size })));
+    console.log('Should show navigation (files):', files && files.length > 1);
+    console.log('Should show navigation (backup):', totalFiles && totalFiles > 1);
+  }, [files, totalFiles, currentIndex]);
 
   // Dialog states
   const [mentionsDialogOpen, setMentionsDialogOpen] = useState(false);
@@ -139,10 +154,10 @@ export const FilePreviewDialog = ({
     
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
-    const newTime = (clickX / rect.width) * duration;
+    const newTime = (clickX / rect.width) * videoDuration;
     
     videoRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
+    setVideoCurrentTime(newTime);
   };
 
   const handleDownload = () => {
@@ -209,15 +224,20 @@ export const FilePreviewDialog = ({
             onClick={(e) => e.stopPropagation()}
           >
 
-            {/* Debug panel - Keep for now */}
-            <div 
-              className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground p-2 rounded text-xs z-50"
-            >
-              Navigation: {files && files.length > 1 ? `${currentIndex! + 1}/${files.length}` : 'Single file'}
+            {/* Enhanced debug panel with backup detection */}
+            <div className="bg-red-900/20 text-red-100 p-2 rounded text-xs font-mono space-y-1">
+              <div>Index: {currentIndex} | Files: {files?.length || 0} | Total: {totalFiles || 0}</div>
+              <div>Functions: prev={!!onPrevious} next={!!onNext}</div>
+              <div>Files prop type: {Array.isArray(files) ? 'array' : typeof files}</div>
+              <div>Should show nav (files): {files && files.length > 1 ? 'YES' : 'NO'}</div>
+              <div>Should show nav (backup): {totalFiles && totalFiles > 1 ? 'YES' : 'NO'}</div>
+              <div>
+                Navigation: {(files && files.length > 1) || (totalFiles && totalFiles > 1) ? `${currentIndex! + 1}/${files?.length || totalFiles || 0}` : 'Single file'}
+              </div>
             </div>
 
-            {/* Navigation buttons positioned relative to dialog container - HIGHLY VISIBLE */}
-            {files && files.length > 1 && (
+            {/* Navigation buttons - Enhanced detection with backup method */}
+            {((files && files.length > 1) || (totalFiles && totalFiles > 1)) && (
               <>
                 {/* Left navigation button - BRIGHT AND VISIBLE */}
                 <Button
@@ -244,12 +264,12 @@ export const FilePreviewDialog = ({
                   size="icon"
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 z-50 shadow-2xl bg-blue-500 hover:bg-blue-600 border-2 border-white text-white"
                   style={{ zIndex: 10050 }}
-                  disabled={currentIndex == null || currentIndex >= files.length - 1}
+                  disabled={currentIndex == null || currentIndex >= (files?.length || totalFiles || 1) - 1}
                   onClick={(e) => {
-                    console.log('RIGHT ARROW CLICKED!', { currentIndex, files: files?.length, onNext: !!onNext });
+                    console.log('RIGHT ARROW CLICKED!', { currentIndex, files: files?.length, totalFiles, onNext: !!onNext });
                     e.preventDefault();
                     e.stopPropagation();
-                    if (onNext && currentIndex != null && currentIndex < files.length - 1) {
+                    if (onNext && currentIndex != null && currentIndex < (files?.length || totalFiles || 1) - 1) {
                       onNext();
                     }
                   }}
@@ -342,17 +362,17 @@ export const FilePreviewDialog = ({
                         src={fileUrl}
                         className="w-full h-full object-contain"
                         controls={false}
-                        muted={isMuted}
-                        onPlay={() => setIsPlaying(true)}
-                        onPause={() => setIsPlaying(false)}
+                        muted={isVideoMuted}
+                        onPlay={() => setIsVideoPlaying(true)}
+                        onPause={() => setIsVideoPlaying(false)}
                         onTimeUpdate={() => {
                           if (videoRef.current) {
-                            setCurrentTime(videoRef.current.currentTime);
+                            setVideoCurrentTime(videoRef.current.currentTime);
                           }
                         }}
                         onLoadedMetadata={() => {
                           if (videoRef.current) {
-                            setDuration(videoRef.current.duration);
+                            setVideoDuration(videoRef.current.duration);
                           }
                         }}
                       />
@@ -364,7 +384,7 @@ export const FilePreviewDialog = ({
                           size="sm"
                           onClick={() => {
                             if (videoRef.current) {
-                              if (isPlaying) {
+                              if (isVideoPlaying) {
                                 videoRef.current.pause();
                               } else {
                                 videoRef.current.play();
@@ -372,7 +392,7 @@ export const FilePreviewDialog = ({
                             }
                           }}
                         >
-                          {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                          {isVideoPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                         </Button>
                         
                         <Button
@@ -380,12 +400,12 @@ export const FilePreviewDialog = ({
                           size="sm"
                           onClick={() => {
                             if (videoRef.current) {
-                              videoRef.current.muted = !isMuted;
-                              setIsMuted(!isMuted);
+                              videoRef.current.muted = !isVideoMuted;
+                              setIsVideoMuted(!isVideoMuted);
                             }
                           }}
                         >
-                          {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                          {isVideoMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                         </Button>
                         
                         {/* Quality badge */}
@@ -417,7 +437,7 @@ export const FilePreviewDialog = ({
                       {/* Video Progress Bar */}
                       <div className="absolute bottom-4 left-4 right-4 bg-black/50 rounded-lg p-3">
                         <div className="flex items-center gap-3 text-white text-sm">
-                          <span className="text-xs font-mono">{formatTime(currentTime)}</span>
+                          <span className="text-xs font-mono">{formatTime(videoCurrentTime)}</span>
                           
                           {/* Seek Bar */}
                           <div 
@@ -426,16 +446,16 @@ export const FilePreviewDialog = ({
                           >
                             <div 
                               className="h-full bg-blue-500 rounded-full transition-all"
-                              style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+                              style={{ width: `${videoDuration ? (videoCurrentTime / videoDuration) * 100 : 0}%` }}
                             />
                             {/* Seek handle */}
                             <div 
                               className="absolute top-1/2 transform -translate-y-1/2 w-4 h-4 bg-blue-500 rounded-full shadow-lg transition-all"
-                              style={{ left: `${duration ? (currentTime / duration) * 100 : 0}%`, marginLeft: '-8px' }}
+                              style={{ left: `${videoDuration ? (videoCurrentTime / videoDuration) * 100 : 0}%`, marginLeft: '-8px' }}
                             />
                           </div>
                           
-                          <span className="text-xs font-mono">{formatTime(duration)}</span>
+                          <span className="text-xs font-mono">{formatTime(videoDuration)}</span>
                         </div>
                       </div>
                     </div>
