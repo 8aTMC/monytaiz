@@ -339,16 +339,19 @@ export const AdvancedFileUpload = () => {
           file={uploadQueue[previewIndex].file}
           open={previewOpen}
           onOpenChange={closePreview}
+          // Navigation props - NOW INCLUDED!
+          files={uploadQueue.map(item => item.file)}
+          currentIndex={previewIndex}
+          onPrevious={handlePrevious}
+          onNext={handleNext}
+          // Metadata props
           mentions={uploadQueue[previewIndex].metadata?.mentions || []}
           tags={uploadQueue[previewIndex].metadata?.tags || []}
           folders={uploadQueue[previewIndex].metadata?.folders || []}
           description={uploadQueue[previewIndex].metadata?.description || ''}
           suggestedPrice={uploadQueue[previewIndex].metadata?.suggestedPrice ? uploadQueue[previewIndex].metadata!.suggestedPrice! * 100 : 0}
           title={uploadQueue[previewIndex].file.name}
-          files={uploadQueue.map(item => item.file)}
-          currentIndex={previewIndex}
-          onPrevious={handlePrevious}
-          onNext={handleNext}
+          // Metadata change handlers
           onMentionsChange={(mentions) => handlePreviewMetadataUpdate('mentions', mentions)}
           onTagsChange={(tags) => handlePreviewMetadataUpdate('tags', tags)}
           onFoldersChange={(folders) => handlePreviewMetadataUpdate('folders', folders)}
