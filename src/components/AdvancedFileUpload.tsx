@@ -336,6 +336,26 @@ export const AdvancedFileUpload = () => {
 
       </CardContent>
 
+      {/* SUPER VISIBLE DEBUG PANEL - AdvancedFileUpload */}
+      {previewOpen && (
+        <div 
+          className="fixed top-4 right-4 bg-blue-500 text-white p-4 rounded-lg shadow-lg z-40"
+          style={{ zIndex: 19999 }}
+        >
+          <div className="text-xs font-mono space-y-1 max-w-sm">
+            <div><strong>DEBUG - AdvancedFileUpload:</strong></div>
+            <div>previewIndex: {previewIndex ?? 'null'}</div>
+            <div>previewOpen: {previewOpen ? 'true' : 'false'}</div>
+            <div>uploadQueue.length: {uploadQueue.length}</div>
+            <div>uploadQueue[{previewIndex}]: {uploadQueue[previewIndex] ? 'EXISTS' : 'undefined'}</div>
+            <div>filesArray length: {uploadQueue?.map(item => item.file).length || 0}</div>
+            <div>handlePrevious: {handlePrevious ? 'function' : 'undefined'}</div>
+            <div>handleNext: {handleNext ? 'function' : 'undefined'}</div>
+            <div>condition check: {previewIndex !== null && uploadQueue[previewIndex] ? 'PASS' : 'FAIL'}</div>
+          </div>
+        </div>
+      )}
+
       {/* Centralized File Preview Dialog */}
       {(() => {
         // DEBUG LOGS - Check state values
