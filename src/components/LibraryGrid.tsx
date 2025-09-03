@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Check } from 'lucide-react';
 import { MediaThumbnail } from '@/components/MediaThumbnail';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface MediaItem {
   id: string;
@@ -60,16 +61,17 @@ const LibraryGridComponent = ({
   }
 
   return (
-    <div 
-      ref={gridContainerRef}
-      className="masonry-grid select-none"
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-        gap: '0.75rem',
-        gridAutoRows: 'min-content'
-      }}
-    >
+    <TooltipProvider>
+      <div 
+        ref={gridContainerRef}
+        className="masonry-grid select-none"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+          gap: '0.75rem',
+          gridAutoRows: 'min-content'
+        }}
+      >
       {content.map((item, index) => {
         let clickTimeout: NodeJS.Timeout | null = null;
         
@@ -157,16 +159,32 @@ const LibraryGridComponent = ({
               
               {/* Enhanced Categories with improved styling */}
               <div className="absolute bottom-3 left-3 right-10 z-10">
-                <div className="text-xs text-white bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 truncate font-medium">
-                  {(() => {
-                    const defaultTags = ['upload', 'story', 'livestream', 'message'];
-                    const customTags = item.tags.filter(tag => 
-                      !defaultTags.includes(tag.toLowerCase()) && 
-                      !tag.startsWith('folder:')
-                    );
-                    return customTags.length > 0 ? customTags.join(', ') : item.origin;
-                  })()}
-                </div>
+                {(() => {
+                  const defaultTags = ['upload', 'story', 'livestream', 'message'];
+                  const customTags = item.tags.filter(tag => 
+                    !defaultTags.includes(tag.toLowerCase()) && 
+                    !tag.startsWith('folder:')
+                  );
+                  const displayText = customTags.length > 0 ? customTags.join(', ') : 'No Tags';
+                  const hasCustomTags = customTags.length > 0;
+                  
+                  return hasCustomTags ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="text-xs text-white bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 truncate font-medium cursor-help">
+                          {displayText}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs break-words">{customTags.join(', ')}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <div className="text-xs text-white/70 bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 font-medium">
+                      {displayText}
+                    </div>
+                  );
+                })()}
               </div>
               
               {/* Hover overlay effect */}
@@ -175,7 +193,8 @@ const LibraryGridComponent = ({
           </Card>
         );
       })}
-    </div>
+      </div>
+    </TooltipProvider>
   );
 };
 
