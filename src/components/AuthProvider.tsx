@@ -36,64 +36,49 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener
+    // Set up auth state listener - MUST be synchronous to prevent circular calls
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('Auth state change:', event, session?.user?.id);
         
-        // Handle session expiry or invalid sessions
-        if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-          setSession(session);
-          setUser(session?.user ?? null);
-        } else if (event === 'SIGNED_IN') {
-          setSession(session);
-          setUser(session?.user ?? null);
-        } else {
-          // For other events, validate the session
-          if (session) {
-            try {
-              // Test if the session is valid by making a simple API call
-              const { error } = await supabase.auth.getUser();
-              if (error) {
-                console.warn('Invalid session detected, clearing auth state');
-                // Clear invalid session locally
-                setSession(null);
-                setUser(null);
-                // Force sign out to clean up any lingering session data
-                await supabase.auth.signOut({ scope: 'local' });
-              } else {
-                setSession(session);
-                setUser(session?.user ?? null);
-              }
-            } catch (error) {
-              console.error('Session validation error:', error);
-              setSession(null);
-              setUser(null);
-              await supabase.auth.signOut({ scope: 'local' });
-            }
-          } else {
-            setSession(null);
-            setUser(null);
-          }
-        }
+        // Simple synchronous state updates only
+        setSession(session);
+        setUser(session?.user ?? null);
         setLoading(false);
       }
     );
 
-    // Check for existing session with validation
-    const initializeAuth = async () => {
+    // Initialize auth with retry logic for network issues
+    const initializeAuth = async (retryCount = 0) => {
       try {
-        // Clear any corrupted data first
-        if (localStorage.getItem('supabase.auth.token') === 'undefined' || 
-            sessionStorage.getItem('supabase.auth.token') === 'undefined') {
-          localStorage.removeItem('supabase.auth.token');
-          localStorage.removeItem('sb-alzyzfjzwvofmjccirjq-auth-token');
-          sessionStorage.clear();
-        }
+        // Clear corrupted auth data more comprehensively
+        const authKeys = [
+          'supabase.auth.token',
+          'sb-alzyzfjzwvofmjccirjq-auth-token',
+          'supabase.auth.refresh_token',
+          'sb-alzyzfjzwvofmjccirjq-auth-token-code-verifier'
+        ];
+        
+        authKeys.forEach(key => {
+          const value = localStorage.getItem(key);
+          if (value === 'undefined' || value === 'null') {
+            localStorage.removeItem(key);
+          }
+        });
+        
+        // Clear session storage completely
+        sessionStorage.clear();
         
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
+          // Network error - retry with exponential backoff
+          if (error.message?.includes('fetch') && retryCount < 3) {
+            console.warn(`Session fetch failed (attempt ${retryCount + 1}), retrying...`);
+            setTimeout(() => initializeAuth(retryCount + 1), Math.pow(2, retryCount) * 1000);
+            return;
+          }
+          
           console.warn('Session error on init:', error);
           setSession(null);
           setUser(null);
@@ -101,23 +86,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           return;
         }
         
-        if (session) {
-          // Simple validation without additional API calls
-          setSession(session);
-          setUser(session.user);
-        } else {
-          setSession(null);
-          setUser(null);
-        }
+        // Trust Supabase's session management - no additional validation
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+        
       } catch (error) {
         console.error('Auth initialization error:', error);
+        
+        // Network error - retry if attempts remain
+        if (retryCount < 3) {
+          console.log(`Init failed (attempt ${retryCount + 1}), retrying...`);
+          setTimeout(() => initializeAuth(retryCount + 1), Math.pow(2, retryCount) * 1000);
+          return;
+        }
+        
+        // Final fallback - clear everything
         setSession(null);
         setUser(null);
-        // Clear potentially corrupted data
-        localStorage.removeItem('supabase.auth.token');
-        localStorage.removeItem('sb-alzyzfjzwvofmjccirjq-auth-token');
+        localStorage.clear();
         sessionStorage.clear();
-      } finally {
         setLoading(false);
       }
     };
@@ -135,41 +123,47 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setSession(null);
       setUser(null);
       
-      // Clear any cached auth data first
-      localStorage.removeItem('supabase.auth.token');
-      localStorage.removeItem('sb-alzyzfjzwvofmjccirjq-auth-token');
+      // Comprehensive auth data cleanup
+      const authKeys = [
+        'supabase.auth.token',
+        'sb-alzyzfjzwvofmjccirjq-auth-token',
+        'supabase.auth.refresh_token',
+        'sb-alzyzfjzwvofmjccirjq-auth-token-code-verifier'
+      ];
+      
+      authKeys.forEach(key => localStorage.removeItem(key));
       sessionStorage.clear();
       
-      // Then attempt server sign out
-      const { error } = await supabase.auth.signOut();
+      // Attempt graceful server sign out with timeout
+      const signOutPromise = supabase.auth.signOut();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Sign out timeout')), 5000)
+      );
       
-      if (error) {
-        console.warn('Server signOut failed:', error);
-        // Force local cleanup even if server fails
+      try {
+        await Promise.race([signOutPromise, timeoutPromise]);
+      } catch (error) {
+        console.warn('Server signOut failed or timed out:', error);
+        // Force local cleanup
         await supabase.auth.signOut({ scope: 'local' });
       }
       
       console.log('Sign out completed');
       
-      // Redirect to home page after a short delay
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 100);
+      // Redirect immediately
+      window.location.href = '/';
       
     } catch (error) {
-      console.error('Error during signOut:', error);
+      console.error('Critical signOut error:', error);
       
-      // Force clear everything even if there's an error
+      // Emergency cleanup
       setSession(null);
       setUser(null);
-      localStorage.removeItem('supabase.auth.token');
-      localStorage.removeItem('sb-alzyzfjzwvofmjccirjq-auth-token');
+      localStorage.clear();
       sessionStorage.clear();
       
-      // Still redirect to clear the state
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 100);
+      // Still redirect
+      window.location.href = '/';
     }
   };
 
