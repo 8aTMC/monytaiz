@@ -216,16 +216,18 @@ export const FilePreviewDialog = ({
               Navigation: {files && files.length > 1 ? `${currentIndex! + 1}/${files.length}` : 'Single file'}
             </div>
 
-            {/* Navigation buttons positioned relative to dialog container */}
+            {/* Navigation buttons positioned relative to dialog container - HIGHLY VISIBLE */}
             {files && files.length > 1 && (
               <>
-                {/* Left navigation button */}
+                {/* Left navigation button - BRIGHT AND VISIBLE */}
                 <Button
                   variant="secondary"
                   size="icon" 
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 z-50 shadow-lg bg-background/80 backdrop-blur-sm border hover:bg-background/90"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 z-50 shadow-2xl bg-blue-500 hover:bg-blue-600 border-2 border-white text-white"
+                  style={{ zIndex: 10050 }}
                   disabled={currentIndex == null || currentIndex <= 0}
                   onClick={(e) => {
+                    console.log('LEFT ARROW CLICKED!', { currentIndex, onPrevious: !!onPrevious });
                     e.preventDefault();
                     e.stopPropagation();
                     if (onPrevious && currentIndex != null && currentIndex > 0) {
@@ -233,16 +235,18 @@ export const FilePreviewDialog = ({
                     }
                   }}
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="h-6 w-6" />
                 </Button>
                 
-                {/* Right navigation button */}
+                {/* Right navigation button - BRIGHT AND VISIBLE */}
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 z-50 shadow-lg bg-background/80 backdrop-blur-sm border hover:bg-background/90"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 z-50 shadow-2xl bg-blue-500 hover:bg-blue-600 border-2 border-white text-white"
+                  style={{ zIndex: 10050 }}
                   disabled={currentIndex == null || currentIndex >= files.length - 1}
                   onClick={(e) => {
+                    console.log('RIGHT ARROW CLICKED!', { currentIndex, files: files?.length, onNext: !!onNext });
                     e.preventDefault();
                     e.stopPropagation();
                     if (onNext && currentIndex != null && currentIndex < files.length - 1) {
@@ -250,7 +254,7 @@ export const FilePreviewDialog = ({
                     }
                   }}
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-6 w-6" />
                 </Button>
               </>
             )}
