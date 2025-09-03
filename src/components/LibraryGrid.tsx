@@ -61,7 +61,7 @@ const LibraryGridComponent = ({
   }
 
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={100}>
       <div 
         ref={gridContainerRef}
         className="masonry-grid select-none"
@@ -172,7 +172,7 @@ const LibraryGridComponent = ({
                   return (
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div className={`text-xs bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 truncate font-medium cursor-help ${
+                        <div className={`text-xs bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 truncate font-medium cursor-pointer ${
                           hasCustomTags ? 'text-white' : 'text-white/70'
                         }`}>
                           {displayText}
