@@ -263,34 +263,9 @@ export const FilePreviewDialog = ({
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-auto">
+            <div className="flex-1 overflow-auto relative">
               {/* Media Display */}
-              <div className="p-4 relative">
-                {/* Navigation arrows */}
-                {files && files.length > 1 && currentIndex !== undefined && currentIndex > 0 && onPrevious && (
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-background/20 backdrop-blur-sm border-0 hover:bg-background/40"
-                    style={{ zIndex: 10010 }}
-                    onClick={onPrevious}
-                  >
-                    <ChevronLeft className="h-6 w-6" />
-                  </Button>
-                )}
-                
-                {files && files.length > 1 && currentIndex !== undefined && currentIndex < files.length - 1 && onNext && (
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-background/20 backdrop-blur-sm border-0 hover:bg-background/40"
-                    style={{ zIndex: 10010 }}
-                    onClick={onNext}
-                  >
-                    <ChevronRight className="h-6 w-6" />
-                  </Button>
-                )}
-                
+              <div className="p-4">
                 <div 
                   className="flex items-center justify-center bg-muted/20 rounded-lg overflow-hidden relative"
                   style={{
@@ -437,6 +412,33 @@ export const FilePreviewDialog = ({
                   )}
                 </div>
               </div>
+              
+              {/* Navigation arrows positioned outside media container */}
+              {files && files.length > 1 && currentIndex !== undefined && onPrevious && (
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-background/20 backdrop-blur-sm border-0 hover:bg-background/40"
+                  style={{ zIndex: 10010 }}
+                  onClick={onPrevious}
+                  disabled={currentIndex <= 0}
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </Button>
+              )}
+              
+              {files && files.length > 1 && currentIndex !== undefined && onNext && (
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-background/20 backdrop-blur-sm border-0 hover:bg-background/40"
+                  style={{ zIndex: 10010 }}
+                  onClick={onNext}
+                  disabled={currentIndex >= files.length - 1}
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </Button>
+              )}
             </div>
 
             {/* Metadata Editing Menu Bar */}
