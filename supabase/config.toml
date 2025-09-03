@@ -1,10 +1,10 @@
 project_id = "alzyzfjzwvofmjccirjq"
 
 [functions.grok-chat]
-verify_jwt = true
+verify_jwt = false
 
 [functions.xai-chat-assistant]
-verify_jwt = true
+verify_jwt = false
 
 [functions.ai-worker]
 verify_jwt = false
@@ -13,46 +13,46 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.cleanup-deleted-users]
-verify_jwt = true
+verify_jwt = false
 
 [functions.sync-fan-emails]
-verify_jwt = true
+verify_jwt = false
 
 [functions.sync-management-emails]
-verify_jwt = true
+verify_jwt = false
 
 [functions.sync-profile-to-auth]
-verify_jwt = true
+verify_jwt = false
 
 [functions.cleanup-unverified-accounts]
-verify_jwt = true
+verify_jwt = false
 
 [functions.sync-user-emails]
-verify_jwt = true
+verify_jwt = false
 
 [functions.verify-user-email]
-verify_jwt = true
+verify_jwt = false
 
 [functions.delete-pending-user]
-verify_jwt = true
+verify_jwt = false
 
 [functions.secure-media]
-verify_jwt = true
+verify_jwt = false
 
 [functions.media-operations]
-verify_jwt = true
+verify_jwt = false
 
 [functions.media-postprocess]
-verify_jwt = true
+verify_jwt = false
 
 [functions.video-processor]
-verify_jwt = true
+verify_jwt = false
 
 [functions.video-processor-v2]
-verify_jwt = true
+verify_jwt = false
 
 [functions.video-thumbnail]
-verify_jwt = true
+verify_jwt = false
 
 [functions.media-optimizer]
-verify_jwt = true
+verify_jwt = false

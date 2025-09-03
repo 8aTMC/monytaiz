@@ -8,6 +8,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { Loader2, Eye, EyeOff, Check, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ForgotPasswordDialog } from './ForgotPasswordDialog';
+import { AuthFallback } from './AuthFallback';
 
 interface AuthFormProps {
   mode: 'signin' | 'signup';
@@ -21,6 +22,7 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
