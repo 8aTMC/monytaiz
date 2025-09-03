@@ -207,7 +207,7 @@ export const FilePreviewDialog = ({
           
           {/* Dialog content */}
           <div 
-            className="media-dialog border bg-background shadow-lg rounded-lg overflow-hidden flex flex-col"
+            className="media-dialog border bg-background shadow-lg rounded-lg overflow-hidden flex flex-col relative"
             style={{
               width: 'fit-content',
               height: 'fit-content',
@@ -217,6 +217,54 @@ export const FilePreviewDialog = ({
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Navigation buttons positioned relative to dialog container */}
+            {files && files.length > 1 && (
+              <>
+                {/* Left navigation button */}
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm border-2 border-white shadow-lg hover:bg-white hover:scale-110 transition-all duration-200"
+                  style={{ zIndex: 10030 }}
+                  disabled={currentIndex == null || currentIndex <= 0}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('🔍 Left arrow clicked! currentIndex:', currentIndex, 'files.length:', files?.length, 'onPrevious exists:', !!onPrevious);
+                    if (onPrevious && currentIndex != null && currentIndex > 0) {
+                      console.log('🔍 Calling onPrevious...');
+                      onPrevious();
+                    } else {
+                      console.log('🔍 onPrevious not called - conditions not met');
+                    }
+                  }}
+                >
+                  <ChevronLeft className="h-6 w-6 text-black" />
+                </Button>
+                
+                {/* Right navigation button */}
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm border-2 border-white shadow-lg hover:bg-white hover:scale-110 transition-all duration-200"
+                  style={{ zIndex: 10030 }}
+                  disabled={currentIndex == null || currentIndex >= files.length - 1}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('🔍 Right arrow clicked! currentIndex:', currentIndex, 'files.length:', files?.length, 'onNext exists:', !!onNext);
+                    if (onNext && currentIndex != null && currentIndex < files.length - 1) {
+                      console.log('🔍 Calling onNext...');
+                      onNext();
+                    } else {
+                      console.log('🔍 onNext not called - conditions not met');
+                    }
+                  }}
+                >
+                  <ChevronRight className="h-6 w-6 text-black" />
+                </Button>
+              </>
+            )}
             {/* Header */}
             <div className="p-4 border-b">
               <div className="flex items-center justify-between mb-3">
@@ -274,55 +322,6 @@ export const FilePreviewDialog = ({
 
             {/* Content */}
             <div className="flex-1 overflow-auto relative">
-              {/* Navigation buttons positioned outside media container */}
-              {files && files.length > 1 && (
-                <>
-                  {/* Left navigation button */}
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm border-2 border-white shadow-lg hover:bg-white hover:scale-110 transition-all duration-200"
-                    style={{ zIndex: 10030 }}
-                    disabled={currentIndex == null || currentIndex <= 0}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      console.log('🔍 Left arrow clicked! currentIndex:', currentIndex, 'files.length:', files?.length, 'onPrevious exists:', !!onPrevious);
-                      if (onPrevious && currentIndex != null && currentIndex > 0) {
-                        console.log('🔍 Calling onPrevious...');
-                        onPrevious();
-                      } else {
-                        console.log('🔍 onPrevious not called - conditions not met');
-                      }
-                    }}
-                  >
-                    <ChevronLeft className="h-6 w-6 text-black" />
-                  </Button>
-                  
-                  {/* Right navigation button */}
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm border-2 border-white shadow-lg hover:bg-white hover:scale-110 transition-all duration-200"
-                    style={{ zIndex: 10030 }}
-                    disabled={currentIndex == null || currentIndex >= files.length - 1}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      console.log('🔍 Right arrow clicked! currentIndex:', currentIndex, 'files.length:', files?.length, 'onNext exists:', !!onNext);
-                      if (onNext && currentIndex != null && currentIndex < files.length - 1) {
-                        console.log('🔍 Calling onNext...');
-                        onNext();
-                      } else {
-                        console.log('🔍 onNext not called - conditions not met');
-                      }
-                    }}
-                  >
-                    <ChevronRight className="h-6 w-6 text-black" />
-                  </Button>
-                </>
-              )}
-
               {/* Media Display */}
               <div className="p-4">
                 <div 
