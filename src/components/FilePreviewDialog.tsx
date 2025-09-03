@@ -208,6 +208,18 @@ export const FilePreviewDialog = ({
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* DEBUG INFO - ON SCREEN DEBUGGING */}
+            <div className="absolute top-4 left-4 bg-red-600 text-white p-2 rounded text-xs font-mono z-[99999] pointer-events-none">
+              <div>DEBUG NAVIGATION:</div>
+              <div>files: {files ? `Array(${files.length})` : 'undefined'}</div>
+              <div>currentIndex: {currentIndex ?? 'undefined'}</div>
+              <div>onPrevious: {onPrevious ? 'function' : 'undefined'}</div>
+              <div>onNext: {onNext ? 'function' : 'undefined'}</div>
+              <div>showButtons: {files && files.length > 1 ? 'YES' : 'NO'}</div>
+              <div>canGoPrev: {currentIndex != null && currentIndex > 0 ? 'YES' : 'NO'}</div>
+              <div>canGoNext: {currentIndex != null && files && currentIndex < files.length - 1 ? 'YES' : 'NO'}</div>
+            </div>
+
             {/* Navigation buttons positioned relative to dialog container */}
             {files && files.length > 1 && (
               <>
@@ -215,10 +227,11 @@ export const FilePreviewDialog = ({
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm border-2 border-white shadow-lg hover:bg-white hover:scale-110 transition-all duration-200"
-                  style={{ zIndex: 10030 }}
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-red-500 hover:bg-red-600 border-4 border-yellow-400 shadow-xl"
+                  style={{ zIndex: 99998 }}
                   disabled={currentIndex == null || currentIndex <= 0}
                   onClick={(e) => {
+                    console.log('LEFT ARROW CLICKED!', { currentIndex, onPrevious: !!onPrevious });
                     e.preventDefault();
                     e.stopPropagation();
                     if (onPrevious && currentIndex != null && currentIndex > 0) {
@@ -226,17 +239,18 @@ export const FilePreviewDialog = ({
                     }
                   }}
                 >
-                  <ChevronLeft className="h-6 w-6 text-black" />
+                  <ChevronLeft className="h-8 w-8 text-white" />
                 </Button>
                 
                 {/* Right navigation button */}
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm border-2 border-white shadow-lg hover:bg-white hover:scale-110 transition-all duration-200"
-                  style={{ zIndex: 10030 }}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-red-500 hover:bg-red-600 border-4 border-yellow-400 shadow-xl"
+                  style={{ zIndex: 99998 }}
                   disabled={currentIndex == null || currentIndex >= files.length - 1}
                   onClick={(e) => {
+                    console.log('RIGHT ARROW CLICKED!', { currentIndex, files: files?.length, onNext: !!onNext });
                     e.preventDefault();
                     e.stopPropagation();
                     if (onNext && currentIndex != null && currentIndex < files.length - 1) {
@@ -244,7 +258,7 @@ export const FilePreviewDialog = ({
                     }
                   }}
                 >
-                  <ChevronRight className="h-6 w-6 text-black" />
+                  <ChevronRight className="h-8 w-8 text-white" />
                 </Button>
               </>
             )}
