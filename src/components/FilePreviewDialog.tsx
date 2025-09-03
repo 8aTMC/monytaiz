@@ -284,39 +284,41 @@ export const FilePreviewDialog = ({
                     aspectRatio: aspectRatio
                   }}
                 >
-                  {/* Navigation arrows with proper functionality */}
+                  {/* Navigation arrows - always visible with click logic */}
                   
-                  {/* Left arrow - show when can go previous */}
-                  {files && files.length > 1 && currentIndex !== undefined && currentIndex > 0 && onPrevious && (
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-background/80 backdrop-blur-sm border border-border hover:bg-background/90"
-                      style={{ zIndex: 10020 }}
-                      onClick={() => {
-                        console.log('🔍 Left arrow clicked! currentIndex:', currentIndex, 'moving to:', currentIndex - 1);
+                  {/* Left arrow - always show but disable click when can't go previous */}
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-background/80 backdrop-blur-sm border border-border hover:bg-background/90"
+                    style={{ zIndex: 10020 }}
+                    disabled={!files || files.length <= 1 || currentIndex === undefined || currentIndex <= 0 || !onPrevious}
+                    onClick={() => {
+                      console.log('🔍 Left arrow clicked! currentIndex:', currentIndex, 'moving to:', currentIndex - 1);
+                      if (onPrevious && currentIndex !== undefined && currentIndex > 0) {
                         onPrevious();
-                      }}
-                    >
-                      <ChevronLeft className="h-6 w-6 text-foreground" />
-                    </Button>
-                  )}
+                      }
+                    }}
+                  >
+                    <ChevronLeft className="h-6 w-6 text-foreground" />
+                  </Button>
                   
-                  {/* Right arrow - show when can go next */}
-                  {files && files.length > 1 && currentIndex !== undefined && currentIndex < files.length - 1 && onNext && (
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-background/80 backdrop-blur-sm border border-border hover:bg-background/90"
-                      style={{ zIndex: 10020 }}
-                      onClick={() => {
-                        console.log('🔍 Right arrow clicked! currentIndex:', currentIndex, 'moving to:', currentIndex + 1);
+                  {/* Right arrow - always show but disable click when can't go next */}
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-background/80 backdrop-blur-sm border border-border hover:bg-background/90"
+                    style={{ zIndex: 10020 }}
+                    disabled={!files || files.length <= 1 || currentIndex === undefined || currentIndex >= files.length - 1 || !onNext}
+                    onClick={() => {
+                      console.log('🔍 Right arrow clicked! currentIndex:', currentIndex, 'moving to:', currentIndex + 1);
+                      if (onNext && currentIndex !== undefined && currentIndex < files.length - 1) {
                         onNext();
-                      }}
-                    >
-                      <ChevronRight className="h-6 w-6 text-foreground" />
-                    </Button>
-                  )}
+                      }
+                    }}
+                  >
+                    <ChevronRight className="h-6 w-6 text-foreground" />
+                  </Button>
 
                   {fileType === 'image' && fileUrl && (
                     <img
