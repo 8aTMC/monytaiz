@@ -126,6 +126,43 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
     return true;
   };
 
+  // Utility function to retry network operations with exponential backoff
+  const retryWithBackoff = async (operation: () => Promise<any>, operationName: string, maxRetries = 3) => {
+    let lastError;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const result = await operation();
+        return result; // Success
+      } catch (error: any) {
+        lastError = error;
+        
+        // Check if it's a retryable network error
+        const isNetworkError = error.message?.includes('Failed to fetch') ||
+                               error.message?.includes('fetch') ||
+                               error.name?.includes('AuthRetryableFetchError') ||
+                               error.status === 0;
+        
+        // If not a network error or this was the last attempt, don't retry
+        if (!isNetworkError || attempt === maxRetries) {
+          throw error;
+        }
+        
+        // Show retry message
+        toast({
+          title: "Connection Issue",
+          description: `Network error during ${operationName}. Retrying in ${Math.pow(2, attempt)} seconds... (Attempt ${attempt + 1}/${maxRetries + 1})`,
+          variant: "default",
+        });
+        
+        // Wait with exponential backoff
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+      }
+    }
+    
+    throw lastError;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
