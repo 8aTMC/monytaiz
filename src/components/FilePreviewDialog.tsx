@@ -225,13 +225,17 @@ export const FilePreviewDialog = ({
           >
 
             {/* Enhanced debug panel with backup detection */}
-            <div className="bg-red-900/20 text-red-100 p-2 rounded text-xs font-mono space-y-1">
+            <div 
+              className="bg-red-600 text-white p-4 rounded-lg text-sm font-mono space-y-2 border-4 border-yellow-400" 
+              style={{ zIndex: 10100, position: 'relative' }}
+            >
+              <div className="text-lg font-bold">🔍 DEBUG PANEL</div>
               <div>Index: {currentIndex} | Files: {files?.length || 0} | Total: {totalFiles || 0}</div>
               <div>Functions: prev={!!onPrevious} next={!!onNext}</div>
               <div>Files prop type: {Array.isArray(files) ? 'array' : typeof files}</div>
-              <div>Should show nav (files): {files && files.length > 1 ? 'YES' : 'NO'}</div>
-              <div>Should show nav (backup): {totalFiles && totalFiles > 1 ? 'YES' : 'NO'}</div>
-              <div>
+              <div className="text-yellow-200">Should show nav (files): {files && files.length > 1 ? 'YES' : 'NO'}</div>
+              <div className="text-yellow-200">Should show nav (backup): {totalFiles && totalFiles > 1 ? 'YES' : 'NO'}</div>
+              <div className="text-green-200 font-bold">
                 Navigation: {(files && files.length > 1) || (totalFiles && totalFiles > 1) ? `${currentIndex! + 1}/${files?.length || totalFiles || 0}` : 'Single file'}
               </div>
             </div>
