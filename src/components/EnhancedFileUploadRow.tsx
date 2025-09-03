@@ -27,7 +27,7 @@ import { TagsDialog } from './TagsDialog';
 import { FolderSelectDialog } from './FolderSelectDialog';
 import { DescriptionDialog } from './DescriptionDialog';
 import { PriceDialog } from './PriceDialog';
-import { FilePreviewDialog } from './FilePreviewDialog';
+
 import { FileUploadItem } from '@/hooks/useFileUpload';
 
 interface EnhancedFileUploadRowProps {
@@ -43,10 +43,7 @@ interface EnhancedFileUploadRowProps {
   onToggleSelection?: (id: string) => void;
   getStatusIcon: (status: string) => React.ReactNode;
   formatFileSize: (bytes: number) => string;
-  files?: FileUploadItem[];
-  currentIndex?: number;
-  onPrevious?: () => void;
-  onNext?: () => void;
+  onPreview?: () => void;
 }
 
 export function EnhancedFileUploadRow({
@@ -62,10 +59,7 @@ export function EnhancedFileUploadRow({
   onToggleSelection,
   getStatusIcon,
   formatFileSize,
-  files,
-  currentIndex,
-  onPrevious,
-  onNext
+  onPreview
 }: EnhancedFileUploadRowProps) {
   // Dialog states
   const [mentionsDialogOpen, setMentionsDialogOpen] = useState(false);
@@ -73,7 +67,6 @@ export function EnhancedFileUploadRow({
   const [foldersDialogOpen, setFoldersDialogOpen] = useState(false);
   const [descriptionDialogOpen, setDescriptionDialogOpen] = useState(false);
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
-  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
 
   const getFileIcon = (file: File) => {
     if (file.type.startsWith('image/')) return <FileImage className="w-6 h-6" />;
@@ -95,7 +88,7 @@ export function EnhancedFileUploadRow({
 
   const handleDoubleClick = () => {
     console.log('Double-click detected on file:', item.file.name);
-    setPreviewDialogOpen(true);
+    onPreview?.();
   };
 
   const isCurrentlyUploading = item.status === 'uploading';
@@ -191,7 +184,7 @@ export function EnhancedFileUploadRow({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={handleDoubleClick}
+                  onClick={() => onPreview?.()}
                   className="text-xs"
                 >
                   <Eye className="w-4 h-4 mr-1" />
@@ -336,28 +329,6 @@ export function EnhancedFileUploadRow({
         onOpenChange={setPriceDialogOpen}
         price={item.metadata?.suggestedPrice || null}
         onPriceChange={(price) => handleMetadataUpdate('suggestedPrice', price)}
-      />
-
-      {/* Preview dialog */}
-      <FilePreviewDialog
-        file={item.file}
-        open={previewDialogOpen}
-        onOpenChange={setPreviewDialogOpen}
-        mentions={item.metadata?.mentions || []}
-        tags={item.metadata?.tags || []}
-        folders={item.metadata?.folders || []}
-        description={item.metadata?.description || ''}
-        suggestedPrice={item.metadata?.suggestedPrice ? item.metadata.suggestedPrice * 100 : 0}
-        title={item.file.name}
-        files={files?.map(f => f.file)}
-        currentIndex={currentIndex}
-        onPrevious={onPrevious}
-        onNext={onNext}
-        onMentionsChange={(mentions) => handleMetadataUpdate('mentions', mentions)}
-        onTagsChange={(tags) => handleMetadataUpdate('tags', tags)}
-        onFoldersChange={(folders) => handleMetadataUpdate('folders', folders)}
-        onDescriptionChange={(description) => handleMetadataUpdate('description', description)}
-        onPriceChange={(price) => handleMetadataUpdate('suggestedPrice', price ? price / 100 : null)}
       />
     </>
   );

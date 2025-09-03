@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,10 +9,16 @@ import { useFileUpload } from '@/hooks/useFileUpload';
 import { EnhancedFileUploadRow } from './EnhancedFileUploadRow';
 import { BatchMetadataToolbar } from './BatchMetadataToolbar';
 import { SelectionHeader } from './SelectionHeader';
+import { FilePreviewDialog } from './FilePreviewDialog';
 import { cn } from '@/lib/utils';
 
 export const AdvancedFileUpload = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Centralized preview state
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  
   const {
     uploadQueue,
     isUploading,
@@ -58,6 +64,67 @@ export const AdvancedFileUpload = () => {
       addFiles(Array.from(files));
     }
   }, [addFiles]);
+
+  // Centralized preview functions
+  const openPreview = useCallback((index: number) => {
+    setPreviewIndex(index);
+    setPreviewOpen(true);
+  }, []);
+
+  const closePreview = useCallback(() => {
+    setPreviewOpen(false);
+    setPreviewIndex(null);
+  }, []);
+
+  const handlePrevious = useCallback(() => {
+    if (previewIndex !== null && previewIndex > 0) {
+      setPreviewIndex(previewIndex - 1);
+    }
+  }, [previewIndex]);
+
+  const handleNext = useCallback(() => {
+    if (previewIndex !== null && previewIndex < uploadQueue.length - 1) {
+      setPreviewIndex(previewIndex + 1);
+    }
+  }, [previewIndex, uploadQueue.length]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!previewOpen) return;
+      
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handlePrevious();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleNext();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closePreview();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [previewOpen, handlePrevious, handleNext, closePreview]);
+
+  // Handle metadata updates for previewed file
+  const handlePreviewMetadataUpdate = useCallback((field: string, value: any) => {
+    if (previewIndex !== null) {
+      const currentItem = uploadQueue[previewIndex];
+      if (currentItem) {
+        const currentMetadata = currentItem.metadata || {
+          mentions: [],
+          tags: [],
+          folders: [],
+          description: '',
+          suggestedPrice: null,
+        };
+        updateFileMetadata(currentItem.id, { ...currentMetadata, [field]: value });
+      }
+    }
+  }, [previewIndex, uploadQueue, updateFileMetadata]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -246,22 +313,7 @@ export const AdvancedFileUpload = () => {
                     onToggleSelection={toggleFileSelection}
                     getStatusIcon={getStatusIcon}
                     formatFileSize={formatFileSize}
-                    files={uploadQueue}
-                    currentIndex={index}
-                    onPrevious={() => {
-                      const prevIndex = index - 1;
-                      if (prevIndex >= 0) {
-                        const prevItem = uploadQueue[prevIndex];
-                        // Focus on previous item (could trigger preview)
-                      }
-                    }}
-                    onNext={() => {
-                      const nextIndex = index + 1;
-                      if (nextIndex < uploadQueue.length) {
-                        const nextItem = uploadQueue[nextIndex];
-                        // Focus on next item (could trigger preview)
-                      }
-                    }}
+                    onPreview={() => openPreview(index)}
                   />
                 ))}
               </div>
@@ -280,6 +332,30 @@ export const AdvancedFileUpload = () => {
         />
 
       </CardContent>
+
+      {/* Centralized File Preview Dialog */}
+      {previewIndex !== null && uploadQueue[previewIndex] && (
+        <FilePreviewDialog
+          file={uploadQueue[previewIndex].file}
+          open={previewOpen}
+          onOpenChange={closePreview}
+          mentions={uploadQueue[previewIndex].metadata?.mentions || []}
+          tags={uploadQueue[previewIndex].metadata?.tags || []}
+          folders={uploadQueue[previewIndex].metadata?.folders || []}
+          description={uploadQueue[previewIndex].metadata?.description || ''}
+          suggestedPrice={uploadQueue[previewIndex].metadata?.suggestedPrice ? uploadQueue[previewIndex].metadata!.suggestedPrice! * 100 : 0}
+          title={uploadQueue[previewIndex].file.name}
+          files={uploadQueue.map(item => item.file)}
+          currentIndex={previewIndex}
+          onPrevious={handlePrevious}
+          onNext={handleNext}
+          onMentionsChange={(mentions) => handlePreviewMetadataUpdate('mentions', mentions)}
+          onTagsChange={(tags) => handlePreviewMetadataUpdate('tags', tags)}
+          onFoldersChange={(folders) => handlePreviewMetadataUpdate('folders', folders)}
+          onDescriptionChange={(description) => handlePreviewMetadataUpdate('description', description)}
+          onPriceChange={(price) => handlePreviewMetadataUpdate('suggestedPrice', price ? price / 100 : null)}
+        />
+      )}
     </Card>
   );
 };
