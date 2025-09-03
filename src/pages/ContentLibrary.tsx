@@ -480,6 +480,7 @@ const ContentLibrary = () => {
           selectedItems={selectedItems}
           onToggleSelection={handleToggleItem}
           onItemChange={setPreviewItem}
+          selecting={selecting}
         />
       </div>
     </LibraryErrorBoundary>

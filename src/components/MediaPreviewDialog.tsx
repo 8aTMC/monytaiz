@@ -37,6 +37,7 @@ interface MediaPreviewDialogProps {
   selectedItems: Set<string>;
   onToggleSelection: (id: string) => void;
   onItemChange?: (item: MediaItem) => void;
+  selecting?: boolean;
 }
 
 export const MediaPreviewDialog = ({
@@ -47,6 +48,7 @@ export const MediaPreviewDialog = ({
   selectedItems,
   onToggleSelection,
   onItemChange,
+  selecting,
 }: MediaPreviewDialogProps) => {
   const sidebar = useSidebar();
   const { 
@@ -345,22 +347,24 @@ export const MediaPreviewDialog = ({
             </div>
           </div>
 
-          {/* Selection checkbox in top right corner */}
-          <div 
-            className="absolute right-14 top-4 z-10"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleSelection(item.id);
-            }}
-          >
-            <div className={`w-6 h-6 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${
-              selectedItems.has(item.id)
-                ? 'bg-primary border-primary text-primary-foreground' 
-                : 'bg-background/80 border-muted-foreground backdrop-blur-sm hover:bg-background'
-            }`}>
-              {selectedItems.has(item.id) && <Check className="h-4 w-4" />}
+          {/* Selection checkbox in top right corner - only show when selecting */}
+          {selecting && (
+            <div 
+              className="absolute right-14 top-4 z-10"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleSelection(item.id);
+              }}
+            >
+              <div className={`w-6 h-6 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${
+                selectedItems.has(item.id)
+                  ? 'bg-primary border-primary text-primary-foreground' 
+                  : 'bg-background/80 border-muted-foreground backdrop-blur-sm hover:bg-background'
+              }`}>
+                {selectedItems.has(item.id) && <Check className="h-4 w-4" />}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Navigation arrows */}
           {getCurrentIndex() > 0 && (
