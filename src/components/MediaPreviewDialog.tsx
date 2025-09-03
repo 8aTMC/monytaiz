@@ -356,10 +356,10 @@ export const MediaPreviewDialog = ({
             </div>
           </div>
 
-          {/* Selection checkbox - UNMISSABLE positioning */}
+          {/* Selection checkbox - positioned absolutely within dialog */}
           {selecting && (
             <div 
-              className="fixed right-4 top-20 z-[9999] bg-primary p-3 rounded-lg border-2 border-white shadow-2xl"
+              className="absolute top-4 right-4 z-50 bg-primary p-3 rounded-lg border-2 border-white shadow-2xl"
               onClick={(e) => {
                 console.log('✅ Selection checkbox clicked for item:', item.id);
                 e.stopPropagation();
