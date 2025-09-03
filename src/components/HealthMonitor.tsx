@@ -18,10 +18,7 @@ interface EdgeFunctionStatus {
 const CRITICAL_FUNCTIONS = [
   'xai-chat-assistant',
   'ai-worker', 
-  'secure-media',
-  'media-operations',
-  'sync-profile-to-auth',
-  'verify-user-email'
+  'secure-media'
 ];
 
 const SUPABASE_URL = 'https://alzyzfjzwvofmjccirjq.supabase.co';
@@ -48,13 +45,7 @@ export const HealthMonitor: React.FC = () => {
           testPayload = {};
           break;
         case 'secure-media':
-        case 'media-operations':
           testPayload = { path: 'health-check' };
-          break;
-        case 'sync-profile-to-auth':
-        case 'verify-user-email':
-          // Just check if they respond
-          testPayload = {};
           break;
         default:
           testPayload = {};
@@ -70,11 +61,7 @@ export const HealthMonitor: React.FC = () => {
       // Consider the function healthy if it responds (even with expected errors)
       const isHealthy = !error || 
                        error.message?.includes('no-jobs') || // ai-worker returns this when no jobs
-                       error.message?.includes('Authentication required') || // expected for auth functions
-                       error.message?.includes('Invalid JSON') || // expected for health checks
-                       error.message?.includes('Missing required') || // expected parameter errors
-                       data?.error === 'Authentication required' ||
-                       data?.success === false; // Some functions return success: false for health checks
+                       error.message?.includes('Authentication required'); // expected for protected functions
 
       return {
         name: functionName,
