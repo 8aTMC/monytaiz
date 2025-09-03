@@ -247,21 +247,24 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
           return;
         }
 
-        const { error } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              username: formData.username,
-              display_name: formData.displayName,
+        // Sign up with retry logic and DNS checks
+        const signupResult = await retryWithBackoff(async () => {
+          return await supabase.auth.signUp({
+            email: formData.email,
+            password: formData.password,
+            options: {
+              emailRedirectTo: `${window.location.origin}/`,
+              data: {
+                username: formData.username,
+                display_name: formData.displayName,
+              },
             },
-          },
-        });
+          });
+        }, 'account creation');
 
-        if (error) {
-          console.error('Signup error details:', error);
-          throw error;
+        if (signupResult.error) {
+          console.error('Signup error details:', signupResult.error);
+          throw signupResult.error;
         }
 
         toast({
@@ -274,12 +277,15 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
           onModeChange('signin');
         }, 1500);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password,
-        });
+        // Sign in with retry logic and DNS checks  
+        const signinResult = await retryWithBackoff(async () => {
+          return await supabase.auth.signInWithPassword({
+            email: formData.email,
+            password: formData.password,
+          });
+        }, 'sign in');
 
-        if (error) throw error;
+        if (signinResult.error) throw signinResult.error;
 
         toast({
           variant: "success",
@@ -351,18 +357,23 @@ export const AuthForm = ({ mode, onModeChange }: AuthFormProps) => {
         ? `${window.location.origin}/dashboard`
         : `${window.location.origin}/onboarding`;
         
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectUrl,
-        },
-      });
+      // Google auth with retry logic and DNS checks
+      const googleAuthResult = await retryWithBackoff(async () => {
+        return await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: redirectUrl,
+          },
+        });
+      }, 'Google authentication');
 
-      if (error) throw error;
+      if (googleAuthResult.error) throw googleAuthResult.error;
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Google Authentication Error",
+        description: error.message?.includes('Failed to fetch') 
+          ? "Network connection issue. Please check your internet connection and try again."
+          : error.message,
         variant: "destructive",
       });
     } finally {
