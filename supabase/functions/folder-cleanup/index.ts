@@ -10,7 +10,7 @@ interface RequestBody {
   action: 'check_inconsistencies' | 'cleanup_orphaned_collections' | 'cleanup_orphaned_file_folders'
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })

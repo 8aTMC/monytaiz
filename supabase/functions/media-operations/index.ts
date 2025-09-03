@@ -60,7 +60,7 @@ interface ForceDeleteGhostFilesRequest {
 
 type RequestBody = CopyToCollectionRequest | CopyToFolderRequest | RemoveFromCollectionRequest | RemoveFromFolderRequest | DeleteMediaRequest | CreateCollectionRequest | StorageOptimizationRequest | CleanOrphanedRecordsRequest | ForceDeleteGhostFilesRequest
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }

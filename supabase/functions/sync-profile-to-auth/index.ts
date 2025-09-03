@@ -21,7 +21,7 @@ interface Database {
   }
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   console.log('Profile sync function called')
   
   // Handle CORS preflight requests
