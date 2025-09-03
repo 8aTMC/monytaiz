@@ -337,16 +337,33 @@ export const AdvancedFileUpload = () => {
       </CardContent>
 
       {/* Centralized File Preview Dialog */}
-      {previewIndex != null && uploadQueue[previewIndex] && (
-        <FilePreviewDialog
-          file={uploadQueue[previewIndex].file}
-          open={previewOpen}
-          onOpenChange={closePreview}
-          // Navigation props - NOW INCLUDED!
-          files={uploadQueue?.map(item => item.file) || []}
-          currentIndex={previewIndex}
-          onPrevious={handlePrevious}
-          onNext={handleNext}
+      {(() => {
+        // DEBUG LOGS - Check state values
+        console.log('=== PREVIEW DIALOG RENDER DEBUG ===');
+        console.log('previewIndex:', previewIndex);
+        console.log('previewOpen:', previewOpen);
+        console.log('uploadQueue.length:', uploadQueue.length);
+        console.log('uploadQueue[previewIndex]:', uploadQueue[previewIndex]);
+        console.log('condition result:', previewIndex !== null && uploadQueue[previewIndex]);
+        
+        const filesArray = uploadQueue?.map(item => item.file) || [];
+        console.log('files array:', filesArray);
+        console.log('files array length:', filesArray.length);
+        console.log('handlePrevious function:', !!handlePrevious);
+        console.log('handleNext function:', !!handleNext);
+        console.log('=== END DEBUG ===');
+        
+        if (previewIndex !== null && uploadQueue[previewIndex]) {
+          return (
+            <FilePreviewDialog
+              file={uploadQueue[previewIndex].file}
+              open={previewOpen}
+              onOpenChange={closePreview}
+              // Navigation props - NOW INCLUDED!
+              files={filesArray}
+              currentIndex={previewIndex}
+              onPrevious={handlePrevious}
+              onNext={handleNext}
           // Metadata props
           mentions={uploadQueue[previewIndex].metadata?.mentions || []}
           tags={uploadQueue[previewIndex].metadata?.tags || []}
@@ -354,14 +371,17 @@ export const AdvancedFileUpload = () => {
           description={uploadQueue[previewIndex].metadata?.description || ''}
           suggestedPrice={uploadQueue[previewIndex].metadata?.suggestedPrice ? uploadQueue[previewIndex].metadata!.suggestedPrice! * 100 : 0}
           title={uploadQueue[previewIndex].file.name}
-          // Metadata change handlers
-          onMentionsChange={(mentions) => handlePreviewMetadataUpdate('mentions', mentions)}
-          onTagsChange={(tags) => handlePreviewMetadataUpdate('tags', tags)}
-          onFoldersChange={(folders) => handlePreviewMetadataUpdate('folders', folders)}
-          onDescriptionChange={(description) => handlePreviewMetadataUpdate('description', description)}
-          onPriceChange={(price) => handlePreviewMetadataUpdate('suggestedPrice', price ? price / 100 : null)}
-        />
-      )}
+              // Metadata change handlers
+              onMentionsChange={(mentions) => handlePreviewMetadataUpdate('mentions', mentions)}
+              onTagsChange={(tags) => handlePreviewMetadataUpdate('tags', tags)}
+              onFoldersChange={(folders) => handlePreviewMetadataUpdate('folders', folders)}
+              onDescriptionChange={(description) => handlePreviewMetadataUpdate('description', description)}
+              onPriceChange={(price) => handlePreviewMetadataUpdate('suggestedPrice', price ? price / 100 : null)}
+            />
+          );
+        }
+        return null;
+      })()}
     </Card>
   );
 };
