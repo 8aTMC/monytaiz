@@ -120,16 +120,13 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   }, [currentTime, duration]);
 
   // Handle playback rate change
-  const handlePlaybackRateChange = useCallback((rate: number, event?: React.MouseEvent) => {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
+  const handlePlaybackRateChange = useCallback((rate: number) => {
     if (!videoRef.current) return;
     
     try {
       videoRef.current.playbackRate = rate;
       setPlaybackRate(rate);
+      console.log('Playback rate changed to:', rate);
     } catch (error) {
       console.error('Failed to set playback rate:', error);
     }
@@ -357,29 +354,24 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
 
           {/* Right Controls */}
           <div className="flex items-center gap-2">
-            {/* Playback Speed */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            {/* Playback Speed Controls */}
+            <div className="flex border border-white/20 rounded-md overflow-hidden">
+              {playbackSpeeds.map((speed) => (
                 <Button
-                  variant="ghost"
+                  key={speed}
+                  variant={playbackRate === speed ? "default" : "ghost"}
                   size="sm"
-                  className="text-white hover:bg-white/20 px-2 py-1 text-xs"
+                  onClick={() => handlePlaybackRateChange(speed)}
+                  className={`text-xs px-2 py-1 h-7 rounded-none border-r border-white/20 last:border-r-0 ${
+                    playbackRate === speed 
+                      ? 'bg-white text-black hover:bg-white/90' 
+                      : 'text-white hover:bg-white/20'
+                  }`}
                 >
-                  {playbackRate || 1}x
+                  {speed}x
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-background border z-50">
-                {playbackSpeeds.map((speed) => (
-                  <DropdownMenuItem
-                    key={speed}
-                    onClick={(e) => handlePlaybackRateChange(speed, e)}
-                    className={`cursor-pointer ${playbackRate === speed ? 'bg-accent' : 'hover:bg-accent/50'}`}
-                  >
-                    {speed}x
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              ))}
+            </div>
 
             {/* Quality Selector */}
             {qualities.length > 0 && (
