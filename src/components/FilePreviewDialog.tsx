@@ -292,10 +292,10 @@ export const FilePreviewDialog = ({
                     size="icon"
                     className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm border-2 border-white shadow-lg hover:bg-white hover:scale-110 transition-all duration-200"
                     style={{ zIndex: 10020 }}
-                    disabled={!files || files.length <= 1 || currentIndex === undefined || currentIndex <= 0 || !onPrevious}
+                    disabled={!files || files.length <= 1 || currentIndex == null || currentIndex <= 0}
                     onClick={() => {
-                      console.log('🔍 Left arrow clicked! currentIndex:', currentIndex, 'moving to:', currentIndex - 1);
-                      if (onPrevious && currentIndex !== undefined && currentIndex > 0) {
+                      console.log('🔍 Left arrow clicked! currentIndex:', currentIndex, 'files.length:', files?.length);
+                      if (onPrevious && currentIndex != null && currentIndex > 0) {
                         onPrevious();
                       }
                     }}
@@ -309,10 +309,10 @@ export const FilePreviewDialog = ({
                     size="icon"
                     className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/90 backdrop-blur-sm border-2 border-white shadow-lg hover:bg-white hover:scale-110 transition-all duration-200"
                     style={{ zIndex: 10020 }}
-                    disabled={!files || files.length <= 1 || currentIndex === undefined || currentIndex >= files.length - 1 || !onNext}
+                    disabled={!files || files.length <= 1 || currentIndex == null || currentIndex >= files.length - 1}
                     onClick={() => {
-                      console.log('🔍 Right arrow clicked! currentIndex:', currentIndex, 'moving to:', currentIndex + 1);
-                      if (onNext && currentIndex !== undefined && currentIndex < files.length - 1) {
+                      console.log('🔍 Right arrow clicked! currentIndex:', currentIndex, 'files.length:', files?.length);
+                      if (onNext && currentIndex != null && currentIndex < files.length - 1) {
                         onNext();
                       }
                     }}
