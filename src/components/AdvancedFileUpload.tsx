@@ -67,9 +67,11 @@ export const AdvancedFileUpload = () => {
 
   // Centralized preview functions
   const openPreview = useCallback((index: number) => {
+    console.log('🔍 Opening preview for index:', index, 'total files:', uploadQueue.length);
+    // Ensure synchronized state updates
     setPreviewIndex(index);
     setPreviewOpen(true);
-  }, []);
+  }, [uploadQueue.length]);
 
   const closePreview = useCallback(() => {
     setPreviewOpen(false);
@@ -77,14 +79,20 @@ export const AdvancedFileUpload = () => {
   }, []);
 
   const handlePrevious = useCallback(() => {
+    console.log('🔍 AdvancedFileUpload handlePrevious called, current previewIndex:', previewIndex);
     if (previewIndex !== null && previewIndex > 0) {
-      setPreviewIndex(previewIndex - 1);
+      const newIndex = previewIndex - 1;
+      console.log('🔍 Moving to previous index:', newIndex);
+      setPreviewIndex(newIndex);
     }
   }, [previewIndex]);
 
   const handleNext = useCallback(() => {
+    console.log('🔍 AdvancedFileUpload handleNext called, current previewIndex:', previewIndex);
     if (previewIndex !== null && previewIndex < uploadQueue.length - 1) {
-      setPreviewIndex(previewIndex + 1);
+      const newIndex = previewIndex + 1;
+      console.log('🔍 Moving to next index:', newIndex);
+      setPreviewIndex(newIndex);
     }
   }, [previewIndex, uploadQueue.length]);
 
