@@ -170,9 +170,12 @@ const ContentLibrary = () => {
     event.preventDefault();
     event.stopPropagation();
     
+    console.log('🔍 ContentLibrary handleCardClick - selecting state:', selecting);
+    
     if (selecting) {
       handleToggleItem(item.id);
     } else {
+      console.log('🔍 ContentLibrary opening preview for item:', item.id);
       setPreviewItem(item);
     }
   }, [selecting, handleToggleItem]);

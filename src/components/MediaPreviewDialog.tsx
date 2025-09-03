@@ -50,8 +50,14 @@ export const MediaPreviewDialog = ({
   onItemChange,
   selecting,
 }: MediaPreviewDialogProps) => {
-  // Debug logging
-  console.log('MediaPreviewDialog render:', { selecting, itemId: item?.id, hasItem: !!item });
+  // Comprehensive debug logging
+  console.log('🔍 MediaPreviewDialog render:', { 
+    selecting, 
+    itemId: item?.id, 
+    hasItem: !!item, 
+    open,
+    selectedItemsSize: selectedItems?.size || 0
+  });
   
   const sidebar = useSidebar();
   const { 
@@ -350,25 +356,26 @@ export const MediaPreviewDialog = ({
             </div>
           </div>
 
-          {/* Selection checkbox in top right corner - only show when selecting */}
-          {selecting && (
-            <div 
-              className="absolute right-16 top-4 z-20 bg-red-500/50 p-1 rounded"
-              onClick={(e) => {
-                console.log('Selection checkbox clicked for item:', item.id);
-                e.stopPropagation();
-                onToggleSelection(item.id);
-              }}
-            >
-              <div className={`w-6 h-6 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${
-                selectedItems.has(item.id)
-                  ? 'bg-primary border-primary text-primary-foreground' 
-                  : 'bg-background/80 border-muted-foreground backdrop-blur-sm hover:bg-background'
-              }`}>
-                {selectedItems.has(item.id) && <Check className="h-4 w-4" />}
-              </div>
+          {/* Selection checkbox in top right corner - always visible for debugging */}
+          <div 
+            className="absolute right-16 top-4 z-50 bg-red-500 p-2 rounded border-2 border-white"
+            onClick={(e) => {
+              console.log('🚨 Selection checkbox clicked for item:', item.id, 'selecting:', selecting);
+              e.stopPropagation();
+              onToggleSelection(item.id);
+            }}
+          >
+            <div className="text-white text-xs mb-1">
+              selecting: {selecting ? 'true' : 'false'}
             </div>
-          )}
+            <div className={`w-6 h-6 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${
+              selectedItems.has(item.id)
+                ? 'bg-primary border-primary text-primary-foreground' 
+                : 'bg-background/80 border-muted-foreground backdrop-blur-sm hover:bg-background'
+            }`}>
+              {selectedItems.has(item.id) && <Check className="h-4 w-4" />}
+            </div>
+          </div>
 
           {/* Navigation arrows */}
           {getCurrentIndex() > 0 && (
