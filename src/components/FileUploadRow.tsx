@@ -15,6 +15,7 @@ import type { FileUploadItem } from '@/hooks/useFileUpload';
 
 interface FileUploadRowProps {
   item: FileUploadItem;
+  items?: FileUploadItem[];
   index: number;
   currentUploadIndex: number;
   isUploading: boolean;
@@ -22,12 +23,14 @@ interface FileUploadRowProps {
   onPause?: (id: string) => void;
   onResume?: (id: string) => void;
   onCancel?: (id: string) => void;
+  onNavigateToFile?: (index: number) => void;
   getStatusIcon: (status: string) => React.ReactNode;
   formatFileSize: (bytes: number) => string;
 }
 
 export const FileUploadRow = ({
   item,
+  items,
   index,
   currentUploadIndex,
   isUploading,
@@ -35,6 +38,7 @@ export const FileUploadRow = ({
   onPause,
   onResume,
   onCancel,
+  onNavigateToFile,
   getStatusIcon,
   formatFileSize,
 }: FileUploadRowProps) => {
@@ -337,6 +341,10 @@ export const FileUploadRow = ({
         open={showPreviewDialog}
         onOpenChange={setShowPreviewDialog}
         file={item.file}
+        files={items?.map(i => i.file)}
+        currentIndex={index}
+        onPrevious={index > 0 ? () => onNavigateToFile?.(index - 1) : undefined}
+        onNext={items && index < items.length - 1 ? () => onNavigateToFile?.(index + 1) : undefined}
       />
     </>
   );

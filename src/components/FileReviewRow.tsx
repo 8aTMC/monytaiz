@@ -14,13 +14,16 @@ import { FilePreviewDialog } from './FilePreviewDialog';
 
 interface FileReviewRowProps {
   file: UploadedFileWithMetadata;
+  files?: UploadedFileWithMetadata[];
+  currentIndex?: number;
   onRemove: (id: string) => void;
   onMetadataChange?: (id: string, metadata: Partial<UploadedFileWithMetadata['metadata']>) => void;
   onSelectionChange?: (id: string, selected: boolean) => void;
+  onNavigateToFile?: (index: number) => void;
   formatFileSize: (bytes: number) => string;
 }
 
-export function FileReviewRow({ file, onRemove, onMetadataChange, onSelectionChange, formatFileSize }: FileReviewRowProps) {
+export function FileReviewRow({ file, files, currentIndex, onRemove, onMetadataChange, onSelectionChange, onNavigateToFile, formatFileSize }: FileReviewRowProps) {
   const [thumbnail, setThumbnail] = useState<string | null>(null);
   
   // Dialog states
@@ -298,6 +301,10 @@ export function FileReviewRow({ file, onRemove, onMetadataChange, onSelectionCha
       {/* Preview dialog */}
       <FilePreviewDialog
         file={file.file}
+        files={files?.map(f => f.file)}
+        currentIndex={currentIndex}
+        onPrevious={currentIndex !== undefined && currentIndex > 0 ? () => onNavigateToFile?.(currentIndex - 1) : undefined}
+        onNext={currentIndex !== undefined && files && currentIndex < files.length - 1 ? () => onNavigateToFile?.(currentIndex + 1) : undefined}
         open={previewDialogOpen}
         onOpenChange={setPreviewDialogOpen}
         mentions={file.metadata?.mentions || []}

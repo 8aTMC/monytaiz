@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, Download, AtSign, Hash, FolderOpen, FileText, DollarSign, Edit, Play, Pause, Volume2, VolumeX, Maximize } from 'lucide-react';
+import { X, Download, AtSign, Hash, FolderOpen, FileText, DollarSign, Edit, Play, Pause, Volume2, VolumeX, Maximize, ChevronLeft, ChevronRight } from 'lucide-react';
 import { VideoQualityBadge } from './VideoQualityBadge';
 import { getVideoMetadataFromFile, VideoQualityInfo } from '@/lib/videoQuality';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
@@ -17,6 +17,11 @@ interface FilePreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   file: File;
+  // Navigation props
+  files?: File[];
+  currentIndex?: number;
+  onPrevious?: () => void;
+  onNext?: () => void;
   // Metadata props
   mentions?: string[];
   tags?: string[];
@@ -37,6 +42,10 @@ export const FilePreviewDialog = ({
   open,
   onOpenChange,
   file,
+  files,
+  currentIndex,
+  onPrevious,
+  onNext,
   mentions = [],
   tags = [],
   folders = [],
@@ -79,6 +88,27 @@ export const FilePreviewDialog = ({
       return () => URL.revokeObjectURL(url);
     }
   }, [file]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' && onPrevious) {
+        e.preventDefault();
+        onPrevious();
+      } else if (e.key === 'ArrowRight' && onNext) {
+        e.preventDefault();
+        onNext();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        onOpenChange(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open, onPrevious, onNext, onOpenChange]);
 
   const getFileType = () => {
     const extension = '.' + file.name.split('.').pop()?.toLowerCase();
@@ -195,6 +225,12 @@ export const FilePreviewDialog = ({
                       <Edit className="h-3 w-3" />
                     </Button>
                   )}
+                  {/* File counter */}
+                  {files && currentIndex !== undefined && (
+                    <span className="text-sm text-muted-foreground ml-2">
+                      {currentIndex + 1} of {files.length}
+                    </span>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -237,7 +273,31 @@ export const FilePreviewDialog = ({
             {/* Content */}
             <div className="flex-1 overflow-auto">
               {/* Media Display */}
-              <div className="p-4">
+              <div className="p-4 relative">
+                {/* Navigation arrows */}
+                {files && files.length > 1 && (
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="absolute left-6 top-1/2 transform -translate-y-1/2 z-10 opacity-80 hover:opacity-100"
+                      onClick={onPrevious}
+                      disabled={currentIndex === 0}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="secondary"  
+                      size="sm"
+                      className="absolute right-6 top-1/2 transform -translate-y-1/2 z-10 opacity-80 hover:opacity-100"
+                      onClick={onNext}
+                      disabled={currentIndex === files.length - 1}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </>
+                )}
+                
                 <div 
                   className="flex items-center justify-center bg-muted/20 rounded-lg overflow-hidden relative"
                   style={{
