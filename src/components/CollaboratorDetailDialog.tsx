@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { ExternalLink } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Globe } from 'lucide-react';
 
 interface CollaboratorDetailDialogProps {
   open: boolean;
@@ -37,7 +37,6 @@ export function CollaboratorDetailDialog({
                 {collaborator.name.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-gradient-primary border-2 border-background shadow-soft" />
           </div>
 
           {/* Name */}
@@ -50,14 +49,15 @@ export function CollaboratorDetailDialog({
 
           {/* URL */}
           <div className="flex items-center space-x-2">
-            <Badge 
+            <Button 
               variant="outline" 
-              className="cursor-pointer hover:bg-accent/50 transition-colors"
+              size="lg"
+              className="px-6 py-3 rounded-md hover:bg-accent/50 transition-colors"
               onClick={() => window.open(collaborator.url, '_blank')}
             >
-              <ExternalLink className="h-3 w-3 mr-1" />
+              <Globe className="h-4 w-4 mr-2" />
               Visit Profile
-            </Badge>
+            </Button>
           </div>
 
           {/* About Section */}
