@@ -219,9 +219,11 @@ export default function SimpleLibrary() {
     fetchFolders();
   }, [fetchFolders]);
 
-  // Convert SimpleMediaItem to the format expected by LibraryGrid - stable conversion
+  // Convert SimpleMediaItem to the format expected by LibraryGrid - stable conversion with pre-computed data
   const convertedMedia = useMemo(() => {
     if (!media?.length) return [];
+    
+    console.log('Converting media items:', media.length);
     
     return media.map(item => ({
       id: item.id,
@@ -233,7 +235,8 @@ export default function SimpleLibrary() {
       type: item.media_type as 'image' | 'video' | 'audio',
       size_bytes: item.optimized_size_bytes || item.original_size_bytes,
       tags: item.tags || [],
-      suggested_price_cents: 0,
+      suggested_price_cents: item.suggested_price_cents || 0, // Use actual price from source
+      mentions: item.mentions || [], // Pre-compute mentions for filtering
       notes: item.description || null,
       creator_id: '',
       created_at: item.created_at,
@@ -278,8 +281,10 @@ export default function SimpleLibrary() {
            advancedFilters.priceRange[1] < 1000000;
   }, [advancedFilters]);
 
-  // Filter media based on current filters - optimized dependencies
+  // Filter media based on current filters - optimized to prevent O(n²) operations
   const filteredMedia = useMemo(() => {
+    console.log('Filtering media with advanced filters:', advancedFilters);
+    
     if (!convertedMedia?.length) {
       return [];
     }
@@ -293,7 +298,8 @@ export default function SimpleLibrary() {
       if (isCustomFolder) {
         // Only show items in the selected folder if we have folder content loaded
         if (folderContent.length > 0) {
-          filtered = filtered.filter(item => folderContent.includes(item.id));
+          const folderContentSet = new Set(folderContent);
+          filtered = filtered.filter(item => folderContentSet.has(item.id));
         } else {
           // No content loaded yet, show empty
           return [];
@@ -326,36 +332,30 @@ export default function SimpleLibrary() {
       });
     }
 
-    // Apply advanced filters
+    // Apply advanced filters using pre-computed data
     if (hasActiveFilters) {
-      // Filter by collaborators (check mentions array)
+      // Filter by collaborators (using pre-computed mentions)
       if (advancedFilters.collaborators.length > 0) {
+        const collaboratorSet = new Set(advancedFilters.collaborators);
         filtered = filtered.filter(item => {
-          // Get mentions from original media item
-          const originalItem = media.find(m => m.id === item.id);
-          const mentions = originalItem?.mentions || [];
-          return advancedFilters.collaborators.some(collabId => 
-            mentions.includes(collabId)
-          );
+          const mentions = (item as any).mentions || [];
+          return mentions.some((mentionId: string) => collaboratorSet.has(mentionId));
         });
       }
 
       // Filter by tags
       if (advancedFilters.tags.length > 0) {
+        const tagSet = new Set(advancedFilters.tags);
         filtered = filtered.filter(item => {
           const itemTags = item.tags || [];
-          return advancedFilters.tags.some(filterTag => 
-            itemTags.includes(filterTag)
-          );
+          return itemTags.some(tag => tagSet.has(tag));
         });
       }
 
-      // Filter by price range
+      // Filter by price range (using pre-computed price)
       if (advancedFilters.priceRange[0] > 0 || advancedFilters.priceRange[1] < 1000000) {
         filtered = filtered.filter(item => {
-          // Get suggested price from original media item
-          const originalItem = media.find(m => m.id === item.id);
-          const price = originalItem?.suggested_price_cents || 0;
+          const price = item.suggested_price_cents || 0;
           return price >= advancedFilters.priceRange[0] && price <= advancedFilters.priceRange[1];
         });
       }
@@ -375,8 +375,9 @@ export default function SimpleLibrary() {
       }
     });
     
+    console.log(`Filtered ${convertedMedia.length} items down to ${sorted.length} items`);
     return sorted;
-  }, [convertedMedia, searchQuery, selectedFilter, sortBy, selectedCategory, customFolders, folderContent, advancedFilters, hasActiveFilters, media]);
+  }, [convertedMedia, searchQuery, selectedFilter, sortBy, selectedCategory, customFolders, folderContent, advancedFilters, hasActiveFilters]);
 
   // Default categories for sidebar - stable
   const defaultCategories = useMemo(() => [
