@@ -420,16 +420,16 @@ export const FilePreviewDialog = ({
                     <img
                       src={fileUrl}
                       alt={title || displayFile.name}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-contain rounded-lg"
                     />
                   )}
                   
                   {fileType === 'video' && fileUrl && (
-                    <div className="relative w-full h-full">
+                    <div className="relative w-full h-full rounded-lg overflow-hidden">
                       <video
                         ref={videoRef}
                         src={fileUrl}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-contain rounded-lg"
                         controls={false}
                         muted={isVideoMuted}
                         onPlay={() => setIsVideoPlaying(true)}
