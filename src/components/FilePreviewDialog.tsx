@@ -417,19 +417,21 @@ export const FilePreviewDialog = ({
                 >
 
                   {fileType === 'image' && fileUrl && (
-                    <img
-                      src={fileUrl}
-                      alt={title || displayFile.name}
-                      className="w-full h-full object-contain block media"
+                    <div
+                      className="w-full h-full rounded-xl bg-contain bg-no-repeat bg-center"
+                      style={{
+                        backgroundImage: `url("${fileUrl}")`,
+                        backgroundSize: 'contain'
+                      }}
                     />
                   )}
                   
                   {fileType === 'video' && fileUrl && (
-                    <div className="relative w-full h-full">
+                    <div className="relative w-full h-full rounded-xl overflow-hidden">
                       <video
                         ref={videoRef}
                         src={fileUrl}
-                        className="w-full h-full object-contain block media"
+                        className="w-full h-full object-cover block media rounded-xl"
                         controls={false}
                         muted={isVideoMuted}
                         onPlay={() => setIsVideoPlaying(true)}
