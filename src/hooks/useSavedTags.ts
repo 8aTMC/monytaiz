@@ -104,13 +104,21 @@ export const useSavedTags = () => {
   };
 
   const getRecentTags = (limit = 5) => {
-    return savedTags.slice(0, limit);
+    // Deduplicate by tag_name, keeping the most recent (first occurrence)
+    const uniqueTags = savedTags.filter((tag, index, self) => 
+      index === self.findIndex(t => t.tag_name.toLowerCase() === tag.tag_name.toLowerCase())
+    );
+    return uniqueTags.slice(0, limit);
   };
 
   const searchTags = (query: string) => {
     if (!query.trim()) return savedTags;
-    return savedTags.filter(tag => 
+    const filteredTags = savedTags.filter(tag => 
       tag.tag_name.toLowerCase().includes(query.toLowerCase())
+    );
+    // Deduplicate search results by tag_name, keeping the most recent
+    return filteredTags.filter((tag, index, self) => 
+      index === self.findIndex(t => t.tag_name.toLowerCase() === tag.tag_name.toLowerCase())
     );
   };
 
