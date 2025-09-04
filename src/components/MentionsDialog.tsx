@@ -23,6 +23,7 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
   const [showCollaboratorDialog, setShowCollaboratorDialog] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewImage, setPreviewImage] = useState({ url: '', name: '' });
+  const [selectedCollaborators, setSelectedCollaborators] = useState<any[]>([]);
   const { collaborators, loading, createCollaborator, getRecentCollaborators, searchCollaborators, fetchCollaborators } = useCollaborators();
 
   // Refresh collaborators whenever the dialog opens to ensure fresh data
@@ -31,6 +32,20 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
       fetchCollaborators();
     }
   }, [open, fetchCollaborators]);
+
+  // Sync selectedCollaborators with mentions prop
+  useEffect(() => {
+    if (mentions.length === 0) {
+      setSelectedCollaborators([]);
+    } else {
+      // Find collaborator objects for existing mentions
+      const mentionedCollaborators = mentions.map(mention => {
+        const name = mention.replace('@', '');
+        return collaborators.find(c => c.name === name);
+      }).filter(Boolean);
+      setSelectedCollaborators(mentionedCollaborators);
+    }
+  }, [mentions, collaborators]);
 
   const allFilteredCollaborators = searchQuery.trim() 
     ? searchCollaborators(searchQuery)
@@ -61,7 +76,8 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
     }
   };
 
-  const handleRemoveMention = (mentionToRemove: string) => {
+  const handleRemoveMention = (collaborator: any) => {
+    const mentionToRemove = `@${collaborator.name}`;
     onMentionsChange(mentions.filter(mention => mention !== mentionToRemove));
   };
 
@@ -185,27 +201,38 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
           )}
 
           {/* Current mentions */}
-          {mentions.length > 0 && (
+          {selectedCollaborators.length > 0 && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">Current Mentions:</Label>
               <ScrollArea className="max-h-[200px]">
-                <div className="flex flex-wrap gap-2">
-                  {mentions.map((mention, index) => (
-                    <Badge
-                      key={`${mention}-${index}`}
-                      variant="secondary"
-                      className="flex items-center gap-1 pr-1"
+                <div className="space-y-2">
+                  {selectedCollaborators.map((collaborator) => (
+                    <div
+                      key={collaborator.id}
+                      className="flex items-center gap-3 p-2 rounded-lg border bg-accent/20"
                     >
-                      {mention}
+                      <Avatar 
+                        className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all" 
+                        onClick={(e) => handleAvatarClick(e, collaborator)}
+                      >
+                        <AvatarImage src={collaborator.profile_picture_url} />
+                        <AvatarFallback className="text-xs">
+                          {collaborator.name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">@{collaborator.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{collaborator.url}</p>
+                      </div>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-4 w-4 p-0 hover:bg-destructive/20"
-                        onClick={() => handleRemoveMention(mention)}
+                        className="h-8 w-8 p-0 hover:bg-destructive/20"
+                        onClick={() => handleRemoveMention(collaborator)}
                       >
-                        <X className="h-3 w-3" />
+                        <X className="h-4 w-4" />
                       </Button>
-                    </Badge>
+                    </div>
                   ))}
                 </div>
               </ScrollArea>
