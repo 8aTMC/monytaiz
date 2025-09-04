@@ -10,7 +10,7 @@ import { LibraryFiltersDialog } from '@/components/LibraryFiltersDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Database, MessageSquare, Zap, FileImage, Search, Folder, Filter } from 'lucide-react';
+import { Database, MessageSquare, Zap, FileImage, Search, Folder, Filter, Grid3X3, Image, Video, Music } from 'lucide-react';
 import { LibraryFilterState } from '@/types/library-filters';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -689,15 +689,22 @@ export default function SimpleLibrary() {
               <div className="flex items-center gap-2">
                 {/* Media Type Filter Tabs */}
                 <div className="flex bg-muted rounded-lg p-1">
-                  {['All', 'Photo', 'Video', 'Audio'].map((filter) => (
+                  {[
+                    { filter: 'All', icon: Grid3X3, label: 'All files' },
+                    { filter: 'Photo', icon: Image, label: 'Photos' },
+                    { filter: 'Video', icon: Video, label: 'Videos' },
+                    { filter: 'Audio', icon: Music, label: 'Audio' }
+                  ].map(({ filter, icon: Icon, label }) => (
                     <Button
                       key={filter}
                       variant={selectedFilter === filter ? 'default' : 'ghost'}
                       size="sm"
                       onClick={() => handleFilterChange(filter)}
                       className="px-3 py-1 text-xs"
+                      aria-label={label}
+                      title={label}
                     >
-                      {filter}
+                      <Icon className="h-4 w-4" />
                     </Button>
                   ))}
                 </div>
