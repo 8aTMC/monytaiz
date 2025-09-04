@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Media elements inherit border-radius for consistent rounding */
+@layer components {
+  .media {
+    border-radius: inherit;
+  }
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */

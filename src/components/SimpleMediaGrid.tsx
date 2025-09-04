@@ -31,7 +31,7 @@ export const SimpleMediaGrid: React.FC<SimpleMediaGridProps> = ({
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {Array.from({ length: 10 }).map((_, i) => (
-          <Card key={i} className="aspect-square animate-pulse bg-muted" />
+          <Card key={i} className="aspect-square rounded-xl overflow-hidden animate-pulse bg-muted" />
         ))}
       </div>
     );
@@ -55,14 +55,14 @@ export const SimpleMediaGrid: React.FC<SimpleMediaGridProps> = ({
         return (
           <Card
             key={item.id}
-            className="aspect-square overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-200 relative group"
+            className="aspect-square rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-200 relative group"
             onClick={() => onItemClick(item)}
           >
             {thumbnailUrl ? (
               <img
                 src={thumbnailUrl}
                 alt={item.title || item.original_filename}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover block media"
                 loading="lazy"
               />
             ) : (

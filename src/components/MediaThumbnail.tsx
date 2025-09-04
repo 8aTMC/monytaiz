@@ -108,13 +108,13 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     if (thumbnailSrc && !thumbnailLoading) {
       return (
         <div 
-          className={`bg-muted rounded-t-lg relative overflow-hidden group ${className}`}
+          className={`bg-muted rounded-xl relative overflow-hidden group ${className}`}
           style={{ aspectRatio }}
         >
           <img
             src={thumbnailSrc}
             alt={item.title || `${item.type} thumbnail`}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover block media"
             loading="lazy"
             decoding="async"
           />
@@ -130,7 +130,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     // Fallback to icon if no thumbnail
     return (
       <div 
-        className={`bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}
+        className={`bg-muted rounded-xl flex items-center justify-center relative overflow-hidden ${className}`}
         style={{ aspectRatio }}
       >
         <div className="flex flex-col items-center gap-2">
@@ -149,7 +149,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
   if (isLoading && !currentUrl) {
     return (
       <div 
-        className={`bg-muted rounded-t-lg flex items-center justify-center relative overflow-hidden ${className}`}
+        className={`bg-muted rounded-xl flex items-center justify-center relative overflow-hidden ${className}`}
         style={{ aspectRatio }}
       >
         <div className="animate-pulse">
@@ -165,7 +165,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
 
   return (
     <div 
-      className={`bg-muted rounded-t-lg relative overflow-hidden ${className}`}
+      className={`bg-muted rounded-xl relative overflow-hidden ${className}`}
       style={{ aspectRatio }}
     >
       {/* Show current URL if available */}
@@ -174,7 +174,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
           <img
             src={currentUrl}
             alt={item.title || 'Media thumbnail'}
-            className="w-full h-full object-cover transition-opacity duration-200"
+            className="w-full h-full object-cover transition-opacity duration-200 block media"
             loading="lazy"
             decoding="async"
             width={aspectWidth}

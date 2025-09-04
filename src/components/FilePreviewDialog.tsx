@@ -407,7 +407,7 @@ export const FilePreviewDialog = ({
               {/* Media Display */}
               <div className="p-4">
                 <div 
-                  className="flex items-center justify-center bg-muted/20 rounded-lg overflow-hidden relative"
+                  className="flex items-center justify-center bg-muted/20 rounded-xl overflow-hidden relative"
                   style={{
                     width: containerWidth,
                     height: containerHeight,
@@ -420,7 +420,7 @@ export const FilePreviewDialog = ({
                     <img
                       src={fileUrl}
                       alt={title || displayFile.name}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-contain block media"
                     />
                   )}
                   
@@ -429,7 +429,7 @@ export const FilePreviewDialog = ({
                       <video
                         ref={videoRef}
                         src={fileUrl}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-contain block media"
                         controls={false}
                         muted={isVideoMuted}
                         onPlay={() => setIsVideoPlaying(true)}

@@ -48,7 +48,7 @@ const LibraryGridComponent = ({
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="bg-muted/20 rounded-lg animate-pulse" style={{ aspectRatio: '1' }}>
+          <div key={i} className="bg-muted/20 rounded-xl overflow-hidden animate-pulse" style={{ aspectRatio: '1' }}>
             <div className="w-full h-28"></div>
           </div>
         ))}
