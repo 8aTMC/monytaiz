@@ -92,6 +92,14 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
             </div>
           </div>
 
+          {/* Loading state */}
+          {loading && (
+            <div className="text-center py-8 text-muted-foreground">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+              <p>Loading collaborators...</p>
+            </div>
+          )}
+
           {/* Collaborators list */}
           {!loading && filteredCollaborators.length > 0 && (
             <div className="space-y-2">
@@ -136,6 +144,40 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
             </div>
           )}
 
+          {/* Empty state - only show when not loading and no collaborators */}
+          {!loading && filteredCollaborators.length === 0 && mentions.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <AtSign className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No mentions added yet</p>
+              <p className="text-sm">Add collaborators to tag people in your content</p>
+              <Button
+                variant="outline"
+                onClick={() => setShowCollaboratorDialog(true)}
+                className="mt-3"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add First Collaborator
+              </Button>
+            </div>
+          )}
+
+          {/* No search results state */}
+          {!loading && searchQuery.trim() && filteredCollaborators.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No collaborators found</p>
+              <p className="text-sm">Try a different search term</p>
+              <Button
+                variant="outline"
+                onClick={() => setShowCollaboratorDialog(true)}
+                className="mt-3"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Collaborator
+              </Button>
+            </div>
+          )}
+
           {/* Current mentions */}
           {mentions.length > 0 && (
             <div className="space-y-2">
@@ -164,21 +206,6 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
             </div>
           )}
 
-          {mentions.length === 0 && !loading && filteredCollaborators.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <AtSign className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>No mentions added yet</p>
-              <p className="text-sm">Add collaborators to tag people in your content</p>
-              <Button
-                variant="outline"
-                onClick={() => setShowCollaboratorDialog(true)}
-                className="mt-3"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add First Collaborator
-              </Button>
-            </div>
-          )}
         </div>
 
         {/* Collaborator Dialog */}
