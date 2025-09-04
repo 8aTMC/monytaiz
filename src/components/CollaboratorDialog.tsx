@@ -24,6 +24,7 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
   const [creating, setCreating] = useState(false);
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [imageSrc, setImageSrc] = useState<string>('');
+  const [cropCompleted, setCropCompleted] = useState(false);
   const { toast } = useToast();
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -81,11 +82,13 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
 
   const handleCropComplete = (imageUrl: string) => {
     setProfileImageUrl(imageUrl);
-    setImageSrc('');
+    setCropCompleted(true);
+    // Don't clear imageSrc here - let the dialog handle it properly
   };
 
   const handleCropCancel = () => {
     setImageSrc('');
+    setCropCompleted(false);
   };
 
   const handleSubmit = async () => {
@@ -260,7 +263,14 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
         open={showCropDialog}
         onOpenChange={(open) => {
           setShowCropDialog(open);
-          if (!open) handleCropCancel();
+          if (!open && !cropCompleted) {
+            // Only cancel if crop wasn't completed successfully
+            handleCropCancel();
+          } else if (!open && cropCompleted) {
+            // Clean up after successful crop
+            setImageSrc('');
+            setCropCompleted(false);
+          }
         }}
         imageSrc={imageSrc}
         onCropComplete={handleCropComplete}

@@ -17,6 +17,7 @@ export function ImageCropDialog({ open, onOpenChange, imageSrc, onCropComplete }
   const [crop, setCrop] = useState<Crop>({ unit: '%', width: 90, height: 90, x: 5, y: 5 });
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [uploading, setUploading] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
   const { toast } = useToast();
 
@@ -105,6 +106,7 @@ export function ImageCropDialog({ open, onOpenChange, imageSrc, onCropComplete }
 
     try {
       setUploading(true);
+      setProcessing(true);
       
       const croppedImageBlob = await getCroppedImg(imgRef.current, completedCrop);
       
@@ -147,6 +149,7 @@ export function ImageCropDialog({ open, onOpenChange, imageSrc, onCropComplete }
       });
     } finally {
       setUploading(false);
+      setProcessing(false);
     }
   };
 
@@ -185,17 +188,20 @@ export function ImageCropDialog({ open, onOpenChange, imageSrc, onCropComplete }
                 style={{ maxWidth: '100%', maxHeight: '400px' }}
                 onLoad={onImageLoad}
                 onError={(e) => {
-                  console.error('Image load error:', {
-                    src: imageSrc,
-                    error: e,
-                    timestamp: new Date().toISOString()
-                  });
-                  toast({
-                    title: "Error",
-                    description: "Failed to load image for cropping. Please try selecting the image again.",
-                    variant: "destructive"
-                  });
-                  onOpenChange(false);
+                  // Only show error if we're not in the middle of processing and src is not empty
+                  if (!processing && imageSrc && imageSrc.trim() !== '') {
+                    console.error('Image load error:', {
+                      src: imageSrc,
+                      error: e,
+                      timestamp: new Date().toISOString()
+                    });
+                    toast({
+                      title: "Error",
+                      description: "Failed to load image for cropping. Please try selecting the image again.",
+                      variant: "destructive"
+                    });
+                    onOpenChange(false);
+                  }
                 }}
               />
             </ReactCrop>
