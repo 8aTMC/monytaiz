@@ -8,6 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Upload, X } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useCollaborators } from '@/hooks/useCollaborators';
 import { ImageCropDialog } from './ImageCropDialog';
 
 interface CollaboratorDialogProps {
@@ -21,11 +23,13 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
   const [url, setUrl] = useState('');
   const [description, setDescription] = useState('');
   const [profileImageUrl, setProfileImageUrl] = useState<string>('');
+  const [profileImageBlob, setProfileImageBlob] = useState<Blob | null>(null);
   const [creating, setCreating] = useState(false);
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [imageSrc, setImageSrc] = useState<string>('');
   const [cropCompleted, setCropCompleted] = useState(false);
   const { toast } = useToast();
+  const { createCollaborator } = useCollaborators();
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
@@ -80,14 +84,16 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
     }
   });
 
-  const handleCropComplete = (imageUrl: string) => {
-    setProfileImageUrl(imageUrl);
+  const handleCropComplete = (imageBlob: Blob) => {
+    setProfileImageBlob(imageBlob);
+    setProfileImageUrl(URL.createObjectURL(imageBlob)); // For preview only
     setCropCompleted(true);
-    // Don't clear imageSrc here - let the dialog handle it properly
   };
 
   const handleCropCancel = () => {
     setImageSrc('');
+    setProfileImageBlob(null);
+    setProfileImageUrl('');
     setCropCompleted(false);
   };
 
@@ -103,18 +109,46 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
 
     setCreating(true);
     try {
-      onCollaboratorCreated({
+      let finalProfileUrl = null;
+      
+      // Upload image if we have a cropped blob
+      if (profileImageBlob) {
+        const timestamp = Date.now();
+        const fileName = `collaborator_${timestamp}.webp`;
+        const filePath = `collaborators/${fileName}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, profileImageBlob, {
+            contentType: 'image/webp',
+            upsert: false
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(uploadData.path);
+        
+        finalProfileUrl = publicUrl;
+      }
+
+      const collaboratorData = {
         name: name.trim(),
         url: url.trim(),
-        description: description.trim() || undefined,
-        profile_picture_url: profileImageUrl || undefined
-      });
+        description: description.trim() || null,
+        profile_picture_url: finalProfileUrl
+      };
+
+      await createCollaborator(collaboratorData);
+      onCollaboratorCreated(collaboratorData);
 
       // Reset form
       setName('');
       setUrl('');
       setDescription('');
       setProfileImageUrl('');
+      setProfileImageBlob(null);
       onOpenChange(false);
 
       toast({
@@ -122,6 +156,7 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
         description: "Collaborator added successfully"
       });
     } catch (error) {
+      console.error('Error creating collaborator:', error);
       toast({
         title: "Error",
         description: "Failed to create collaborator",
@@ -134,6 +169,7 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
 
   const removeImage = () => {
     setProfileImageUrl('');
+    setProfileImageBlob(null);
   };
 
   return (

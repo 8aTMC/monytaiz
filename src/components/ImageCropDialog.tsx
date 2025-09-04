@@ -2,7 +2,6 @@ import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import ReactCrop, { Crop, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 
@@ -10,7 +9,7 @@ interface ImageCropDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   imageSrc: string;
-  onCropComplete: (imageUrl: string) => void;
+  onCropComplete: (imageBlob: Blob) => void;
 }
 
 export function ImageCropDialog({ open, onOpenChange, imageSrc, onCropComplete }: ImageCropDialogProps) {
@@ -110,41 +109,19 @@ export function ImageCropDialog({ open, onOpenChange, imageSrc, onCropComplete }
       
       const croppedImageBlob = await getCroppedImg(imgRef.current, completedCrop);
       
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      const fileName = `${user.id}-${Date.now()}.webp`;
-      const filePath = `collaborators/${fileName}`;
-
-      const { data, error } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, croppedImageBlob, {
-          contentType: 'image/webp',
-          upsert: false
-        });
-
-      if (error) {
-        throw error;
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(data.path);
-
-      onCropComplete(publicUrl);
+      // Return the blob directly - no upload here
+      onCropComplete(croppedImageBlob);
       onOpenChange(false);
       
       toast({
         title: "Success",
-        description: "Profile picture processed successfully"
+        description: "Image cropped successfully"
       });
     } catch (error) {
       console.error('Error processing image:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to process image",
+        description: error instanceof Error ? error.message : "Failed to crop image",
         variant: "destructive"
       });
     } finally {
