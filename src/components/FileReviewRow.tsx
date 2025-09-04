@@ -317,6 +317,10 @@ export function FileReviewRow({ file, files, currentIndex, onRemove, onMetadataC
         onFoldersChange={onMetadataChange ? (folders) => handleMetadataUpdate('folders', folders) : undefined}
         onDescriptionChange={onMetadataChange ? (description) => handleMetadataUpdate('description', description) : undefined}
         onPriceChange={onMetadataChange ? (price) => handleMetadataUpdate('suggestedPrice', price ? price / 100 : null) : undefined}
+        selecting={!!onSelectionChange}
+        selectedFiles={new Set(files?.filter(f => f.selected).map(f => f.id) || [])}
+        onToggleSelection={onSelectionChange ? (fileId) => onSelectionChange(fileId, !file.selected) : undefined}
+        fileId={file.id}
       />
     </>
   );

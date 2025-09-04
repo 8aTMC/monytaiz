@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, Download, AtSign, Hash, FolderOpen, FileText, DollarSign, Edit, Play, Pause, Volume2, VolumeX, Maximize, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Download, AtSign, Hash, FolderOpen, FileText, DollarSign, Edit, Play, Pause, Volume2, VolumeX, Maximize, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { VideoQualityBadge } from './VideoQualityBadge';
 import { getVideoMetadataFromFile, VideoQualityInfo } from '@/lib/videoQuality';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
@@ -36,6 +36,11 @@ interface FilePreviewDialogProps {
   onDescriptionChange?: (description: string) => void;
   onPriceChange?: (price: number | null) => void;
   onTitleChange?: (title: string) => void;
+  // Selection props
+  selecting?: boolean;
+  selectedFiles?: Set<string>;
+  onToggleSelection?: (fileId: string) => void;
+  fileId?: string;
 }
 
 export const FilePreviewDialog = ({
@@ -56,7 +61,11 @@ export const FilePreviewDialog = ({
   onFoldersChange,
   onDescriptionChange,
   onPriceChange,
-  onTitleChange
+  onTitleChange,
+  selecting = false,
+  selectedFiles,
+  onToggleSelection,
+  fileId
 }: FilePreviewDialogProps) => {
   // ===== ALL STATE HOOKS MUST BE AT THE TOP (React Rules of Hooks) =====
   
@@ -343,6 +352,27 @@ export const FilePreviewDialog = ({
                   )}
                 </div>
                 <div className="flex gap-2">
+                  {/* Selection checkbox */}
+                  {selecting && onToggleSelection && fileId && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleSelection(fileId);
+                      }}
+                      className="p-1 h-8 w-8"
+                      aria-label="Toggle selection"
+                    >
+                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                        selectedFiles?.has(fileId) 
+                          ? 'bg-primary border-primary text-primary-foreground' 
+                          : 'border-muted-foreground bg-transparent'
+                      }`}>
+                        {selectedFiles?.has(fileId) && <Check className="w-3 h-3" />}
+                      </div>
+                    </Button>
+                  )}
                   <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
                     <X className="w-4 h-4" />
                   </Button>
@@ -390,16 +420,16 @@ export const FilePreviewDialog = ({
                     <img
                       src={fileUrl}
                       alt={title || displayFile.name}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-contain rounded-lg"
                     />
                   )}
                   
                   {fileType === 'video' && fileUrl && (
-                    <div className="relative w-full h-full">
+                    <div className="relative w-full h-full rounded-lg overflow-hidden">
                       <video
                         ref={videoRef}
                         src={fileUrl}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-contain rounded-lg"
                         controls={false}
                         muted={isVideoMuted}
                         onPlay={() => setIsVideoPlaying(true)}
