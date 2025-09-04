@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,7 +17,7 @@ export const useSavedTags = () => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const fetchSavedTags = async () => {
+  const fetchSavedTags = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -39,9 +39,9 @@ export const useSavedTags = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const createOrUpdateTag = async (tagName: string) => {
+  const createOrUpdateTag = useCallback(async (tagName: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
@@ -101,7 +101,7 @@ export const useSavedTags = () => {
       });
       throw err;
     }
-  };
+  }, [toast]);
 
   const getRecentTags = (limit = 5) => {
     // Deduplicate by tag_name, keeping the most recent (first occurrence)
@@ -123,21 +123,21 @@ export const useSavedTags = () => {
   };
 
   // Update tag usage when tags are used
-  const useTag = async (tagName: string) => {
+  const useTag = useCallback(async (tagName: string) => {
     await createOrUpdateTag(tagName);
-  };
+  }, [createOrUpdateTag]);
 
-  const useTags = async (tagNames: string[]) => {
+  const useTags = useCallback(async (tagNames: string[]) => {
     for (const tagName of tagNames) {
       if (tagName.trim()) {
         await createOrUpdateTag(tagName);
       }
     }
-  };
+  }, [createOrUpdateTag]);
 
   useEffect(() => {
     fetchSavedTags();
-  }, []);
+  }, [fetchSavedTags]);
 
   return {
     savedTags,

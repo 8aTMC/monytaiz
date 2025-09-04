@@ -18,18 +18,25 @@ interface TagsDialogProps {
 export function TagsDialog({ open, onOpenChange, tags, onTagsChange }: TagsDialogProps) {
   const [newTag, setNewTag] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const { savedTags, loading, createOrUpdateTag, getRecentTags, searchTags, useTags } = useSavedTags();
+  const { savedTags, loading, createOrUpdateTag, getRecentTags, searchTags, useTags, fetchSavedTags } = useSavedTags();
 
   const filteredTags = searchQuery.trim() 
     ? searchTags(searchQuery)
     : getRecentTags(5);
+
+  // Refresh saved tags when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchSavedTags();
+    }
+  }, [open, fetchSavedTags]);
 
   // Update usage when tags change
   useEffect(() => {
     if (tags.length > 0) {
       useTags(tags);
     }
-  }, [tags]);
+  }, [tags, useTags]);
 
   const handleAddTag = () => {
     if (!newTag.trim()) return;
