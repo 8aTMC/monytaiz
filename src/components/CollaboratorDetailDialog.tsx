@@ -24,7 +24,7 @@ export function CollaboratorDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] z-[90]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{collaborator.name}</DialogTitle>
           <DialogDescription>
