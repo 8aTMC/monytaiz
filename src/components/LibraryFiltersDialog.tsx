@@ -260,8 +260,8 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl bg-card/95 backdrop-blur-md border-border/50">
+    <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
+      <DialogContent className="max-w-2xl bg-card/95 backdrop-blur-md border-border/50 z-50">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Filter className="h-5 w-5" />
@@ -319,7 +319,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
           )}
 
           {/* Collaborators Filter */}
-          <div className="space-y-3">
+          <div className="space-y-3 overflow-visible">
             <Label className="text-sm font-medium">Filter by Collaborators</Label>
             <MultiSelect
               options={collaboratorOptions || []}
@@ -339,7 +339,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
           </div>
 
           {/* Tags Filter */}
-          <div className="space-y-3">
+          <div className="space-y-3 overflow-visible">
             <Label className="text-sm font-medium">Filter by Tags</Label>
             <MultiSelect
               options={tagOptions || []}
