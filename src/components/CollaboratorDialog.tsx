@@ -7,9 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Upload, X } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import ReactCrop, { Crop, PixelCrop } from 'react-image-crop';
-import 'react-image-crop/dist/ReactCrop.css';
+import { ImageCropDialog } from './ImageCropDialog';
 
 interface CollaboratorDialogProps {
   open: boolean;
@@ -20,15 +18,10 @@ interface CollaboratorDialogProps {
 export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }: CollaboratorDialogProps) {
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
-  const [profileImage, setProfileImage] = useState<File | null>(null);
   const [profileImageUrl, setProfileImageUrl] = useState<string>('');
-  const [uploading, setUploading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [imageSrc, setImageSrc] = useState<string>('');
-  const [crop, setCrop] = useState<Crop>({ unit: '%', width: 90, height: 90, x: 5, y: 5 });
-  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
-  const [imgRef, setImgRef] = useState<HTMLImageElement | null>(null);
   const { toast } = useToast();
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -36,123 +29,61 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
       'image/*': ['.jpeg', '.jpg', '.png', '.webp']
     },
     maxFiles: 1,
+    maxSize: 10 * 1024 * 1024, // 10MB limit
     onDrop: (acceptedFiles) => {
       if (acceptedFiles.length > 0) {
         const file = acceptedFiles[0];
+        
+        // Validate file size
+        if (file.size > 10 * 1024 * 1024) {
+          toast({
+            title: "File too large",
+            description: "Please select an image smaller than 10MB",
+            variant: "destructive"
+          });
+          return;
+        }
+
         const reader = new FileReader();
         reader.onload = () => {
           setImageSrc(reader.result as string);
           setShowCropDialog(true);
         };
+        reader.onerror = () => {
+          toast({
+            title: "Error",
+            description: "Failed to read the selected file",
+            variant: "destructive"
+          });
+        };
         reader.readAsDataURL(file);
+      }
+    },
+    onDropRejected: (fileRejections) => {
+      const error = fileRejections[0]?.errors[0];
+      if (error?.code === 'file-too-large') {
+        toast({
+          title: "File too large",
+          description: "Please select an image smaller than 10MB",
+          variant: "destructive"
+        });
+      } else if (error?.code === 'file-invalid-type') {
+        toast({
+          title: "Invalid file type",
+          description: "Please select a valid image file (JPEG, PNG, WebP)",
+          variant: "destructive"
+        });
       }
     }
   });
 
-  const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const { width, height } = e.currentTarget;
-    const crop: Crop = {
-      unit: 'px',
-      width: Math.min(width, height),
-      height: Math.min(width, height),
-      x: (width - Math.min(width, height)) / 2,
-      y: (height - Math.min(width, height)) / 2,
-    };
-    setCrop(crop);
-    setImgRef(e.currentTarget);
-  };
-
-  const getCroppedImg = (image: HTMLImageElement, crop: PixelCrop): Promise<Blob> => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    if (!ctx) {
-      throw new Error('No 2d context');
-    }
-
-    const scaleX = image.naturalWidth / image.width;
-    const scaleY = image.naturalHeight / image.height;
-
-    // Set canvas size to 512x512 for consistent square output
-    canvas.width = 512;
-    canvas.height = 512;
-
-    ctx.drawImage(
-      image,
-      crop.x * scaleX,
-      crop.y * scaleY,
-      crop.width * scaleX,
-      crop.height * scaleY,
-      0,
-      0,
-      512,
-      512
-    );
-
-    return new Promise((resolve) => {
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            throw new Error('Canvas is empty');
-          }
-          resolve(blob);
-        },
-        'image/webp',
-        0.8
-      );
-    });
-  };
-
-  const handleCropComplete = async () => {
-    if (!imgRef || !completedCrop) return;
-
-    try {
-      setUploading(true);
-      const croppedImageBlob = await getCroppedImg(imgRef, completedCrop);
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      const fileName = `${user.id}-${Date.now()}.webp`;
-      const filePath = `collaborators/${fileName}`;
-
-      const { data, error } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, croppedImageBlob, {
-          contentType: 'image/webp',
-          upsert: false
-        });
-
-      if (error) throw error;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(data.path);
-
-      setProfileImageUrl(publicUrl);
-      setShowCropDialog(false);
-      setImageSrc('');
-      toast({
-        title: "Success",
-        description: "Profile picture cropped and uploaded successfully"
-      });
-    } catch (error) {
-      console.error('Error cropping image:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process image",
-        variant: "destructive"
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleCancelCrop = () => {
-    setShowCropDialog(false);
+  const handleCropComplete = (imageUrl: string) => {
+    setProfileImageUrl(imageUrl);
     setImageSrc('');
-    setCrop({ unit: '%', width: 90, height: 90, x: 5, y: 5 });
-    setCompletedCrop(undefined);
+  };
+
+  const handleCropCancel = () => {
+    setImageSrc('');
   };
 
   const handleSubmit = async () => {
@@ -176,7 +107,6 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
       // Reset form
       setName('');
       setUrl('');
-      setProfileImage(null);
       setProfileImageUrl('');
       onOpenChange(false);
 
@@ -196,7 +126,6 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
   };
 
   const removeImage = () => {
-    setProfileImage(null);
     setProfileImageUrl('');
   };
 
@@ -291,62 +220,29 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={creating || uploading}
+              disabled={creating}
             >
               Cancel
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={creating || uploading || !name.trim() || !url.trim()}
+              disabled={creating || !name.trim() || !url.trim()}
             >
-              {creating ? 'Creating...' : uploading ? 'Uploading...' : 'Add Collaborator'}
+              {creating ? 'Creating...' : 'Add Collaborator'}
             </Button>
           </div>
         </div>
 
-        {/* Crop Dialog */}
-        <Dialog open={showCropDialog} onOpenChange={(open) => !open && handleCancelCrop()}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Crop Profile Picture</DialogTitle>
-            </DialogHeader>
-            
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Drag to reposition and resize the crop area to create a square profile picture.
-              </p>
-              
-              <div className="flex justify-center">
-                <ReactCrop
-                  crop={crop}
-                  onChange={(c) => setCrop(c)}
-                  onComplete={(c) => setCompletedCrop(c)}
-                  aspect={1}
-                  minWidth={100}
-                  minHeight={100}
-                  keepSelection
-                >
-                  <img
-                    ref={setImgRef}
-                    src={imageSrc}
-                    alt="Crop me"
-                    style={{ maxWidth: '100%', maxHeight: '400px' }}
-                    onLoad={onImageLoad}
-                  />
-                </ReactCrop>
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={handleCancelCrop} disabled={uploading}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCropComplete} disabled={uploading || !completedCrop}>
-                  {uploading ? 'Processing...' : 'Apply Crop'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+      {/* Separate Crop Dialog */}
+      <ImageCropDialog
+        open={showCropDialog}
+        onOpenChange={(open) => {
+          setShowCropDialog(open);
+          if (!open) handleCropCancel();
+        }}
+        imageSrc={imageSrc}
+        onCropComplete={handleCropComplete}
+      />
       </DialogContent>
     </Dialog>
   );
