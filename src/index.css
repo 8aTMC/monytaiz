@@ -431,6 +431,22 @@ main.layout-main *::-webkit-scrollbar-thumb:hover {
   z-index: 240 !important;
 }
 
+/* Override shadcn/ui dialog z-index values - target Tailwind classes directly */
+.fixed.inset-0.z-\[70\] {
+  z-index: 230 !important;
+}
+
+.fixed.z-\[80\] {
+  z-index: 240 !important;
+}
+
+/* Additional specificity for dialog overlays and content */
+[data-radix-collection-item],
+.fixed.inset-0[data-state="open"],
+.fixed[data-state="open"].z-\[80\] {
+  z-index: 240 !important;
+}
+
 /* Responsive sidebar auto-collapse - force collapse on narrow screens only when collapsed */
 @media (max-width: 1023px) {
   [data-auto-collapse]:not([data-manually-opened]) {
