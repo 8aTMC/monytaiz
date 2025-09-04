@@ -42,6 +42,25 @@ const CustomChart: React.FC<ChartProps> = ({ data, showSent, showPurchased, maxV
   const innerWidth = chartWidth - padding.left - padding.right;
   const innerHeight = chartHeight - padding.top - padding.bottom;
 
+  // Tooltip state
+  const [tooltip, setTooltip] = useState<{
+    show: boolean;
+    x: number;
+    y: number;
+    data: {
+      date: string;
+      sent?: number;
+      purchased?: number;
+      revenue?: number;
+      type: 'sent' | 'purchased';
+    };
+  }>({
+    show: false,
+    x: 0,
+    y: 0,
+    data: { date: '', type: 'sent' }
+  });
+
   if (!data || data.length === 0) {
     return (
       <div 
@@ -130,18 +149,42 @@ const CustomChart: React.FC<ChartProps> = ({ data, showSent, showPurchased, maxV
                 className="drop-shadow-sm"
               />
               {/* Sent data points */}
-              {sentValues.map((value, index) => (
-                <circle
-                  key={`sent-${index}`}
-                  cx={(index / (sentValues.length - 1)) * innerWidth}
-                  cy={innerHeight - ((value / maxValue) * innerHeight)}
-                  r="4"
-                  fill="#3b82f6"
-                  stroke="white"
-                  strokeWidth="2"
-                  className="drop-shadow-sm hover:r-6 transition-all cursor-pointer"
-                />
-              ))}
+              {sentValues.map((value, index) => {
+                const cx = (index / (sentValues.length - 1)) * innerWidth;
+                const cy = innerHeight - ((value / maxValue) * innerHeight);
+                
+                return (
+                  <circle
+                    key={`sent-${index}`}
+                    cx={cx}
+                    cy={cy}
+                    r="4"
+                    fill="#3b82f6"
+                    stroke="white"
+                    strokeWidth="2"
+                    className="drop-shadow-sm hover:r-6 transition-all cursor-pointer"
+                    onMouseEnter={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const containerRect = e.currentTarget.closest('svg')?.getBoundingClientRect();
+                      if (containerRect) {
+                        setTooltip({
+                          show: true,
+                          x: rect.left - containerRect.left + rect.width / 2,
+                          y: rect.top - containerRect.top - 10,
+                          data: {
+                            date: data[index]?.date || '',
+                            sent: value,
+                            purchased: data[index]?.purchased,
+                            revenue: data[index]?.revenue,
+                            type: 'sent'
+                          }
+                        });
+                      }
+                    }}
+                    onMouseLeave={() => setTooltip(prev => ({ ...prev, show: false }))}
+                  />
+                );
+              })}
             </>
           )}
           
@@ -157,18 +200,42 @@ const CustomChart: React.FC<ChartProps> = ({ data, showSent, showPurchased, maxV
                 className="drop-shadow-sm"
               />
               {/* Purchased data points */}
-              {purchasedValues.map((value, index) => (
-                <circle
-                  key={`purchased-${index}`}
-                  cx={(index / (purchasedValues.length - 1)) * innerWidth}
-                  cy={innerHeight - ((value / maxValue) * innerHeight)}
-                  r="4"
-                  fill="#10b981"
-                  stroke="white"
-                  strokeWidth="2"
-                  className="drop-shadow-sm hover:r-6 transition-all cursor-pointer"
-                />
-              ))}
+              {purchasedValues.map((value, index) => {
+                const cx = (index / (purchasedValues.length - 1)) * innerWidth;
+                const cy = innerHeight - ((value / maxValue) * innerHeight);
+                
+                return (
+                  <circle
+                    key={`purchased-${index}`}
+                    cx={cx}
+                    cy={cy}
+                    r="4"
+                    fill="#10b981"
+                    stroke="white"
+                    strokeWidth="2"
+                    className="drop-shadow-sm hover:r-6 transition-all cursor-pointer"
+                    onMouseEnter={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const containerRect = e.currentTarget.closest('svg')?.getBoundingClientRect();
+                      if (containerRect) {
+                        setTooltip({
+                          show: true,
+                          x: rect.left - containerRect.left + rect.width / 2,
+                          y: rect.top - containerRect.top - 10,
+                          data: {
+                            date: data[index]?.date || '',
+                            sent: data[index]?.sent,
+                            purchased: value,
+                            revenue: data[index]?.revenue,
+                            type: 'purchased'
+                          }
+                        });
+                      }
+                    }}
+                    onMouseLeave={() => setTooltip(prev => ({ ...prev, show: false }))}
+                  />
+                );
+              })}
             </>
           )}
           
@@ -187,6 +254,44 @@ const CustomChart: React.FC<ChartProps> = ({ data, showSent, showPurchased, maxV
           ))}
         </g>
       </svg>
+      
+      {/* Tooltip */}
+      {tooltip.show && (
+        <div
+          className="absolute z-50 bg-gray-900/95 text-white text-xs rounded-lg py-2 px-3 pointer-events-none shadow-lg border border-gray-700 transition-opacity duration-200"
+          style={{
+            left: tooltip.x,
+            top: tooltip.y,
+            transform: 'translate(-50%, -100%)'
+          }}
+        >
+          <div className="space-y-1">
+            <div className="font-semibold border-b border-gray-700 pb-1 mb-1">
+              {tooltip.data.date}
+            </div>
+            {tooltip.data.sent !== undefined && (
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span>Times Sent: {tooltip.data.sent.toLocaleString()}</span>
+              </div>
+            )}
+            {tooltip.data.purchased !== undefined && (
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span>Times Purchased: {tooltip.data.purchased.toLocaleString()}</span>
+              </div>
+            )}
+            {tooltip.data.revenue !== undefined && tooltip.data.revenue > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                <span>Revenue: {formatRevenue(tooltip.data.revenue)}</span>
+              </div>
+            )}
+          </div>
+          {/* Tooltip arrow */}
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900/95"></div>
+        </div>
+      )}
     </div>
   );
 };
