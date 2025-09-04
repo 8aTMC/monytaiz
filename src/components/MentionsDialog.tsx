@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,6 @@ interface MentionsDialogProps {
 }
 
 export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange }: MentionsDialogProps) {
-  const [newMention, setNewMention] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCollaboratorDialog, setShowCollaboratorDialog] = useState(false);
   const { collaborators, loading, createCollaborator, getRecentCollaborators, searchCollaborators } = useCollaborators();
@@ -26,21 +25,6 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
   const filteredCollaborators = searchQuery.trim() 
     ? searchCollaborators(searchQuery)
     : getRecentCollaborators(5);
-
-  const handleAddMention = () => {
-    if (!newMention.trim()) return;
-    
-    let mentionToAdd = newMention.trim();
-    // Add @ prefix if not present
-    if (!mentionToAdd.startsWith('@')) {
-      mentionToAdd = '@' + mentionToAdd;
-    }
-    
-    if (!mentions.includes(mentionToAdd)) {
-      onMentionsChange([...mentions, mentionToAdd]);
-    }
-    setNewMention('');
-  };
 
   const handleCollaboratorClick = (collaborator: any) => {
     const mentionToAdd = `@${collaborator.name}`;
@@ -63,13 +47,6 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
 
   const handleRemoveMention = (mentionToRemove: string) => {
     onMentionsChange(mentions.filter(mention => mention !== mentionToRemove));
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleAddMention();
-    }
   };
 
   return (
@@ -138,25 +115,6 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
             </div>
           )}
 
-          {/* Add new mention manually */}
-          <div>
-            <Label className="text-sm font-medium">Add Custom Mention</Label>
-            <div className="flex gap-2 mt-1">
-              <Input
-                placeholder="@username or @description"
-                value={newMention}
-                onChange={(e) => setNewMention(e.target.value)}
-                onKeyPress={handleKeyPress}
-              />
-              <Button onClick={handleAddMention} disabled={!newMention.trim()}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Add custom @ mentions not in your collaborators list
-            </p>
-          </div>
-
           {/* Current mentions */}
           {mentions.length > 0 && (
             <div className="space-y-2">
@@ -189,7 +147,7 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
             <div className="text-center py-8 text-muted-foreground">
               <AtSign className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p>No mentions added yet</p>
-              <p className="text-sm">Add collaborators or custom mentions to tag people</p>
+              <p className="text-sm">Add collaborators to tag people in your content</p>
               <Button
                 variant="outline"
                 onClick={() => setShowCollaboratorDialog(true)}
