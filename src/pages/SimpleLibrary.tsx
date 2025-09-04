@@ -5,11 +5,13 @@ import { SimpleMediaPreviewAsync } from '@/components/SimpleMediaPreviewAsync';
 import { LibrarySidebar } from '@/components/LibrarySidebar';
 import { LibraryGrid } from '@/components/LibraryGrid';
 import { LibrarySelectionToolbar } from '@/components/LibrarySelectionToolbar';
+import { LibraryFiltersDialog } from '@/components/LibraryFiltersDialog';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Database, MessageSquare, Zap, FileImage, Search, Folder } from 'lucide-react';
+import { Database, MessageSquare, Zap, FileImage, Search, Folder, Filter } from 'lucide-react';
+import { LibraryFilterState } from '@/types/library-filters';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMediaOperations } from '@/hooks/useMediaOperations';
@@ -30,6 +32,17 @@ export default function SimpleLibrary() {
   const [selectedFilter, setSelectedFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
+  
+  // Advanced filters state
+  const [advancedFilters, setAdvancedFilters] = useState<LibraryFilterState>(() => {
+    const saved = localStorage.getItem(`library-filters-${selectedCategory}`);
+    return saved ? JSON.parse(saved) : {
+      collaborators: [],
+      tags: [],
+      priceRange: [0, 1000000] // $0 to $10,000 in cents
+    };
+  });
+  const [filtersDialogOpen, setFiltersDialogOpen] = useState(false);
   
   // Folders state
   const [customFolders, setCustomFolders] = useState<any[]>([]);
@@ -251,6 +264,20 @@ export default function SimpleLibrary() {
     }
   }, []);
 
+  // Advanced filter handlers
+  const handleFiltersChange = useCallback((newFilters: LibraryFilterState) => {
+    setAdvancedFilters(newFilters);
+    // Save filters per category
+    localStorage.setItem(`library-filters-${selectedCategory}`, JSON.stringify(newFilters));
+  }, [selectedCategory]);
+
+  const hasActiveFilters = useMemo(() => {
+    return advancedFilters.collaborators.length > 0 || 
+           advancedFilters.tags.length > 0 || 
+           advancedFilters.priceRange[0] > 0 || 
+           advancedFilters.priceRange[1] < 1000000;
+  }, [advancedFilters]);
+
   // Filter media based on current filters - optimized dependencies
   const filteredMedia = useMemo(() => {
     if (!convertedMedia?.length) {
@@ -298,6 +325,41 @@ export default function SimpleLibrary() {
         }
       });
     }
+
+    // Apply advanced filters
+    if (hasActiveFilters) {
+      // Filter by collaborators (check mentions array)
+      if (advancedFilters.collaborators.length > 0) {
+        filtered = filtered.filter(item => {
+          // Get mentions from original media item
+          const originalItem = media.find(m => m.id === item.id);
+          const mentions = originalItem?.mentions || [];
+          return advancedFilters.collaborators.some(collabId => 
+            mentions.includes(collabId)
+          );
+        });
+      }
+
+      // Filter by tags
+      if (advancedFilters.tags.length > 0) {
+        filtered = filtered.filter(item => {
+          const itemTags = item.tags || [];
+          return advancedFilters.tags.some(filterTag => 
+            itemTags.includes(filterTag)
+          );
+        });
+      }
+
+      // Filter by price range
+      if (advancedFilters.priceRange[0] > 0 || advancedFilters.priceRange[1] < 1000000) {
+        filtered = filtered.filter(item => {
+          // Get suggested price from original media item
+          const originalItem = media.find(m => m.id === item.id);
+          const price = originalItem?.suggested_price_cents || 0;
+          return price >= advancedFilters.priceRange[0] && price <= advancedFilters.priceRange[1];
+        });
+      }
+    }
     
     // Apply sorting
     const sorted = [...filtered].sort((a, b) => {
@@ -314,7 +376,7 @@ export default function SimpleLibrary() {
     });
     
     return sorted;
-  }, [convertedMedia, searchQuery, selectedFilter, sortBy, selectedCategory, customFolders, folderContent]);
+  }, [convertedMedia, searchQuery, selectedFilter, sortBy, selectedCategory, customFolders, folderContent, advancedFilters, hasActiveFilters, media]);
 
   // Default categories for sidebar - stable
   const defaultCategories = useMemo(() => [
@@ -469,6 +531,18 @@ export default function SimpleLibrary() {
     // Clear folder content first to avoid showing wrong content
     setFolderContent([]);
     
+    // Load category-specific filters
+    const saved = localStorage.getItem(`library-filters-${categoryId}`);
+    if (saved) {
+      setAdvancedFilters(JSON.parse(saved));
+    } else {
+      setAdvancedFilters({
+        collaborators: [],
+        tags: [],
+        priceRange: [0, 1000000]
+      });
+    }
+    
     // If selecting a custom folder, fetch its content
     const isCustomFolder = customFolders.some(folder => folder.id === categoryId);
     if (isCustomFolder) {
@@ -612,6 +686,22 @@ export default function SimpleLibrary() {
             {/* Filter Tabs and Controls */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
+                {/* Advanced Filters Button */}
+                <Button
+                  variant={hasActiveFilters ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFiltersDialogOpen(true)}
+                  className="shrink-0"
+                >
+                  <Filter className="h-4 w-4 mr-1" />
+                  Filters
+                  {hasActiveFilters && (
+                    <span className="ml-1 px-1.5 py-0.5 text-xs bg-background/20 rounded">
+                      {advancedFilters.collaborators.length + advancedFilters.tags.length + (advancedFilters.priceRange[0] > 0 || advancedFilters.priceRange[1] < 1000000 ? 1 : 0)}
+                    </span>
+                  )}
+                </Button>
+
                 {/* Media Type Filter Tabs */}
                 <div className="flex bg-muted rounded-lg p-1">
                   {['All', 'Photo', 'Video', 'Audio'].map((filter) => (
@@ -739,6 +829,14 @@ export default function SimpleLibrary() {
           onToggleSelection={handleToggleItem}
         />
       )}
+
+      {/* Advanced Filters Dialog */}
+      <LibraryFiltersDialog
+        open={filtersDialogOpen}
+        onOpenChange={setFiltersDialogOpen}
+        filters={advancedFilters}
+        onFiltersChange={handleFiltersChange}
+      />
     </>
   );
 }
