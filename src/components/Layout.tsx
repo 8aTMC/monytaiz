@@ -35,7 +35,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {/* Main content area: only this scrolls */}
       <main
         ref={mainRef}
-        className="fixed overflow-auto z-10"
+        className="layout-main fixed overflow-auto z-10 scrollbar-thick"
         style={{ 
           inset: '0 0 0 var(--sidebar-w)'  // top right bottom left
         }}

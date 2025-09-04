@@ -161,64 +161,223 @@ All colors MUST be HSL.
   }
 }
 
-/* Custom scrollbars for webkit browsers */
-body::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* ============= COMPREHENSIVE CUSTOM SCROLLBAR SYSTEM ============= */
+
+/* Scrollbar Design Variables */
+@layer base {
+  :root {
+    /* Scrollbar dimensions */
+    --scrollbar-width: 12px;
+    --scrollbar-width-thin: 8px;
+    --scrollbar-width-thick: 16px;
+    
+    /* Scrollbar colors */
+    --scrollbar-track: hsl(var(--muted) / 0.2);
+    --scrollbar-thumb: linear-gradient(45deg, hsl(var(--primary) / 0.3), hsl(var(--accent) / 0.2));
+    --scrollbar-thumb-hover: linear-gradient(45deg, hsl(var(--primary) / 0.5), hsl(var(--accent) / 0.3));
+    --scrollbar-thumb-active: linear-gradient(45deg, hsl(var(--primary) / 0.7), hsl(var(--accent) / 0.4));
+    
+    /* Scrollbar borders */
+    --scrollbar-border: 2px;
+    --scrollbar-border-radius: 8px;
+  }
+
+  .dark {
+    --scrollbar-track: hsl(var(--muted) / 0.1);
+    --scrollbar-thumb: linear-gradient(45deg, hsl(var(--primary) / 0.4), hsl(var(--accent) / 0.25));
+    --scrollbar-thumb-hover: linear-gradient(45deg, hsl(var(--primary) / 0.6), hsl(var(--accent) / 0.35));
+    --scrollbar-thumb-active: linear-gradient(45deg, hsl(var(--primary) / 0.8), hsl(var(--accent) / 0.45));
+  }
 }
 
-body::-webkit-scrollbar-track {
-  background: hsl(var(--background));
+/* ============= GLOBAL SCROLLBARS (WEBKIT) ============= */
+
+/* Default scrollbar for all elements */
+*::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
 }
 
-body::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.3);
-  border-radius: 4px;
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: var(--scrollbar-border-radius);
+  margin: var(--scrollbar-border);
 }
 
-body::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5);
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--scrollbar-border-radius);
+  border: var(--scrollbar-border) solid transparent;
+  background-clip: padding-box;
+  transition: var(--transition-smooth);
+  box-shadow: 0 2px 8px hsl(var(--primary) / 0.1);
 }
 
-/* Hide scrollbars for specific components */
-.scrollarea-viewport::-webkit-scrollbar {
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  box-shadow: 0 4px 16px hsl(var(--primary) / 0.2), 0 0 20px hsl(var(--primary) / 0.1);
+  transform: scale(1.05);
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active);
+  box-shadow: 0 6px 24px hsl(var(--primary) / 0.3), 0 0 30px hsl(var(--primary) / 0.15);
+  transform: scale(1.1);
+}
+
+*::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track);
+}
+
+/* ============= GLOBAL SCROLLBARS (FIREFOX) ============= */
+* {
+  scrollbar-width: auto;
+  scrollbar-color: hsl(var(--primary) / 0.4) var(--scrollbar-track);
+}
+
+/* ============= SCROLLBAR VARIANTS ============= */
+
+/* Thin scrollbars */
+.scrollbar-thin,
+.scrollbar-thin *::-webkit-scrollbar {
+  width: var(--scrollbar-width-thin);
+  height: var(--scrollbar-width-thin);
+}
+
+.scrollbar-thin * {
+  scrollbar-width: thin;
+}
+
+/* Thick scrollbars for main content areas */
+.scrollbar-thick,
+.scrollbar-thick *::-webkit-scrollbar {
+  width: var(--scrollbar-width-thick);
+  height: var(--scrollbar-width-thick);
+}
+
+/* Hidden scrollbars */
+.scrollbar-hidden,
+.scrollbar-hidden *::-webkit-scrollbar {
   display: none;
+  width: 0;
+  height: 0;
 }
 
-.scrollarea-viewport {
+.scrollbar-hidden * {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
-/* Hide scrollbars for chat messages only */
-div[aria-label="Chat messages"]::-webkit-scrollbar {
+/* Accent scrollbars with gold theme */
+.scrollbar-accent *::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, hsl(var(--gold) / 0.6), hsl(var(--primary) / 0.3));
+}
+
+.scrollbar-accent *::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(45deg, hsl(var(--gold) / 0.8), hsl(var(--primary) / 0.4));
+  box-shadow: 0 4px 16px hsl(var(--gold) / 0.3), 0 0 20px hsl(var(--gold) / 0.15);
+}
+
+.scrollbar-accent * {
+  scrollbar-color: hsl(var(--gold) / 0.6) var(--scrollbar-track);
+}
+
+/* Invisible scrollbars for specific components */
+.scrollarea-viewport,
+.scrollarea-viewport * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollarea-viewport::-webkit-scrollbar,
+.scrollarea-viewport *::-webkit-scrollbar {
   display: none;
 }
 
-/* Custom scrollbar styles */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
+/* Chat messages - hidden scrollbars */
+div[aria-label="Chat messages"],
+div[aria-label="Chat messages"] * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: hsl(var(--muted));
-  border-radius: 4px;
+div[aria-label="Chat messages"]::-webkit-scrollbar,
+div[aria-label="Chat messages"] *::-webkit-scrollbar {
+  display: none;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.3);
-  border-radius: 4px;
-  transition: background-color 0.2s;
+/* Main layout content - enhanced scrollbars */
+main.layout-main,
+main.layout-main * {
+  scrollbar-width: auto;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5);
+main.layout-main::-webkit-scrollbar,
+main.layout-main *::-webkit-scrollbar {
+  width: var(--scrollbar-width-thick);
+  height: var(--scrollbar-width);
 }
 
-/* Firefox scrollbar */
-.custom-scrollbar {
+main.layout-main::-webkit-scrollbar-thumb,
+main.layout-main *::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, hsl(var(--primary) / 0.4), hsl(var(--primary-glow) / 0.3));
+  border-radius: 10px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+main.layout-main::-webkit-scrollbar-thumb:hover,
+main.layout-main *::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(45deg, hsl(var(--primary) / 0.6), hsl(var(--primary-glow) / 0.4));
+  box-shadow: 0 4px 20px hsl(var(--primary) / 0.25), 0 0 25px hsl(var(--primary-glow) / 0.2);
+}
+
+/* Dialog and popover scrollbars - thin and elegant */
+.dialog-content,
+.popover-content,
+[data-radix-dialog-content],
+[data-radix-popover-content] {
   scrollbar-width: thin;
-  scrollbar-color: hsl(var(--muted-foreground) / 0.3) hsl(var(--muted));
+}
+
+.dialog-content *::-webkit-scrollbar,
+.popover-content *::-webkit-scrollbar,
+[data-radix-dialog-content] *::-webkit-scrollbar,
+[data-radix-popover-content] *::-webkit-scrollbar {
+  width: var(--scrollbar-width-thin);
+  height: var(--scrollbar-width-thin);
+}
+
+/* ============= RESPONSIVE SCROLLBAR ADJUSTMENTS ============= */
+
+/* Mobile - thinner scrollbars */
+@media (max-width: 768px) {
+  *::-webkit-scrollbar {
+    width: var(--scrollbar-width-thin);
+    height: var(--scrollbar-width-thin);
+  }
+  
+  main.layout-main::-webkit-scrollbar,
+  main.layout-main *::-webkit-scrollbar {
+    width: var(--scrollbar-width);
+    height: var(--scrollbar-width-thin);
+  }
+}
+
+/* Reduced motion - disable scrollbar animations */
+@media (prefers-reduced-motion: reduce) {
+  *::-webkit-scrollbar-thumb {
+    transition: none;
+    transform: none !important;
+  }
+  
+  *::-webkit-scrollbar-thumb:hover {
+    transform: none !important;
+  }
+  
+  *::-webkit-scrollbar-thumb:active {
+    transform: none !important;
+  }
 }
 
 /* Organized Z-Index System - increments of 10 */
