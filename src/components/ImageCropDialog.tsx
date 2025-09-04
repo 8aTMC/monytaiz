@@ -42,6 +42,16 @@ export function ImageCropDialog({ open, onOpenChange, imageSrc, onCropComplete }
       y: (height - Math.min(width, height)) / 2,
     };
     setCrop(crop);
+    
+    // Set completedCrop to enable the Apply Crop button immediately
+    const completedCrop: PixelCrop = {
+      unit: 'px',
+      width: Math.min(width, height),
+      height: Math.min(width, height),
+      x: (width - Math.min(width, height)) / 2,
+      y: (height - Math.min(width, height)) / 2,
+    };
+    setCompletedCrop(completedCrop);
   };
 
   const getCroppedImg = async (image: HTMLImageElement, crop: PixelCrop): Promise<Blob> => {
