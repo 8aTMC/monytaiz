@@ -14,6 +14,7 @@ import { FileReviewRow } from '@/components/FileReviewRow';
 import { SelectionHeader } from '@/components/SelectionHeader';
 import { BatchMetadataToolbar } from '@/components/BatchMetadataToolbar';
 import { useToast } from '@/hooks/use-toast';
+import { SelectedFilesProvider } from '@/contexts/SelectedFilesContext';
 
 export default function SimpleUpload() {
   const navigate = useNavigate();
@@ -224,8 +225,9 @@ export default function SimpleUpload() {
   const hasCompletedFiles = completedFiles > 0;
 
   return (
-    <Layout>
-      <div className="container mx-auto px-4 py-6">
+    <SelectedFilesProvider>
+      <Layout>
+        <div className="container mx-auto px-4 py-6">
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div>
@@ -324,13 +326,19 @@ export default function SimpleUpload() {
             )}
             
             <div className="space-y-3">
-              {files.map((file) => (
+              {files.map((file, index) => (
                 <FileReviewRow
                   key={file.id}
                   file={file}
+                  files={files}
+                  currentIndex={index}
                   onRemove={removeFile}
                   onMetadataChange={handleMetadataChange}
                   onSelectionChange={toggleFileSelection}
+                  onNavigateToFile={(targetIndex) => {
+                    // Navigation is handled by the individual FileReviewRow
+                    console.log('Navigate to file index:', targetIndex);
+                  }}
                   formatFileSize={formatFileSize}
                 />
               ))}
@@ -414,5 +422,6 @@ export default function SimpleUpload() {
 
       </div>
     </Layout>
+    </SelectedFilesProvider>
   );
 }

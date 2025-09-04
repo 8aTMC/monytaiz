@@ -44,9 +44,9 @@ export const FilePreviewDialog = ({
   file,
   open,
   onOpenChange,
-  files,
-  totalFiles,
-  currentIndex,
+  files = [],
+  totalFiles = 0,
+  currentIndex = 0,
   onPrevious,
   onNext,
   mentions = [],
@@ -62,8 +62,12 @@ export const FilePreviewDialog = ({
   onPriceChange,
   onTitleChange
 }: FilePreviewDialogProps) => {
-  // Early return BEFORE any hooks are declared
+  // Runtime guards - early return BEFORE any hooks
   if (!open || !file) return null;
+  
+  // Validate files array to prevent undefined navigation
+  const safeFiles = Array.isArray(files) ? files : [];
+  const safeCurrentIndex = typeof currentIndex === 'number' ? Math.max(0, Math.min(currentIndex, safeFiles.length - 1)) : 0;
 
   const [fileUrl, setFileUrl] = useState<string>('');
   const [videoDuration, setVideoDuration] = useState<number>(0);
@@ -73,9 +77,11 @@ export const FilePreviewDialog = ({
   const [videoQualityInfo, setVideoQualityInfo] = useState<VideoQualityInfo | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Determine if we should show navigation
-  const shouldShowNavigation = (files && files.length > 1) || (totalFiles && totalFiles > 1);
-  const fileCount = files?.length || totalFiles || 0;
+  // Derive navigation state from validated props
+  const fileCount = safeFiles.length || totalFiles || 0;
+  const shouldShowNavigation = fileCount > 1;
+  const hasNext = safeCurrentIndex < fileCount - 1;
+  const hasPrevious = safeCurrentIndex > 0;
 
   // Dialog states
   const [mentionsDialogOpen, setMentionsDialogOpen] = useState(false);
@@ -85,16 +91,20 @@ export const FilePreviewDialog = ({
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
   const [editTitleDialogOpen, setEditTitleDialogOpen] = useState(false);
 
-  // Debug navigation values
-  console.log('FilePreviewDialog Navigation Debug:', {
-    files: files?.length,
-    totalFiles,
-    currentIndex,
-    shouldShowNavigation,
-    fileCount,
-    hasPrevious: onPrevious,
-    hasNext: onNext
-  });
+  // Debug navigation values - only log when dialog opens
+  useEffect(() => {
+    if (open) {
+      console.log('FilePreviewDialog Navigation Debug:', {
+        fileCount,
+        currentIndex: safeCurrentIndex,
+        hasNext,
+        hasPrevious,
+        shouldShowNavigation,
+        filesLength: safeFiles.length,
+        totalFiles
+      });
+    }
+  }, [open, fileCount, safeCurrentIndex, hasNext, hasPrevious, shouldShowNavigation, safeFiles.length, totalFiles]);
 
   useEffect(() => {
     if (file) {
@@ -206,6 +216,16 @@ export const FilePreviewDialog = ({
     }
   `;
 
+  // Client-only rendering to prevent hydration mismatches
+  const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+  
+  // Don't render on server or before hydration
+  if (!isMounted) return null;
+
   return (
     <>
       <style>{overlayStyles}</style>
@@ -233,13 +253,14 @@ export const FilePreviewDialog = ({
             {/* Navigation buttons */}
             {shouldShowNavigation && (
               <>
-                {/* Left navigation button - BRIGHT AND VISIBLE */}
+                {/* Left navigation button */}
                 <Button
                   variant="secondary"
                   size="icon" 
                   className="absolute left-4 top-1/2 transform -translate-y-1/2 z-50 shadow-lg"
-                  disabled={currentIndex == null || currentIndex <= 0}
+                  disabled={!hasPrevious || !onPrevious}
                   onClick={onPrevious}
+                  aria-label="Previous file"
                 >
                   <ChevronLeft className="h-6 w-6" />
                 </Button>
@@ -249,8 +270,9 @@ export const FilePreviewDialog = ({
                   variant="secondary"
                   size="icon"
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 z-50 shadow-lg"
-                  disabled={currentIndex == null || currentIndex >= fileCount - 1}
+                  disabled={!hasNext || !onNext}
                   onClick={onNext}
+                  aria-label="Next file"
                 >
                   <ChevronRight className="h-6 w-6" />
                 </Button>
@@ -275,9 +297,9 @@ export const FilePreviewDialog = ({
                     </Button>
                   )}
                   {/* File counter */}
-                  {shouldShowNavigation && currentIndex !== undefined && (
+                  {shouldShowNavigation && (
                     <span className="text-sm text-muted-foreground ml-2">
-                      {currentIndex + 1} of {fileCount}
+                      {safeCurrentIndex + 1} of {fileCount}
                     </span>
                   )}
                 </div>
