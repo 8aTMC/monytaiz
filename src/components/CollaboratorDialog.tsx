@@ -117,7 +117,7 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
       const filePath = `collaborators/${fileName}`;
 
       const { data, error } = await supabase.storage
-        .from('content')
+        .from('avatars')
         .upload(filePath, croppedImageBlob, {
           contentType: 'image/webp',
           upsert: false
@@ -126,7 +126,7 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
       if (error) throw error;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('content')
+        .from('avatars')
         .getPublicUrl(data.path);
 
       setProfileImageUrl(publicUrl);
