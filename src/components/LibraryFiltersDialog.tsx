@@ -55,27 +55,97 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
   const [localFilters, setLocalFilters] = useState<FilterState>(filters);
   const [manualPriceMin, setManualPriceMin] = useState('');
   const [manualPriceMax, setManualPriceMax] = useState('');
+  const [showingRecentOnly, setShowingRecentOnly] = useState(true);
 
   // Load available collaborators and tags
   useEffect(() => {
-    const loadOptions = async () => {
-      setLoading(true);
+    const loadRecentCollaborators = async () => {
       try {
-        // Load collaborators
-        const { data: collaborators } = await supabase
-          .from('collaborators')
-          .select('id, name, description')
-          .eq('creator_id', (await supabase.auth.getUser()).data.user?.id);
+        // First, get all media with mentions
+        const { data: mediaWithMentions } = await supabase
+          .from('simple_media')
+          .select('mentions, created_at')
+          .not('mentions', 'is', null)
+          .order('created_at', { ascending: false });
 
-        if (collaborators) {
+        // Also check the media table
+        const { data: mediaWithTags } = await supabase
+          .from('media')
+          .select('tags, created_at')
+          .not('tags', 'is', null)
+          .order('created_at', { ascending: false });
+
+        // Extract unique collaborator names from mentions/tags
+        const recentCollaboratorNames = new Set<string>();
+        
+        // Process simple_media mentions
+        mediaWithMentions?.forEach(item => {
+          item.mentions?.forEach((mention: string) => {
+            recentCollaboratorNames.add(mention.toLowerCase());
+          });
+        });
+
+        // Process media tags (if they contain collaborator info)
+        mediaWithTags?.forEach(item => {
+          item.tags?.forEach((tag: string) => {
+            if (tag.startsWith('@')) { // Assuming @ prefix for collaborator tags
+              recentCollaboratorNames.add(tag.substring(1).toLowerCase());
+            }
+          });
+        });
+
+        // Now get collaborator details for these names
+        const { data: allCollaborators } = await supabase
+          .from('collaborators')
+          .select('id, name, description');
+
+        if (allCollaborators) {
+          // Filter to only recently tagged collaborators, prioritize by recent usage
+          const recentCollaborators = allCollaborators.filter(c => 
+            recentCollaboratorNames.has(c.name.toLowerCase())
+          );
+
+          // Add remaining collaborators as fallback if showing all
+          const remainingCollaborators = allCollaborators.filter(c => 
+            !recentCollaboratorNames.has(c.name.toLowerCase())
+          );
+
+          const sortedCollaborators = showingRecentOnly 
+            ? recentCollaborators 
+            : [...recentCollaborators, ...remainingCollaborators];
+
           setCollaboratorOptions(
-            collaborators.map(c => ({
+            sortedCollaborators.map(c => ({
+              value: c.id,
+              label: c.name,
+              description: c.description || (recentCollaboratorNames.has(c.name.toLowerCase()) ? 'Recently tagged' : undefined)
+            }))
+          );
+        }
+      } catch (error) {
+        console.error('Error loading recent collaborators:', error);
+        // Fallback to all collaborators
+        const { data: fallbackCollaborators } = await supabase
+          .from('collaborators')
+          .select('id, name, description');
+        
+        if (fallbackCollaborators) {
+          setCollaboratorOptions(
+            fallbackCollaborators.map(c => ({
               value: c.id,
               label: c.name,
               description: c.description || undefined
             }))
           );
         }
+      }
+    };
+
+    const loadOptions = async () => {
+      setLoading(true);
+      try {
+        // Load collaborators based on recent vs all setting
+        await loadRecentCollaborators();
 
         // Load saved tags
         const { data: tags } = await supabase
@@ -111,7 +181,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
     if (open) {
       loadOptions();
     }
-  }, [open]);
+  }, [open, showingRecentOnly]);
 
   // Update local state when external filters change
   useEffect(() => {
@@ -238,15 +308,35 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
 
           {/* Collaborators Filter */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium">Filter by Collaborators</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Filter by Collaborators</Label>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowingRecentOnly(!showingRecentOnly)}
+                className="text-xs"
+              >
+                {showingRecentOnly ? "Show All" : "Show Recent Only"}
+              </Button>
+            </div>
             <MultiSelect
               options={collaboratorOptions}
               value={localFilters.collaborators}
               onChange={handleCollaboratorChange}
               placeholder="Select collaborators..."
-              emptyMessage="No collaborators found."
+              emptyMessage={showingRecentOnly ? "No recently tagged collaborators found." : "No collaborators found."}
               loading={loading}
+              maxSelections={5}
+              searchPlaceholder="Search collaborators..."
             />
+            {collaboratorOptions.length === 0 && !loading && (
+              <p className="text-xs text-muted-foreground">
+                {showingRecentOnly 
+                  ? "No recently tagged collaborators found. Try 'Show All' or add collaborators to your media first."
+                  : "No collaborators found. Try adding collaborators to your media first."
+                }
+              </p>
+            )}
           </div>
 
           {/* Tags Filter */}

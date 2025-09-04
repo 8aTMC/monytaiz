@@ -192,31 +192,50 @@ export const useLibraryData = ({
 
       // Apply advanced filters
       if (filters && combinedData.length > 0) {
-        // Filter by collaborators
-        if (filters.collaborators.length > 0) {
-          try {
-            // Get collaborator names from IDs
-            const { data: collaboratorData, error: collaboratorError } = await supabase
-              .from('collaborators')
-              .select('id, name')
-              .in('id', filters.collaborators);
-            
-            if (collaboratorError) {
-              console.warn('Error fetching collaborators for filtering:', collaboratorError);
-            } else if (collaboratorData && collaboratorData.length > 0) {
-              const collaboratorNames = collaboratorData.map(c => c.name.toLowerCase());
-              
-              combinedData = combinedData.filter(item => {
-                // Check if any collaborator name appears in title or notes
-                const searchText = `${item.title || ''} ${item.notes || ''}`.toLowerCase();
-                return collaboratorNames.some(name => searchText.includes(name));
-              });
-            }
-          } catch (error) {
-            console.warn('Error applying collaborator filter:', error);
-            // Continue without collaborator filtering if there's an error
-          }
-        }
+         // Filter by collaborators
+         if (filters.collaborators.length > 0) {
+           try {
+             // Get collaborator names from IDs
+             const { data: collaboratorData, error: collaboratorError } = await supabase
+               .from('collaborators')
+               .select('id, name')
+               .in('id', filters.collaborators);
+             
+             if (collaboratorError) {
+               console.warn('Error fetching collaborators for filtering:', collaboratorError);
+             } else if (collaboratorData && collaboratorData.length > 0) {
+               const collaboratorNames = collaboratorData.map(c => c.name.toLowerCase());
+               
+               combinedData = combinedData.filter(item => {
+                 // Check mentions array (for simple_media)
+                 if ('mentions' in item && item.mentions) {
+                   const mentionMatch = item.mentions.some((mention: string) => 
+                     collaboratorNames.some(name => mention.toLowerCase().includes(name))
+                   );
+                   if (mentionMatch) return true;
+                 }
+                 
+                 // Check tags array for collaborator references
+                 if (item.tags) {
+                   const tagMatch = item.tags.some((tag: string) => 
+                     collaboratorNames.some(name => 
+                       tag.toLowerCase().includes(name) || 
+                       (tag.startsWith('@') && tag.substring(1).toLowerCase().includes(name))
+                     )
+                   );
+                   if (tagMatch) return true;
+                 }
+                 
+                 // Check title, description, and notes as fallback
+                 const searchText = `${item.title || ''} ${item.description || ''} ${item.notes || ''}`.toLowerCase();
+                 return collaboratorNames.some(name => searchText.includes(name));
+               });
+             }
+           } catch (error) {
+             console.warn('Error applying collaborator filter:', error);
+             // Continue without collaborator filtering if there's an error
+           }
+         }
 
         // Filter by tags
         if (filters.tags.length > 0) {

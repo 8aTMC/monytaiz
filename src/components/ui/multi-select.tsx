@@ -32,6 +32,8 @@ interface MultiSelectProps {
   disabled?: boolean
   loading?: boolean
   className?: string
+  maxSelections?: number
+  searchPlaceholder?: string
 }
 
 export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>(({
@@ -44,6 +46,8 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
   disabled = false,
   loading = false,
   className,
+  maxSelections = Infinity,
+  searchPlaceholder = "Search options...",
   ...props
 }, ref) => {
   const [open, setOpen] = React.useState(false)
@@ -52,6 +56,10 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
     if (value.includes(optionValue)) {
       onChange(value.filter((item) => item !== optionValue))
     } else {
+      // Check max selections limit
+      if (value.length >= maxSelections) {
+        return // Don't allow more selections
+      }
       onChange([...value, optionValue])
     }
   }
@@ -65,6 +73,7 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
   const selectedOptions = options.filter((option) => value.includes(option.value))
   const displayedOptions = selectedOptions.slice(0, maxDisplayed)
   const remainingCount = selectedOptions.length - maxDisplayed
+  const isAtMaxLimit = value.length >= maxSelections
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -115,30 +124,44 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
       </PopoverTrigger>
       <PopoverContent className="w-full min-w-[var(--radix-popover-trigger-width)] p-0 bg-card/95 backdrop-blur-md border-border/50">
         <Command>
-          <CommandInput placeholder="Search options..." />
+          <CommandInput placeholder={searchPlaceholder} />
           <CommandEmpty>{loading ? "Loading..." : emptyMessage}</CommandEmpty>
+          {isAtMaxLimit && maxSelections !== Infinity && (
+            <div className="px-2 py-1 text-xs text-muted-foreground border-b">
+              Maximum {maxSelections} selections allowed
+            </div>
+          )}
           <CommandGroup className="max-h-64 overflow-auto">
-            {options.map((option) => (
-              <CommandItem
-                key={option.value}
-                value={option.value}
-                onSelect={() => handleSelect(option.value)}
-                className="cursor-pointer"
-              >
-                <Check
+            {options.map((option) => {
+              const isSelected = value.includes(option.value);
+              const isDisabled = !isSelected && isAtMaxLimit;
+              
+              return (
+                <CommandItem
+                  key={option.value}
+                  value={option.value}
+                  onSelect={() => handleSelect(option.value)}
                   className={cn(
-                    "mr-2 h-4 w-4",
-                    value.includes(option.value) ? "opacity-100" : "opacity-0"
+                    "cursor-pointer",
+                    isDisabled && "opacity-50 cursor-not-allowed"
                   )}
-                />
-                <div className="flex-1">
-                  <div className="font-medium">{option.label}</div>
-                  {option.description && (
-                    <div className="text-xs text-muted-foreground">{option.description}</div>
-                  )}
-                </div>
-              </CommandItem>
-            ))}
+                  disabled={isDisabled}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      isSelected ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium">{option.label}</div>
+                    {option.description && (
+                      <div className="text-xs text-muted-foreground">{option.description}</div>
+                    )}
+                  </div>
+                </CommandItem>
+              );
+            })}
           </CommandGroup>
         </Command>
       </PopoverContent>
