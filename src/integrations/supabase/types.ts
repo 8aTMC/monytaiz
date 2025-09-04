@@ -1286,6 +1286,7 @@ export type Database = {
           processed_path: string | null
           processing_error: string | null
           processing_status: string | null
+          revenue_generated_cents: number | null
           suggested_price_cents: number | null
           tags: string[] | null
           thumbnail_path: string | null
@@ -1311,6 +1312,7 @@ export type Database = {
           processed_path?: string | null
           processing_error?: string | null
           processing_status?: string | null
+          revenue_generated_cents?: number | null
           suggested_price_cents?: number | null
           tags?: string[] | null
           thumbnail_path?: string | null
@@ -1336,6 +1338,7 @@ export type Database = {
           processed_path?: string | null
           processing_error?: string | null
           processing_status?: string | null
+          revenue_generated_cents?: number | null
           suggested_price_cents?: number | null
           tags?: string[] | null
           thumbnail_path?: string | null
