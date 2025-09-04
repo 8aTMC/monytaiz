@@ -32,9 +32,15 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
     }
   }, [open, fetchCollaborators]);
 
-  const filteredCollaborators = searchQuery.trim() 
+  const allFilteredCollaborators = searchQuery.trim() 
     ? searchCollaborators(searchQuery)
     : getRecentCollaborators(5);
+  
+  // Filter out collaborators that are already mentioned (convert @name back to name for comparison)
+  const mentionedNames = mentions.map(mention => mention.replace('@', ''));
+  const filteredCollaborators = allFilteredCollaborators.filter(collaborator => 
+    !mentionedNames.includes(collaborator.name)
+  );
 
   const handleCollaboratorClick = (collaborator: any) => {
     const mentionToAdd = `@${collaborator.name}`;

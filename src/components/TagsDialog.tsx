@@ -20,9 +20,12 @@ export function TagsDialog({ open, onOpenChange, tags, onTagsChange }: TagsDialo
   const [searchQuery, setSearchQuery] = useState('');
   const { savedTags, loading, createOrUpdateTag, getRecentTags, searchTags, useTags, fetchSavedTags } = useSavedTags();
 
-  const filteredTags = searchQuery.trim() 
+  const allFilteredTags = searchQuery.trim() 
     ? searchTags(searchQuery)
     : getRecentTags(5);
+  
+  // Filter out tags that are already selected in current tags
+  const filteredTags = allFilteredTags.filter(savedTag => !tags.includes(savedTag.tag_name));
 
   // Refresh saved tags when dialog opens
   useEffect(() => {
