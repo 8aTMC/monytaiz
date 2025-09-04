@@ -33,9 +33,10 @@ interface ChartProps {
   showSent: boolean;
   showPurchased: boolean;
   maxValue: number;
+  selectedPeriod: TimePeriod;
 }
 
-const CustomChart: React.FC<ChartProps> = ({ data, showSent, showPurchased, maxValue }) => {
+const CustomChart: React.FC<ChartProps> = ({ data, showSent, showPurchased, maxValue, selectedPeriod }) => {
   const chartHeight = 200;
   const chartWidth = 600;
   const padding = { top: 20, right: 20, bottom: 40, left: 40 };
@@ -95,6 +96,65 @@ const CustomChart: React.FC<ChartProps> = ({ data, showSent, showPurchased, maxV
 
   const sentValues = data.map(d => d.sent);
   const purchasedValues = data.map(d => d.purchased);
+
+  // Format x-axis labels based on selected period
+  const formatXAxisLabel = (dateString: string, index: number, totalPoints: number) => {
+    const date = new Date(dateString);
+    
+    switch (selectedPeriod) {
+      case '1day':
+        // Show hours for daily view
+        return date.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          hour12: true 
+        });
+      
+      case '1week':
+        // Show weekday names
+        return date.toLocaleDateString('en-US', { 
+          weekday: 'short' 
+        });
+      
+      case '1month':
+        // Show day of month
+        return date.getDate().toString();
+      
+      case '3months':
+        // Show month abbreviation for every few points
+        if (totalPoints > 12 && index % Math.ceil(totalPoints / 6) !== 0) return '';
+        return date.toLocaleDateString('en-US', { 
+          month: 'short' 
+        });
+      
+      case '6months':
+        // Show month abbreviation for every few points
+        if (totalPoints > 8 && index % Math.ceil(totalPoints / 4) !== 0) return '';
+        return date.toLocaleDateString('en-US', { 
+          month: 'short' 
+        });
+      
+      case '1year':
+        // Show month abbreviation for every few points
+        if (totalPoints > 12 && index % Math.ceil(totalPoints / 6) !== 0) return '';
+        return date.toLocaleDateString('en-US', { 
+          month: 'short', 
+          year: '2-digit' 
+        });
+      
+      case 'all':
+        // Show year for every few points
+        if (totalPoints > 8 && index % Math.ceil(totalPoints / 4) !== 0) return '';
+        return date.toLocaleDateString('en-US', { 
+          year: 'numeric' 
+        });
+      
+      default:
+        return date.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric' 
+        });
+    }
+  };
 
   return (
     <div className="bg-gradient-to-br from-background to-muted/20 p-4 rounded-lg border shadow-sm">
@@ -240,18 +300,24 @@ const CustomChart: React.FC<ChartProps> = ({ data, showSent, showPurchased, maxV
           )}
           
           {/* X-axis labels */}
-          {data.map((point, index) => (
-            <text
-              key={index}
-              x={(index / (data.length - 1)) * innerWidth}
-              y={innerHeight + 20}
-              fontSize="10"
-              fill="#6b7280"
-              textAnchor="middle"
-            >
-              {point.date}
-            </text>
-          ))}
+          {data.map((point, index) => {
+            const formattedLabel = formatXAxisLabel(point.date, index, data.length);
+            if (!formattedLabel) return null;
+            
+            return (
+              <text
+                key={index}
+                x={(index / (data.length - 1)) * innerWidth}
+                y={innerHeight + 20}
+                fontSize="10"
+                fill="#6b7280"
+                textAnchor="middle"
+                className="select-none"
+              >
+                {formattedLabel}
+              </text>
+            );
+          })}
         </g>
       </svg>
       
@@ -503,6 +569,7 @@ export const RevenueAnalyticsDialog: React.FC<RevenueAnalyticsDialogProps> = ({
                   showSent={showSent} 
                   showPurchased={showPurchased}
                   maxValue={maxValue}
+                  selectedPeriod={selectedPeriod}
                 />
                 {loading && chartData.length === 0 && previousChartData.length > 0 && (
                   <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-lg">
