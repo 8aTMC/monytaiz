@@ -58,14 +58,42 @@ export const FilePreviewDialog = ({
   onPriceChange,
   onTitleChange
 }: FilePreviewDialogProps) => {
-  // Runtime guards - early return BEFORE any hooks
-  if (!open) return null;
+  // ===== ALL STATE HOOKS MUST BE AT THE TOP (React Rules of Hooks) =====
+  
+  // Internal navigation state - manages which file to display
+  const [internalCurrentIndex, setInternalCurrentIndex] = useState(0);
+  
+  // Media state
+  const [fileUrl, setFileUrl] = useState<string>('');
+  const [videoDuration, setVideoDuration] = useState<number>(0);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [isVideoMuted, setIsVideoMuted] = useState(false);
+  const [videoCurrentTime, setVideoCurrentTime] = useState(0);
+  const [videoQualityInfo, setVideoQualityInfo] = useState<VideoQualityInfo | null>(null);
+  
+  // Dialog states
+  const [mentionsDialogOpen, setMentionsDialogOpen] = useState(false);
+  const [tagsDialogOpen, setTagsDialogOpen] = useState(false);
+  const [foldersDialogOpen, setFoldersDialogOpen] = useState(false);
+  const [descriptionDialogOpen, setDescriptionDialogOpen] = useState(false);
+  const [priceDialogOpen, setPriceDialogOpen] = useState(false);
+  const [editTitleDialogOpen, setEditTitleDialogOpen] = useState(false);
+  
+  // Client-side mounting state
+  const [isMounted, setIsMounted] = useState(false);
+  
+  // Refs
+  const videoRef = useRef<HTMLVideoElement>(null);
+  
+  // ===== DERIVED STATE AND COMPUTED VALUES =====
   
   // Validate files array to prevent undefined navigation
   const safeFiles = Array.isArray(files) ? files : [];
   
-  // Internal navigation state - manages which file to display
-  const [internalCurrentIndex, setInternalCurrentIndex] = useState(0);
+  // Determine which file to display
+  const displayFile = safeFiles.length > 0 ? safeFiles[internalCurrentIndex] : file;
+
+  // ===== EFFECTS =====
   
   // Initialize internal index when dialog opens
   useEffect(() => {
@@ -75,18 +103,11 @@ export const FilePreviewDialog = ({
     }
   }, [open, currentIndex, safeFiles.length]);
   
-  // Determine which file to display
-  const displayFile = safeFiles.length > 0 ? safeFiles[internalCurrentIndex] : file;
-  if (!displayFile) return null;
-
-  const [fileUrl, setFileUrl] = useState<string>('');
-  const [videoDuration, setVideoDuration] = useState<number>(0);
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const [isVideoMuted, setIsVideoMuted] = useState(false);
-  const [videoCurrentTime, setVideoCurrentTime] = useState(0);
-  const [videoQualityInfo, setVideoQualityInfo] = useState<VideoQualityInfo | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
+  // Initialize client-side mounting
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+  
   // Derive navigation state from internal index
   const fileCount = safeFiles.length || totalFiles || 0;
   const shouldShowNavigation = fileCount > 1;
@@ -105,14 +126,6 @@ export const FilePreviewDialog = ({
       setInternalCurrentIndex(prev => prev + 1);
     }
   };
-
-  // Dialog states
-  const [mentionsDialogOpen, setMentionsDialogOpen] = useState(false);
-  const [tagsDialogOpen, setTagsDialogOpen] = useState(false);
-  const [foldersDialogOpen, setFoldersDialogOpen] = useState(false);
-  const [descriptionDialogOpen, setDescriptionDialogOpen] = useState(false);
-  const [priceDialogOpen, setPriceDialogOpen] = useState(false);
-  const [editTitleDialogOpen, setEditTitleDialogOpen] = useState(false);
 
   // Debug navigation values - only log when dialog opens
   useEffect(() => {
@@ -239,15 +252,16 @@ export const FilePreviewDialog = ({
     }
   `;
 
-  // Client-only rendering to prevent hydration mismatches
-  const [isMounted, setIsMounted] = useState(false);
+  // ===== CONDITIONAL RENDERING GUARDS =====
   
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-  
-  // Don't render on server or before hydration
+  // Don't render if not mounted (prevents hydration issues)
   if (!isMounted) return null;
+  
+  // Don't render if dialog is closed
+  if (!open) return null;
+  
+  // Don't render if no file to display
+  if (!displayFile) return null;
 
   return (
     <>
