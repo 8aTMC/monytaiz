@@ -192,27 +192,29 @@ export const useLibraryData = ({
 
       // Apply advanced filters
       if (filters && combinedData.length > 0) {
-        // Filter by collaborators (check mentions array for simple_media)
+        // Filter by collaborators
         if (filters.collaborators.length > 0) {
-          // First, get collaborator names from IDs
-          const { data: collaboratorData } = await supabase
-            .from('collaborators')
-            .select('id, name')
-            .in('id', filters.collaborators);
-          
-          if (collaboratorData) {
-            const collaboratorNames = collaboratorData.map(c => c.name.toLowerCase());
-            combinedData = combinedData.filter(item => {
-              // For simple_media, check mentions array
-              if ('mentions' in item && item.mentions) {
-                return item.mentions.some((mention: string) => 
-                  collaboratorNames.some(name => mention.toLowerCase().includes(name))
-                );
-              }
-              // For other media types, check if any collaborator name appears in title or notes
-              const searchText = `${item.title || ''} ${item.notes || ''}`.toLowerCase();
-              return collaboratorNames.some(name => searchText.includes(name));
-            });
+          try {
+            // Get collaborator names from IDs
+            const { data: collaboratorData, error: collaboratorError } = await supabase
+              .from('collaborators')
+              .select('id, name')
+              .in('id', filters.collaborators);
+            
+            if (collaboratorError) {
+              console.warn('Error fetching collaborators for filtering:', collaboratorError);
+            } else if (collaboratorData && collaboratorData.length > 0) {
+              const collaboratorNames = collaboratorData.map(c => c.name.toLowerCase());
+              
+              combinedData = combinedData.filter(item => {
+                // Check if any collaborator name appears in title or notes
+                const searchText = `${item.title || ''} ${item.notes || ''}`.toLowerCase();
+                return collaboratorNames.some(name => searchText.includes(name));
+              });
+            }
+          } catch (error) {
+            console.warn('Error applying collaborator filter:', error);
+            // Continue without collaborator filtering if there's an error
           }
         }
 

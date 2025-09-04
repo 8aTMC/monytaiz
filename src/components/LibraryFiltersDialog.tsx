@@ -84,9 +84,18 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
           .order('usage_count', { ascending: false });
 
         if (tags) {
+          // Remove duplicates by tag_name and create unique keys
+          const uniqueTags = tags.reduce((acc, tag) => {
+            const existing = acc.find(t => t.tag_name === tag.tag_name);
+            if (!existing || tag.usage_count > existing.usage_count) {
+              return [...acc.filter(t => t.tag_name !== tag.tag_name), tag];
+            }
+            return acc;
+          }, [] as typeof tags);
+          
           setTagOptions(
-            tags.map(t => ({
-              value: t.tag_name,
+            uniqueTags.map((t, index) => ({
+              value: `${t.tag_name}_${index}`, // Ensure unique value
               label: t.tag_name,
               description: `Used ${t.usage_count} times`
             }))
@@ -116,7 +125,9 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
   };
 
   const handleTagChange = (tags: string[]) => {
-    setLocalFilters(prev => ({ ...prev, tags }));
+    // Extract tag names from unique values (remove the index suffix)
+    const tagNames = tags.map(tag => tag.replace(/_\d+$/, ''));
+    setLocalFilters(prev => ({ ...prev, tags: tagNames }));
   };
 
   const handlePriceRangeChange = (range: number[]) => {
@@ -207,8 +218,8 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
                     </Badge>
                   ) : null;
                 })}
-                {localFilters.tags.map(tag => (
-                  <Badge key={tag} variant="secondary" className="bg-primary/10 text-primary">
+                {localFilters.tags.map((tag, index) => (
+                  <Badge key={`tag-${tag}-${index}`} variant="secondary" className="bg-primary/10 text-primary">
                     Tag: {tag}
                     <X
                       className="ml-1 h-3 w-3 cursor-pointer"
@@ -243,7 +254,10 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
             <Label className="text-sm font-medium">Filter by Tags</Label>
             <MultiSelect
               options={tagOptions}
-              value={localFilters.tags}
+              value={localFilters.tags.map(tag => {
+                const option = tagOptions.find(opt => opt.label === tag);
+                return option ? option.value : tag;
+              })}
               onChange={handleTagChange}
               placeholder="Select tags..."
               emptyMessage="No tags found."
