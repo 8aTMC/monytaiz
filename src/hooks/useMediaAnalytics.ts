@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -62,7 +62,7 @@ export const useMediaAnalytics = (mediaId: string | null) => {
     return { startDate, endDate };
   };
 
-  const fetchAnalytics = async (mediaId: string, period: TimePeriod) => {
+  const fetchAnalytics = useCallback(async (mediaId: string, period: TimePeriod) => {
     if (!mediaId) return;
     
     setLoading(true);
@@ -111,7 +111,7 @@ export const useMediaAnalytics = (mediaId: string | null) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   const trackEvent = async (
     mediaId: string, 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -235,6 +235,8 @@ export const RevenueAnalyticsDialog: React.FC<RevenueAnalyticsDialogProps> = ({
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('all');
   const [showSent, setShowSent] = useState(true);
   const [showPurchased, setShowPurchased] = useState(true);
+  const [previousChartData, setPreviousChartData] = useState<any[]>([]);
+  const debounceRef = useRef<NodeJS.Timeout>();
   
   const { 
     chartData, 
@@ -245,11 +247,32 @@ export const RevenueAnalyticsDialog: React.FC<RevenueAnalyticsDialogProps> = ({
     fetchAnalytics 
   } = useMediaAnalytics(mediaItem?.id || null);
 
+  // Keep track of previous chart data for smooth transitions
+  useEffect(() => {
+    if (chartData && chartData.length > 0 && !loading) {
+      setPreviousChartData(chartData);
+    }
+  }, [chartData, loading]);
+
   useEffect(() => {
     if (mediaItem?.id && open) {
-      fetchAnalytics(mediaItem.id, selectedPeriod);
+      // Clear any existing debounce
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      
+      // Debounce the fetch to prevent rapid API calls
+      debounceRef.current = setTimeout(() => {
+        fetchAnalytics(mediaItem.id, selectedPeriod);
+      }, 100);
     }
-  }, [mediaItem?.id, selectedPeriod, open, fetchAnalytics]);
+    
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [mediaItem?.id, selectedPeriod, open]);
 
   const maxValue = Math.max(
     ...chartData.map(d => Math.max(d.sent, d.purchased)),
@@ -359,8 +382,8 @@ export const RevenueAnalyticsDialog: React.FC<RevenueAnalyticsDialogProps> = ({
           </div>
 
           {/* Chart */}
-          <div className="flex justify-center">
-            {loading ? (
+          <div className="flex justify-center relative">
+            {loading && previousChartData.length === 0 ? (
               <div className="flex items-center justify-center h-48 w-full bg-muted/20 rounded-lg">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
@@ -369,12 +392,19 @@ export const RevenueAnalyticsDialog: React.FC<RevenueAnalyticsDialogProps> = ({
                 <p className="text-red-600">Failed to load analytics data</p>
               </div>
             ) : (
-              <CustomChart 
-                data={chartData} 
-                showSent={showSent} 
-                showPurchased={showPurchased}
-                maxValue={maxValue}
-              />
+              <div className="relative">
+                <CustomChart 
+                  data={chartData.length > 0 ? chartData : previousChartData} 
+                  showSent={showSent} 
+                  showPurchased={showPurchased}
+                  maxValue={maxValue}
+                />
+                {loading && chartData.length === 0 && previousChartData.length > 0 && (
+                  <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-lg">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
