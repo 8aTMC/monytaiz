@@ -23,6 +23,7 @@ interface MultiSelectOption {
   description?: string
   avatar?: string
   initials?: string
+  username?: string
 }
 
 interface MultiSelectProps {
@@ -164,12 +165,17 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
                       </AvatarFallback>
                     </Avatar>
                   )}
-                  <div className="flex-1">
-                    <div className="font-medium">{option.label}</div>
-                    {option.description && (
-                      <div className="text-xs text-muted-foreground">{option.description}</div>
-                    )}
-                  </div>
+                   <div className="flex-1">
+                     <div className="font-medium flex items-center gap-1">
+                       <span>{option.label}</span>
+                       {option.username && (
+                         <span className="text-sm text-muted-foreground/80">@{option.username}</span>
+                       )}
+                     </div>
+                     {option.description && (
+                       <div className="text-xs text-foreground/70">{option.description}</div>
+                     )}
+                   </div>
                 </CommandItem>
               );
             })}

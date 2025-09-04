@@ -157,6 +157,7 @@ export type Database = {
           profile_picture_url: string | null
           updated_at: string
           url: string
+          username: string | null
         }
         Insert: {
           created_at?: string
@@ -167,6 +168,7 @@ export type Database = {
           profile_picture_url?: string | null
           updated_at?: string
           url: string
+          username?: string | null
         }
         Update: {
           created_at?: string
@@ -177,6 +179,7 @@ export type Database = {
           profile_picture_url?: string | null
           updated_at?: string
           url?: string
+          username?: string | null
         }
         Relationships: []
       }
