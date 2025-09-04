@@ -407,7 +407,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
         </div>
 
         <DialogFooter className="flex justify-between">
-          <Button variant="outline" onClick={handleReset}>
+          <Button variant="outline" onClick={handleClear}>
             Reset
           </Button>
           <div className="flex gap-2">
