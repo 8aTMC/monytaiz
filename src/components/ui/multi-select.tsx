@@ -1,8 +1,9 @@
 import * as React from "react"
-import { Check, ChevronDown, X } from "lucide-react"
+import { Check, ChevronDown, X, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Command,
   CommandEmpty,
@@ -20,6 +21,8 @@ interface MultiSelectOption {
   value: string
   label: string
   description?: string
+  avatar?: string
+  initials?: string
 }
 
 interface MultiSelectProps {
@@ -153,6 +156,14 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
                       isSelected ? "opacity-100" : "opacity-0"
                     )}
                   />
+                  {(option.avatar || option.initials) && (
+                    <Avatar className="h-8 w-8 mr-3">
+                      {option.avatar && <AvatarImage src={option.avatar} alt={option.label} />}
+                      <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                        {option.initials || <User className="h-4 w-4" />}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
                   <div className="flex-1">
                     <div className="font-medium">{option.label}</div>
                     {option.description && (

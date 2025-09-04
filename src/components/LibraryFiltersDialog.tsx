@@ -16,6 +16,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { X, Filter } from "lucide-react";
+import { getInitials } from "@/lib/initials";
 
 interface FilterState {
   collaborators: string[];
@@ -34,6 +35,8 @@ interface CollaboratorOption {
   value: string;
   label: string;
   description?: string;
+  avatar?: string;
+  initials?: string;
 }
 
 interface TagOption {
@@ -71,7 +74,8 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
             collaborators.map(c => ({
               value: c.id,
               label: c.name,
-              description: c.description || undefined
+              description: c.description || undefined,
+              initials: getInitials(c.name)
             }))
           );
         }
