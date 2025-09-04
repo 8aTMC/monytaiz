@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from 'lucide-react';
@@ -26,7 +26,10 @@ export function CollaboratorDetailDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] z-[90]">
         <DialogHeader>
-          <DialogTitle className="sr-only">Collaborator Details</DialogTitle>
+          <DialogTitle>{collaborator.name}</DialogTitle>
+          <DialogDescription>
+            Collaborator details and information
+          </DialogDescription>
         </DialogHeader>
         
         <div className="flex flex-col items-center space-y-6 py-4">

@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -161,12 +161,12 @@ export function ImageCropDialog({ open, onOpenChange, imageSrc, onCropComplete }
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Crop Profile Picture</DialogTitle>
+          <DialogDescription>
+            Drag to reposition and resize the crop area to create a square profile picture.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Drag to reposition and resize the crop area to create a square profile picture.
-          </p>
           
           <div className="flex justify-center">
             <ReactCrop
@@ -184,10 +184,15 @@ export function ImageCropDialog({ open, onOpenChange, imageSrc, onCropComplete }
                 alt="Crop me"
                 style={{ maxWidth: '100%', maxHeight: '400px' }}
                 onLoad={onImageLoad}
-                onError={() => {
+                onError={(e) => {
+                  console.error('Image load error:', {
+                    src: imageSrc,
+                    error: e,
+                    timestamp: new Date().toISOString()
+                  });
                   toast({
                     title: "Error",
-                    description: "Failed to load image",
+                    description: "Failed to load image for cropping. Please try selecting the image again.",
                     variant: "destructive"
                   });
                   onOpenChange(false);
