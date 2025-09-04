@@ -94,7 +94,9 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
           .order('usage_count', { ascending: false });
 
         if (tags) {
-          // Remove duplicates by tag_name and create unique keys
+          console.log('🏷️ Raw tags from DB:', tags);
+          
+          // Remove duplicates by tag_name - use tag name directly as value
           const uniqueTags = tags.reduce((acc, tag) => {
             const existing = acc.find(t => t.tag_name === tag.tag_name);
             if (!existing || tag.usage_count > existing.usage_count) {
@@ -103,13 +105,17 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
             return acc;
           }, [] as typeof tags);
           
-          setTagOptions(
-            uniqueTags.map((t, index) => ({
-              value: `${t.tag_name}_${index}`, // Ensure unique value
-              label: t.tag_name,
-              description: `Used ${t.usage_count} times`
-            }))
-          );
+          const tagOptions = uniqueTags.map(t => ({
+            value: t.tag_name, // Use tag name directly as value
+            label: t.tag_name,
+            description: `Used ${t.usage_count} times`
+          }));
+          
+          console.log('🏷️ Processed tag options:', tagOptions);
+          setTagOptions(tagOptions);
+        } else {
+          console.log('🏷️ No tags found');
+          setTagOptions([]);
         }
       } catch (error) {
         console.error('Error loading filter options:', error);
@@ -131,13 +137,14 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
   }, [filters]);
 
   const handleCollaboratorChange = (collaborators: string[]) => {
+    console.log('👥 Collaborator change:', collaborators);
     setLocalFilters(prev => ({ ...prev, collaborators }));
   };
 
   const handleTagChange = (tags: string[]) => {
-    // Extract tag names from unique values (remove the index suffix)
-    const tagNames = tags.map(tag => tag.replace(/_\d+$/, ''));
-    setLocalFilters(prev => ({ ...prev, tags: tagNames }));
+    console.log('🏷️ Tag change:', tags);
+    // Tags are now simple strings, no need for complex mapping
+    setLocalFilters(prev => ({ ...prev, tags }));
   };
 
   const handlePriceRangeChange = (range: number[]) => {
@@ -254,8 +261,8 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
           <div className="space-y-3">
             <Label className="text-sm font-medium">Filter by Collaborators</Label>
             <MultiSelect
-              options={collaboratorOptions}
-              value={localFilters.collaborators}
+              options={collaboratorOptions || []}
+              value={localFilters.collaborators || []}
               onChange={handleCollaboratorChange}
               placeholder="Select collaborators..."
               emptyMessage="No collaborators found."
@@ -274,11 +281,8 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
           <div className="space-y-3">
             <Label className="text-sm font-medium">Filter by Tags</Label>
             <MultiSelect
-              options={tagOptions}
-              value={localFilters.tags.map(tag => {
-                const option = tagOptions.find(opt => opt.label === tag);
-                return option ? option.value : tag;
-              })}
+              options={tagOptions || []}
+              value={localFilters.tags || []}
               onChange={handleTagChange}
               placeholder="Select tags..."
               emptyMessage="No tags found."
