@@ -66,7 +66,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
         // Load all collaborators, ordered by name alphabetically
         const { data: collaborators } = await supabase
           .from('collaborators')
-          .select('id, name, description')
+          .select('id, name, description, profile_picture_url')
           .order('name', { ascending: true });
 
         if (collaborators) {
@@ -75,6 +75,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
               value: c.id,
               label: c.name,
               description: c.description || undefined,
+              avatar: c.profile_picture_url || undefined,
               initials: getInitials(c.name)
             }))
           );
