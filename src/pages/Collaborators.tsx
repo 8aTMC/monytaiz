@@ -5,9 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { CollaboratorDialog } from '@/components/CollaboratorDialog';
+import { CollaboratorDetailDialog } from '@/components/CollaboratorDetailDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { ProfilePicturePreview } from '@/components/ProfilePicturePreview';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,14 +23,14 @@ export default function Collaborators() {
   const { collaborators, loading, createCollaborator, deleteCollaborator, searchCollaborators } = useCollaborators();
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [previewImage, setPreviewImage] = useState({ url: '', name: '' });
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [selectedCollaborator, setSelectedCollaborator] = useState<any>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [collaboratorToDelete, setCollaboratorToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const filteredCollaborators = searchQuery ? searchCollaborators(searchQuery) : collaborators;
 
-  const handleCreateCollaborator = async (collaboratorData: { name: string; url: string; profile_picture_url?: string }) => {
+  const handleCreateCollaborator = async (collaboratorData: { name: string; url: string; description?: string; profile_picture_url?: string }) => {
     await createCollaborator(collaboratorData);
     setShowCreateDialog(false);
   };
@@ -48,11 +48,9 @@ export default function Collaborators() {
     }
   };
 
-  const handleAvatarClick = (collaborator: any) => {
-    if (collaborator.profile_picture_url) {
-      setPreviewImage({ url: collaborator.profile_picture_url, name: collaborator.name });
-      setShowPreview(true);
-    }
+  const handleCollaboratorClick = (collaborator: any) => {
+    setSelectedCollaborator(collaborator);
+    setShowDetailDialog(true);
   };
 
   return (
@@ -122,14 +120,15 @@ export default function Collaborators() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCollaborators.map((collaborator) => (
-            <Card key={collaborator.id} className="hover:shadow-md transition-shadow">
+            <Card 
+              key={collaborator.id} 
+              className="hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => handleCollaboratorClick(collaborator)}
+            >
               <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Avatar 
-                      className="cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all"
-                      onClick={() => handleAvatarClick(collaborator)}
-                    >
+                    <Avatar>
                       <AvatarImage src={collaborator.profile_picture_url} />
                       <AvatarFallback>
                         {collaborator.name.split(' ').map(n => n[0]).join('').toUpperCase()}
@@ -145,7 +144,10 @@ export default function Collaborators() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDeleteCollaborator(collaborator.id, collaborator.name)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteCollaborator(collaborator.id, collaborator.name);
+                    }}
                     className="text-destructive hover:text-destructive hover:bg-destructive/10"
                   >
                     Delete
@@ -161,6 +163,7 @@ export default function Collaborators() {
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-sm text-primary hover:underline break-all"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       {collaborator.url}
                     </a>
@@ -181,11 +184,10 @@ export default function Collaborators() {
         onCollaboratorCreated={handleCreateCollaborator}
       />
 
-      <ProfilePicturePreview
-        open={showPreview}
-        onOpenChange={setShowPreview}
-        imageUrl={previewImage.url}
-        name={previewImage.name}
+      <CollaboratorDetailDialog
+        open={showDetailDialog}
+        onOpenChange={setShowDetailDialog}
+        collaborator={selectedCollaborator}
       />
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

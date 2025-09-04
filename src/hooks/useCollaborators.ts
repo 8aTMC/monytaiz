@@ -7,6 +7,7 @@ export interface Collaborator {
   creator_id: string;
   name: string;
   url: string;
+  description?: string;
   profile_picture_url?: string;
   created_at: string;
   updated_at: string;

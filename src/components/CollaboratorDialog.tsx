@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Upload, X } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
@@ -12,12 +13,13 @@ import { ImageCropDialog } from './ImageCropDialog';
 interface CollaboratorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCollaboratorCreated: (collaborator: { name: string; url: string; profile_picture_url?: string }) => void;
+  onCollaboratorCreated: (collaborator: { name: string; url: string; description?: string; profile_picture_url?: string }) => void;
 }
 
 export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }: CollaboratorDialogProps) {
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
+  const [description, setDescription] = useState('');
   const [profileImageUrl, setProfileImageUrl] = useState<string>('');
   const [creating, setCreating] = useState(false);
   const [showCropDialog, setShowCropDialog] = useState(false);
@@ -101,12 +103,14 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
       onCollaboratorCreated({
         name: name.trim(),
         url: url.trim(),
+        description: description.trim() || undefined,
         profile_picture_url: profileImageUrl || undefined
       });
 
       // Reset form
       setName('');
       setUrl('');
+      setDescription('');
       setProfileImageUrl('');
       onOpenChange(false);
 
@@ -212,6 +216,24 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
             />
             <p className="text-xs text-muted-foreground">
               Link to their profile, portfolio, or social media
+            </p>
+          </div>
+
+          {/* Description Field */}
+          <div className="space-y-2">
+            <Label htmlFor="collaborator-description" className="text-sm font-medium">
+              Description
+            </Label>
+            <Textarea
+              id="collaborator-description"
+              placeholder="Brief description about this collaborator..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="min-h-[80px] resize-none"
+              maxLength={200}
+            />
+            <p className="text-xs text-muted-foreground">
+              {description.length}/200 characters
             </p>
           </div>
 
