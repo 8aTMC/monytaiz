@@ -7,11 +7,14 @@ import { useCollaborators } from '@/hooks/useCollaborators';
 import { CollaboratorDialog } from '@/components/CollaboratorDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { ProfilePicturePreview } from '@/components/ProfilePicturePreview';
 
 export default function Collaborators() {
   const { collaborators, loading, createCollaborator, deleteCollaborator, searchCollaborators } = useCollaborators();
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewImage, setPreviewImage] = useState({ url: '', name: '' });
 
   const filteredCollaborators = searchQuery ? searchCollaborators(searchQuery) : collaborators;
 
@@ -23,6 +26,13 @@ export default function Collaborators() {
   const handleDeleteCollaborator = async (id: string) => {
     if (confirm('Are you sure you want to delete this collaborator?')) {
       await deleteCollaborator(id);
+    }
+  };
+
+  const handleAvatarClick = (collaborator: any) => {
+    if (collaborator.profile_picture_url) {
+      setPreviewImage({ url: collaborator.profile_picture_url, name: collaborator.name });
+      setShowPreview(true);
     }
   };
 
@@ -95,9 +105,12 @@ export default function Collaborators() {
           {filteredCollaborators.map((collaborator) => (
             <Card key={collaborator.id} className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Avatar>
+                    <Avatar 
+                      className="cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all"
+                      onClick={() => handleAvatarClick(collaborator)}
+                    >
                       <AvatarImage src={collaborator.profile_picture_url} />
                       <AvatarFallback>
                         {collaborator.name.split(' ').map(n => n[0]).join('').toUpperCase()}
@@ -147,6 +160,13 @@ export default function Collaborators() {
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         onCollaboratorCreated={handleCreateCollaborator}
+      />
+
+      <ProfilePicturePreview
+        open={showPreview}
+        onOpenChange={setShowPreview}
+        imageUrl={previewImage.url}
+        name={previewImage.name}
       />
     </div>
   );

@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Plus, X, AtSign, Search } from 'lucide-react';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { CollaboratorDialog } from './CollaboratorDialog';
+import { ProfilePicturePreview } from './ProfilePicturePreview';
 
 interface MentionsDialogProps {
   open: boolean;
@@ -20,6 +21,8 @@ interface MentionsDialogProps {
 export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange }: MentionsDialogProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showCollaboratorDialog, setShowCollaboratorDialog] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewImage, setPreviewImage] = useState({ url: '', name: '' });
   const { collaborators, loading, createCollaborator, getRecentCollaborators, searchCollaborators } = useCollaborators();
 
   const filteredCollaborators = searchQuery.trim() 
@@ -47,6 +50,14 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
 
   const handleRemoveMention = (mentionToRemove: string) => {
     onMentionsChange(mentions.filter(mention => mention !== mentionToRemove));
+  };
+
+  const handleAvatarClick = (e: React.MouseEvent, collaborator: any) => {
+    e.stopPropagation();
+    if (collaborator.profile_picture_url) {
+      setPreviewImage({ url: collaborator.profile_picture_url, name: collaborator.name });
+      setShowPreview(true);
+    }
   };
 
   return (
@@ -98,7 +109,10 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
                       className="flex items-center gap-3 p-2 rounded-lg border cursor-pointer hover:bg-accent"
                       onClick={() => handleCollaboratorClick(collaborator)}
                     >
-                      <Avatar className="h-8 w-8">
+                      <Avatar 
+                        className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all" 
+                        onClick={(e) => handleAvatarClick(e, collaborator)}
+                      >
                         <AvatarImage src={collaborator.profile_picture_url} />
                         <AvatarFallback className="text-xs">
                           {collaborator.name.charAt(0).toUpperCase()}
@@ -165,6 +179,14 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
           open={showCollaboratorDialog}
           onOpenChange={setShowCollaboratorDialog}
           onCollaboratorCreated={handleCreateCollaborator}
+        />
+
+        {/* Profile Picture Preview */}
+        <ProfilePicturePreview
+          open={showPreview}
+          onOpenChange={setShowPreview}
+          imageUrl={previewImage.url}
+          name={previewImage.name}
         />
       </DialogContent>
     </Dialog>
