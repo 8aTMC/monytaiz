@@ -422,13 +422,13 @@ main.layout-main *::-webkit-scrollbar-thumb:hover {
 [data-radix-dialog-overlay],
 [data-state="open"][data-radix-dialog-overlay],
 .fixed.inset-0[data-radix-dialog-overlay] {
-  z-index: 300 !important;
+  z-index: 230 !important;
 }
 
 [data-radix-dialog-content],
 [data-state="open"][data-radix-dialog-content], 
 .fixed[data-radix-dialog-content] {
-  z-index: 310 !important;
+  z-index: 240 !important;
 }
 
 /* Responsive sidebar auto-collapse - force collapse on narrow screens only when collapsed */
