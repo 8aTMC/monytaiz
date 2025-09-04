@@ -22,16 +22,29 @@ export const useCollaborators = () => {
     setLoading(true);
     setError(null);
     try {
+      // Check if user is authenticated first
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Please log in to view collaborators');
+      }
+
       const { data, error } = await supabase
         .from('collaborators')
         .select('*')
         .order('updated_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        // Handle specific RLS errors more gracefully
+        if (error.code === 'PGRST301' || error.message.includes('row-level security')) {
+          throw new Error('Access denied: insufficient permissions to view collaborators');
+        }
+        throw error;
+      }
       setCollaborators(data || []);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error fetching collaborators';
       setError(errorMsg);
+      console.error('Error fetching collaborators:', err);
       toast({
         title: "Error",
         description: errorMsg,
