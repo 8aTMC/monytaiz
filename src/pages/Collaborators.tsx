@@ -8,6 +8,16 @@ import { CollaboratorDialog } from '@/components/CollaboratorDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ProfilePicturePreview } from '@/components/ProfilePicturePreview';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function Collaborators() {
   const { collaborators, loading, createCollaborator, deleteCollaborator, searchCollaborators } = useCollaborators();
@@ -15,6 +25,8 @@ export default function Collaborators() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewImage, setPreviewImage] = useState({ url: '', name: '' });
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [collaboratorToDelete, setCollaboratorToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const filteredCollaborators = searchQuery ? searchCollaborators(searchQuery) : collaborators;
 
@@ -23,9 +35,16 @@ export default function Collaborators() {
     setShowCreateDialog(false);
   };
 
-  const handleDeleteCollaborator = async (id: string) => {
-    if (confirm('Are you sure you want to delete this collaborator?')) {
-      await deleteCollaborator(id);
+  const handleDeleteCollaborator = (id: string, name: string) => {
+    setCollaboratorToDelete({ id, name });
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteCollaborator = async () => {
+    if (collaboratorToDelete) {
+      await deleteCollaborator(collaboratorToDelete.id);
+      setShowDeleteDialog(false);
+      setCollaboratorToDelete(null);
     }
   };
 
@@ -126,7 +145,7 @@ export default function Collaborators() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDeleteCollaborator(collaborator.id)}
+                    onClick={() => handleDeleteCollaborator(collaborator.id, collaborator.name)}
                     className="text-destructive hover:text-destructive hover:bg-destructive/10"
                   >
                     Delete
@@ -168,6 +187,26 @@ export default function Collaborators() {
         imageUrl={previewImage.url}
         name={previewImage.name}
       />
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Collaborator</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{collaboratorToDelete?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteCollaborator}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
