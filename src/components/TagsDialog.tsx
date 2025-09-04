@@ -100,9 +100,6 @@ export function TagsDialog({ open, onOpenChange, tags, onTagsChange }: TagsDialo
                       onClick={() => handleSavedTagClick(savedTag.tag_name)}
                     >
                       {savedTag.tag_name}
-                      <span className="ml-1 text-xs text-muted-foreground">
-                        ({savedTag.usage_count})
-                      </span>
                     </Badge>
                   ))}
                 </div>
