@@ -427,10 +427,83 @@ const ContentLibrary = () => {
               </div>
             </div>
 
-            {/* Enhanced Controls and Filters */}
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              {/* Enhanced Filter Tabs */}
-              <div className="flex items-center gap-2 flex-wrap order-2 lg:order-1">
+            {/* Enhanced Controls and Filters - Fixed Layout */}
+            <div className="space-y-4">
+              {/* Top Row: Advanced Filters Button + Search + Sort + Select */}
+              <div className="flex items-center gap-3 justify-between">
+                {/* Left Side: Advanced Filters (Always Visible) */}
+                <Button
+                  variant={hasActiveFilters ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFiltersDialogOpen(true)}
+                  className={`shrink-0 font-medium ${
+                    hasActiveFilters
+                      ? "bg-primary text-primary-foreground shadow-md"
+                      : "border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                  }`}
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  Advanced Filters
+                  {hasActiveFilters && (
+                    <Badge variant="secondary" className="ml-2 bg-primary-foreground/20 text-primary text-xs px-1.5 py-0.5">
+                      {[
+                        ...advancedFilters.collaborators,
+                        ...advancedFilters.tags,
+                        ...(advancedFilters.priceRange[0] > 0 || advancedFilters.priceRange[1] < 1000000 ? ['price'] : [])
+                      ].length}
+                    </Badge>
+                  )}
+                </Button>
+
+                {/* Right Side: Search + Sort + Select */}
+                <div className="flex items-center gap-3">
+                  {/* Enhanced Search */}
+                  <div className="relative w-64">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Search your content..."
+                      value={searchQuery}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      className="pl-10 pr-4 w-full bg-background border border-border focus:border-primary transition-colors"
+                    />
+                  </div>
+
+                  {/* Enhanced Sort By */}
+                  <Select value={sortBy} onValueChange={handleSortChange}>
+                    <SelectTrigger className="w-40 bg-gradient-glass border-border/50 hover:border-primary/30 transition-all duration-300">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card/95 backdrop-blur-md border-border/50">
+                      <SelectItem value="newest">Newest First</SelectItem>
+                      <SelectItem value="oldest">Oldest First</SelectItem>
+                      <SelectItem value="price_high">Price: High to Low</SelectItem>
+                      <SelectItem value="price_low">Price: Low to High</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {/* Enhanced Select Toggle Button */}
+                  <Button
+                    variant={selecting ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setSelecting(!selecting);
+                      if (selecting) {
+                        setSelectedItems(new Set());
+                      }
+                    }}
+                    className={`shrink-0 transition-all duration-300 ${
+                      selecting 
+                        ? "bg-gradient-primary shadow-shadow-glow" 
+                        : "hover:bg-gradient-glass hover:shadow-shadow-soft/50"
+                    }`}
+                  >
+                    {selecting ? "Cancel" : "Select"}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Bottom Row: Content Type Filter Tabs */}
+              <div className="flex items-center gap-2 flex-wrap">
                 {[
                   { id: 'all', label: 'All Content', icon: Grid },
                   { id: 'image', label: 'Photos', icon: Grid },
@@ -454,76 +527,6 @@ const ContentLibrary = () => {
                     </Button>
                   );
                 })}
-              </div>
-
-              {/* Enhanced Search and Sort Controls */}
-              <div className="flex items-center gap-3 order-1 lg:order-2 flex-wrap">
-                {/* Advanced Filters Button - More Prominent */}
-                <Button
-                  variant={hasActiveFilters ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setFiltersDialogOpen(true)}
-                  className={`shrink-0 font-medium ${
-                    hasActiveFilters
-                      ? "bg-primary text-primary-foreground shadow-md"
-                      : "border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
-                  }`}
-                >
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filters
-                  {hasActiveFilters && (
-                    <Badge variant="secondary" className="ml-2 bg-primary-foreground/20 text-primary text-xs px-1.5 py-0.5">
-                      {[
-                        ...advancedFilters.collaborators,
-                        ...advancedFilters.tags,
-                        ...(advancedFilters.priceRange[0] > 0 || advancedFilters.priceRange[1] < 1000000 ? ['price'] : [])
-                      ].length}
-                    </Badge>
-                  )}
-                </Button>
-
-                {/* Enhanced Search */}
-                <div className="relative min-w-0 flex-1 max-w-sm">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search your content..."
-                    value={searchQuery}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    className="pl-10 pr-4 w-full bg-background border border-border focus:border-primary transition-colors"
-                  />
-                </div>
-
-                {/* Enhanced Sort By */}
-                <Select value={sortBy} onValueChange={handleSortChange}>
-                  <SelectTrigger className="w-40 bg-gradient-glass border-border/50 hover:border-primary/30 transition-all duration-300">
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card/95 backdrop-blur-md border-border/50">
-                    <SelectItem value="newest">Newest First</SelectItem>
-                    <SelectItem value="oldest">Oldest First</SelectItem>
-                    <SelectItem value="price_high">Price: High to Low</SelectItem>
-                    <SelectItem value="price_low">Price: Low to High</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {/* Enhanced Select Toggle Button */}
-                <Button
-                  variant={selecting ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => {
-                    setSelecting(!selecting);
-                    if (selecting) {
-                      setSelectedItems(new Set());
-                    }
-                  }}
-                  className={`transition-all duration-300 ${
-                    selecting 
-                      ? "bg-gradient-primary shadow-shadow-glow" 
-                      : "hover:bg-gradient-glass hover:shadow-shadow-soft/50"
-                  }`}
-                >
-                  {selecting ? "Cancel Select" : "Select Items"}
-                </Button>
               </div>
             </div>
           </div>
