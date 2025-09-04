@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { LibraryFilterState, UseLibraryDataProps } from '@/types/library-filters';
 
 interface MediaItem {
   id: string;
@@ -21,18 +22,12 @@ interface MediaItem {
   height?: number;
 }
 
-interface UseLibraryDataProps {
-  selectedCategory: string;
-  searchQuery: string;
-  selectedFilter: string;
-  sortBy: string;
-}
-
 export const useLibraryData = ({
   selectedCategory,
   searchQuery,
   selectedFilter,
-  sortBy
+  sortBy,
+  advancedFilters
 }: UseLibraryDataProps) => {
   const [content, setContent] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,10 +41,12 @@ export const useLibraryData = ({
     category: string,
     search: string,
     filter: string,
-    sort: string
+    sort: string,
+    filters?: LibraryFilterState
   ) => {
     // Create stable parameter signature to prevent duplicate calls
-    const paramsSignature = `${category}|${search}|${filter}|${sort}`;
+    const filtersSignature = filters ? JSON.stringify(filters) : '';
+    const paramsSignature = `${category}|${search}|${filter}|${sort}|${filtersSignature}`;
     if (lastParamsRef.current === paramsSignature) return;
     
     // Cancel any ongoing request
@@ -193,6 +190,51 @@ export const useLibraryData = ({
         combinedData = combinedData.filter(item => item.type === filter);
       }
 
+      // Apply advanced filters
+      if (filters && combinedData.length > 0) {
+        // Filter by collaborators (check mentions array for simple_media)
+        if (filters.collaborators.length > 0) {
+          // First, get collaborator names from IDs
+          const { data: collaboratorData } = await supabase
+            .from('collaborators')
+            .select('id, name')
+            .in('id', filters.collaborators);
+          
+          if (collaboratorData) {
+            const collaboratorNames = collaboratorData.map(c => c.name.toLowerCase());
+            combinedData = combinedData.filter(item => {
+              // For simple_media, check mentions array
+              if ('mentions' in item && item.mentions) {
+                return item.mentions.some((mention: string) => 
+                  collaboratorNames.some(name => mention.toLowerCase().includes(name))
+                );
+              }
+              // For other media types, check if any collaborator name appears in title or notes
+              const searchText = `${item.title || ''} ${item.notes || ''}`.toLowerCase();
+              return collaboratorNames.some(name => searchText.includes(name));
+            });
+          }
+        }
+
+        // Filter by tags
+        if (filters.tags.length > 0) {
+          combinedData = combinedData.filter(item => {
+            if (!item.tags || item.tags.length === 0) return false;
+            return filters.tags.some(filterTag => 
+              item.tags.some(itemTag => itemTag.toLowerCase().includes(filterTag.toLowerCase()))
+            );
+          });
+        }
+
+        // Filter by price range
+        if (filters.priceRange[0] > 0 || filters.priceRange[1] < 1000000) {
+          combinedData = combinedData.filter(item => {
+            const price = item.suggested_price_cents || 0;
+            return price >= filters.priceRange[0] && price <= filters.priceRange[1];
+          });
+        }
+      }
+
       // Apply sorting
       if (combinedData.length > 0) {
         if (sort === 'newest') {
@@ -311,13 +353,13 @@ export const useLibraryData = ({
 
   // Stable trigger function
   const triggerFetch = useCallback(() => {
-    fetchContent(selectedCategory, searchQuery, selectedFilter, sortBy);
-  }, [fetchContent, selectedCategory, searchQuery, selectedFilter, sortBy]);
+    fetchContent(selectedCategory, searchQuery, selectedFilter, sortBy, advancedFilters);
+  }, [fetchContent, selectedCategory, searchQuery, selectedFilter, sortBy, advancedFilters]);
 
   // Only trigger when parameters actually change
   useEffect(() => {
     triggerFetch();
-  }, [selectedCategory, searchQuery, selectedFilter, sortBy]);
+  }, [selectedCategory, searchQuery, selectedFilter, sortBy, advancedFilters]);
 
   // Load counts only once on mount
   useEffect(() => {

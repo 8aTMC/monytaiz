@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Grid, BookOpen, Zap, MessageSquare } from 'lucide-react';
+import { Search, Grid, BookOpen, Zap, MessageSquare, Filter } from 'lucide-react';
 import { DeletionProgressDialog } from '@/components/DeletionProgressDialog';
 import { LibrarySelectionToolbar } from '@/components/LibrarySelectionToolbar';
 import { useMediaOperations } from '@/hooks/useMediaOperations';
@@ -18,6 +18,8 @@ import { useToast } from '@/hooks/use-toast';
 import { LibraryGrid } from '@/components/LibraryGrid';
 import { useLibraryData } from '@/hooks/useLibraryData';
 import { LibraryErrorBoundary } from '@/components/LibraryErrorBoundary';
+import { LibraryFiltersDialog } from '@/components/LibraryFiltersDialog';
+import { LibraryFilterState } from '@/types/library-filters';
 
 interface MediaItem {
   id: string;
@@ -52,6 +54,27 @@ const ContentLibrary = () => {
   const [sortBy, setSortBy] = useState('newest');
   const selectedCategory = searchParams.get('category') || 'all-files';
   
+  // Advanced filters state with localStorage persistence
+  const [advancedFilters, setAdvancedFilters] = useState<LibraryFilterState>(() => {
+    try {
+      const saved = localStorage.getItem(`library-filters-${selectedCategory}`);
+      return saved ? JSON.parse(saved) : {
+        collaborators: [],
+        tags: [],
+        priceRange: [0, 1000000] as [number, number]
+      };
+    } catch {
+      return {
+        collaborators: [],
+        tags: [],
+        priceRange: [0, 1000000] as [number, number]
+      };
+    }
+  });
+  
+  // Filter dialog state
+  const [filtersDialogOpen, setFiltersDialogOpen] = useState(false);
+  
   // Selection state
   const [selecting, setSelecting] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
@@ -85,8 +108,9 @@ const ContentLibrary = () => {
     selectedCategory,
     searchQuery,
     selectedFilter,
-    sortBy
-  }), [selectedCategory, searchQuery, selectedFilter, sortBy]);
+    sortBy,
+    advancedFilters
+  }), [selectedCategory, searchQuery, selectedFilter, sortBy, advancedFilters]);
 
   // Use the library data hook with stable parameters
   const { 
@@ -134,6 +158,23 @@ const ContentLibrary = () => {
     setSelectedFilter('all');
     setSelecting(false);
     setSelectedItems(new Set());
+    
+    // Clear filters when changing categories and load category-specific filters
+    try {
+      const saved = localStorage.getItem(`library-filters-${categoryId}`);
+      const categoryFilters = saved ? JSON.parse(saved) : {
+        collaborators: [],
+        tags: [],
+        priceRange: [0, 1000000] as [number, number]
+      };
+      setAdvancedFilters(categoryFilters);
+    } catch {
+      setAdvancedFilters({
+        collaborators: [],
+        tags: [],
+        priceRange: [0, 1000000] as [number, number]
+      });
+    }
   }, [setSearchParams]);
 
   // Stable selection handlers using functional updates
@@ -249,6 +290,25 @@ const ContentLibrary = () => {
       }));
     }
   }, [selectedItems, selectedCategory, removeFromCollection, deleteMediaHard, handleClearSelection]);
+
+  // Advanced filters handlers
+  const handleFiltersChange = useCallback((newFilters: LibraryFilterState) => {
+    setAdvancedFilters(newFilters);
+    
+    // Persist to localStorage for this category
+    try {
+      localStorage.setItem(`library-filters-${selectedCategory}`, JSON.stringify(newFilters));
+    } catch (error) {
+      console.error('Failed to save filters to localStorage:', error);
+    }
+  }, [selectedCategory]);
+
+  const hasActiveFilters = useMemo(() => {
+    return advancedFilters.collaborators.length > 0 ||
+           advancedFilters.tags.length > 0 ||
+           advancedFilters.priceRange[0] > 0 ||
+           advancedFilters.priceRange[1] < 1000000;
+  }, [advancedFilters]);
 
   // Auth setup
   useEffect(() => {
@@ -396,8 +456,32 @@ const ContentLibrary = () => {
                 })}
               </div>
 
-                {/* Enhanced Search and Sort Controls */}
+                 {/* Enhanced Search and Sort Controls */}
               <div className="flex items-center gap-4 order-1 lg:order-2">
+                {/* Advanced Filters Button */}
+                <Button
+                  variant={hasActiveFilters ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFiltersDialogOpen(true)}
+                  className={`transition-all duration-300 ${
+                    hasActiveFilters
+                      ? "bg-gradient-primary shadow-shadow-glow"
+                      : "hover:bg-gradient-glass hover:shadow-shadow-soft/50"
+                  }`}
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filters
+                  {hasActiveFilters && (
+                    <Badge variant="secondary" className="ml-2 bg-background/80 text-foreground text-xs px-1.5 py-0.5">
+                      {[
+                        ...advancedFilters.collaborators,
+                        ...advancedFilters.tags,
+                        ...(advancedFilters.priceRange[0] > 0 || advancedFilters.priceRange[1] < 1000000 ? ['price'] : [])
+                      ].length}
+                    </Badge>
+                  )}
+                </Button>
+
                 {/* Enhanced Search */}
                 <div className="relative">
                   <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -484,6 +568,14 @@ const ContentLibrary = () => {
           onToggleSelection={handleToggleItem}
           onItemChange={setPreviewItem}
           selecting={selecting}
+        />
+
+        {/* Advanced Filters Dialog */}
+        <LibraryFiltersDialog
+          open={filtersDialogOpen}
+          onOpenChange={setFiltersDialogOpen}
+          filters={advancedFilters}
+          onFiltersChange={handleFiltersChange}
         />
       </div>
     </LibraryErrorBoundary>
