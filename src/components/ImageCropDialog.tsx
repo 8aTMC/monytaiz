@@ -122,11 +122,6 @@ export function ImageCropDialog({ open, onOpenChange, imageSrc, onCropComplete }
       // Return the blob directly - no upload here
       onCropComplete(croppedImageBlob);
       onOpenChange(false);
-      
-      toast({
-        title: "Success",
-        description: "Image cropped successfully"
-      });
     } catch (error) {
       console.error('Error processing image:', error);
       toast({
