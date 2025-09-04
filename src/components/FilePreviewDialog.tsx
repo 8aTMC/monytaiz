@@ -22,8 +22,6 @@ interface FilePreviewDialogProps {
   files?: File[];
   totalFiles?: number; // Backup detection method
   currentIndex?: number;
-  onPrevious?: () => void;
-  onNext?: () => void;
   // Metadata props
   mentions?: string[];
   tags?: string[];
@@ -47,8 +45,6 @@ export const FilePreviewDialog = ({
   files = [],
   totalFiles = 0,
   currentIndex = 0,
-  onPrevious,
-  onNext,
   mentions = [],
   tags = [],
   folders = [],
@@ -63,11 +59,25 @@ export const FilePreviewDialog = ({
   onTitleChange
 }: FilePreviewDialogProps) => {
   // Runtime guards - early return BEFORE any hooks
-  if (!open || !file) return null;
+  if (!open) return null;
   
   // Validate files array to prevent undefined navigation
   const safeFiles = Array.isArray(files) ? files : [];
-  const safeCurrentIndex = typeof currentIndex === 'number' ? Math.max(0, Math.min(currentIndex, safeFiles.length - 1)) : 0;
+  
+  // Internal navigation state - manages which file to display
+  const [internalCurrentIndex, setInternalCurrentIndex] = useState(0);
+  
+  // Initialize internal index when dialog opens
+  useEffect(() => {
+    if (open && typeof currentIndex === 'number') {
+      const clampedIndex = Math.max(0, Math.min(currentIndex, safeFiles.length - 1));
+      setInternalCurrentIndex(clampedIndex);
+    }
+  }, [open, currentIndex, safeFiles.length]);
+  
+  // Determine which file to display
+  const displayFile = safeFiles.length > 0 ? safeFiles[internalCurrentIndex] : file;
+  if (!displayFile) return null;
 
   const [fileUrl, setFileUrl] = useState<string>('');
   const [videoDuration, setVideoDuration] = useState<number>(0);
@@ -77,11 +87,24 @@ export const FilePreviewDialog = ({
   const [videoQualityInfo, setVideoQualityInfo] = useState<VideoQualityInfo | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Derive navigation state from validated props
+  // Derive navigation state from internal index
   const fileCount = safeFiles.length || totalFiles || 0;
   const shouldShowNavigation = fileCount > 1;
-  const hasNext = safeCurrentIndex < fileCount - 1;
-  const hasPrevious = safeCurrentIndex > 0;
+  const hasNext = internalCurrentIndex < fileCount - 1;
+  const hasPrevious = internalCurrentIndex > 0;
+  
+  // Internal navigation handlers
+  const handlePrevious = () => {
+    if (hasPrevious) {
+      setInternalCurrentIndex(prev => prev - 1);
+    }
+  };
+  
+  const handleNext = () => {
+    if (hasNext) {
+      setInternalCurrentIndex(prev => prev + 1);
+    }
+  };
 
   // Dialog states
   const [mentionsDialogOpen, setMentionsDialogOpen] = useState(false);
@@ -96,7 +119,7 @@ export const FilePreviewDialog = ({
     if (open) {
       console.log('FilePreviewDialog Navigation Debug:', {
         fileCount,
-        currentIndex: safeCurrentIndex,
+        currentIndex: internalCurrentIndex,
         hasNext,
         hasPrevious,
         shouldShowNavigation,
@@ -104,33 +127,33 @@ export const FilePreviewDialog = ({
         totalFiles
       });
     }
-  }, [open, fileCount, safeCurrentIndex, hasNext, hasPrevious, shouldShowNavigation, safeFiles.length, totalFiles]);
+  }, [open, fileCount, internalCurrentIndex, hasNext, hasPrevious, shouldShowNavigation, safeFiles.length, totalFiles]);
 
   useEffect(() => {
-    if (file) {
-      const url = URL.createObjectURL(file);
+    if (displayFile) {
+      const url = URL.createObjectURL(displayFile);
       setFileUrl(url);
       
       // Get video quality info for video files
       if (getFileType() === 'video') {
-        getVideoMetadataFromFile(file).then(setVideoQualityInfo);
+        getVideoMetadataFromFile(displayFile).then(setVideoQualityInfo);
       }
       
       return () => URL.revokeObjectURL(url);
     }
-  }, [file]);
+  }, [displayFile]);
 
   // Keyboard navigation
   useEffect(() => {
     if (!open) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft' && onPrevious) {
+      if (e.key === 'ArrowLeft' && hasPrevious) {
         e.preventDefault();
-        onPrevious();
-      } else if (e.key === 'ArrowRight' && onNext) {
+        handlePrevious();
+      } else if (e.key === 'ArrowRight' && hasNext) {
         e.preventDefault();
-        onNext();
+        handleNext();
       } else if (e.key === 'Escape') {
         e.preventDefault();
         onOpenChange(false);
@@ -139,10 +162,10 @@ export const FilePreviewDialog = ({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open, onPrevious, onNext, onOpenChange]);
+  }, [open, hasPrevious, hasNext, onOpenChange]);
 
   const getFileType = () => {
-    const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+    const extension = '.' + displayFile.name.split('.').pop()?.toLowerCase();
     if (['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(extension)) return 'image';
     if (['.mp4', '.mov', '.webm', '.avi', '.mkv'].includes(extension)) return 'video';
     if (['.mp3', '.wav', '.aac', '.ogg'].includes(extension)) return 'audio';
@@ -180,7 +203,7 @@ export const FilePreviewDialog = ({
     if (fileUrl) {
       const link = document.createElement('a');
       link.href = fileUrl;
-      link.download = file.name;
+      link.download = displayFile.name;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -254,12 +277,12 @@ export const FilePreviewDialog = ({
             {shouldShowNavigation && (
               <>
                 {/* Left navigation button */}
-                <Button
+                 <Button
                   variant="secondary"
                   size="icon" 
                   className="absolute left-4 top-1/2 transform -translate-y-1/2 z-50 shadow-lg"
-                  disabled={!hasPrevious || !onPrevious}
-                  onClick={onPrevious}
+                  disabled={!hasPrevious}
+                  onClick={handlePrevious}
                   aria-label="Previous file"
                 >
                   <ChevronLeft className="h-6 w-6" />
@@ -270,8 +293,8 @@ export const FilePreviewDialog = ({
                   variant="secondary"
                   size="icon"
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 z-50 shadow-lg"
-                  disabled={!hasNext || !onNext}
-                  onClick={onNext}
+                  disabled={!hasNext}
+                  onClick={handleNext}
                   aria-label="Next file"
                 >
                   <ChevronRight className="h-6 w-6" />
@@ -283,7 +306,7 @@ export const FilePreviewDialog = ({
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-semibold truncate">
-                    {title || file.name}
+                    {title || displayFile.name}
                   </h2>
                   {onTitleChange && (
                     <Button
@@ -299,7 +322,7 @@ export const FilePreviewDialog = ({
                   {/* File counter */}
                   {shouldShowNavigation && (
                     <span className="text-sm text-muted-foreground ml-2">
-                      {safeCurrentIndex + 1} of {fileCount}
+                      {internalCurrentIndex + 1} of {fileCount}
                     </span>
                   )}
                 </div>
@@ -321,7 +344,7 @@ export const FilePreviewDialog = ({
                 <div className="flex items-center gap-1">
                   <span className="font-medium">Size:</span>
                   <span className="bg-muted px-2 py-1 rounded text-xs">
-                    {formatFileSize(file.size)}
+                    {formatFileSize(displayFile.size)}
                   </span>
                 </div>
                 {videoQualityInfo && (
@@ -350,7 +373,7 @@ export const FilePreviewDialog = ({
                   {fileType === 'image' && fileUrl && (
                     <img
                       src={fileUrl}
-                      alt={title || file.name}
+                      alt={title || displayFile.name}
                       className="w-full h-full object-contain"
                     />
                   )}
@@ -465,7 +488,7 @@ export const FilePreviewDialog = ({
                     <div className="flex items-center justify-center w-full h-full">
                       <CustomAudioPlayer
                         src={fileUrl}
-                        title={title || file.name}
+                        title={title || displayFile.name}
                       />
                     </div>
                   )}

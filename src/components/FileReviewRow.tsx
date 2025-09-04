@@ -304,12 +304,6 @@ export function FileReviewRow({ file, files, currentIndex, onRemove, onMetadataC
         files={files?.map(f => f.file) || []}
         totalFiles={files?.length || 1}
         currentIndex={currentIndex || 0}
-        onPrevious={onNavigateToFile && currentIndex !== undefined && currentIndex > 0 
-          ? () => onNavigateToFile(currentIndex - 1) 
-          : undefined}
-        onNext={onNavigateToFile && currentIndex !== undefined && files && currentIndex < files.length - 1 
-          ? () => onNavigateToFile(currentIndex + 1) 
-          : undefined}
         open={previewDialogOpen}
         onOpenChange={setPreviewDialogOpen}
         mentions={file.metadata?.mentions || []}

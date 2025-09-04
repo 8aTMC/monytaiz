@@ -355,8 +355,6 @@ export const AdvancedFileUpload = () => {
         files={filesArray}
         totalFiles={uploadQueue.length}
         currentIndex={previewIndex}
-        onPrevious={handlePrevious}
-        onNext={handleNext}
         // Metadata props
         mentions={previewIndex !== null ? uploadQueue[previewIndex]?.metadata?.mentions || [] : []}
         tags={previewIndex !== null ? uploadQueue[previewIndex]?.metadata?.tags || [] : []}

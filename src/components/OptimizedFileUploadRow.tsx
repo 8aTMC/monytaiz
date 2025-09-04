@@ -348,8 +348,6 @@ export const OptimizedFileUploadRow = ({
         file={item.originalFile}
         files={files?.map(f => f.originalFile)}
         currentIndex={currentIndex}
-        onPrevious={onPrevious}
-        onNext={onNext}
       />
     </>
   );
