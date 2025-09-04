@@ -686,22 +686,6 @@ export default function SimpleLibrary() {
             {/* Filter Tabs and Controls */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                {/* Advanced Filters Button */}
-                <Button
-                  variant={hasActiveFilters ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setFiltersDialogOpen(true)}
-                  className="shrink-0"
-                >
-                  <Filter className="h-4 w-4 mr-1" />
-                  Filters
-                  {hasActiveFilters && (
-                    <span className="ml-1 px-1.5 py-0.5 text-xs bg-background/20 rounded">
-                      {advancedFilters.collaborators.length + advancedFilters.tags.length + (advancedFilters.priceRange[0] > 0 || advancedFilters.priceRange[1] < 1000000 ? 1 : 0)}
-                    </span>
-                  )}
-                </Button>
-
                 {/* Media Type Filter Tabs */}
                 <div className="flex bg-muted rounded-lg p-1">
                   {['All', 'Photo', 'Video', 'Audio'].map((filter) => (
@@ -727,6 +711,22 @@ export default function SimpleLibrary() {
                     className="pl-8 w-64"
                   />
                 </div>
+
+                {/* Advanced Filters Button */}
+                <Button
+                  variant={hasActiveFilters ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFiltersDialogOpen(true)}
+                  className="shrink-0"
+                >
+                  <Filter className="h-4 w-4 mr-1" />
+                  Filters
+                  {hasActiveFilters && (
+                    <span className="ml-1 px-1.5 py-0.5 text-xs bg-background/20 rounded">
+                      {advancedFilters.collaborators.length + advancedFilters.tags.length + (advancedFilters.priceRange[0] > 0 || advancedFilters.priceRange[1] < 1000000 ? 1 : 0)}
+                    </span>
+                  )}
+                </Button>
               </div>
 
               {/* Sort */}
