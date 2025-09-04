@@ -418,13 +418,17 @@ main.layout-main *::-webkit-scrollbar-thumb:hover {
   pointer-events: auto !important;
 }
 
-/* Modal/Dialog Layer (200-210) - Ensure dialogs appear above media preview */
-[data-radix-dialog-overlay] {
-  z-index: 200 !important;
+/* Modal/Dialog Layer - High specificity overrides for Tailwind classes */
+[data-radix-dialog-overlay],
+[data-state="open"][data-radix-dialog-overlay],
+.fixed.inset-0[data-radix-dialog-overlay] {
+  z-index: 300 !important;
 }
 
-[data-radix-dialog-content] {
-  z-index: 210 !important;
+[data-radix-dialog-content],
+[data-state="open"][data-radix-dialog-content], 
+.fixed[data-radix-dialog-content] {
+  z-index: 310 !important;
 }
 
 /* Responsive sidebar auto-collapse - force collapse on narrow screens only when collapsed */
