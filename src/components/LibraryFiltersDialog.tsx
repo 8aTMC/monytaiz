@@ -55,97 +55,37 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
   const [localFilters, setLocalFilters] = useState<FilterState>(filters);
   const [manualPriceMin, setManualPriceMin] = useState('');
   const [manualPriceMax, setManualPriceMax] = useState('');
-  const [showingRecentOnly, setShowingRecentOnly] = useState(true);
 
   // Load available collaborators and tags
   useEffect(() => {
-    const loadRecentCollaborators = async () => {
+  const loadCollaborators = async () => {
       try {
-        // First, get all media with mentions
-        const { data: mediaWithMentions } = await supabase
-          .from('simple_media')
-          .select('mentions, created_at')
-          .not('mentions', 'is', null)
-          .order('created_at', { ascending: false });
-
-        // Also check the media table
-        const { data: mediaWithTags } = await supabase
-          .from('media')
-          .select('tags, created_at')
-          .not('tags', 'is', null)
-          .order('created_at', { ascending: false });
-
-        // Extract unique collaborator names from mentions/tags
-        const recentCollaboratorNames = new Set<string>();
-        
-        // Process simple_media mentions
-        mediaWithMentions?.forEach(item => {
-          item.mentions?.forEach((mention: string) => {
-            recentCollaboratorNames.add(mention.toLowerCase());
-          });
-        });
-
-        // Process media tags (if they contain collaborator info)
-        mediaWithTags?.forEach(item => {
-          item.tags?.forEach((tag: string) => {
-            if (tag.startsWith('@')) { // Assuming @ prefix for collaborator tags
-              recentCollaboratorNames.add(tag.substring(1).toLowerCase());
-            }
-          });
-        });
-
-        // Now get collaborator details for these names
-        const { data: allCollaborators } = await supabase
+        // Load all collaborators, ordered by name alphabetically
+        const { data: collaborators } = await supabase
           .from('collaborators')
-          .select('id, name, description');
+          .select('id, name, description')
+          .order('name', { ascending: true });
 
-        if (allCollaborators) {
-          // Filter to only recently tagged collaborators, prioritize by recent usage
-          const recentCollaborators = allCollaborators.filter(c => 
-            recentCollaboratorNames.has(c.name.toLowerCase())
-          );
-
-          // Add remaining collaborators as fallback if showing all
-          const remainingCollaborators = allCollaborators.filter(c => 
-            !recentCollaboratorNames.has(c.name.toLowerCase())
-          );
-
-          const sortedCollaborators = showingRecentOnly 
-            ? recentCollaborators 
-            : [...recentCollaborators, ...remainingCollaborators];
-
+        if (collaborators) {
           setCollaboratorOptions(
-            sortedCollaborators.map(c => ({
-              value: c.id,
-              label: c.name,
-              description: c.description || (recentCollaboratorNames.has(c.name.toLowerCase()) ? 'Recently tagged' : undefined)
-            }))
-          );
-        }
-      } catch (error) {
-        console.error('Error loading recent collaborators:', error);
-        // Fallback to all collaborators
-        const { data: fallbackCollaborators } = await supabase
-          .from('collaborators')
-          .select('id, name, description');
-        
-        if (fallbackCollaborators) {
-          setCollaboratorOptions(
-            fallbackCollaborators.map(c => ({
+            collaborators.map(c => ({
               value: c.id,
               label: c.name,
               description: c.description || undefined
             }))
           );
         }
+      } catch (error) {
+        console.error('Error loading collaborators:', error);
+        setCollaboratorOptions([]);
       }
     };
 
     const loadOptions = async () => {
       setLoading(true);
       try {
-        // Load collaborators based on recent vs all setting
-        await loadRecentCollaborators();
+        // Load collaborators
+        await loadCollaborators();
 
         // Load saved tags
         const { data: tags } = await supabase
@@ -181,7 +121,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
     if (open) {
       loadOptions();
     }
-  }, [open, showingRecentOnly]);
+  }, [open]);
 
   // Update local state when external filters change
   useEffect(() => {
@@ -216,6 +156,10 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
   };
 
   const handleApply = () => {
+    console.log('🎛️ Applying filters:', localFilters);
+    console.log('🎛️ Collaborator IDs selected:', localFilters.collaborators);
+    console.log('🎛️ Tags selected:', localFilters.tags);
+    console.log('🎛️ Price range:', localFilters.priceRange);
     onFiltersChange(localFilters);
     onOpenChange(false);
   };
@@ -308,33 +252,20 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
 
           {/* Collaborators Filter */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">Filter by Collaborators</Label>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowingRecentOnly(!showingRecentOnly)}
-                className="text-xs"
-              >
-                {showingRecentOnly ? "Show All" : "Show Recent Only"}
-              </Button>
-            </div>
+            <Label className="text-sm font-medium">Filter by Collaborators</Label>
             <MultiSelect
               options={collaboratorOptions}
               value={localFilters.collaborators}
               onChange={handleCollaboratorChange}
               placeholder="Select collaborators..."
-              emptyMessage={showingRecentOnly ? "No recently tagged collaborators found." : "No collaborators found."}
+              emptyMessage="No collaborators found."
               loading={loading}
               maxSelections={5}
               searchPlaceholder="Search collaborators..."
             />
             {collaboratorOptions.length === 0 && !loading && (
               <p className="text-xs text-muted-foreground">
-                {showingRecentOnly 
-                  ? "No recently tagged collaborators found. Try 'Show All' or add collaborators to your media first."
-                  : "No collaborators found. Try adding collaborators to your media first."
-                }
+                No collaborators found. Try adding collaborators first.
               </p>
             )}
           </div>

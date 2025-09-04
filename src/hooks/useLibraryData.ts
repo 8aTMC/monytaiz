@@ -81,7 +81,7 @@ export const useLibraryData = ({
             .abortSignal(abortControllerRef.current.signal),
           supabase
             .from('simple_media')
-            .select('id, original_path, processed_path, thumbnail_path, mime_type, media_type, original_size_bytes, title, description, tags, suggested_price_cents, creator_id, created_at, updated_at, width, height, processing_status')
+            .select('id, original_path, processed_path, thumbnail_path, mime_type, media_type, original_size_bytes, title, description, tags, mentions, suggested_price_cents, creator_id, created_at, updated_at, width, height, processing_status')
             .eq('processing_status', 'processed')
             .order('created_at', { ascending: false })
             .abortSignal(abortControllerRef.current.signal)
@@ -131,6 +131,7 @@ export const useLibraryData = ({
             size_bytes: item.original_size_bytes || 0,
             suggested_price_cents: item.suggested_price_cents || 0,
             tags: item.tags || [],
+            mentions: item.mentions || [],
             notes: item.description || null,
             creator_id: item.creator_id,
             created_at: item.created_at,
@@ -190,10 +191,14 @@ export const useLibraryData = ({
         combinedData = combinedData.filter(item => item.type === filter);
       }
 
-      // Apply advanced filters
-      if (filters && combinedData.length > 0) {
+       // Apply advanced filters
+       if (filters && combinedData.length > 0) {
+         console.log('🎯 Applying advanced filters:', filters);
+         const originalCount = combinedData.length;
+         
          // Filter by collaborators
          if (filters.collaborators.length > 0) {
+           console.log('👥 Applying collaborator filter:', filters.collaborators);
            try {
              // Get collaborator names from IDs
              const { data: collaboratorData, error: collaboratorError } = await supabase
@@ -205,31 +210,45 @@ export const useLibraryData = ({
                console.warn('Error fetching collaborators for filtering:', collaboratorError);
              } else if (collaboratorData && collaboratorData.length > 0) {
                const collaboratorNames = collaboratorData.map(c => c.name.toLowerCase());
+               console.log('👥 Looking for collaborator names:', collaboratorNames);
                
                combinedData = combinedData.filter(item => {
                  // Check mentions array (for simple_media)
-                 if ('mentions' in item && item.mentions) {
+                 if (item.mentions && Array.isArray(item.mentions)) {
                    const mentionMatch = item.mentions.some((mention: string) => 
                      collaboratorNames.some(name => mention.toLowerCase().includes(name))
                    );
-                   if (mentionMatch) return true;
+                   if (mentionMatch) {
+                     console.log('✅ Found mention match in:', item.title);
+                     return true;
+                   }
                  }
                  
                  // Check tags array for collaborator references
-                 if (item.tags) {
+                 if (item.tags && Array.isArray(item.tags)) {
                    const tagMatch = item.tags.some((tag: string) => 
                      collaboratorNames.some(name => 
                        tag.toLowerCase().includes(name) || 
                        (tag.startsWith('@') && tag.substring(1).toLowerCase().includes(name))
                      )
                    );
-                   if (tagMatch) return true;
+                   if (tagMatch) {
+                     console.log('✅ Found tag match in:', item.title, 'tags:', item.tags);
+                     return true;
+                   }
                  }
                  
                  // Check title, description, and notes as fallback
                  const searchText = `${item.title || ''} ${item.description || ''} ${item.notes || ''}`.toLowerCase();
-                 return collaboratorNames.some(name => searchText.includes(name));
+                 const textMatch = collaboratorNames.some(name => searchText.includes(name));
+                 if (textMatch) {
+                   console.log('✅ Found text match in:', item.title);
+                   return true;
+                 }
+                 
+                 return false;
                });
+               console.log(`👥 Collaborator filter: ${originalCount} → ${combinedData.length} items`);
              }
            } catch (error) {
              console.warn('Error applying collaborator filter:', error);
@@ -237,24 +256,39 @@ export const useLibraryData = ({
            }
          }
 
-        // Filter by tags
-        if (filters.tags.length > 0) {
-          combinedData = combinedData.filter(item => {
-            if (!item.tags || item.tags.length === 0) return false;
-            return filters.tags.some(filterTag => 
-              item.tags.some(itemTag => itemTag.toLowerCase().includes(filterTag.toLowerCase()))
-            );
-          });
-        }
+         // Filter by tags
+         if (filters.tags.length > 0) {
+           console.log('🏷️ Applying tag filter:', filters.tags);
+           const beforeTagCount = combinedData.length;
+           combinedData = combinedData.filter(item => {
+             if (!item.tags || !Array.isArray(item.tags) || item.tags.length === 0) return false;
+             
+             const hasMatchingTag = filters.tags.some(filterTag => 
+               item.tags.some(itemTag => itemTag.toLowerCase().includes(filterTag.toLowerCase()))
+             );
+             
+             if (hasMatchingTag) {
+               console.log('✅ Tag match found in:', item.title, 'tags:', item.tags);
+             }
+             
+             return hasMatchingTag;
+           });
+           console.log(`🏷️ Tag filter: ${beforeTagCount} → ${combinedData.length} items`);
+         }
 
-        // Filter by price range
-        if (filters.priceRange[0] > 0 || filters.priceRange[1] < 1000000) {
-          combinedData = combinedData.filter(item => {
-            const price = item.suggested_price_cents || 0;
-            return price >= filters.priceRange[0] && price <= filters.priceRange[1];
-          });
-        }
-      }
+         // Filter by price range
+         if (filters.priceRange[0] > 0 || filters.priceRange[1] < 1000000) {
+           console.log('💰 Applying price filter:', filters.priceRange);
+           const beforePriceCount = combinedData.length;
+           combinedData = combinedData.filter(item => {
+             const price = item.suggested_price_cents || 0;
+             return price >= filters.priceRange[0] && price <= filters.priceRange[1];
+           });
+           console.log(`💰 Price filter: ${beforePriceCount} → ${combinedData.length} items`);
+         }
+         
+         console.log(`🎯 Final filtered results: ${combinedData.length} items`);
+       }
 
       // Apply sorting
       if (combinedData.length > 0) {
