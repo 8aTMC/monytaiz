@@ -102,6 +102,12 @@ export function CollaboratorDetailDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] bg-gradient-card border-border/50">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Collaborator Details</DialogTitle>
+          <DialogDescription>
+            View collaborator profile and performance statistics
+          </DialogDescription>
+        </DialogHeader>
         {/* Stats Button - Top Left */}
         <Button
           variant="outline"
