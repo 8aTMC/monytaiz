@@ -119,6 +119,24 @@ export const useCollaborators = () => {
 
   const deleteCollaborator = async (id: string) => {
     try {
+      // First, get the collaborator to check if it has a profile picture
+      const { data: collaborator } = await supabase
+        .from('collaborators')
+        .select('profile_picture_url')
+        .eq('id', id)
+        .single();
+
+      // Delete the profile picture from storage if it exists
+      if (collaborator?.profile_picture_url) {
+        const fileName = collaborator.profile_picture_url.split('/').pop();
+        if (fileName) {
+          await supabase.storage
+            .from('avatars')
+            .remove([`collaborators/${fileName}`]);
+        }
+      }
+
+      // Then delete the database record
       const { error } = await supabase
         .from('collaborators')
         .delete()
@@ -129,7 +147,7 @@ export const useCollaborators = () => {
       setCollaborators(prev => prev.filter(collab => collab.id !== id));
       toast({
         title: "Success",
-        description: "Collaborator deleted successfully"
+        description: "Collaborator and profile picture deleted successfully"
       });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error deleting collaborator';
