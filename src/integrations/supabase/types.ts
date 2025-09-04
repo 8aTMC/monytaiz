@@ -813,6 +813,44 @@ export type Database = {
         }
         Relationships: []
       }
+      media_analytics: {
+        Row: {
+          amount_cents: number | null
+          created_at: string
+          event_type: string
+          id: string
+          media_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents?: number | null
+          created_at?: string
+          event_type: string
+          id?: string
+          media_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          media_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_analytics_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "simple_media"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
@@ -1673,6 +1711,24 @@ export type Database = {
           title: string
           type: string
           updated_at: string
+        }[]
+      }
+      get_media_analytics: {
+        Args: { p_end_date?: string; p_media_id: string; p_start_date?: string }
+        Returns: {
+          date_period: string
+          purchased_count: number
+          revenue_cents: number
+          sent_count: number
+        }[]
+      }
+      get_media_stats: {
+        Args: { p_end_date?: string; p_media_id: string; p_start_date?: string }
+        Returns: {
+          conversion_rate: number
+          total_purchased: number
+          total_revenue_cents: number
+          total_sent: number
         }[]
       }
       get_secure_media_url: {

@@ -10,6 +10,7 @@ import { FolderSelectDialog } from './FolderSelectDialog';
 import { DescriptionDialog } from './DescriptionDialog';
 import { PriceDialog } from './PriceDialog';
 import { EditTitleDialog } from './EditTitleDialog';
+import { RevenueAnalyticsDialog } from './RevenueAnalyticsDialog';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
 import { EnhancedVideoPlayer } from '@/components/EnhancedVideoPlayer';
 import { formatRevenue } from '@/lib/formatRevenue';
@@ -57,6 +58,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
   const [descriptionDialogOpen, setDescriptionDialogOpen] = useState(false);
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
   const [editTitleDialogOpen, setEditTitleDialogOpen] = useState(false);
+  const [revenueAnalyticsDialogOpen, setRevenueAnalyticsDialogOpen] = useState(false);
   
   // Folder selection state
   const [selectedFolders, setSelectedFolders] = useState<string[]>([]);
@@ -461,7 +463,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                    <Button
                      size="sm"
                      className="text-xs bg-green-500 border-green-500 text-white hover:bg-green-600 font-medium opacity-100"
-                     onClick={() => {}}
+                     onClick={() => setRevenueAnalyticsDialogOpen(true)}
                    >
                      Revenue 💰 {formatRevenue(item.revenue_generated_cents)}
                    </Button>
@@ -535,6 +537,12 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
             onOpenChange={setEditTitleDialogOpen}
             title={item.title || ''}
             onTitleChange={handleTitleChange}
+          />
+          
+          <RevenueAnalyticsDialog
+            open={revenueAnalyticsDialogOpen}
+            onOpenChange={setRevenueAnalyticsDialogOpen}
+            mediaItem={item}
           />
         </>
       )}
