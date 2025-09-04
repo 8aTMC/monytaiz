@@ -277,28 +277,30 @@ export const FilePreviewDialog = ({
             {shouldShowNavigation && (
               <>
                 {/* Left navigation button */}
-                 <Button
-                  variant="secondary"
-                  size="icon" 
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 z-50 shadow-lg"
-                  disabled={!hasPrevious}
-                  onClick={handlePrevious}
-                  aria-label="Previous file"
-                >
-                  <ChevronLeft className="h-6 w-6" />
-                </Button>
+                {hasPrevious && (
+                  <Button
+                    variant="secondary"
+                    size="icon" 
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 z-50 shadow-lg"
+                    onClick={handlePrevious}
+                    aria-label="Previous file"
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </Button>
+                )}
                 
                 {/* Right navigation button */}
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 z-50 shadow-lg"
-                  disabled={!hasNext}
-                  onClick={handleNext}
-                  aria-label="Next file"
-                >
-                  <ChevronRight className="h-6 w-6" />
-                </Button>
+                {hasNext && (
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 z-50 shadow-lg"
+                    onClick={handleNext}
+                    aria-label="Next file"
+                  >
+                    <ChevronRight className="h-6 w-6" />
+                  </Button>
+                )}
               </>
             )}
             {/* Header */}
