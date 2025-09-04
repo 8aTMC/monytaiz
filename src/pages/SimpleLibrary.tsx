@@ -361,19 +361,25 @@ export default function SimpleLibrary() {
       }
     }
     
-    // Apply sorting
-    const sorted = [...filtered].sort((a, b) => {
-      switch (sortBy) {
-        case 'newest':
-          return new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime();
-        case 'oldest':
-          return new Date(a?.created_at || 0).getTime() - new Date(b?.created_at || 0).getTime();
-        case 'name':
-          return (a?.title || '').localeCompare(b?.title || '');
-        default:
-          return 0;
-      }
-    });
+  // Apply sorting
+  const sorted = [...filtered].sort((a, b) => {
+    switch (sortBy) {
+      case 'newest':
+        return new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime();
+      case 'oldest':
+        return new Date(a?.created_at || 0).getTime() - new Date(b?.created_at || 0).getTime();
+      case 'name-asc':
+        return (a?.title || '').localeCompare(b?.title || '', undefined, { numeric: true, sensitivity: 'base' });
+      case 'name-desc':
+        return (b?.title || '').localeCompare(a?.title || '', undefined, { numeric: true, sensitivity: 'base' });
+      case 'size-desc':
+        return (b?.size_bytes || 0) - (a?.size_bytes || 0);
+      case 'size-asc':
+        return (a?.size_bytes || 0) - (b?.size_bytes || 0);
+      default:
+        return 0;
+    }
+  });
     
     console.log(`Filtered ${convertedMedia.length} items down to ${sorted.length} items`);
     return sorted;
