@@ -87,23 +87,82 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
         // Load collaborators
         await loadCollaborators();
 
-        // Load saved tags
-        const { data: tags } = await supabase
+        console.log('🏷️ Loading tags...');
+        
+        // First try saved_tags table (requires management permissions)
+        const { data: savedTags, error: savedTagsError } = await supabase
           .from('saved_tags')
           .select('tag_name, usage_count')
           .order('usage_count', { ascending: false });
 
-        if (tags) {
-          console.log('🏷️ Raw tags from DB:', tags);
+        console.log('🏷️ Saved tags response:', { data: savedTags, error: savedTagsError });
+
+        let allTags: Array<{tag_name: string, usage_count: number}> = [];
+
+        if (savedTags && savedTags.length > 0) {
+          console.log('🏷️ Using saved_tags data');
+          allTags = savedTags;
+        } else {
+          console.log('🏷️ Falling back to media tags');
+          // Fallback: Get tags from media tables directly
+          const { data: mediaTags, error: mediaError } = await supabase
+            .from('media')
+            .select('tags')
+            .not('tags', 'is', null);
+            
+          const { data: simpleMediaTags, error: simpleError } = await supabase
+            .from('simple_media')
+            .select('tags')
+            .not('tags', 'is', null);
+
+          console.log('🏷️ Media tags:', { mediaTags, mediaError, simpleMediaTags, simpleError });
+
+          // Combine and count tags from both sources
+          const tagCounts: Record<string, number> = {};
           
+          // Process media tags
+          if (mediaTags) {
+            mediaTags.forEach(item => {
+              if (item.tags && Array.isArray(item.tags)) {
+                item.tags.forEach(tag => {
+                  if (tag && typeof tag === 'string') {
+                    tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+                  }
+                });
+              }
+            });
+          }
+
+          // Process simple_media tags
+          if (simpleMediaTags) {
+            simpleMediaTags.forEach(item => {
+              if (item.tags && Array.isArray(item.tags)) {
+                item.tags.forEach(tag => {
+                  if (tag && typeof tag === 'string') {
+                    tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+                  }
+                });
+              }
+            });
+          }
+
+          // Convert to format expected by the rest of the function
+          allTags = Object.entries(tagCounts)
+            .map(([tag_name, usage_count]) => ({ tag_name, usage_count }))
+            .sort((a, b) => b.usage_count - a.usage_count);
+        }
+
+        console.log('🏷️ All tags processed:', allTags);
+
+        if (allTags.length > 0) {
           // Remove duplicates by tag_name - use tag name directly as value
-          const uniqueTags = tags.reduce((acc, tag) => {
+          const uniqueTags = allTags.reduce((acc, tag) => {
             const existing = acc.find(t => t.tag_name === tag.tag_name);
             if (!existing || tag.usage_count > existing.usage_count) {
               return [...acc.filter(t => t.tag_name !== tag.tag_name), tag];
             }
             return acc;
-          }, [] as typeof tags);
+          }, [] as typeof allTags);
           
           const tagOptions = uniqueTags.map(t => ({
             value: t.tag_name, // Use tag name directly as value
@@ -111,14 +170,16 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
             description: `Used ${t.usage_count} times`
           }));
           
-          console.log('🏷️ Processed tag options:', tagOptions);
+          console.log('🏷️ Final tag options:', tagOptions);
           setTagOptions(tagOptions);
         } else {
-          console.log('🏷️ No tags found');
+          console.log('🏷️ No tags found anywhere');
           setTagOptions([]);
         }
       } catch (error) {
-        console.error('Error loading filter options:', error);
+        console.error('💥 Error loading filter options:', error);
+        setTagOptions([]);
+        setCollaboratorOptions([]);
       } finally {
         setLoading(false);
       }
