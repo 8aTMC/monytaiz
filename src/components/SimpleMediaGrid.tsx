@@ -89,20 +89,10 @@ export const SimpleMediaGrid: React.FC<SimpleMediaGridProps> = ({
               </div>
             )}
             
-            {/* Revenue badge - top right corner */}
-            {item.revenue_generated_cents && item.revenue_generated_cents > 0 && (
-              <div className="absolute top-2 right-2 bg-green-500/90 text-white px-2 py-1 rounded text-xs font-medium">
-                {formatRevenue(item.revenue_generated_cents)}
-              </div>
-            )}
             
-            {/* Media type indicator - positioned to avoid revenue badge overlap */}
+            {/* Media type indicator */}
             {item.media_type !== 'image' && (
-              <div className={`absolute bg-black/50 rounded-full p-1 ${
-                item.revenue_generated_cents && item.revenue_generated_cents > 0 
-                  ? 'bottom-2 right-2' 
-                  : 'top-2 right-2'
-              }`}>
+              <div className="absolute top-2 right-2 bg-black/50 rounded-full p-1">
                 <MediaTypeIcon type={item.media_type} />
               </div>
             )}

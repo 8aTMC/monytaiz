@@ -301,14 +301,6 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                     {formatFileSize(item.optimized_size_bytes || item.original_size_bytes || 0)}
                   </span>
                 </div>
-                {item.revenue_generated_cents && item.revenue_generated_cents > 0 && (
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium">Revenue:</span>
-                    <span className="bg-green-500/10 text-green-600 px-2 py-1 rounded text-xs font-medium">
-                      {formatRevenue(item.revenue_generated_cents)}
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -455,16 +447,26 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                     Description {item.description && item.description.length > 0 && '✓'}
                   </Button>
                   
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPriceDialogOpen(true)}
-                    className="text-xs"
-                  >
-                    <DollarSign className="w-3 h-3 mr-1" />
-                    Price {item.suggested_price_cents && item.suggested_price_cents > 0 && `($${(item.suggested_price_cents / 100).toFixed(2)})`}
-                  </Button>
-                </div>
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     onClick={() => setPriceDialogOpen(true)}
+                     className="text-xs"
+                   >
+                     <DollarSign className="w-3 h-3 mr-1" />
+                     Price {item.suggested_price_cents && item.suggested_price_cents > 0 && `($${(item.suggested_price_cents / 100).toFixed(2)})`}
+                   </Button>
+                   
+                   {/* Revenue Display Button */}
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     className="text-xs bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                     disabled
+                   >
+                     💰 {formatRevenue(item.revenue_generated_cents)}
+                   </Button>
+                 </div>
 
                 {/* Show current metadata values */}
                 <div className="mt-3 space-y-1 text-xs text-muted-foreground">
