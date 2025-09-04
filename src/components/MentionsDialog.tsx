@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +23,14 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
   const [showCollaboratorDialog, setShowCollaboratorDialog] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewImage, setPreviewImage] = useState({ url: '', name: '' });
-  const { collaborators, loading, createCollaborator, getRecentCollaborators, searchCollaborators } = useCollaborators();
+  const { collaborators, loading, createCollaborator, getRecentCollaborators, searchCollaborators, fetchCollaborators } = useCollaborators();
+
+  // Refresh collaborators whenever the dialog opens to ensure fresh data
+  useEffect(() => {
+    if (open && fetchCollaborators) {
+      fetchCollaborators();
+    }
+  }, [open, fetchCollaborators]);
 
   const filteredCollaborators = searchQuery.trim() 
     ? searchCollaborators(searchQuery)
