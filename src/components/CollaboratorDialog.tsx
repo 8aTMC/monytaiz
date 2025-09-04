@@ -88,6 +88,7 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
     setProfileImageBlob(imageBlob);
     setProfileImageUrl(URL.createObjectURL(imageBlob)); // For preview only
     setCropCompleted(true);
+    setShowCropDialog(false); // Close crop dialog after state is updated
   };
 
   const handleCropCancel = () => {
