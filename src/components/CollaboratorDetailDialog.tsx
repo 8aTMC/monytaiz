@@ -24,31 +24,28 @@ export function CollaboratorDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>{collaborator.name}</DialogTitle>
-          <DialogDescription>
-            Collaborator details and information
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="flex flex-col items-center space-y-6 py-4">
+      <DialogContent className="sm:max-w-[500px] bg-gradient-card border-border/50">
+        <div className="flex flex-col items-center space-y-8 py-8">
           {/* Large Avatar */}
-          <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
-            <AvatarImage 
-              src={collaborator.profile_picture_url} 
-              className="object-cover" 
-            />
-            <AvatarFallback className="text-2xl font-semibold bg-muted">
-              {collaborator.name.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="h-36 w-36 border-4 border-primary/20 shadow-glow ring-2 ring-primary/10">
+              <AvatarImage 
+                src={collaborator.profile_picture_url} 
+                className="object-cover" 
+              />
+              <AvatarFallback className="text-4xl font-bold bg-gradient-primary text-primary-foreground">
+                {collaborator.name.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-gradient-primary border-2 border-background shadow-soft" />
+          </div>
 
           {/* Name */}
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-foreground">
+          <div className="text-center space-y-2">
+            <h2 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
               {collaborator.name}
             </h2>
+            <div className="h-px w-16 bg-gradient-primary mx-auto opacity-60" />
           </div>
 
           {/* URL */}
