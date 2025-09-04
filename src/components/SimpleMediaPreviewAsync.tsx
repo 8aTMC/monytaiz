@@ -459,7 +459,6 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                    
                    {/* Revenue Display Button */}
                    <Button
-                     variant="outline"
                      size="sm"
                      className="text-xs bg-green-500 border-green-500 text-white hover:bg-green-600 font-medium"
                      disabled
