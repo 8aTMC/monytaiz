@@ -12,6 +12,7 @@ interface MediaItem {
   size_bytes: number;
   tags: string[];
   suggested_price_cents: number;
+  revenue_generated_cents?: number;
   notes: string | null;
   creator_id: string;
   created_at: string;
@@ -79,10 +80,10 @@ export const useLibraryData = ({
             .gt('file_size', 0)
             .order('created_at', { ascending: false })
             .abortSignal(abortControllerRef.current.signal),
-          supabase
-            .from('simple_media')
-            .select('id, original_path, processed_path, thumbnail_path, mime_type, media_type, original_size_bytes, title, description, tags, mentions, suggested_price_cents, creator_id, created_at, updated_at, width, height, processing_status')
-            .eq('processing_status', 'processed')
+        supabase
+          .from('simple_media')
+          .select('id, original_path, processed_path, thumbnail_path, mime_type, media_type, original_size_bytes, title, description, tags, mentions, suggested_price_cents, revenue_generated_cents, creator_id, created_at, updated_at, width, height, processing_status')
+          .eq('processing_status', 'processed')
             .order('created_at', { ascending: false })
             .abortSignal(abortControllerRef.current.signal)
         ]);
@@ -130,6 +131,7 @@ export const useLibraryData = ({
             mime: item.mime_type || '',
             size_bytes: item.original_size_bytes || 0,
             suggested_price_cents: item.suggested_price_cents || 0,
+            revenue_generated_cents: item.revenue_generated_cents || 0,
             tags: item.tags || [],
             mentions: item.mentions || [],
             notes: item.description || null,
@@ -316,6 +318,7 @@ export const useLibraryData = ({
           updated_at: item.updated_at,
           size_bytes: item.size_bytes || 0,
           suggested_price_cents: item.suggested_price_cents || 0,
+          revenue_generated_cents: item.revenue_generated_cents || 0,
           tags: item.tags || [],
           notes: item.notes || null,
           mime: item.mime || '',

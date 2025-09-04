@@ -12,6 +12,7 @@ import { PriceDialog } from './PriceDialog';
 import { EditTitleDialog } from './EditTitleDialog';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
 import { EnhancedVideoPlayer } from '@/components/EnhancedVideoPlayer';
+import { formatRevenue } from '@/lib/formatRevenue';
 
 interface SimpleMediaPreviewAsyncProps {
   item: SimpleMediaItem | null;
@@ -300,6 +301,14 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                     {formatFileSize(item.optimized_size_bytes || item.original_size_bytes || 0)}
                   </span>
                 </div>
+                {item.revenue_generated_cents && item.revenue_generated_cents > 0 && (
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium">Revenue:</span>
+                    <span className="bg-green-500/10 text-green-600 px-2 py-1 rounded text-xs font-medium">
+                      {formatRevenue(item.revenue_generated_cents)}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 

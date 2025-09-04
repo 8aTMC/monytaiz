@@ -10,6 +10,7 @@ export interface SimpleMediaItem {
   tags: string[];
   mentions?: string[];
   suggested_price_cents?: number;
+  revenue_generated_cents?: number;
   original_filename: string;
   original_path: string;
   processed_path?: string;
