@@ -107,12 +107,12 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
                     className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
                   >
                     <span className="max-w-32 truncate">{option.label}</span>
-                    <button
-                      className="ml-1 hover:bg-primary/30 rounded-full p-0.5 transition-colors"
+                    <div
+                      className="ml-1 hover:bg-primary/30 rounded-full p-0.5 transition-colors cursor-pointer"
                       onClick={(e) => handleRemove(option.value, e)}
                     >
                       <X className="h-3 w-3" />
-                    </button>
+                    </div>
                   </Badge>
                 ))}
                 {remainingCount > 0 && (
