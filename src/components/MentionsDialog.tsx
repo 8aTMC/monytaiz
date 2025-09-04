@@ -143,7 +143,7 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
                   {filteredCollaborators.map((collaborator) => (
                     <div
                       key={collaborator.id}
-                      className="flex items-center gap-3 p-2 rounded-lg border cursor-pointer hover:bg-accent"
+                      className="flex items-center gap-3 p-2 rounded-lg border cursor-pointer hover:bg-accent hover:text-accent-foreground"
                       onClick={() => handleCollaboratorClick(collaborator)}
                     >
                       <Avatar 
