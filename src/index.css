@@ -418,13 +418,13 @@ main.layout-main *::-webkit-scrollbar-thumb:hover {
   pointer-events: auto !important;
 }
 
-/* Modal/Dialog Layer (150-160) - Ensure dialogs appear above media preview */
+/* Modal/Dialog Layer (200-210) - Ensure dialogs appear above media preview */
 [data-radix-dialog-overlay] {
-  z-index: 150 !important;
+  z-index: 200 !important;
 }
 
 [data-radix-dialog-content] {
-  z-index: 160 !important;
+  z-index: 210 !important;
 }
 
 /* Responsive sidebar auto-collapse - force collapse on narrow screens only when collapsed */
