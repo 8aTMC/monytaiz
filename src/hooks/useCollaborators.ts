@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -18,7 +18,7 @@ export const useCollaborators = () => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const fetchCollaborators = async () => {
+  const fetchCollaborators = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -53,7 +53,7 @@ export const useCollaborators = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   const createCollaborator = async (collaboratorData: Omit<Collaborator, 'id' | 'creator_id' | 'created_at' | 'updated_at'>) => {
     try {
@@ -155,7 +155,7 @@ export const useCollaborators = () => {
 
   useEffect(() => {
     fetchCollaborators();
-  }, []);
+  }, [fetchCollaborators]);
 
   return {
     collaborators,
