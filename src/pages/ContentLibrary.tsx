@@ -456,23 +456,23 @@ const ContentLibrary = () => {
                 })}
               </div>
 
-                 {/* Enhanced Search and Sort Controls */}
-              <div className="flex items-center gap-4 order-1 lg:order-2">
-                {/* Advanced Filters Button */}
+              {/* Enhanced Search and Sort Controls */}
+              <div className="flex items-center gap-3 order-1 lg:order-2 flex-wrap">
+                {/* Advanced Filters Button - More Prominent */}
                 <Button
                   variant={hasActiveFilters ? "default" : "outline"}
                   size="sm"
                   onClick={() => setFiltersDialogOpen(true)}
-                  className={`transition-all duration-300 ${
+                  className={`shrink-0 font-medium ${
                     hasActiveFilters
-                      ? "bg-gradient-primary shadow-shadow-glow"
-                      : "hover:bg-gradient-glass hover:shadow-shadow-soft/50"
+                      ? "bg-primary text-primary-foreground shadow-md"
+                      : "border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
                   }`}
                 >
                   <Filter className="h-4 w-4 mr-2" />
                   Filters
                   {hasActiveFilters && (
-                    <Badge variant="secondary" className="ml-2 bg-background/80 text-foreground text-xs px-1.5 py-0.5">
+                    <Badge variant="secondary" className="ml-2 bg-primary-foreground/20 text-primary text-xs px-1.5 py-0.5">
                       {[
                         ...advancedFilters.collaborators,
                         ...advancedFilters.tags,
@@ -483,13 +483,13 @@ const ContentLibrary = () => {
                 </Button>
 
                 {/* Enhanced Search */}
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <div className="relative min-w-0 flex-1 max-w-sm">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     placeholder="Search your content..."
                     value={searchQuery}
                     onChange={(e) => handleSearchChange(e.target.value)}
-                    className="pl-12 w-48 focus:w-72 transition-all duration-300 bg-gradient-glass border-border/50 focus:border-primary/50 focus:shadow-shadow-glow"
+                    className="pl-10 pr-4 w-full bg-background border border-border focus:border-primary transition-colors"
                   />
                 </div>
 
