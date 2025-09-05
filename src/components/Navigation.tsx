@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useAuth } from '@/components/AuthProvider';
+import { useTheme } from "next-themes";
 
 interface UserProfile {
   id: string;
@@ -164,6 +165,15 @@ export const Navigation = ({ role }: NavigationProps) => {
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [isFan, setIsFan] = useState(false);
   const [openSection, setOpenSection] = useState<'fans' | 'content' | 'management' | null>(null);
+  const { theme } = useTheme();
+
+  // Get the appropriate logo based on theme
+  const getLogoSrc = () => {
+    if (theme === 'dark') {
+      return "/lovable-uploads/2c715a7c-0065-47d6-ad0d-741b8e6b1260.png"; // White text for dark mode
+    }
+    return "/lovable-uploads/73f0389e-e8e5-41b8-bd66-df7ad848b428.png"; // Black text for light mode
+  };
 
   // Determine which section should be open based on current route
   const getCurrentSection = (): 'fans' | 'content' | 'management' | null => {
@@ -291,7 +301,7 @@ export const Navigation = ({ role }: NavigationProps) => {
         <>
           <div className="h-[73px] flex items-center justify-center border-b border-border">
             <img 
-              src="/lovable-uploads/2c715a7c-0065-47d6-ad0d-741b8e6b1260.png" 
+              src={getLogoSrc()} 
               alt="MonytAIz Logo" 
               className="w-10 h-10 object-contain transition-all duration-300"
             />
@@ -311,7 +321,7 @@ export const Navigation = ({ role }: NavigationProps) => {
         <>
           <div className="h-[73px] flex items-center justify-center px-4 border-b border-border">
             <img 
-              src="/lovable-uploads/2c715a7c-0065-47d6-ad0d-741b8e6b1260.png" 
+              src={getLogoSrc()} 
               alt="MonytAIz Logo" 
               className="h-10 max-w-full object-contain transition-all duration-300"
             />
