@@ -100,8 +100,8 @@ const CustomChart: React.FC<ChartProps> = ({ data, showSent, showPurchased, maxV
   const purchasedValues = data.map(d => d.purchased);
 
   // Format x-axis labels based on selected period
-  const formatXAxisLabel = (dateString: string, index: number, totalPoints: number) => {
-    const date = new Date(dateString);
+  const formatXAxisLabel = (rawDateString: string, index: number, totalPoints: number) => {
+    const date = new Date(rawDateString);
     
     switch (selectedPeriod) {
       case '1day':
@@ -309,7 +309,7 @@ const CustomChart: React.FC<ChartProps> = ({ data, showSent, showPurchased, maxV
           
           {/* X-axis labels */}
           {data.map((point, index) => {
-            const formattedLabel = formatXAxisLabel(point.date, index, data.length);
+            const formattedLabel = formatXAxisLabel(point.rawDate, index, data.length);
             if (!formattedLabel) return null;
             
             return (

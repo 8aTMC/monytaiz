@@ -225,6 +225,9 @@ export const useMediaAnalytics = (mediaId: string | null) => {
     }
 
     return data.map((point, index) => ({
+      // Preserve original date for proper parsing
+      rawDate: point.date_period,
+      // Keep formatted version for display
       date: new Date(point.date_period).toLocaleDateString('en-US', { 
         month: 'short', 
         day: 'numeric' 
