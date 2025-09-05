@@ -1722,6 +1722,14 @@ export type Database = {
           sent_count: number
         }[]
       }
+      get_media_analytics_date_range: {
+        Args: { p_media_id: string }
+        Returns: {
+          max_date: string
+          min_date: string
+          total_days: number
+        }[]
+      }
       get_media_stats: {
         Args: { p_end_date?: string; p_media_id: string; p_start_date?: string }
         Returns: {

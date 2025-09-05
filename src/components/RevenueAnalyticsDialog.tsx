@@ -421,7 +421,8 @@ export const RevenueAnalyticsDialog: React.FC<RevenueAnalyticsDialogProps> = ({
     loading, 
     error, 
     fetchAnalytics,
-    clearAnalyticsData
+    clearAnalyticsData,
+    actualDateRange
   } = useMediaAnalytics(mediaItem?.id || null);
 
   // Check user role
@@ -526,7 +527,14 @@ export const RevenueAnalyticsDialog: React.FC<RevenueAnalyticsDialogProps> = ({
         <div className="space-y-6 overflow-y-auto pr-2">
           {/* Time Period Selector */}
           <div className="flex flex-col gap-3">
-            <Label className="text-sm font-medium">Time Period</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Time Period</Label>
+              {actualDateRange && actualDateRange.minDate && actualDateRange.maxDate && selectedPeriod === 'all' && (
+                <div className="text-xs text-muted-foreground">
+                  Showing: {actualDateRange.minDate.toLocaleDateString()} - {actualDateRange.maxDate.toLocaleDateString()}
+                </div>
+              )}
+            </div>
             <Tabs value={selectedPeriod} onValueChange={(value) => setSelectedPeriod(value as TimePeriod)}>
               <TabsList className="grid w-full grid-cols-7">
                 {periods.map(period => (
