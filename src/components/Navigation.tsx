@@ -287,13 +287,13 @@ export const Navigation = ({ role }: NavigationProps) => {
         {...(isNarrowScreen && !isCollapsed ? { 'data-manually-opened': 'true' } : {})}
       >
       {isCollapsed ? (
-        /* Collapsed state - logo centered with arrow on right edge */
+        /* Collapsed state - square logo centered with arrow on right edge */
         <>
           <div className="h-[73px] flex items-center justify-center border-b border-border">
             <img 
-              src="/lovable-uploads/1bcee6fa-937a-4164-aecf-ef7d77f74bb8.png" 
-              alt="Monytaiz Logo" 
-              className="w-8 h-8 object-contain"
+              src="/storage/v1/object/public/content/logo/MonytAIz Logo II.png" 
+              alt="MonytAIz Logo" 
+              className="w-10 h-10 object-contain transition-all duration-300"
             />
           </div>
           <Button
@@ -307,16 +307,14 @@ export const Navigation = ({ role }: NavigationProps) => {
           </Button>
         </>
       ) : (
-        /* Extended state - logo left, name center, close arrow on edge */
+        /* Extended state - centered wide banner logo */
         <>
-          <div className="h-[73px] flex items-center justify-between px-4 border-b border-border">
+          <div className="h-[73px] flex items-center justify-center px-4 border-b border-border">
             <img 
-              src="/lovable-uploads/1bcee6fa-937a-4164-aecf-ef7d77f74bb8.png" 
-              alt="Monytaiz Logo" 
-              className="w-8 h-8 object-contain flex-shrink-0"
+              src="/storage/v1/object/public/content/logo/MonytAIz Logo Banner.png" 
+              alt="MonytAIz Logo" 
+              className="h-10 object-contain transition-all duration-300"
             />
-            <h1 className="text-lg font-bold text-foreground">Monytaiz</h1>
-            <div className="w-8"></div> {/* Spacer for balance */}
           </div>
           <Button
             variant="ghost"
