@@ -323,7 +323,7 @@ export const Navigation = ({ role }: NavigationProps) => {
             <img 
               src={getLogoSrc()} 
               alt="MonytAIz Logo" 
-              className="h-[50px] max-w-full object-contain transition-all duration-300"
+              className="h-[50px] w-[200px] object-contain transition-all duration-300"
             />
           </div>
           <Button
