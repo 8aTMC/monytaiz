@@ -207,8 +207,8 @@ export const Navigation = ({ role }: NavigationProps) => {
     console.log('🔍 Theme === "light":', theme === 'light');
     
     const logoPath = theme === 'dark' 
-      ? "/lovable-uploads/MonytAIz-Logo-Banner.png" 
-      : "/lovable-uploads/MonytAIz-Logo-II.png";
+      ? "/lovable-uploads/d9e6eff2-0ccc-4a7e-bf0b-d535a434f651.png" 
+      : "/lovable-uploads/f6c290aa-85e6-44ef-9956-3dcdc54c99f5.png";
     
     console.log('🔍 Selected logo path:', logoPath);
     
