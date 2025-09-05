@@ -182,12 +182,12 @@ export const RevenueAnalyticsDialog = ({ open, onOpenChange, mediaId, mediaTitle
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
                   <Badge variant="secondary" className="text-xs">
-                    {(stats.conversion_rate * 100).toFixed(1)}%
+                    {stats.conversion_rate.toFixed(1)}%
                   </Badge>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {(stats.conversion_rate * 100).toFixed(1)}%
+                    {stats.conversion_rate.toFixed(1)}%
                   </div>
                   <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                     <span>Purchase rate</span>
