@@ -25,10 +25,10 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 220 9% 14%;
 
-    /* OnlyFans blue with our purple twist */
-    --primary: 200 95% 50%;
+    /* Logo blue - modern and sophisticated */
+    --primary: 220 85% 60%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 200 100% 70%;
+    --primary-glow: 220 85% 75%;
 
     /* Light secondary colors */
     --secondary: 210 40% 96%;
@@ -37,7 +37,7 @@ All colors MUST be HSL.
     --muted: 210 40% 95%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 200 95% 50%;
+    --accent: 220 85% 60%;
     --accent-foreground: 0 0% 100%;
 
     /* Premium gold accent for special features */
@@ -49,25 +49,25 @@ All colors MUST be HSL.
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 200 95% 50%;
+    --ring: 220 85% 60%;
 
     --radius: 0.75rem;
 
-    /* Enhanced gradients for modern UI */
+    /* Enhanced gradients for modern UI with logo blue */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
     --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(210 20% 98%) 30%, hsl(var(--card)) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(200 95% 50%), hsl(215 80% 60%), hsl(45 100% 55%));
-    --gradient-glass: linear-gradient(135deg, hsla(200, 95%, 50%, 0.08), hsla(215, 80%, 60%, 0.04));
+    --gradient-hero: linear-gradient(135deg, hsl(220 85% 60%), hsl(220 80% 70%), hsl(45 100% 55%));
+    --gradient-glass: linear-gradient(135deg, hsla(220, 85%, 60%, 0.08), hsla(220, 80%, 70%, 0.04));
     --gradient-sidebar: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(210 25% 97%) 100%);
-    --gradient-header: linear-gradient(180deg, hsl(var(--card)) 0%, hsla(200, 95%, 50%, 0.02) 100%);
-    --gradient-selection: linear-gradient(135deg, hsla(200, 95%, 50%, 0.1), hsla(200, 95%, 50%, 0.05));
+    --gradient-header: linear-gradient(180deg, hsl(var(--card)) 0%, hsla(220, 85%, 60%, 0.02) 100%);
+    --gradient-selection: linear-gradient(135deg, hsla(220, 85%, 60%, 0.1), hsla(220, 85%, 60%, 0.05));
 
-    /* Enhanced shadows with depth */
-    --shadow-soft: 0 4px 20px hsla(200, 95%, 50%, 0.12);
-    --shadow-glow: 0 0 40px hsla(200, 95%, 50%, 0.15);
+    /* Enhanced shadows with depth using logo blue */
+    --shadow-soft: 0 4px 20px hsla(220, 85%, 60%, 0.12);
+    --shadow-glow: 0 0 40px hsla(220, 85%, 60%, 0.15);
     --shadow-card: 0 8px 32px hsla(220, 9%, 14%, 0.08);
     --shadow-elevated: 0 12px 48px hsla(220, 9%, 14%, 0.12);
-    --shadow-hover: 0 16px 64px hsla(200, 95%, 50%, 0.2);
+    --shadow-hover: 0 16px 64px hsla(220, 85%, 60%, 0.2);
 
   /* Animations */
   --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -80,12 +80,12 @@ All colors MUST be HSL.
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 220 9% 14%;
-    --sidebar-primary: 200 95% 50%;
+    --sidebar-primary: 220 85% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 210 40% 96%;
     --sidebar-accent-foreground: 220 9% 14%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 200 95% 50%;
+    --sidebar-ring: 220 85% 60%;
   }
 
   .dark {
