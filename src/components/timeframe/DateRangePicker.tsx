@@ -138,14 +138,14 @@ export const DateRangePicker = ({ value, onChange, timezone }: DateRangePickerPr
           </div>
           
           {/* Calendar */}
-          <div className="p-3">
+          <div className="p-3 pointer-events-auto">
             <Calendar
               mode="range"
               defaultMonth={value.start}
               selected={selectedRange}
               onSelect={handleRangeSelect}
               numberOfMonths={2}
-              className={cn("p-3 pointer-events-auto")}
+              className="pointer-events-auto"
             />
           </div>
         </div>

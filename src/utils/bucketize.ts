@@ -151,7 +151,14 @@ const formatBucketLabel = (
   }
 };
 
-// Helper to convert old analytics data format to new bucketed format
+// Multi-metric data interface
+export interface MultiMetricBuckets {
+  revenue: DataBucket[];
+  sent: DataBucket[];
+  purchased: DataBucket[];
+}
+
+// Helper to convert old analytics data format to multi-metric bucketed format
 export const convertAnalyticsData = (
   oldData: Array<{
     date_period: string;
@@ -160,12 +167,31 @@ export const convertAnalyticsData = (
     revenue_cents: number;
   }>,
   options: BucketizeOptions
-): DataBucket[] => {
-  const rawData: RawDataPoint[] = oldData.map(point => ({
+): MultiMetricBuckets => {
+  // Convert revenue data
+  const revenueData: RawDataPoint[] = oldData.map(point => ({
     timestamp: new Date(point.date_period),
     value: point.revenue_cents / 100, // Convert to dollars
-    count: point.sent_count
+    count: 1
   }));
-  
-  return bucketize(rawData, options);
+
+  // Convert sent data
+  const sentData: RawDataPoint[] = oldData.map(point => ({
+    timestamp: new Date(point.date_period),
+    value: point.sent_count,
+    count: 1
+  }));
+
+  // Convert purchased data
+  const purchasedData: RawDataPoint[] = oldData.map(point => ({
+    timestamp: new Date(point.date_period),
+    value: point.purchased_count,
+    count: 1
+  }));
+
+  return {
+    revenue: bucketize(revenueData, options),
+    sent: bucketize(sentData, options),
+    purchased: bucketize(purchasedData, options)
+  };
 };

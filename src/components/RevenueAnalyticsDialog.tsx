@@ -7,6 +7,7 @@ import { useLocalTimeframe } from '@/hooks/useGlobalTimeframe';
 import { DateRangePicker } from '@/components/timeframe/DateRangePicker';
 import { GranularitySelector } from '@/components/timeframe/GranularitySelector';
 import { ScrollableChart } from '@/components/timeframe/ScrollableChart';
+import { ChartSelector, ChartMetric } from '@/components/timeframe/ChartSelector';
 import { convertAnalyticsData } from '@/utils/bucketize';
 import { formatRevenue } from '@/lib/formatRevenue';
 import { TrendingUp, TrendingDown, DollarSign, Users, ShoppingCart } from 'lucide-react';
@@ -20,6 +21,8 @@ interface RevenueAnalyticsDialogProps {
 
 export const RevenueAnalyticsDialog = ({ open, onOpenChange, mediaId, mediaTitle }: RevenueAnalyticsDialogProps) => {
   const timeframe = useLocalTimeframe();
+  const [selectedMetrics, setSelectedMetrics] = useState<ChartMetric[]>(['revenue']);
+  
   const { 
     data, 
     stats, 
@@ -45,13 +48,34 @@ export const RevenueAnalyticsDialog = ({ open, onOpenChange, mediaId, mediaTitle
     }
   }, [open, clearAnalyticsData]);
 
-  // Convert analytics data to bucketed format
-  const bucketedData = data ? convertAnalyticsData(data, {
+  // Convert analytics data to multi-metric bucketed format
+  const multiMetricData = data ? convertAnalyticsData(data, {
     start: timeframe.start,
     end: timeframe.end,
     granularity: timeframe.granularity,
     timezone: timeframe.timezone
-  }) : [];
+  }) : { revenue: [], sent: [], purchased: [] };
+
+  // Prepare data for chart based on selected metrics
+  const chartMetrics = selectedMetrics.map(metric => ({
+    metric,
+    data: multiMetricData[metric],
+    format: metric === 'revenue' 
+      ? (value: number) => formatRevenue(value * 100)
+      : (value: number) => value.toLocaleString()
+  }));
+
+  const getChartTitle = () => {
+    if (selectedMetrics.length === 1) {
+      const metricNames = {
+        revenue: 'Revenue',
+        sent: 'Times Sent', 
+        purchased: 'Times Purchased'
+      };
+      return `${metricNames[selectedMetrics[0]]} Over Time`;
+    }
+    return 'Analytics Over Time';
+  };
 
   const renderTrend = (trend: number) => {
     if (trend === 0) return null;
@@ -173,27 +197,49 @@ export const RevenueAnalyticsDialog = ({ open, onOpenChange, mediaId, mediaTitle
             </div>
           )}
 
+          {/* Chart Selector */}
+          {!loading && !error && (
+            <ChartSelector
+              selectedMetrics={selectedMetrics}
+              onSelectionChange={setSelectedMetrics}
+            />
+          )}
+
           {/* Chart */}
-          {!loading && !error && bucketedData.length > 0 && (
+          {!loading && !error && selectedMetrics.length > 0 && multiMetricData.revenue.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Revenue Over Time</CardTitle>
+                <CardTitle>{getChartTitle()}</CardTitle>
                 <CardDescription>
-                  Showing revenue trends for the selected period ({timeframe.granularity})
+                  Showing analytics trends for the selected period ({timeframe.granularity})
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <ScrollableChart
-                  data={bucketedData}
-                  onTooltipValueFormat={(value) => formatRevenue(value * 100)}
+                  metrics={chartMetrics}
                   className="h-80"
                 />
               </CardContent>
             </Card>
           )}
 
+          {/* No Metrics Selected */}
+          {!loading && !error && selectedMetrics.length === 0 && multiMetricData.revenue.length > 0 && (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center py-8">
+                  <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                  <h3 className="text-lg font-semibold mb-2">No Metrics Selected</h3>
+                  <p className="text-muted-foreground">
+                    Please select at least one metric to display the chart.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Empty State */}
-          {!loading && !error && bucketedData.length === 0 && (
+          {!loading && !error && multiMetricData.revenue.length === 0 && (
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center py-8">
