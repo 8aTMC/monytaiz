@@ -291,7 +291,7 @@ export const Navigation = ({ role }: NavigationProps) => {
         <>
           <div className="h-[73px] flex items-center justify-center border-b border-border">
             <img 
-              src="/lovable-uploads/811a974e-5fe2-49c2-99d8-f18e8e2be1db.png" 
+              src="/lovable-uploads/2c715a7c-0065-47d6-ad0d-741b8e6b1260.png" 
               alt="MonytAIz Logo" 
               className="w-10 h-10 object-contain transition-all duration-300"
             />
@@ -311,7 +311,7 @@ export const Navigation = ({ role }: NavigationProps) => {
         <>
           <div className="h-[73px] flex items-center justify-center px-4 border-b border-border">
             <img 
-              src="/lovable-uploads/811a974e-5fe2-49c2-99d8-f18e8e2be1db.png" 
+              src="/lovable-uploads/2c715a7c-0065-47d6-ad0d-741b8e6b1260.png" 
               alt="MonytAIz Logo" 
               className="h-10 max-w-full object-contain transition-all duration-300"
             />
