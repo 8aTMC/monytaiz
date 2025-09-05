@@ -224,19 +224,27 @@ export const useMediaAnalytics = (mediaId: string | null) => {
       return [];
     }
 
-    return data.map((point, index) => ({
-      // Preserve original date for proper parsing
-      rawDate: point.date_period,
-      // Keep formatted version for display
-      date: new Date(point.date_period).toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric' 
-      }),
-      sent: Number(point.sent_count),
-      purchased: Number(point.purchased_count),
-      revenue: Number(point.revenue_cents) / 100, // Convert to dollars
-      index
-    }));
+    return data.map((point, index) => {
+      // Debug: Log the original date_period format
+      console.log('Raw date_period from DB:', point.date_period, 'Type:', typeof point.date_period);
+      
+      const parsedDate = new Date(point.date_period);
+      console.log('Parsed date:', parsedDate, 'ISO:', parsedDate.toISOString());
+      
+      return {
+        // Preserve original date for proper parsing - convert to ISO string for consistency
+        rawDate: point.date_period,
+        // Keep formatted version for display
+        date: parsedDate.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric' 
+        }),
+        sent: Number(point.sent_count),
+        purchased: Number(point.purchased_count),
+        revenue: Number(point.revenue_cents) / 100, // Convert to dollars
+        index
+      };
+    });
   }, [data]);
 
   // Calculate trends for stats

@@ -101,7 +101,9 @@ const CustomChart: React.FC<ChartProps> = ({ data, showSent, showPurchased, maxV
 
   // Format x-axis labels based on selected period
   const formatXAxisLabel = (rawDateString: string, index: number, totalPoints: number) => {
+    console.log('formatXAxisLabel called with:', rawDateString, 'index:', index);
     const date = new Date(rawDateString);
+    console.log('Parsed date in formatXAxisLabel:', date, 'Valid:', !isNaN(date.getTime()));
     
     switch (selectedPeriod) {
       case '1day':
