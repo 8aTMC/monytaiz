@@ -10,6 +10,7 @@ import { ScrollableChart } from '@/components/timeframe/ScrollableChart';
 import { ChartSelector, ChartMetric } from '@/components/timeframe/ChartSelector';
 import { convertAnalyticsData } from '@/utils/bucketize';
 import { formatRevenue } from '@/lib/formatRevenue';
+import { formatPercentageWithPeriodical } from '@/lib/utils';
 import { TrendingUp, TrendingDown, DollarSign, Users, ShoppingCart } from 'lucide-react';
 
 interface RevenueAnalyticsDialogProps {
@@ -182,12 +183,12 @@ export const RevenueAnalyticsDialog = ({ open, onOpenChange, mediaId, mediaTitle
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
                   <Badge variant="secondary" className="text-xs">
-                    {stats.conversion_rate.toFixed(1)}%
+                    {formatPercentageWithPeriodical(stats.conversion_rate)}
                   </Badge>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {stats.conversion_rate.toFixed(1)}%
+                    {formatPercentageWithPeriodical(stats.conversion_rate)}
                   </div>
                   <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                     <span>Purchase rate</span>

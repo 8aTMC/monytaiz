@@ -29,3 +29,29 @@ export function formatSubscriptionDuration(days: number): string {
     }
   }
 }
+
+export function formatPercentageWithPeriodical(percentage: number): string {
+  // Check for periodical decimals by examining common fractions that result in repeating decimals
+  const rounded = Math.round(percentage * 100) / 100; // Round to 2 decimal places for comparison
+  const formatted = rounded.toFixed(2);
+  
+  // Detect common periodical patterns (like 11.111... from 1/9, 33.333... from 1/3, etc.)
+  const decimal = rounded % 1;
+  const isRepeating = Math.abs(decimal * 9 - Math.round(decimal * 9)) < 0.001 || 
+                      Math.abs(decimal * 3 - Math.round(decimal * 3)) < 0.001 ||
+                      Math.abs(decimal * 99 - Math.round(decimal * 99)) < 0.001;
+  
+  if (isRepeating) {
+    // For numbers like 11.111..., show 11.1̄1%
+    const parts = formatted.split('.');
+    if (parts[1]) {
+      const lastDigit = parts[1][1];
+      const firstDigit = parts[1][0];
+      if (lastDigit && firstDigit === lastDigit) {
+        return `${parts[0]}.${firstDigit}̄${lastDigit}%`;
+      }
+    }
+  }
+  
+  return `${formatted}%`;
+}
