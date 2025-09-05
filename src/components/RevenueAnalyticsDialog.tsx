@@ -138,22 +138,20 @@ export const RevenueAnalyticsDialog = ({ open, onOpenChange, mediaId, mediaTitle
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
-              Analytics: {mediaTitle}
-            </DialogTitle>
+          <DialogTitle className="flex items-center gap-4">
+            <DollarSign className="h-5 w-5" />
+            Analytics: {mediaTitle}
             <Button
               variant="outline"
               size="sm"
               onClick={handleRestoreRealData}
               disabled={isRestoring || loading}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 ml-4"
             >
               <RotateCcw className={`h-4 w-4 ${isRestoring ? 'animate-spin' : ''}`} />
               {isRestoring ? 'Restoring...' : 'Restore Real Data'}
             </Button>
-          </div>
+          </DialogTitle>
         </DialogHeader>
 
         <ScrollArea className="h-full">
