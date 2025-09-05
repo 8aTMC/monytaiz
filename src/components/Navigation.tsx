@@ -201,10 +201,13 @@ export const Navigation = ({ role }: NavigationProps) => {
 
   // Get the appropriate logo based on theme
   const getLogoSrc = () => {
+    console.log('🎨 Current theme for logo:', theme);
     if (theme === 'dark') {
-      return "/lovable-uploads/b346acb8-135c-49b3-96a2-2acf4fbf6851.png"; // MonytAIz Logo Banner for dark mode
+      console.log('🌙 Using dark mode logo: MonytAIz-Logo-Banner.png');
+      return "/lovable-uploads/MonytAIz-Logo-Banner.png"; // Blue AIz banner logo for dark mode
     }
-    return "/lovable-uploads/73f0389e-e8e5-41b8-bd66-df7ad848b428.png"; // Black text for light mode
+    console.log('☀️ Using light mode logo: MonytAIz-Logo-II.png');
+    return "/lovable-uploads/MonytAIz-Logo-II.png"; // Black text MonytAIz logo for light mode
   };
 
   // Determine which section should be open based on current route
