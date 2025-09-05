@@ -18,7 +18,8 @@ import { getVideoMetadata, VideoQualityInfo } from '@/lib/videoQuality';
 import { useSmartQuality, QualityLevel } from '@/hooks/useSmartQuality';
 import { useOptimizedSecureMedia } from '@/hooks/useOptimizedSecureMedia';
 import { useVideoQualityLoader } from '@/hooks/useVideoQualityLoader';
-import { useProgressiveVideoLoader } from '@/hooks/useProgressiveVideoLoader';
+import { useAdaptiveStreaming } from '@/hooks/useAdaptiveStreaming';
+import { NetworkQualityIndicator } from './NetworkQualityIndicator';
 import { QualityTransitionNotification } from './QualityTransitionNotification';
 
 interface OptimizedVideoPlayerProps {
@@ -97,27 +98,53 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
 
   const { getSecureUrl, preloadMultipleQualities, loading: mediaLoading } = useOptimizedSecureMedia();
   
-  // Progressive video loading for instant playback with quality upgrades
+  // Load available video qualities
+  const { availableQualities: videoQualities, loading: qualitiesLoading, loadQualities } = useVideoQualityLoader(mediaId);
+  
+  // Adaptive streaming with network monitoring and quality management
   const {
-    loadingState,
-    recentTransitions,
-    getCurrentVideoUrl,
-    isReady
-  } = useProgressiveVideoLoader(mediaId, selectedQuality, videoRef);
+    currentQuality: adaptiveQuality,
+    recommendedQuality,
+    bufferHealth,
+    networkStatus,
+    adaptiveEnabled,
+    setManualQuality,
+    enableAutoMode,
+    lastDecision
+  } = useAdaptiveStreaming(videoRef.current, config.availableQualities);
 
-  // Update current video URL when progressive loader provides one
+  // Load video qualities and setup adaptive streaming
   useEffect(() => {
-    if (isReady) {
-      const progressiveUrl = getCurrentVideoUrl();
-      if (progressiveUrl && progressiveUrl !== currentVideoUrl) {
-        setCurrentVideoUrl(progressiveUrl);
-        setQualityLoading(false);
+    if (mediaId) {
+      loadQualities();
+    }
+  }, [mediaId, loadQualities]);
+
+  // Handle quality changes from adaptive streaming
+  useEffect(() => {
+    if (adaptiveEnabled && adaptiveQuality !== selectedQuality) {
+      setQuality(adaptiveQuality);
+      setQualityLoading(true);
+      
+      // Generate new URL for the selected quality
+      if (storagePath) {
+        const transforms = qualityToTransforms(adaptiveQuality);
+        getSecureUrl(storagePath, transforms, 'normal').then(url => {
+          if (url && url !== currentVideoUrl) {
+            setCurrentVideoUrl(url);
+            setQualityLoading(false);
+          }
+        });
       }
-    } else if (src !== currentVideoUrl) {
-      // Fallback to original source while progressive loader initializes
+    }
+  }, [adaptiveQuality, adaptiveEnabled, selectedQuality, setQuality, storagePath, getSecureUrl, currentVideoUrl]);
+
+  // Fallback URL update when not using adaptive mode
+  useEffect(() => {
+    if (!adaptiveEnabled && src !== currentVideoUrl) {
       setCurrentVideoUrl(src);
     }
-  }, [isReady, getCurrentVideoUrl, currentVideoUrl, src]);
+  }, [adaptiveEnabled, src, currentVideoUrl]);
 
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
@@ -288,21 +315,29 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
       />
 
       {/* Loading/Buffering Overlay */}
-      {(isBuffering || (!isReady && (qualityLoading || mediaLoading))) && (
+      {(isBuffering || qualityLoading || mediaLoading || qualitiesLoading) && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/20">
           <div className="flex flex-col items-center gap-2 text-white">
             <Loader2 className="w-8 h-8 animate-spin" />
-            {loadingState.isUpgrading && (
-              <span className="text-sm text-white/80">Upgrading quality...</span>
+            {adaptiveEnabled && lastDecision && (
+              <span className="text-sm text-white/80">
+                {lastDecision.shouldSwitch ? 'Switching quality...' : 'Optimizing...'}
+              </span>
             )}
           </div>
         </div>
       )}
 
       {/* Quality Transition Notifications */}
-      <QualityTransitionNotification 
-        transition={recentTransitions[recentTransitions.length - 1] || null}
-      />
+      {lastDecision && lastDecision.shouldSwitch && (
+        <QualityTransitionNotification 
+          transition={{
+            from: selectedQuality,
+            to: lastDecision.recommendedQuality,
+            timestamp: Date.now()
+          }}
+        />
+      )}
 
       {/* Controls Overlay */}
       <div 
@@ -380,12 +415,12 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
           <div className="flex items-center gap-2">
             {/* Quality Selector */}
             <Select
-              value={isAutoMode ? 'auto' : selectedQuality}
+              value={adaptiveEnabled ? 'auto' : selectedQuality}
               onValueChange={(value) => {
                 if (value === 'auto') {
-                  enableAutoQuality();
+                  enableAutoMode();
                 } else {
-                  setQuality(value as QualityLevel);
+                  setManualQuality(value as QualityLevel);
                 }
               }}
             >
@@ -411,14 +446,18 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
                 />
               )}
               {/* Current Quality Indicator */}
-              {loadingState.currentQuality && (
-                <div className="px-2 py-1 text-xs font-medium text-white bg-black/50 border border-white/20 rounded">
-                  {loadingState.currentQuality.toUpperCase()}
-                  {loadingState.isUpgrading && (
-                    <span className="ml-1 text-green-400">↗</span>
-                  )}
-                </div>
-              )}
+              <div className="px-2 py-1 text-xs font-medium text-white bg-black/50 border border-white/20 rounded">
+                {(adaptiveEnabled ? adaptiveQuality : selectedQuality).toUpperCase()}
+                {adaptiveEnabled && lastDecision?.shouldSwitch && (
+                  <span className="ml-1 text-green-400">↗</span>
+                )}
+              </div>
+              
+              {/* Network Quality Indicator */}
+              <NetworkQualityIndicator 
+                networkStatus={networkStatus}
+                className="text-white"
+              />
             </div>
 
             <Button
