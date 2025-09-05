@@ -147,7 +147,7 @@ const Platform = () => {
 
           {/* Quick Actions */}
           <div className="mb-8 flex gap-4">
-            <Button onClick={() => navigate('/upload')} className="gap-2">
+            <Button variant="aiz" onClick={() => navigate('/upload')} className="gap-2">
               <Plus className="h-4 w-4" />
               {t('platform.dashboard.uploadContent', 'Upload Content')}
             </Button>
