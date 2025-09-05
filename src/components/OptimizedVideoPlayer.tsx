@@ -18,6 +18,8 @@ import { getVideoMetadata, VideoQualityInfo } from '@/lib/videoQuality';
 import { useSmartQuality, QualityLevel } from '@/hooks/useSmartQuality';
 import { useOptimizedSecureMedia } from '@/hooks/useOptimizedSecureMedia';
 import { useVideoQualityLoader } from '@/hooks/useVideoQualityLoader';
+import { useProgressiveVideoLoader } from '@/hooks/useProgressiveVideoLoader';
+import { QualityTransitionNotification } from './QualityTransitionNotification';
 
 interface OptimizedVideoPlayerProps {
   src: string;
@@ -94,61 +96,28 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
   });
 
   const { getSecureUrl, preloadMultipleQualities, loading: mediaLoading } = useOptimizedSecureMedia();
-  const { availableQualities: processedQualities, loadQualities, getQualityByHeight } = useVideoQualityLoader(mediaId);
+  
+  // Progressive video loading for instant playback with quality upgrades
+  const {
+    loadingState,
+    recentTransitions,
+    getCurrentVideoUrl,
+    isReady
+  } = useProgressiveVideoLoader(mediaId, selectedQuality, videoRef);
 
-  // Load processed video qualities on mount
+  // Update current video URL when progressive loader provides one
   useEffect(() => {
-    if (mediaId) {
-      loadQualities();
-    }
-  }, [mediaId, loadQualities]);
-
-  // Load optimized video URL based on selected quality
-  useEffect(() => {
-    const loadOptimizedVideo = async () => {
-      if (!storagePath) {
-        setCurrentVideoUrl(src);
-        return;
-      }
-
-      setQualityLoading(true);
-      try {
-        let videoUrl = src; // Default fallback
-
-        // First, try to use processed quality variants
-        if (processedQualities.length > 0) {
-          const targetHeight = selectedQuality === '360p' ? 360 :
-                              selectedQuality === '480p' ? 480 :
-                              selectedQuality === '720p' ? 720 :
-                              selectedQuality === '1080p' ? 1080 : 720;
-          
-          const bestQuality = getQualityByHeight(targetHeight);
-          if (bestQuality?.url) {
-            videoUrl = bestQuality.url;
-            console.log(`Using processed quality: ${bestQuality.quality} for ${selectedQuality}`);
-          }
-        }
-
-        // Fallback to image transforms if no processed qualities
-        if (videoUrl === src && storagePath) {
-          const transforms = qualityToTransforms(selectedQuality);
-          const optimizedUrl = await getSecureUrl(storagePath, transforms, 'high');
-          if (optimizedUrl) {
-            videoUrl = optimizedUrl;
-          }
-        }
-
-        setCurrentVideoUrl(videoUrl);
-      } catch (error) {
-        console.error('Failed to load optimized video:', error);
-        setCurrentVideoUrl(src); // Final fallback
-      } finally {
+    if (isReady) {
+      const progressiveUrl = getCurrentVideoUrl();
+      if (progressiveUrl && progressiveUrl !== currentVideoUrl) {
+        setCurrentVideoUrl(progressiveUrl);
         setQualityLoading(false);
       }
-    };
-
-    loadOptimizedVideo();
-  }, [src, storagePath, selectedQuality, processedQualities, getQualityByHeight, getSecureUrl]);
+    } else if (src !== currentVideoUrl) {
+      // Fallback to original source while progressive loader initializes
+      setCurrentVideoUrl(src);
+    }
+  }, [isReady, getCurrentVideoUrl, currentVideoUrl, src]);
 
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
@@ -319,11 +288,21 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
       />
 
       {/* Loading/Buffering Overlay */}
-      {(isBuffering || qualityLoading || mediaLoading) && (
+      {(isBuffering || (!isReady && (qualityLoading || mediaLoading))) && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-          <Loader2 className="w-8 h-8 text-white animate-spin" />
+          <div className="flex flex-col items-center gap-2 text-white">
+            <Loader2 className="w-8 h-8 animate-spin" />
+            {loadingState.isUpgrading && (
+              <span className="text-sm text-white/80">Upgrading quality...</span>
+            )}
+          </div>
         </div>
       )}
+
+      {/* Quality Transition Notifications */}
+      <QualityTransitionNotification 
+        transition={recentTransitions[recentTransitions.length - 1] || null}
+      />
 
       {/* Controls Overlay */}
       <div 
@@ -424,12 +403,23 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
             </Select>
 
             {/* Quality Badge */}
-            {videoQualityInfo && (
-              <VideoQualityBadge 
-                qualityInfo={videoQualityInfo}
-                className="text-white bg-black/50 border-white/20"
-              />
-            )}
+            <div className="flex items-center gap-2">
+              {videoQualityInfo && (
+                <VideoQualityBadge 
+                  qualityInfo={videoQualityInfo}
+                  className="text-white bg-black/50 border-white/20"
+                />
+              )}
+              {/* Current Quality Indicator */}
+              {loadingState.currentQuality && (
+                <div className="px-2 py-1 text-xs font-medium text-white bg-black/50 border border-white/20 rounded">
+                  {loadingState.currentQuality.toUpperCase()}
+                  {loadingState.isUpgrading && (
+                    <span className="ml-1 text-green-400">↗</span>
+                  )}
+                </div>
+              )}
+            </div>
 
             <Button
               variant="ghost"
