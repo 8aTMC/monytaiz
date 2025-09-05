@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Play, Pause, Volume2, VolumeX, Maximize2 } from 'lucide-react';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
 import { VideoQualityBadge } from './VideoQualityBadge';
+import { AdaptiveVideoPlayer } from './AdaptiveVideoPlayer';
 import { detectVideoQuality, VideoQualityInfo } from '@/lib/videoQuality';
 
 interface MediaPreviewProps {
@@ -131,52 +132,15 @@ export const MediaPreview = ({
               />
             )}
 
-            {item.media_type === 'video' && currentUrl && (
-              <div className="video-container relative">
-                <video
-                  src={currentUrl}
-                  className="w-full h-auto max-h-[60vh] object-contain"
-                  controls={false}
-                  onPlay={() => setIsPlaying(true)}
-                  onPause={() => setIsPlaying(false)}
-                  onVolumeChange={(e) => setIsMuted(e.currentTarget.muted)}
-                >
-                  Your browser does not support video playback.
-                </video>
-                
-                {/* Custom Video Controls */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                  <div className="flex items-center justify-between text-white">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={togglePlayback}
-                        className="text-white hover:bg-white/20"
-                      >
-                        {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                      </Button>
-                      
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={toggleMute}
-                        className="text-white hover:bg-white/20"
-                      >
-                        {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                      </Button>
-                    </div>
-                    
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={toggleFullscreen}
-                      className="text-white hover:bg-white/20"
-                    >
-                      <Maximize2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
+            {item.media_type === 'video' && (
+              <div className="max-h-[60vh]">
+                <AdaptiveVideoPlayer
+                  mediaId={item.id}
+                  src={currentUrl || undefined}
+                  className="w-full"
+                  autoPlay={false}
+                  startQuality="480p"
+                />
               </div>
             )}
 

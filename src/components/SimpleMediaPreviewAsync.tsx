@@ -12,7 +12,7 @@ import { PriceDialog } from './PriceDialog';
 import { EditTitleDialog } from './EditTitleDialog';
 import { RevenueAnalyticsDialog } from './RevenueAnalyticsDialog';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
-import { EnhancedVideoPlayer } from '@/components/EnhancedVideoPlayer';
+import { AdaptiveVideoPlayer } from '@/components/AdaptiveVideoPlayer';
 import { formatRevenue } from '@/lib/formatRevenue';
 
 interface SimpleMediaPreviewAsyncProps {
@@ -345,10 +345,13 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                        />
                      )}
                       {item?.media_type === 'video' && (
-                        <EnhancedVideoPlayer
+                        <AdaptiveVideoPlayer
+                          mediaId={item.id}
                           src={fullUrl}
                           aspectRatio={aspectRatio}
                           className="w-full h-full"
+                          autoPlay={false}
+                          startQuality="480p"
                           onError={(e) => {
                             console.error('Failed to load video:', e);
                             setFullUrl(null);

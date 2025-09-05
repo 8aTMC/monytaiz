@@ -32,9 +32,19 @@ function getQualityConfig(quality: string, inputWidth: number, inputHeight: numb
   const aspectRatio = inputWidth / inputHeight;
   
   switch (quality) {
+    case '240p': {
+      const height = 240;
+      const width = Math.round(height * aspectRatio / 2) * 2; // Ensure even width
+      return { width, height, bitrate: '300k', crf: 40 };
+    }
+    case '360p': {
+      const height = 360;
+      const width = Math.round(height * aspectRatio / 2) * 2;
+      return { width, height, bitrate: '500k', crf: 38 };
+    }
     case '480p': {
       const height = 480;
-      const width = Math.round(height * aspectRatio / 2) * 2; // Ensure even width
+      const width = Math.round(height * aspectRatio / 2) * 2;
       return { width, height, bitrate: '800k', crf: 35 };
     }
     case '720p': {
@@ -47,11 +57,17 @@ function getQualityConfig(quality: string, inputWidth: number, inputHeight: numb
       const width = Math.round(height * aspectRatio / 2) * 2;
       return { width, height, bitrate: '3000k', crf: 30 };
     }
+    case '1440p':
+    case '2k': {
+      const height = 1440;
+      const width = Math.round(height * aspectRatio / 2) * 2;
+      return { width, height, bitrate: '6000k', crf: 28 };
+    }
     case '2160p':
     case '4k': {
       const height = 2160;
       const width = Math.round(height * aspectRatio / 2) * 2;
-      return { width, height, bitrate: '8000k', crf: 28 };
+      return { width, height, bitrate: '12000k', crf: 26 };
     }
     case 'original':
     default: {
@@ -314,7 +330,7 @@ Deno.serve(async (req) => {
   console.log('🚀 Video processor v2 started');
   
   try {
-    const { bucket, path, fileName, targetQualities = ['original', '1080p', '720p', '480p'], mediaId } = await req.json();
+    const { bucket, path, fileName, targetQualities = ['240p', '360p', '480p', '720p', '1080p'], mediaId } = await req.json();
     
     console.log(`🎬 Processing video: ${fileName}`);
     console.log(`🎯 Target qualities: ${targetQualities.join(', ')}`);
