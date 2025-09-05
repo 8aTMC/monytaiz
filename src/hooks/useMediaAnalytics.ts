@@ -62,14 +62,28 @@ export const useMediaAnalytics = (mediaId: string | null) => {
     return { startDate, endDate };
   };
 
-  const fetchAnalytics = useCallback(async (mediaId: string, period: TimePeriod) => {
+  const fetchAnalytics = useCallback(async (mediaId: string, period: TimePeriod, forceRefresh: boolean = false) => {
     if (!mediaId) return;
     
     setLoading(true);
     setError(null);
+    
+    // Clear existing data immediately if this is a forced refresh
+    if (forceRefresh) {
+      setData([]);
+      setStats({
+        total_sent: 0,
+        total_purchased: 0,
+        total_revenue_cents: 0,
+        conversion_rate: 0
+      });
+    }
 
     try {
       const { startDate, endDate } = getDateRange(period);
+      
+      // Add cache-busting parameter for forced refresh
+      const cacheBuster = forceRefresh ? `?cb=${Date.now()}` : '';
       
       // Call the database function to get analytics data
       const { data: analyticsData, error: analyticsError } = await supabase.rpc('get_media_analytics', {
@@ -112,6 +126,17 @@ export const useMediaAnalytics = (mediaId: string | null) => {
       setLoading(false);
     }
   }, [toast]);
+  
+  // Helper function to clear all data
+  const clearAnalyticsData = useCallback(() => {
+    setData([]);
+    setStats({
+      total_sent: 0,
+      total_purchased: 0,
+      total_revenue_cents: 0,
+      conversion_rate: 0
+    });
+  }, []);
 
   const trackEvent = async (
     mediaId: string, 
@@ -192,6 +217,7 @@ export const useMediaAnalytics = (mediaId: string | null) => {
     loading,
     error,
     fetchAnalytics,
-    trackEvent
+    trackEvent,
+    clearAnalyticsData
   };
 };

@@ -56,30 +56,48 @@ export const restoreRealData = async (mediaId: string) => {
   try {
     console.log(`Starting restore real data process - clearing ALL analytics for media: ${mediaId}`);
     
-    // Since most users won't have real analytics mixed with sample data,
-    // the safest approach is to clear ALL analytics data for this media item.
-    // This ensures a completely clean slate and eliminates any possibility
-    // of sample data remaining in the database.
-    
-    // Get count of existing analytics before deletion (for logging)
-    const { count: existingCount } = await supabase
+    // Get count of existing analytics before deletion (for logging and verification)
+    const { count: existingCount, error: countError } = await supabase
       .from('media_analytics')
       .select('*', { count: 'exact', head: true })
       .eq('media_id', mediaId);
+    
+    if (countError) {
+      console.error('Error counting existing analytics:', countError);
+      return false;
+    }
     
     if (existingCount === 0) {
       console.log(`No analytics data found for media ${mediaId}`);
       return true;
     }
     
-    // Delete ALL analytics data for this media item
-    const { error } = await supabase
+    console.log(`Found ${existingCount} analytics events to delete for media ${mediaId}`);
+    
+    // Delete ALL analytics data for this media item with better error handling
+    const { error: deleteError } = await supabase
       .from('media_analytics')
       .delete()
       .eq('media_id', mediaId);
     
-    if (error) {
-      console.error('Error clearing analytics data:', error);
+    if (deleteError) {
+      console.error('Error clearing analytics data:', deleteError);
+      return false;
+    }
+    
+    // Verify deletion was successful
+    const { count: remainingCount, error: verifyError } = await supabase
+      .from('media_analytics')
+      .select('*', { count: 'exact', head: true })
+      .eq('media_id', mediaId);
+    
+    if (verifyError) {
+      console.error('Error verifying deletion:', verifyError);
+      return false;
+    }
+    
+    if (remainingCount && remainingCount > 0) {
+      console.error(`Deletion verification failed: ${remainingCount} analytics events still remain`);
       return false;
     }
     

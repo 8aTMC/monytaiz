@@ -420,7 +420,8 @@ export const RevenueAnalyticsDialog: React.FC<RevenueAnalyticsDialogProps> = ({
     trends, 
     loading, 
     error, 
-    fetchAnalytics 
+    fetchAnalytics,
+    clearAnalyticsData
   } = useMediaAnalytics(mediaItem?.id || null);
 
   // Check user role
@@ -617,36 +618,38 @@ export const RevenueAnalyticsDialog: React.FC<RevenueAnalyticsDialogProps> = ({
                               try {
                                 console.log('Starting restore real data process for media:', mediaItem.id);
                                 
-                                // Set restoring state
+                                // Set restoring state and immediately clear UI data
                                 setIsRestoring(true);
+                                clearAnalyticsData();
+                                setPreviousChartData([]);
                                 
                                 const success = await restoreRealData(mediaItem.id);
                                 console.log('Restore real data result:', success);
                                 
                                 if (success) {
-                                  // Add slight delay to ensure database changes are committed
-                                  setTimeout(async () => {
-                                    console.log('Fetching fresh analytics data after restore...');
-                                    await fetchAnalytics(mediaItem.id, selectedPeriod);
-                                    setIsRestoring(false);
-                                    console.log('Analytics data refreshed after restore');
-                                    
-                                    toast({
-                                      title: "Real Data Restored",
-                                      description: "Sample data has been removed. Showing real analytics only.",
-                                    });
-                                  }, 500);
+                                  // Force refresh analytics data with cache busting
+                                  console.log('Forcing fresh analytics data fetch after restore...');
+                                  await fetchAnalytics(mediaItem.id, selectedPeriod, true);
+                                  setIsRestoring(false);
+                                  console.log('Analytics data refreshed after restore');
+                                  
+                                  toast({
+                                    title: "Real Data Restored",
+                                    description: "All sample data has been removed. Showing real analytics only.",
+                                  });
                                 } else {
                                   setIsRestoring(false);
                                   toast({
                                     title: "Error",
-                                    description: "Failed to restore real data. Please try again.",
+                                    description: "Failed to restore real data. Please check console for details.",
                                     variant: "destructive",
                                   });
                                 }
                               } catch (error) {
                                 console.error('Error during restore process:', error);
                                 setIsRestoring(false);
+                                // Restore analytics in case of error
+                                await fetchAnalytics(mediaItem.id, selectedPeriod, true);
                                 toast({
                                   title: "Error",
                                   description: "An unexpected error occurred while restoring data.",
