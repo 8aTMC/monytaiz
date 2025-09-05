@@ -61,7 +61,9 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
 
   // Load available collaborators and tags
   useEffect(() => {
-  const loadCollaborators = async () => {
+    let isMounted = true; // Prevent state updates on unmounted component
+
+    const loadCollaborators = async () => {
       try {
         // Load all collaborators, ordered by name alphabetically
         const { data: collaborators } = await supabase
@@ -69,7 +71,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
           .select('id, name, description, profile_picture_url, username')
           .order('name', { ascending: true });
 
-        if (collaborators) {
+        if (collaborators && isMounted) {
           setCollaboratorOptions(
             collaborators.map(c => ({
               value: c.id,
@@ -83,12 +85,17 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
         }
       } catch (error) {
         console.error('Error loading collaborators:', error);
-        setCollaboratorOptions([]);
+        if (isMounted) {
+          setCollaboratorOptions([]);
+        }
       }
     };
 
     const loadOptions = async () => {
-      setLoading(true);
+      if (isMounted) {
+        setLoading(true);
+      }
+      
       try {
         // Load collaborators
         await loadCollaborators();
@@ -160,7 +167,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
 
         console.log('🏷️ All tags processed:', allTags);
 
-        if (allTags.length > 0) {
+        if (allTags.length > 0 && isMounted) {
           // Remove duplicates by tag_name - use tag name directly as value
           const uniqueTags = allTags.reduce((acc, tag) => {
             const existing = acc.find(t => t.tag_name === tag.tag_name);
@@ -178,22 +185,30 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
           
           console.log('🏷️ Final tag options:', tagOptions);
           setTagOptions(tagOptions);
-        } else {
+        } else if (isMounted) {
           console.log('🏷️ No tags found anywhere');
           setTagOptions([]);
         }
       } catch (error) {
         console.error('💥 Error loading filter options:', error);
-        setTagOptions([]);
-        setCollaboratorOptions([]);
+        if (isMounted) {
+          setTagOptions([]);
+          setCollaboratorOptions([]);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     if (open) {
       loadOptions();
     }
+
+    return () => {
+      isMounted = false; // Cleanup to prevent state updates after unmount
+    };
   }, [open]);
 
   // Update local state when external filters change
@@ -325,18 +340,21 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
           )}
 
           {/* Collaborators Filter */}
-          <div className="space-y-3 overflow-visible">
+          <div className="space-y-3 relative z-[90]">
             <Label className="text-sm font-medium">Filter by Collaborators</Label>
-            <MultiSelect
-              options={collaboratorOptions || []}
-              value={localFilters.collaborators || []}
-              onChange={handleCollaboratorChange}
-              placeholder="Select collaborators..."
-              emptyMessage="No collaborators found."
-              loading={loading}
-              maxSelections={5}
-              searchPlaceholder="Search collaborators..."
-            />
+            <div className="relative">
+              <MultiSelect
+                key={`collaborators-${open}`}
+                options={collaboratorOptions || []}
+                value={localFilters.collaborators || []}
+                onChange={handleCollaboratorChange}
+                placeholder="Select collaborators..."
+                emptyMessage="No collaborators found."
+                loading={loading}
+                maxSelections={5}
+                searchPlaceholder="Search collaborators..."
+              />
+            </div>
             {collaboratorOptions.length === 0 && !loading && (
               <p className="text-xs text-muted-foreground">
                 No collaborators found. Try adding collaborators first.
@@ -345,16 +363,19 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
           </div>
 
           {/* Tags Filter */}
-          <div className="space-y-3 overflow-visible">
+          <div className="space-y-3 relative z-[85]">
             <Label className="text-sm font-medium">Filter by Tags</Label>
-            <MultiSelect
-              options={tagOptions || []}
-              value={localFilters.tags || []}
-              onChange={handleTagChange}
-              placeholder="Select tags..."
-              emptyMessage="No tags found."
-              loading={loading}
-            />
+            <div className="relative">
+              <MultiSelect
+                key={`tags-${open}`}
+                options={tagOptions || []}
+                value={localFilters.tags || []}
+                onChange={handleTagChange}
+                placeholder="Select tags..."
+                emptyMessage="No tags found."
+                loading={loading}
+              />
+            </div>
           </div>
 
           {/* Price Range Filter */}

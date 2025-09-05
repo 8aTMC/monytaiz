@@ -80,7 +80,7 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
   const isAtMaxLimit = value.length >= maxSelections
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={false}>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           ref={ref}
@@ -126,7 +126,7 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
           <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full min-w-[var(--radix-popover-trigger-width)] p-0 bg-card/95 backdrop-blur-md border-border/50 z-[100]">
+      <PopoverContent className="w-full min-w-[var(--radix-popover-trigger-width)] p-0 bg-card/95 backdrop-blur-md border-border/50 z-[110]">
         <Command>
           <CommandInput placeholder={searchPlaceholder} />
           <CommandEmpty>{loading ? "Loading..." : emptyMessage}</CommandEmpty>
