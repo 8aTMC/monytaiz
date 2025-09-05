@@ -12,7 +12,7 @@ const buttonVariants = cva(
         default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-soft hover:shadow-glow",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-soft",
         outline: "border border-border bg-transparent hover:bg-secondary/50 text-foreground hover:text-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-soft",
+        secondary: "relative overflow-hidden bg-gradient-to-r from-secondary to-secondary/90 bg-[length:200%_100%] text-secondary-foreground hover:scale-[1.02] hover:bg-gradient-shift shadow-soft hover:shadow-lg transition-all duration-300 ease-out hover:animate-border-glow [&>*]:transition-transform [&>*]:duration-300 hover:[&>*]:translate-x-0.5",
         ghost: "hover:bg-secondary/50 hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
         hero: "bg-gradient-primary text-primary-foreground hover:scale-105 shadow-glow hover:shadow-glow transition-bounce font-semibold",
