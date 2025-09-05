@@ -1252,6 +1252,59 @@ export type Database = {
           },
         ]
       }
+      quality_metadata: {
+        Row: {
+          bitrate_kbps: number | null
+          compression_ratio: number | null
+          created_at: string | null
+          file_size_bytes: number | null
+          height: number | null
+          id: string
+          media_id: string
+          processing_time_seconds: number | null
+          quality: string
+          storage_path: string
+          updated_at: string | null
+          width: number | null
+        }
+        Insert: {
+          bitrate_kbps?: number | null
+          compression_ratio?: number | null
+          created_at?: string | null
+          file_size_bytes?: number | null
+          height?: number | null
+          id?: string
+          media_id: string
+          processing_time_seconds?: number | null
+          quality: string
+          storage_path: string
+          updated_at?: string | null
+          width?: number | null
+        }
+        Update: {
+          bitrate_kbps?: number | null
+          compression_ratio?: number | null
+          created_at?: string | null
+          file_size_bytes?: number | null
+          height?: number | null
+          id?: string
+          media_id?: string
+          processing_time_seconds?: number | null
+          quality?: string
+          storage_path?: string
+          updated_at?: string | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quality_metadata_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "simple_media"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissions: {
         Row: {
           created_at: string | null
