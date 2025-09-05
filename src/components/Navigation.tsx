@@ -300,7 +300,7 @@ export const Navigation = ({ role }: NavigationProps) => {
         /* Collapsed state - square logo centered with arrow on right edge */
         <>
           <div className="h-[73px] flex items-center justify-center border-b border-border">
-            <Link to="/" className="group relative overflow-hidden rounded-lg p-1 hover:bg-primary/5 transition-all duration-300">
+            <Link to="/" className="group relative overflow-hidden rounded-lg p-1 transition-all duration-300">
               <img 
                 src={getLogoSrc()} 
                 alt="MonytAIz Logo" 
@@ -323,7 +323,7 @@ export const Navigation = ({ role }: NavigationProps) => {
         /* Extended state - centered wide banner logo */
         <>
           <div className="h-[73px] flex items-center justify-center px-4 border-b border-border">
-            <Link to="/" className="group relative overflow-hidden rounded-lg p-2 hover:bg-primary/5 transition-all duration-300">
+            <Link to="/" className="group relative overflow-hidden rounded-lg p-2 transition-all duration-300">
               <img 
                 src={getLogoSrc()} 
                 alt="MonytAIz Logo" 
