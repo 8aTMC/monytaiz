@@ -300,11 +300,13 @@ export const Navigation = ({ role }: NavigationProps) => {
         /* Collapsed state - square logo centered with arrow on right edge */
         <>
           <div className="h-[73px] flex items-center justify-center border-b border-border">
-            <img 
-              src={getLogoSrc()} 
-              alt="MonytAIz Logo" 
-              className="w-10 h-10 object-contain transition-all duration-300"
-            />
+            <Link to="/" className="hover:opacity-80 transition-opacity">
+              <img 
+                src={getLogoSrc()} 
+                alt="MonytAIz Logo" 
+                className="w-10 h-10 object-contain transition-all duration-300"
+              />
+            </Link>
           </div>
           <Button
             variant="ghost"
@@ -320,11 +322,13 @@ export const Navigation = ({ role }: NavigationProps) => {
         /* Extended state - centered wide banner logo */
         <>
           <div className="h-[73px] flex items-center justify-center px-4 border-b border-border">
-            <img 
-              src={getLogoSrc()} 
-              alt="MonytAIz Logo" 
-              className="h-[50px] w-[200px] object-contain transition-all duration-300"
-            />
+            <Link to="/" className="hover:opacity-80 transition-opacity">
+              <img 
+                src={getLogoSrc()} 
+                alt="MonytAIz Logo" 
+                className="h-[50px] w-[200px] object-contain transition-all duration-300"
+              />
+            </Link>
           </div>
           <Button
             variant="ghost"
