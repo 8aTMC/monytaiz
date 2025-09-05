@@ -170,7 +170,7 @@ export const Navigation = ({ role }: NavigationProps) => {
   // Get the appropriate logo based on theme
   const getLogoSrc = () => {
     if (theme === 'dark') {
-      return "/lovable-uploads/MonytAIz-Logo-II.png"; // White text MonytAIz logo for dark mode
+      return "/lovable-uploads/62714a0e-fa10-405b-b04c-8e2fcd0319fe.png"; // White text MonytAIz logo for dark mode
     }
     return "/lovable-uploads/73f0389e-e8e5-41b8-bd66-df7ad848b428.png"; // Black text for light mode
   };
