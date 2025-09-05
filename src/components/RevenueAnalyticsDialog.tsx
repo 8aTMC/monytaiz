@@ -19,7 +19,7 @@ import {
 import { useMediaAnalytics, TimePeriod } from '@/hooks/useMediaAnalytics';
 import { formatRevenue } from '@/lib/formatRevenue';
 import { SimpleMediaItem } from '@/hooks/useSimpleMedia';
-import { seedAnalyticsData, clearAnalyticsData } from '@/utils/seedAnalyticsData';
+import { seedAnalyticsData, restoreRealData } from '@/utils/seedAnalyticsData';
 import { supabase } from '@/integrations/supabase/client';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -595,16 +595,16 @@ export const RevenueAnalyticsDialog: React.FC<RevenueAnalyticsDialogProps> = ({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-xs text-destructive hover:text-destructive"
+                        className="text-xs text-blue-600 hover:text-blue-700"
                       >
-                        Clear Analytics Data
+                        Restore Real Data
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Clear Analytics Data</AlertDialogTitle>
+                        <AlertDialogTitle>Restore Real Data</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This will permanently delete all analytics data for this media item, including both real and sample data. This action cannot be undone.
+                          This will remove any sample/demo analytics data and restore the view to show only real user interactions and purchases. Real data will be preserved.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -613,32 +613,32 @@ export const RevenueAnalyticsDialog: React.FC<RevenueAnalyticsDialogProps> = ({
                           onClick={async () => {
                             if (mediaItem?.id) {
                               try {
-                                const success = await clearAnalyticsData(mediaItem.id);
+                                const success = await restoreRealData(mediaItem.id);
                                 if (success) {
                                   fetchAnalytics(mediaItem.id, selectedPeriod);
                                   toast({
-                                    title: "Analytics Data Cleared",
-                                    description: "All analytics data has been successfully removed.",
+                                    title: "Real Data Restored",
+                                    description: "Sample data has been removed. Showing real analytics only.",
                                   });
                                 } else {
                                   toast({
                                     title: "Error",
-                                    description: "Failed to clear analytics data. Please try again.",
+                                    description: "Failed to restore real data. Please try again.",
                                     variant: "destructive",
                                   });
                                 }
                               } catch (error) {
                                 toast({
                                   title: "Error",
-                                  description: "An unexpected error occurred while clearing data.",
+                                  description: "An unexpected error occurred while restoring data.",
                                   variant: "destructive",
                                 });
                               }
                             }
                           }}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          className="bg-blue-600 text-white hover:bg-blue-700"
                         >
-                          Clear Data
+                          Restore Real Data
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
