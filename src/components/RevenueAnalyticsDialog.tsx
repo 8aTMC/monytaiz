@@ -600,7 +600,7 @@ export const RevenueAnalyticsDialog: React.FC<RevenueAnalyticsDialogProps> = ({
                         Restore Real Data
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent>
+                    <AlertDialogContent className="z-[300]">
                       <AlertDialogHeader>
                         <AlertDialogTitle>Restore Real Data</AlertDialogTitle>
                         <AlertDialogDescription>
