@@ -300,12 +300,13 @@ export const Navigation = ({ role }: NavigationProps) => {
         /* Collapsed state - square logo centered with arrow on right edge */
         <>
           <div className="h-[73px] flex items-center justify-center border-b border-border">
-            <Link to="/" className="hover:opacity-80 transition-opacity">
+            <Link to="/" className="group relative overflow-hidden rounded-lg p-1 hover:bg-primary/5 transition-all duration-300">
               <img 
                 src={getLogoSrc()} 
                 alt="MonytAIz Logo" 
-                className="w-10 h-10 object-contain transition-all duration-300"
+                className="w-10 h-10 object-contain transition-all duration-300 group-hover:scale-110 group-hover:rotate-2 group-hover:drop-shadow-lg"
               />
+              <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 group-hover:animate-border-glow transition-opacity duration-300" />
             </Link>
           </div>
           <Button
@@ -322,12 +323,13 @@ export const Navigation = ({ role }: NavigationProps) => {
         /* Extended state - centered wide banner logo */
         <>
           <div className="h-[73px] flex items-center justify-center px-4 border-b border-border">
-            <Link to="/" className="hover:opacity-80 transition-opacity">
+            <Link to="/" className="group relative overflow-hidden rounded-lg p-2 hover:bg-primary/5 transition-all duration-300">
               <img 
                 src={getLogoSrc()} 
                 alt="MonytAIz Logo" 
-                className="h-[50px] w-[200px] object-contain transition-all duration-300"
+                className="h-[50px] w-[200px] object-contain transition-all duration-300 group-hover:scale-105 group-hover:drop-shadow-xl"
               />
+              <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 group-hover:animate-border-glow transition-opacity duration-300" />
             </Link>
           </div>
           <Button
