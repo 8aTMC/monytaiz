@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useAuth } from '@/components/AuthProvider';
-import { useTheme } from "next-themes";
 
 interface UserProfile {
   id: string;
@@ -165,7 +164,40 @@ export const Navigation = ({ role }: NavigationProps) => {
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [isFan, setIsFan] = useState(false);
   const [openSection, setOpenSection] = useState<'fans' | 'content' | 'management' | null>(null);
-  const { theme } = useTheme();
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+
+  // Custom theme detection to match ThemeToggle's localStorage system
+  useEffect(() => {
+    const getThemeFromStorage = () => {
+      const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+      return savedTheme || 'dark';
+    };
+
+    // Set initial theme
+    setTheme(getThemeFromStorage());
+
+    // Listen for storage changes (when theme is changed in another tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'theme') {
+        setTheme(getThemeFromStorage());
+      }
+    };
+
+    // Listen for theme changes in the same tab
+    const handleThemeChange = () => {
+      setTheme(getThemeFromStorage());
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Create custom event listener for same-tab theme changes
+    window.addEventListener('themeChange', handleThemeChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('themeChange', handleThemeChange);
+    };
+  }, []);
 
   // Get the appropriate logo based on theme
   const getLogoSrc = () => {

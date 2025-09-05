@@ -21,6 +21,9 @@ export const ThemeToggle = () => {
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    
+    // Dispatch custom event so Navigation component can detect theme changes
+    window.dispatchEvent(new Event('themeChange'));
   };
 
   const isLight = theme === 'light';
