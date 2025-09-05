@@ -351,7 +351,7 @@ Deno.serve(async (req) => {
       .from('simple_media')
       .update({ 
         quality_info: qualityInfo,
-        processing_status: Object.keys(qualityInfo).length > 0 ? 'completed' : 'failed',
+        processing_status: Object.keys(qualityInfo).length > 0 ? 'processed' : 'failed',
         processing_error: Object.keys(qualityInfo).length === 0 ? 'No qualities processed successfully' : null,
         updated_at: new Date().toISOString()
       })
@@ -359,6 +359,30 @@ Deno.serve(async (req) => {
 
     if (updateError) {
       console.error('Failed to update media record:', updateError);
+    }
+
+    // Save quality metadata to dedicated table
+    for (const result of results) {
+      if (result.success && result.outputPath) {
+        try {
+          const bitrate = result.quality === '480p' ? 800 :
+                          result.quality === '720p' ? 1500 :
+                          result.quality === '1080p' ? 3000 : 2000;
+
+          await supabase.from('quality_metadata').insert({
+            media_id: mediaId,
+            quality: result.quality,
+            storage_path: result.outputPath,
+            width: result.width,
+            height: result.height,
+            bitrate_kbps: bitrate,
+            file_size_bytes: Math.round((result.sizeMB || 0) * 1024 * 1024),
+            compression_ratio: result.compressionRatio
+          });
+        } catch (error) {
+          console.warn(`Failed to save quality metadata for ${result.quality}:`, error);
+        }
+      }
     }
 
     return new Response(JSON.stringify({

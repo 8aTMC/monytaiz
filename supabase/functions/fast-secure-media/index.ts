@@ -77,19 +77,68 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Build transform options
+    // For videos, check if we have processed quality variants
+    if (path.includes('.mp4') || path.includes('.webm') || path.includes('.mov')) {
+      // Try to find processed quality variant matching the request
+      let targetPath = path
+      
+      if (height) {
+        const requestedHeight = parseInt(height)
+        const { data: qualityData } = await supabaseService
+          .from('quality_metadata')
+          .select('storage_path, height')
+          .like('storage_path', `%${path.split('/').pop()?.split('.')[0]}%`)
+          .order('height', { ascending: false })
+          .limit(5)
+
+        if (qualityData && qualityData.length > 0) {
+          // Find best matching quality
+          const bestMatch = qualityData.find(q => q.height <= requestedHeight) ||
+                           qualityData[qualityData.length - 1] // Use smallest if all are larger
+          
+          if (bestMatch) {
+            targetPath = bestMatch.storage_path
+            console.log(`Using processed quality: ${targetPath} (${bestMatch.height}p requested: ${requestedHeight}p)`)
+          }
+        }
+      }
+
+      // Generate signed URL for processed video (no transforms needed)
+      const { data: urlData, error: urlError } = await supabaseService.storage
+        .from('content')
+        .createSignedUrl(targetPath, 7200)
+
+      if (!urlError && urlData) {
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            url: urlData.signedUrl,
+            expires_at: new Date(Date.now() + 7200 * 1000).toISOString(),
+            processed: targetPath !== path
+          }),
+          { 
+            headers: { 
+              ...corsHeaders, 
+              'Content-Type': 'application/json',
+              'Cache-Control': 'public, max-age=3600'
+            }
+          }
+        )
+      }
+    }
+
+    // Fallback to image transforms or original file
     let transformOptions: any = {
       expiresIn: 7200, // 2 hours
     }
 
-    // Add transforms if specified
+    // Add transforms if specified (mainly for images)
     if (width || height || quality) {
       transformOptions.transform = {
         width: width ? Math.min(parseInt(width), 1920) : undefined,
         height: height ? Math.min(parseInt(height), 1920) : undefined,
         quality: Math.min(parseInt(quality), 95),
         resize: 'cover'
-        // Removed format: 'webp' as it might cause issues
       }
     }
 

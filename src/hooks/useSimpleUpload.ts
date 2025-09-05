@@ -189,7 +189,7 @@ export const useSimpleUpload = () => {
           processed_path: uploadPath,
           thumbnail_path: thumbnailPath,
           media_type: mediaType,
-          processing_status: 'processed', // Always mark as processed so it shows in library
+          processing_status: mediaType === 'video' ? 'processing' : 'processed',
           width: width,
           height: height,
           tags: []
@@ -201,12 +201,42 @@ export const useSimpleUpload = () => {
         throw new Error(`Database error: ${dbError.message}`);
       }
 
-      // Thumbnail generation is now handled client-side above
+      // For videos, trigger background quality processing
+      if (mediaType === 'video') {
+        setUploadProgress({
+          phase: 'processing',
+          progress: 90,
+          message: 'Starting video quality processing...',
+          originalSize,
+          processedSize,
+          compressionRatio
+        });
+
+        try {
+          // Trigger video processing in background
+          const { error: processingError } = await supabase.functions.invoke('video-processor-v2', {
+            body: {
+              bucket: 'content',
+              path: uploadPath,
+              fileName: file.name,
+              mediaId: mediaRecord.id,
+              targetQualities: ['480p', '720p', '1080p']
+            }
+          });
+
+          if (processingError) {
+            console.warn('Video processing failed:', processingError);
+            // Don't throw error - video is still uploaded, just no quality variants
+          }
+        } catch (error) {
+          console.warn('Failed to trigger video processing:', error);
+        }
+      }
 
       setUploadProgress({
         phase: 'complete',
         progress: 100,
-        message: 'Upload complete!',
+        message: mediaType === 'video' ? 'Upload complete! Quality processing started in background.' : 'Upload complete!',
         originalSize,
         processedSize,
         compressionRatio

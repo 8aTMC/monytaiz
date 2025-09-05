@@ -17,10 +17,12 @@ import { VideoQualityBadge } from './VideoQualityBadge';
 import { getVideoMetadata, VideoQualityInfo } from '@/lib/videoQuality';
 import { useSmartQuality, QualityLevel } from '@/hooks/useSmartQuality';
 import { useOptimizedSecureMedia } from '@/hooks/useOptimizedSecureMedia';
+import { useVideoQualityLoader } from '@/hooks/useVideoQualityLoader';
 
 interface OptimizedVideoPlayerProps {
   src: string;
   storagePath?: string;
+  mediaId?: string;
   aspectRatio?: string;
   className?: string;
   onError?: (error: any) => void;
@@ -63,6 +65,7 @@ const qualityToTransforms = (quality: QualityLevel) => {
 export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
   src,
   storagePath,
+  mediaId,
   aspectRatio: propAspectRatio,
   className = '',
   onError,
@@ -91,6 +94,14 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
   });
 
   const { getSecureUrl, preloadMultipleQualities, loading: mediaLoading } = useOptimizedSecureMedia();
+  const { availableQualities: processedQualities, loadQualities, getQualityByHeight } = useVideoQualityLoader(mediaId);
+
+  // Load processed video qualities on mount
+  useEffect(() => {
+    if (mediaId) {
+      loadQualities();
+    }
+  }, [mediaId, loadQualities]);
 
   // Load optimized video URL based on selected quality
   useEffect(() => {
@@ -102,34 +113,42 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
 
       setQualityLoading(true);
       try {
-        const transforms = qualityToTransforms(selectedQuality);
-        const optimizedUrl = await getSecureUrl(storagePath, transforms, 'high');
-        
-        if (optimizedUrl) {
-          setCurrentVideoUrl(optimizedUrl);
+        let videoUrl = src; // Default fallback
+
+        // First, try to use processed quality variants
+        if (processedQualities.length > 0) {
+          const targetHeight = selectedQuality === '360p' ? 360 :
+                              selectedQuality === '480p' ? 480 :
+                              selectedQuality === '720p' ? 720 :
+                              selectedQuality === '1080p' ? 1080 : 720;
           
-          // Preload other qualities in background
-          const otherQualities = config.availableQualities
-            .filter(q => q !== selectedQuality)
-            .slice(0, 2) // Limit preload to avoid overwhelming
-            .map(quality => qualityToTransforms(quality));
-          
-          if (otherQualities.length > 0) {
-            preloadMultipleQualities(storagePath, otherQualities);
+          const bestQuality = getQualityByHeight(targetHeight);
+          if (bestQuality?.url) {
+            videoUrl = bestQuality.url;
+            console.log(`Using processed quality: ${bestQuality.quality} for ${selectedQuality}`);
           }
-        } else {
-          setCurrentVideoUrl(src); // Fallback to original
         }
+
+        // Fallback to image transforms if no processed qualities
+        if (videoUrl === src && storagePath) {
+          const transforms = qualityToTransforms(selectedQuality);
+          const optimizedUrl = await getSecureUrl(storagePath, transforms, 'high');
+          if (optimizedUrl) {
+            videoUrl = optimizedUrl;
+          }
+        }
+
+        setCurrentVideoUrl(videoUrl);
       } catch (error) {
         console.error('Failed to load optimized video:', error);
-        setCurrentVideoUrl(src); // Fallback to original
+        setCurrentVideoUrl(src); // Final fallback
       } finally {
         setQualityLoading(false);
       }
     };
 
     loadOptimizedVideo();
-  }, [src, storagePath, selectedQuality, getSecureUrl, preloadMultipleQualities, config.availableQualities]);
+  }, [src, storagePath, selectedQuality, processedQualities, getQualityByHeight, getSecureUrl]);
 
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
