@@ -237,7 +237,7 @@ export const RevenueAnalyticsDialog = ({ open, onOpenChange, mediaId, mediaTitle
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
                   <div className="text-xl font-bold">
-                    {formatPercentageWithPeriodical(stats.conversion_rate)}
+                    {stats.conversion_rate === 0 ? '0.00' : formatPercentageWithPeriodical(stats.conversion_rate)}
                   </div>
                   <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                     <span>Purchase rate</span>
