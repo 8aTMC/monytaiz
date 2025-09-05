@@ -118,7 +118,13 @@ const CustomChart: React.FC<ChartProps> = ({ data, showSent, showPurchased, maxV
         });
       
       case '1month':
-        // Show day of month
+        // Show day of month with month context for better readability
+        if (index === 0 || index === totalPoints - 1 || date.getDate() === 1 || date.getDate() % 5 === 0) {
+          return date.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric' 
+          });
+        }
         return date.getDate().toString();
       
       case '3months':
