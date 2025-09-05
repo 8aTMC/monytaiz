@@ -1,56 +1,83 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-interface OptimizedSecureMediaCache {
+interface SecureMediaCache {
   [key: string]: {
     url: string;
     expires_at: string;
+    quality?: string;
   };
 }
 
-// Enhanced global cache with longer persistence
-const optimizedCache: OptimizedSecureMediaCache = {};
-const loadingPromises: { [key: string]: Promise<string | null> } = {};
+interface MediaTransforms {
+  width?: number;
+  height?: number;
+  quality?: number;
+}
+
+// Extended cache duration for better performance
+const CACHE_DURATION_HOURS = 4;
+const mediaCache: SecureMediaCache = {};
+const loadingPromises = new Map<string, Promise<string | null>>();
 
 export const useOptimizedSecureMedia = () => {
   const [loading, setLoading] = useState(false);
+  const abortController = useRef<AbortController | null>(null);
 
-  const getOptimizedSecureUrl = useCallback(async (
+  const createCacheKey = (path: string, transforms?: MediaTransforms) => {
+    return `${path}_${JSON.stringify(transforms || {})}`;
+  };
+
+  const isCacheValid = (cached: { expires_at: string }) => {
+    return new Date(cached.expires_at) > new Date();
+  };
+
+  const getSecureUrl = useCallback(async (
     path: string, 
-    transforms?: { width?: number; height?: number; quality?: number }
+    transforms?: MediaTransforms,
+    priority: 'high' | 'normal' | 'low' = 'normal'
   ): Promise<string | null> => {
     if (!path) return null;
 
-    const cacheKey = `${path}_${JSON.stringify(transforms || {})}`;
+    const cacheKey = createCacheKey(path, transforms);
     
-    // Check if URL is still valid (with buffer time)
-    const cached = optimizedCache[cacheKey];
-    if (cached) {
-      const expiresAt = new Date(cached.expires_at);
-      const bufferTime = 10 * 60 * 1000; // 10 minutes buffer
-      if (expiresAt.getTime() - bufferTime > Date.now()) {
-        return cached.url;
-      }
+    // Check cache first
+    const cached = mediaCache[cacheKey];
+    if (cached && isCacheValid(cached)) {
+      return cached.url;
     }
 
-    // Check if already loading to prevent duplicate requests
-    if (loadingPromises[cacheKey]) {
-      return await loadingPromises[cacheKey];
+    // Check if already loading
+    if (loadingPromises.has(cacheKey)) {
+      return loadingPromises.get(cacheKey)!;
     }
 
     // Create loading promise
-    const loadingPromise = (async () => {
-      setLoading(true);
+    const loadPromise = (async () => {
       try {
-        const params = new URLSearchParams({ path });
-        if (transforms?.width) params.append('width', transforms.width.toString());
-        if (transforms?.height) params.append('height', transforms.height.toString());
-        if (transforms?.quality) params.append('quality', transforms.quality.toString());
+        if (priority === 'high') {
+          setLoading(true);
+        }
+
+        // Cancel previous request if needed
+        if (abortController.current) {
+          abortController.current.abort();
+        }
+        abortController.current = new AbortController();
 
         const session = await supabase.auth.getSession();
         if (!session.data.session?.access_token) {
-          throw new Error('No auth session');
+          throw new Error('No authentication session');
         }
+
+        const params = new URLSearchParams({ 
+          path,
+          cache_duration: (CACHE_DURATION_HOURS * 3600).toString()
+        });
+        
+        if (transforms?.width) params.append('width', transforms.width.toString());
+        if (transforms?.height) params.append('height', transforms.height.toString());
+        if (transforms?.quality) params.append('quality', transforms.quality.toString());
 
         const response = await fetch(
           `https://alzyzfjzwvofmjccirjq.supabase.co/functions/v1/fast-secure-media?${params.toString()}`,
@@ -58,12 +85,13 @@ export const useOptimizedSecureMedia = () => {
             headers: {
               'Authorization': `Bearer ${session.data.session.access_token}`,
               'Content-Type': 'application/json'
-            }
+            },
+            signal: abortController.current.signal
           }
         );
 
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
+          throw new Error(`Failed to get secure URL: ${response.status}`);
         }
 
         const result = await response.json();
@@ -72,50 +100,81 @@ export const useOptimizedSecureMedia = () => {
           throw new Error(result.error);
         }
 
-        // Cache the result with longer expiry
-        optimizedCache[cacheKey] = {
+        // Cache with extended duration
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + CACHE_DURATION_HOURS);
+        
+        mediaCache[cacheKey] = {
           url: result.url,
-          expires_at: result.expires_at
+          expires_at: expiresAt.toISOString(),
+          quality: transforms?.quality?.toString()
         };
 
         return result.url;
       } catch (error) {
-        console.error('Error getting optimized secure URL:', error);
+        if (error instanceof Error && error.name === 'AbortError') {
+          return null;
+        }
+        console.error('Error getting secure URL:', error);
         return null;
       } finally {
-        setLoading(false);
-        delete loadingPromises[cacheKey];
+        if (priority === 'high') {
+          setLoading(false);
+        }
+        loadingPromises.delete(cacheKey);
       }
     })();
 
-    // Store promise to prevent duplicate requests
-    loadingPromises[cacheKey] = loadingPromise;
-    
-    return await loadingPromise;
+    loadingPromises.set(cacheKey, loadPromise);
+    return loadPromise;
   }, []);
 
-  // Get cached URL without making request
-  const getCachedUrl = useCallback((
-    path: string, 
-    transforms?: { width?: number; height?: number; quality?: number }
-  ): string | null => {
-    const cacheKey = `${path}_${JSON.stringify(transforms || {})}`;
-    const cached = optimizedCache[cacheKey];
+  const preloadUrl = useCallback(async (
+    path: string,
+    transforms?: MediaTransforms
+  ) => {
+    // Preload with low priority to avoid interfering with current playback
+    return getSecureUrl(path, transforms, 'low');
+  }, [getSecureUrl]);
+
+  const preloadMultipleQualities = useCallback(async (
+    path: string,
+    qualities: { width?: number; height?: number; quality?: number }[]
+  ) => {
+    // Preload multiple qualities in parallel
+    const promises = qualities.map(quality => 
+      preloadUrl(path, quality)
+    );
     
-    if (cached) {
-      const expiresAt = new Date(cached.expires_at);
-      const bufferTime = 10 * 60 * 1000; // 10 minutes buffer
-      if (expiresAt.getTime() - bufferTime > Date.now()) {
-        return cached.url;
-      }
+    try {
+      await Promise.allSettled(promises);
+    } catch (error) {
+      console.warn('Some quality preloads failed:', error);
     }
+  }, [preloadUrl]);
+
+  const clearCache = useCallback(() => {
+    Object.keys(mediaCache).forEach(key => delete mediaCache[key]);
+    loadingPromises.clear();
+  }, []);
+
+  const getCacheStats = useCallback(() => {
+    const keys = Object.keys(mediaCache);
+    const validEntries = keys.filter(key => isCacheValid(mediaCache[key]));
     
-    return null;
+    return {
+      total: keys.length,
+      valid: validEntries.length,
+      expired: keys.length - validEntries.length
+    };
   }, []);
 
   return { 
-    getOptimizedSecureUrl, 
-    getCachedUrl,
-    loading 
+    getSecureUrl, 
+    preloadUrl,
+    preloadMultipleQualities,
+    loading,
+    clearCache,
+    getCacheStats
   };
 };

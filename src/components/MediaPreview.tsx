@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, Pause, Volume2, VolumeX, Maximize2 } from 'lucide-react';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
 import { VideoQualityBadge } from './VideoQualityBadge';
+import { OptimizedVideoPlayer } from './OptimizedVideoPlayer';
 import { detectVideoQuality, VideoQualityInfo } from '@/lib/videoQuality';
 
 interface MediaPreviewProps {
@@ -32,9 +31,6 @@ export const MediaPreview = ({
   isAdmin = false 
 }: MediaPreviewProps) => {
   const [currentUrl, setCurrentUrl] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [videoQualityInfo, setVideoQualityInfo] = useState<VideoQualityInfo | null>(null);
   
   useEffect(() => {
@@ -59,38 +55,6 @@ export const MediaPreview = ({
   const compressionRatio = item.optimized_size_bytes 
     ? Math.round(((item.original_size_bytes - item.optimized_size_bytes) / item.original_size_bytes) * 100)
     : 0;
-
-  const togglePlayback = () => {
-    const video = document.querySelector('video');
-    if (video) {
-      if (isPlaying) {
-        video.pause();
-      } else {
-        video.play();
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
-
-  const toggleMute = () => {
-    const video = document.querySelector('video');
-    if (video) {
-      video.muted = !isMuted;
-      setIsMuted(!isMuted);
-    }
-  };
-
-  const toggleFullscreen = () => {
-    const videoContainer = document.querySelector('.video-container');
-    if (videoContainer) {
-      if (!isFullscreen) {
-        videoContainer.requestFullscreen?.();
-      } else {
-        document.exitFullscreen?.();
-      }
-      setIsFullscreen(!isFullscreen);
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -132,52 +96,12 @@ export const MediaPreview = ({
             )}
 
             {item.media_type === 'video' && currentUrl && (
-              <div className="video-container relative">
-                <video
-                  src={currentUrl}
-                  className="w-full h-auto max-h-[60vh] object-contain"
-                  controls={false}
-                  onPlay={() => setIsPlaying(true)}
-                  onPause={() => setIsPlaying(false)}
-                  onVolumeChange={(e) => setIsMuted(e.currentTarget.muted)}
-                >
-                  Your browser does not support video playback.
-                </video>
-                
-                {/* Custom Video Controls */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                  <div className="flex items-center justify-between text-white">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={togglePlayback}
-                        className="text-white hover:bg-white/20"
-                      >
-                        {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                      </Button>
-                      
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={toggleMute}
-                        className="text-white hover:bg-white/20"
-                      >
-                        {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                      </Button>
-                    </div>
-                    
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={toggleFullscreen}
-                      className="text-white hover:bg-white/20"
-                    >
-                      <Maximize2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              <OptimizedVideoPlayer
+                src={currentUrl}
+                storagePath={item.processed_path}
+                className="w-full max-h-[60vh]"
+                autoQuality={true}
+              />
             )}
 
             {item.media_type === 'audio' && currentUrl && (
