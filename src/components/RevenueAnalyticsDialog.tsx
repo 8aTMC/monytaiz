@@ -410,6 +410,7 @@ export const RevenueAnalyticsDialog: React.FC<RevenueAnalyticsDialogProps> = ({
   const [showPurchased, setShowPurchased] = useState(true);
   const [previousChartData, setPreviousChartData] = useState<any[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isRestoring, setIsRestoring] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout>();
   const { toast } = useToast();
   
@@ -610,17 +611,33 @@ export const RevenueAnalyticsDialog: React.FC<RevenueAnalyticsDialogProps> = ({
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
+                          disabled={isRestoring || loading}
                           onClick={async () => {
                             if (mediaItem?.id) {
                               try {
+                                console.log('Starting restore real data process for media:', mediaItem.id);
+                                
+                                // Set restoring state
+                                setIsRestoring(true);
+                                
                                 const success = await restoreRealData(mediaItem.id);
+                                console.log('Restore real data result:', success);
+                                
                                 if (success) {
-                                  fetchAnalytics(mediaItem.id, selectedPeriod);
-                                  toast({
-                                    title: "Real Data Restored",
-                                    description: "Sample data has been removed. Showing real analytics only.",
-                                  });
+                                  // Add slight delay to ensure database changes are committed
+                                  setTimeout(async () => {
+                                    console.log('Fetching fresh analytics data after restore...');
+                                    await fetchAnalytics(mediaItem.id, selectedPeriod);
+                                    setIsRestoring(false);
+                                    console.log('Analytics data refreshed after restore');
+                                    
+                                    toast({
+                                      title: "Real Data Restored",
+                                      description: "Sample data has been removed. Showing real analytics only.",
+                                    });
+                                  }, 500);
                                 } else {
+                                  setIsRestoring(false);
                                   toast({
                                     title: "Error",
                                     description: "Failed to restore real data. Please try again.",
@@ -628,6 +645,8 @@ export const RevenueAnalyticsDialog: React.FC<RevenueAnalyticsDialogProps> = ({
                                   });
                                 }
                               } catch (error) {
+                                console.error('Error during restore process:', error);
+                                setIsRestoring(false);
                                 toast({
                                   title: "Error",
                                   description: "An unexpected error occurred while restoring data.",
