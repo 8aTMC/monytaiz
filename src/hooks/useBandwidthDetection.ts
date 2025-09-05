@@ -122,11 +122,26 @@ export const useBandwidthDetection = () => {
 
   // Auto-detect on mount and periodically
   useEffect(() => {
-    // Initial detection
-    updateBandwidth();
+    // Only run once on mount to prevent infinite loops
+    let hasRun = false;
     
-    // Listen for network changes
-    const handleOnline = () => updateBandwidth();
+    const runInitialDetection = async () => {
+      if (hasRun) return;
+      hasRun = true;
+      
+      try {
+        await updateBandwidth();
+      } catch (error) {
+        console.warn('Initial bandwidth detection failed:', error);
+      }
+    };
+    
+    runInitialDetection();
+    
+    // Listen for network changes only
+    const handleOnline = () => {
+      setBandwidth(prev => ({ ...prev, speed: 5, quality: 'medium' }));
+    };
     const handleOffline = () => {
       setBandwidth(prev => ({ ...prev, speed: 0.1, quality: 'slow' }));
     };
@@ -134,20 +149,11 @@ export const useBandwidthDetection = () => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
-    // Periodic re-detection (every 2 minutes)
-    const interval = setInterval(() => {
-      const timeSinceLastCheck = Date.now() - bandwidth.timestamp;
-      if (timeSinceLastCheck > 120000) { // 2 minutes
-        updateBandwidth();
-      }
-    }, 30000); // Check every 30 seconds
-    
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      clearInterval(interval);
     };
-  }, [updateBandwidth, bandwidth.timestamp]);
+  }, []); // Remove bandwidth.timestamp dependency to prevent loop
 
   return {
     bandwidth,

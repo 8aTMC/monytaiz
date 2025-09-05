@@ -12,7 +12,7 @@ import { PriceDialog } from './PriceDialog';
 import { EditTitleDialog } from './EditTitleDialog';
 import { RevenueAnalyticsDialog } from './RevenueAnalyticsDialog';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
-import { AdaptiveVideoPlayer } from '@/components/AdaptiveVideoPlayer';
+import { SimpleAdaptiveVideoPlayer } from '@/components/SimpleAdaptiveVideoPlayer';
 import { formatRevenue } from '@/lib/formatRevenue';
 
 interface SimpleMediaPreviewAsyncProps {
@@ -344,20 +344,18 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                          }}
                        />
                      )}
-                      {item?.media_type === 'video' && (
-                        <AdaptiveVideoPlayer
-                          mediaId={item.id}
-                          src={fullUrl}
-                          aspectRatio={aspectRatio}
-                          className="w-full h-full"
-                          autoPlay={false}
-                          startQuality="480p"
-                          onError={(e) => {
-                            console.error('Failed to load video:', e);
-                            setFullUrl(null);
-                          }}
-                        />
-                      )}
+                       {item?.media_type === 'video' && (
+                         <SimpleAdaptiveVideoPlayer
+                           src={fullUrl}
+                           aspectRatio={aspectRatio}
+                           className="w-full h-full"
+                           autoPlay={false}
+                           onError={(e) => {
+                             console.error('Failed to load video:', e);
+                             setFullUrl(null);
+                           }}
+                         />
+                       )}
                       {item?.media_type === 'audio' && (
                         <div className="flex items-center justify-center w-full h-full">
                           <CustomAudioPlayer

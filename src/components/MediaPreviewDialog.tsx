@@ -7,7 +7,7 @@ import { useSidebar } from '@/components/Navigation';
 import { useProgressiveMediaLoading } from '@/hooks/useProgressiveMediaLoading';
 import { useIntersectionPreloader } from '@/hooks/useIntersectionPreloader';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
-import { AdaptiveVideoPlayer } from '@/components/AdaptiveVideoPlayer';
+import { SimpleAdaptiveVideoPlayer } from '@/components/SimpleAdaptiveVideoPlayer';
 
 // Use the MediaItem interface from ContentLibrary
 interface MediaItem {
@@ -322,13 +322,11 @@ export const MediaPreviewDialog = ({
                   )}
 
                   {typeValue === 'video' && getCurrentUrl() && (
-                    <AdaptiveVideoPlayer
-                      mediaId={item.id}
+                    <SimpleAdaptiveVideoPlayer
                       src={getCurrentUrl()}
                       aspectRatio={item.width && item.height ? `${item.width}/${item.height}` : '16/9'}
                       className="max-h-[70vh]"
                       autoPlay={false}
-                      startQuality="480p"
                       onError={(e) => {
                         console.error('Failed to load secure video:', e);
                       }}

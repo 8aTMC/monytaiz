@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Play, Pause, Volume2, VolumeX, Maximize2 } from 'lucide-react';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
 import { VideoQualityBadge } from './VideoQualityBadge';
-import { AdaptiveVideoPlayer } from './AdaptiveVideoPlayer';
+import { SimpleAdaptiveVideoPlayer } from './SimpleAdaptiveVideoPlayer';
 import { detectVideoQuality, VideoQualityInfo } from '@/lib/videoQuality';
 
 interface MediaPreviewProps {
@@ -134,12 +134,9 @@ export const MediaPreview = ({
 
             {item.media_type === 'video' && (
               <div className="max-h-[60vh]">
-                <AdaptiveVideoPlayer
-                  mediaId={item.id}
-                  src={currentUrl || undefined}
+                <SimpleAdaptiveVideoPlayer
+                  src={currentUrl || ''}
                   className="w-full"
-                  autoPlay={false}
-                  startQuality="480p"
                 />
               </div>
             )}

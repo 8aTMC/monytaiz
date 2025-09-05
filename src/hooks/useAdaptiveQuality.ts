@@ -50,41 +50,10 @@ export const useAdaptiveQuality = (mediaId: string, videoElement?: HTMLVideoElem
   // Get quality URLs from media metadata
   const loadAvailableQualities = useCallback(async () => {
     try {
-      // Fetch available qualities from the adaptive media endpoint
-      const response = await fetch(`https://alzyzfjzwvofmjccirjq.supabase.co/functions/v1/adaptive-media`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({
-          mediaId,
-          format: 'manifest'
-        })
-      });
+      // Skip adaptive loading for now and use defaults
+      console.log('Using fallback qualities for', mediaId);
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.manifest) {
-          const qualities: QualityOption[] = data.manifest.qualities.map((q: any) => ({
-            level: q.level as QualityLevel,
-            width: q.width,
-            height: q.height,
-            bitrate: q.bitrate,
-            url: q.url,
-            loaded: true
-          }));
-
-          setState(prev => ({
-            ...prev,
-            availableQualities: qualities
-          }));
-          
-          return;
-        }
-      }
-
-      // Fallback to default qualities if manifest fails
+      // Always use fallback to default qualities for now
       const defaultQualities: QualityOption[] = [
         { level: '240p', width: 426, height: 240, bitrate: '300k' },
         { level: '360p', width: 640, height: 360, bitrate: '500k' },
@@ -184,32 +153,12 @@ export const useAdaptiveQuality = (mediaId: string, videoElement?: HTMLVideoElem
     }
   }, [setTargetQuality]);
 
-  // Get URL for specific quality
+  // Get URL for specific quality - disabled for emergency fix
   const getQualityUrl = useCallback(async (quality: QualityLevel): Promise<string | null> => {
-    try {
-      const response = await fetch(`https://alzyzfjzwvofmjccirjq.supabase.co/functions/v1/adaptive-media`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({
-          mediaId,
-          quality,
-          expiresIn: 3600,
-          format: 'url'
-        })
-      });
-
-      if (!response.ok) return null;
-      
-      const data = await response.json();
-      return data.success ? data.signedUrl : null;
-    } catch (error) {
-      console.error(`Failed to get URL for ${quality}:`, error);
-      return null;
-    }
-  }, [mediaId]);
+    // Return null for now to prevent API errors
+    console.log('Quality URL request disabled for:', quality);
+    return null;
+  }, []);
 
   // Switch to new quality
   const switchToQuality = useCallback(async (quality: QualityLevel) => {
