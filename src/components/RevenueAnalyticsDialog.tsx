@@ -19,8 +19,10 @@ import {
 import { useMediaAnalytics, TimePeriod } from '@/hooks/useMediaAnalytics';
 import { formatRevenue } from '@/lib/formatRevenue';
 import { SimpleMediaItem } from '@/hooks/useSimpleMedia';
-import { seedAnalyticsData } from '@/utils/seedAnalyticsData';
+import { seedAnalyticsData, clearAnalyticsData } from '@/utils/seedAnalyticsData';
 import { supabase } from '@/integrations/supabase/client';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface RevenueAnalyticsDialogProps {
   open: boolean;
@@ -407,7 +409,9 @@ export const RevenueAnalyticsDialog: React.FC<RevenueAnalyticsDialogProps> = ({
   const [showSent, setShowSent] = useState(true);
   const [showPurchased, setShowPurchased] = useState(true);
   const [previousChartData, setPreviousChartData] = useState<any[]>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const debounceRef = useRef<NodeJS.Timeout>();
+  const { toast } = useToast();
   
   const { 
     chartData, 
@@ -417,6 +421,38 @@ export const RevenueAnalyticsDialog: React.FC<RevenueAnalyticsDialogProps> = ({
     error, 
     fetchAnalytics 
   } = useMediaAnalytics(mediaItem?.id || null);
+
+  // Check user role
+  useEffect(() => {
+    const checkUserRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: userRoles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id);
+        
+        if (userRoles && userRoles.length > 0) {
+          const roles = userRoles.map(r => r.role);
+          if (roles.includes('owner')) {
+            setUserRole('owner');
+          } else if (roles.includes('superadmin')) {
+            setUserRole('superadmin');
+          } else if (roles.includes('admin')) {
+            setUserRole('admin');
+          } else if (roles.includes('manager')) {
+            setUserRole('manager');
+          } else {
+            setUserRole(roles[0]);
+          }
+        }
+      }
+    };
+
+    if (open) {
+      checkUserRole();
+    }
+  }, [open]);
 
   // Keep track of previous chart data for smooth transitions
   useEffect(() => {
@@ -531,24 +567,84 @@ export const RevenueAnalyticsDialog: React.FC<RevenueAnalyticsDialogProps> = ({
               </div>
             </div>
             
-            {/* Development Helper */}
-            {(!chartData || chartData.length === 0) && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  if (mediaItem?.id) {
-                    const { data: { user } } = await supabase.auth.getUser();
-                    if (user) {
-                      await seedAnalyticsData(mediaItem.id, user.id);
-                      fetchAnalytics(mediaItem.id, selectedPeriod);
-                    }
-                  }
-                }}
-                className="text-xs"
-              >
-                Generate Sample Data
-              </Button>
+            {/* Admin Controls */}
+            {(userRole === 'owner' || userRole === 'superadmin' || userRole === 'admin' || userRole === 'manager') && (
+              <div className="flex items-center gap-2">
+                {(!chartData || chartData.length === 0) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      if (mediaItem?.id) {
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (user) {
+                          await seedAnalyticsData(mediaItem.id, user.id);
+                          fetchAnalytics(mediaItem.id, selectedPeriod);
+                        }
+                      }
+                    }}
+                    className="text-xs"
+                  >
+                    Generate Sample Data
+                  </Button>
+                )}
+                
+                {(chartData && chartData.length > 0) && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs text-destructive hover:text-destructive"
+                      >
+                        Clear Analytics Data
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Clear Analytics Data</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete all analytics data for this media item, including both real and sample data. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={async () => {
+                            if (mediaItem?.id) {
+                              try {
+                                const success = await clearAnalyticsData(mediaItem.id);
+                                if (success) {
+                                  fetchAnalytics(mediaItem.id, selectedPeriod);
+                                  toast({
+                                    title: "Analytics Data Cleared",
+                                    description: "All analytics data has been successfully removed.",
+                                  });
+                                } else {
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to clear analytics data. Please try again.",
+                                    variant: "destructive",
+                                  });
+                                }
+                              } catch (error) {
+                                toast({
+                                  title: "Error",
+                                  description: "An unexpected error occurred while clearing data.",
+                                  variant: "destructive",
+                                });
+                              }
+                            }
+                          }}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Clear Data
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
             )}
           </div>
 
