@@ -12,7 +12,7 @@ import { ChartSelector, ChartMetric } from '@/components/timeframe/ChartSelector
 import { convertAnalyticsData } from '@/utils/bucketize';
 import { formatRevenue } from '@/lib/formatRevenue';
 import { formatPercentageWithPeriodical } from '@/lib/utils';
-import { TrendingUp, TrendingDown, DollarSign, Users, ShoppingCart } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Users, ShoppingCart, Percent } from 'lucide-react';
 
 interface RevenueAnalyticsDialogProps {
   open: boolean;
@@ -184,9 +184,7 @@ export const RevenueAnalyticsDialog = ({ open, onOpenChange, mediaId, mediaTitle
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
                   <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
-                  <Badge variant="secondary" className="text-xs">
-                    {formatPercentageWithPeriodical(stats.conversion_rate)}
-                  </Badge>
+                  <Percent className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
                   <div className="text-xl font-bold">
