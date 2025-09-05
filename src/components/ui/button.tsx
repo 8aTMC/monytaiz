@@ -17,7 +17,7 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
         hero: "bg-gradient-primary text-primary-foreground hover:scale-105 shadow-glow hover:shadow-glow transition-bounce font-semibold",
         premium: "bg-gradient-hero text-primary-foreground hover:scale-105 shadow-glow transition-bounce font-semibold",
-        aiz: "bg-gradient-aiz text-primary-foreground hover:scale-105 shadow-glow hover:shadow-hover transition-bounce font-semibold",
+        aiz: "relative overflow-hidden bg-gradient-aiz text-primary-foreground hover:scale-105 shadow-glow hover:shadow-hover transition-bounce font-semibold before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent before:translate-x-[-100%] hover:before:animate-slide-shine",
         gold: "bg-gold text-gold-foreground hover:bg-gold/90 shadow-soft hover:shadow-glow font-semibold",
         glass: "bg-gradient-glass backdrop-blur-sm border border-primary/20 text-foreground hover:bg-primary/10 hover:border-primary/40",
       },
