@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useMediaAnalytics } from '@/hooks/useMediaAnalytics';
 import { useLocalTimeframe } from '@/hooks/useGlobalTimeframe';
@@ -12,7 +13,9 @@ import { ChartSelector, ChartMetric } from '@/components/timeframe/ChartSelector
 import { convertAnalyticsData } from '@/utils/bucketize';
 import { formatRevenue } from '@/lib/formatRevenue';
 import { formatPercentageWithPeriodical } from '@/lib/utils';
-import { TrendingUp, TrendingDown, DollarSign, Users, ShoppingCart, Percent } from 'lucide-react';
+import { restoreRealData } from '@/utils/seedAnalyticsData';
+import { toast } from '@/hooks/use-toast';
+import { TrendingUp, TrendingDown, DollarSign, Users, ShoppingCart, Percent, RotateCcw } from 'lucide-react';
 
 interface RevenueAnalyticsDialogProps {
   open: boolean;
@@ -24,6 +27,7 @@ interface RevenueAnalyticsDialogProps {
 export const RevenueAnalyticsDialog = ({ open, onOpenChange, mediaId, mediaTitle }: RevenueAnalyticsDialogProps) => {
   const timeframe = useLocalTimeframe();
   const [selectedMetrics, setSelectedMetrics] = useState<ChartMetric[]>(['revenue']);
+  const [isRestoring, setIsRestoring] = useState(false);
   
   const { 
     data, 
@@ -33,6 +37,41 @@ export const RevenueAnalyticsDialog = ({ open, onOpenChange, mediaId, mediaTitle
     fetchAnalytics, 
     clearAnalyticsData 
   } = useMediaAnalytics(mediaId);
+
+  const handleRestoreRealData = async () => {
+    if (!mediaId) return;
+    
+    setIsRestoring(true);
+    try {
+      const success = await restoreRealData(mediaId);
+      if (success) {
+        toast({
+          title: "Data Restored",
+          description: "Analytics data has been restored to real data.",
+        });
+        // Refresh analytics data
+        fetchAnalytics(mediaId, 'custom', true, {
+          startDate: timeframe.start,
+          endDate: timeframe.end
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to restore real data. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error restoring real data:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while restoring data.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRestoring(false);
+    }
+  };
 
   useEffect(() => {
     if (open && mediaId) {
@@ -99,10 +138,22 @@ export const RevenueAnalyticsDialog = ({ open, onOpenChange, mediaId, mediaTitle
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
-            Analytics: {mediaTitle}
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Analytics: {mediaTitle}
+            </DialogTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRestoreRealData}
+              disabled={isRestoring || loading}
+              className="flex items-center gap-2"
+            >
+              <RotateCcw className={`h-4 w-4 ${isRestoring ? 'animate-spin' : ''}`} />
+              {isRestoring ? 'Restoring...' : 'Restore Real Data'}
+            </Button>
+          </div>
         </DialogHeader>
 
         <ScrollArea className="h-full">
