@@ -542,7 +542,8 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
           <RevenueAnalyticsDialog
             open={revenueAnalyticsDialogOpen}
             onOpenChange={setRevenueAnalyticsDialogOpen}
-            mediaItem={item}
+            mediaId={item.id}
+            mediaTitle={item.title || 'Untitled Media'}
           />
         </>
       )}
