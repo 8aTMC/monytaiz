@@ -12,7 +12,7 @@ import { PriceDialog } from './PriceDialog';
 import { EditTitleDialog } from './EditTitleDialog';
 import { RevenueAnalyticsDialog } from './RevenueAnalyticsDialog';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
-import { SimpleAdaptiveVideoPlayer } from '@/components/SimpleAdaptiveVideoPlayer';
+import { EnhancedVideoPlayer } from '@/components/EnhancedVideoPlayer';
 import { formatRevenue } from '@/lib/formatRevenue';
 
 interface SimpleMediaPreviewAsyncProps {
@@ -344,18 +344,17 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                          }}
                        />
                      )}
-                       {item?.media_type === 'video' && (
-                         <SimpleAdaptiveVideoPlayer
-                           src={fullUrl}
-                           aspectRatio={aspectRatio}
-                           className="w-full h-full"
-                           autoPlay={false}
-                           onError={(e) => {
-                             console.error('Failed to load video:', e);
-                             setFullUrl(null);
-                           }}
-                         />
-                       )}
+                      {item?.media_type === 'video' && (
+                        <EnhancedVideoPlayer
+                          src={fullUrl}
+                          aspectRatio={aspectRatio}
+                          className="w-full h-full"
+                          onError={(e) => {
+                            console.error('Failed to load video:', e);
+                            setFullUrl(null);
+                          }}
+                        />
+                      )}
                       {item?.media_type === 'audio' && (
                         <div className="flex items-center justify-center w-full h-full">
                           <CustomAudioPlayer
