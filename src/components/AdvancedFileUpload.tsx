@@ -23,7 +23,7 @@ export const AdvancedFileUpload = () => {
   
   // Duplicate files dialog state
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
-  const [duplicateFiles, setDuplicateFiles] = useState<{ id: string; name: string; size: number; type: string; file?: File }[]>([]);
+  const [duplicateFiles, setDuplicateFiles] = useState<{ id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]>([]);
   
   const {
     uploadQueue,
@@ -66,7 +66,7 @@ export const AdvancedFileUpload = () => {
     const files = event.target.files;
     if (!files) return;
     
-    const showDuplicateDialog = (duplicates: { name: string; size: number; type: string }[]) => {
+    const showDuplicateDialog = (duplicates: { name: string; size: number; type: string; existingFile: File; newFile: File }[]) => {
       const duplicatesWithId = duplicates.map(dup => ({
         ...dup,
         id: `${dup.name}-${dup.size}-${Date.now()}`
@@ -92,7 +92,7 @@ export const AdvancedFileUpload = () => {
     const files = e.dataTransfer.files;
     if (files) {
       // For drag and drop, show duplicate dialog if needed
-      const showDuplicateDialog = (duplicates: { name: string; size: number; type: string }[]) => {
+      const showDuplicateDialog = (duplicates: { name: string; size: number; type: string; existingFile: File; newFile: File }[]) => {
         const duplicatesWithId = duplicates.map(dup => ({
           ...dup,
           id: `${dup.name}-${dup.size}-${Date.now()}`

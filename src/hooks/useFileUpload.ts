@@ -124,7 +124,7 @@ export const useFileUpload = () => {
     }
   }, []);
 
-  const addFiles = useCallback((files: File[], showDuplicateDialog?: (duplicates: { name: string; size: number; type: string }[]) => void) => {
+  const addFiles = useCallback((files: File[], showDuplicateDialog?: (duplicates: { name: string; size: number; type: string; existingFile: File; newFile: File }[]) => void) => {
     if (uploadQueue.length + files.length > 100) {
       toast({
         title: "Too many files",
@@ -137,7 +137,7 @@ export const useFileUpload = () => {
     const validFiles: FileUploadItem[] = [];
     const errors: string[] = [];
     const unsupportedFiles: string[] = [];
-    const duplicateFiles: { name: string; size: number; type: string }[] = [];
+    const duplicateFiles: { name: string; size: number; type: string; existingFile: File; newFile: File }[] = [];
     
     // Calculate current upload size from existing queue
     const currentUploadSize = uploadQueue.reduce((total, item) => total + item.file.size, 0);
@@ -153,16 +153,18 @@ export const useFileUpload = () => {
       }
       
       // Check for duplicates (same name and size)
-      const isDuplicate = uploadQueue.some(existingItem => 
+      const existingItem = uploadQueue.find(existingItem => 
         existingItem.file.name === file.name && existingItem.file.size === file.size
       );
       
-      if (isDuplicate) {
+      if (existingItem) {
         const fileType = getFileType(file);
         duplicateFiles.push({
           name: file.name,
           size: file.size,
-          type: fileType
+          type: fileType,
+          existingFile: existingItem.file,
+          newFile: file
         });
         return;
       }

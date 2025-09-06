@@ -5,13 +5,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { FileText, Image, Video, Music, FileIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
+import { FileComparisonDialog } from './FileComparisonDialog';
 
 interface DuplicateFile {
   id: string;
   name: string;
   size: number;
   type: string;
-  file?: File; // Add actual file for thumbnail generation
+  existingFile: File; // File already in queue
+  newFile: File; // File being uploaded
 }
 
 interface DuplicateFilesDialogProps {
@@ -28,6 +30,8 @@ export const DuplicateFilesDialog = ({
   onConfirm 
 }: DuplicateFilesDialogProps) => {
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false);
+  const [selectedFileForComparison, setSelectedFileForComparison] = useState<DuplicateFile | null>(null);
   
   // Initialize with all files selected by default and reset when duplicateFiles changes
   useEffect(() => {
@@ -58,6 +62,11 @@ export const DuplicateFilesDialog = ({
     onConfirm(Array.from(selectedFiles));
     setSelectedFiles(new Set());
   };
+
+  const handleRowDoubleClick = (file: DuplicateFile) => {
+    setSelectedFileForComparison(file);
+    setComparisonDialogOpen(true);
+  };
   
   const getFileIcon = (file: DuplicateFile) => {
     const extension = file.name.split('.').pop()?.toLowerCase() || '';
@@ -83,15 +92,15 @@ export const DuplicateFilesDialog = ({
     const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'].includes(extension);
     
     useEffect(() => {
-      if (isImage && file.file) {
-        const url = URL.createObjectURL(file.file);
+      if (isImage && file.newFile) {
+        const url = URL.createObjectURL(file.newFile);
         setThumbnailUrl(url);
         
         return () => {
           URL.revokeObjectURL(url);
         };
       }
-    }, [file.file, isImage]);
+    }, [file.newFile, isImage]);
     
     if (isImage && thumbnailUrl) {
       return (
@@ -130,7 +139,7 @@ export const DuplicateFilesDialog = ({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Found {duplicateFiles.length} duplicate file{duplicateFiles.length > 1 ? 's' : ''}. Selected files will be ignored, unselected files will be added to the queue:
+              Found {duplicateFiles.length} duplicate file{duplicateFiles.length > 1 ? 's' : ''}. Selected files will be ignored, unselected files will be added to the queue. Double-click a row to compare files:
             </p>
             <Button 
               variant="outline" 
@@ -145,7 +154,12 @@ export const DuplicateFilesDialog = ({
           <ScrollArea className="max-h-[400px] pr-4">
             <div className="space-y-2">
               {duplicateFiles.map((file) => (
-                <div key={file.id} className="flex items-center gap-3 p-3 rounded-lg border bg-muted/20">
+                <div 
+                  key={file.id} 
+                  className="flex items-center gap-3 p-3 rounded-lg border bg-muted/20 cursor-pointer hover:bg-muted/30 transition-colors"
+                  onDoubleClick={() => handleRowDoubleClick(file)}
+                  title="Double-click to compare files"
+                >
                   <div className="flex-shrink-0">
                     <FileThumbnail file={file} />
                   </div>
@@ -181,6 +195,15 @@ export const DuplicateFilesDialog = ({
           </Button>
         </DialogFooter>
       </DialogContent>
+      
+      {selectedFileForComparison && (
+        <FileComparisonDialog
+          open={comparisonDialogOpen}
+          onOpenChange={setComparisonDialogOpen}
+          existingFile={{ file: selectedFileForComparison.existingFile }}
+          newFile={{ file: selectedFileForComparison.newFile }}
+        />
+      )}
     </Dialog>
   );
 };

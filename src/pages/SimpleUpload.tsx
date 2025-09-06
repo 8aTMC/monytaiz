@@ -30,7 +30,7 @@ export default function SimpleUpload() {
   const [currentUploadingFile, setCurrentUploadingFile] = useState<string | null>(null);
   const [reviewMode, setReviewMode] = useState(false);
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
-  const [duplicateFiles, setDuplicateFiles] = useState<{ id: string; name: string; size: number; type: string; file?: File }[]>([]);
+  const [duplicateFiles, setDuplicateFiles] = useState<{ id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]>([]);
   const addMoreFileInputRef = useRef<HTMLInputElement>(null);
   
   // Selection state management
@@ -109,22 +109,22 @@ export default function SimpleUpload() {
 
   const addMoreFiles = useCallback((acceptedFiles: File[]) => {
     // Check for duplicates
-    const duplicates: { id: string; name: string; size: number; type: string; file?: File }[] = [];
+    const duplicates: { id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[] = [];
     const uniqueFiles: File[] = [];
 
     acceptedFiles.forEach(newFile => {
-      const isDuplicate = files.some(existingFile => 
-        existingFile.file.name === newFile.name && 
-        existingFile.file.size === newFile.size
+      const existingFileItem = files.find(fileItem => 
+        fileItem.file.name === newFile.name && fileItem.file.size === newFile.size
       );
 
-      if (isDuplicate) {
+      if (existingFileItem) {
         duplicates.push({
           id: `${newFile.name}-${newFile.size}-${newFile.lastModified}`,
           name: newFile.name,
           size: newFile.size,
           type: newFile.type,
-          file: newFile // Include the actual File object for thumbnail generation
+          existingFile: existingFileItem.file,
+          newFile: newFile
         });
       } else {
         uniqueFiles.push(newFile);
