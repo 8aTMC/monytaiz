@@ -245,13 +245,13 @@ export const FilePreviewDialog = ({
       const aspectValue = width / height;
       
       // Calculate available space based on modal size minus header and minimal padding
-      const headerHeight = 120; // Approximate header height
+      const headerHeight = 100; // Approximate header height
       const modalMaxHeight = window.innerHeight * 0.95;
       const availableHeight = modalMaxHeight - headerHeight - 4; // 4px for minimal spacing
       
       // For vertical videos (aspect < 1), maximize available height
       if (aspectValue < 1) {
-        const maxWidth = Math.min(window.innerWidth * 0.4, 500); // More width for vertical videos
+        const maxWidth = Math.min(window.innerWidth * 0.5, 600); // More width for vertical videos
         const calculatedHeight = maxWidth / aspectValue;
         const finalHeight = Math.min(calculatedHeight, availableHeight);
         const finalWidth = finalHeight * aspectValue;
@@ -264,7 +264,7 @@ export const FilePreviewDialog = ({
       } 
       // For horizontal videos (aspect >= 1), use most of available space
       else {
-        const maxWidth = Math.min(window.innerWidth * 0.8, 1200); // Use more width
+        const maxWidth = Math.min(window.innerWidth * 0.85, 1200); // Use more width
         const calculatedHeight = maxWidth / aspectValue;
         const finalHeight = Math.min(calculatedHeight, availableHeight);
         const finalWidth = finalHeight * aspectValue;
