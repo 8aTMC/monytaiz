@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import heic2any from 'heic2any';
 import { useToast } from '@/hooks/use-toast';
 import { useVideoConverter } from '@/hooks/useVideoConverter';
 
@@ -193,9 +194,41 @@ export const useClientMediaProcessor = () => {
     });
   }, [getCanvas, trackBlobUrl, cleanupBlobUrl]);
 
+  // Convert HEIC/HEIF to regular image format
+  const convertHeicToJpeg = useCallback(async (file: File): Promise<File> => {
+    try {
+      const convertedBlob = await heic2any({
+        blob: file,
+        toType: 'image/jpeg',
+        quality: 0.9
+      }) as Blob;
+      
+      return new File([convertedBlob], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
+        type: 'image/jpeg',
+        lastModified: file.lastModified
+      });
+    } catch (error) {
+      console.error('HEIC conversion failed:', error);
+      throw new Error('Failed to convert HEIC image');
+    }
+  }, []);
+
+  // Check if file is HEIC/HEIF
+  const isHeicFile = useCallback((file: File): boolean => {
+    return /\.(heic|heif)$/i.test(file.name) || 
+           file.type === 'image/heic' || 
+           file.type === 'image/heif';
+  }, []);
+
   // Process image using Canvas
   const processImage = useCallback(async (file: File): Promise<ProcessedMedia | null> => {
     try {
+      // Convert HEIC/HEIF files first
+      let processedFile = file;
+      if (isHeicFile(file)) {
+        processedFile = await convertHeicToJpeg(file);
+      }
+
       const result = await new Promise<{ blob: Blob; width: number; height: number }>((resolve, reject) => {
         const img = new Image();
         img.onload = () => {
@@ -238,10 +271,10 @@ export const useClientMediaProcessor = () => {
           reject(new Error('Failed to load image'));
           cleanupBlobUrl(img.src);
         };
-        img.src = trackBlobUrl(URL.createObjectURL(file));
+        img.src = trackBlobUrl(URL.createObjectURL(processedFile));
       });
 
-      const placeholder = await createTinyPlaceholder(file);
+      const placeholder = await createTinyPlaceholder(processedFile);
       const compressionRatio = Math.round(((file.size - result.blob.size) / file.size) * 100);
 
       const processedBlobs = new Map<string, Blob>();
@@ -249,7 +282,7 @@ export const useClientMediaProcessor = () => {
 
       return {
         id: crypto.randomUUID(),
-        original: file,
+        original: file, // Keep original file reference
         originalFile: file, // Alias for compatibility
         thumbnail: result.blob, // Use the actual blob instead of canvas data URL
         processedBlobs: processedBlobs,

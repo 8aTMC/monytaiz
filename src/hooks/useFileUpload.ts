@@ -34,7 +34,7 @@ const MAX_UPLOAD_SIZE = 10 * 1024 * 1024 * 1024; // 10GB total per upload sessio
 
 const ALLOWED_TYPES = {
   video: ['.mp4', '.mov', '.webm', '.avi', '.mkv'],
-  image: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'],
+  image: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif', '.heic', '.heif'],
   audio: ['.mp3', '.wav', '.aac', '.ogg', '.flac', '.opus'],
   document: ['.pdf', '.doc', '.docx', '.txt', '.rtf'],
 };
@@ -42,14 +42,13 @@ const ALLOWED_TYPES = {
 // Formats that require conversion but we can handle
 const CONVERSION_FORMATS = {
   audio: ['.mp3', '.wav', '.aac', '.ogg', '.flac', '.opus'], // Convert to WebM/Opus
-  image: ['.jpg', '.jpeg', '.png', '.gif', '.avif'], // Convert to WebP
+  image: ['.jpg', '.jpeg', '.png', '.gif', '.avif', '.heic', '.heif'], // Convert to WebP
   video: ['.mp4', '.mov', '.avi', '.mkv'] // Keep as-is, backend processing
 };
 
 // Formats we cannot support (will be filtered out with error message)
 const UNSUPPORTED_FORMATS = [
   '.tiff', '.tif', // TIFF images
-  '.heic', '.heif', // HEIC images
   '.flv', // Flash video
   '.wmv', // Windows Media Video  
   '.hevc', '.h265' // HEVC codec files

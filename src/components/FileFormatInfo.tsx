@@ -14,9 +14,9 @@ export const FileFormatInfo = () => {
       description: 'All audio files are converted to WebM format with Opus codec for optimal streaming and reduced file size.'
     },
     image: {
-      formats: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif'],
+      formats: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif', 'heic', 'heif'],
       conversion: 'WebP',
-      description: 'Images are converted to WebP format at 80% quality for faster loading while maintaining visual quality.'
+      description: 'Images are converted to WebP format at 80% quality for faster loading while maintaining visual quality. HEIC/HEIF files are converted client-side.'
     },
     video: {
       formats: ['avi', 'flv', 'wmv', 'mov', 'mp4', 'mkv', 'webm'],
@@ -27,7 +27,6 @@ export const FileFormatInfo = () => {
 
   const unsupportedFormats = [
     { format: 'tiff/tif', reason: 'Complex format, limited browser support' },
-    { format: 'heic/heif', reason: 'Requires specialized codec support' },
     { format: 'flv', reason: 'Flash video format, deprecated' },
     { format: 'wmv', reason: 'Proprietary Windows format' },
     { format: 'hevc/h265', reason: 'Patent-encumbered codec' }
