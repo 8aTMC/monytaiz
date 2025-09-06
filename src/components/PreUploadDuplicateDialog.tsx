@@ -5,13 +5,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { FileText, Image, Video, Music, FileIcon, Eye, Calendar, Database } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
-import { DatabaseDuplicate, useDuplicateDetection } from '@/hooks/useDuplicateDetection';
+import { DatabaseDuplicate, DuplicateMatch, useDuplicateDetection } from '@/hooks/useDuplicateDetection';
 import { FileComparisonDialog } from './FileComparisonDialog';
 
 interface PreUploadDuplicateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  duplicates: DatabaseDuplicate[];
+  duplicates: DuplicateMatch[];
   onPurgeSelected: (duplicateIds: string[]) => void;
   onKeepBoth: () => void;
   onCancel: () => void;
@@ -27,7 +27,7 @@ export const PreUploadDuplicateDialog = ({
 }: PreUploadDuplicateDialogProps) => {
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false);
-  const [selectedDuplicateForComparison, setSelectedDuplicateForComparison] = useState<DatabaseDuplicate | null>(null);
+  const [selectedDuplicateForComparison, setSelectedDuplicateForComparison] = useState<DuplicateMatch | null>(null);
   const { getConfidenceBadge } = useDuplicateDetection();
   
   // Initialize with all files selected by default
@@ -72,9 +72,12 @@ export const PreUploadDuplicateDialog = ({
     onOpenChange(false);
   };
   
-  const handleComparisonClick = (duplicate: DatabaseDuplicate) => {
-    setSelectedDuplicateForComparison(duplicate);
-    setComparisonDialogOpen(true);
+  const handleComparisonClick = (duplicate: DuplicateMatch) => {
+    // Only show comparison for database duplicates since queue duplicates don't have existing files to compare against
+    if (duplicate.sourceType === 'database') {
+      setSelectedDuplicateForComparison(duplicate);
+      setComparisonDialogOpen(true);
+    }
   };
   
   const getFileIcon = (mimeType: string) => {
@@ -103,8 +106,8 @@ export const PreUploadDuplicateDialog = ({
     });
   };
   
-  const FileThumbnail = ({ duplicate }: { duplicate: DatabaseDuplicate }) => {
-    const { queueFile, existingFile } = duplicate;
+  const FileThumbnail = ({ duplicate }: { duplicate: DuplicateMatch }) => {
+    const { queueFile } = duplicate;
     
     if (queueFile.file.type.startsWith('image/')) {
       const url = URL.createObjectURL(queueFile.file);
@@ -191,24 +194,46 @@ export const PreUploadDuplicateDialog = ({
                             <span>Ready to upload</span>
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            Detection: {duplicate.detectionMethod.replace(/_/g, ' ')}
+                            Detection: {duplicate.detectionMethod.replace(/_/g, ' ')} | Source: {duplicate.sourceType}
                           </div>
                         </div>
                         
-                        {/* Existing file */}
+                        {/* Duplicate source (existing file or queue file) */}
                         <div className="space-y-1">
-                          <Badge variant="secondary" className="mb-1">Existing in Library</Badge>
-                          <p className="font-medium text-sm truncate" title={duplicate.existingFile.original_filename}>
-                            {duplicate.existingFile.title || duplicate.existingFile.original_filename}
-                          </p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Calendar className="w-3 h-3" />
-                            <span>{formatDate(duplicate.existingFile.created_at)}</span>
-                            <span>•</span>
-                            <Badge variant="outline">
-                              {duplicate.existingFile.processing_status}
-                            </Badge>
-                          </div>
+                          {duplicate.sourceType === 'database' ? (
+                            <>
+                              <Badge variant="secondary" className="mb-1 flex items-center gap-1">
+                                <Database className="w-3 h-3" />
+                                Existing in Library
+                              </Badge>
+                              <p className="font-medium text-sm truncate" title={'existingFile' in duplicate ? duplicate.existingFile.original_filename : ''}>
+                                {'existingFile' in duplicate ? (duplicate.existingFile.title || duplicate.existingFile.original_filename) : ''}
+                              </p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <Calendar className="w-3 h-3" />
+                                <span>{'existingFile' in duplicate ? formatDate(duplicate.existingFile.created_at) : ''}</span>
+                                <span>•</span>
+                                <Badge variant="outline">
+                                  {'existingFile' in duplicate ? duplicate.existingFile.processing_status : ''}
+                                </Badge>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <Badge variant="destructive" className="mb-1">
+                                Duplicate in Queue
+                              </Badge>
+                              <p className="font-medium text-sm truncate" title={'duplicateFile' in duplicate ? duplicate.duplicateFile.file.name : ''}>
+                                {'duplicateFile' in duplicate ? duplicate.duplicateFile.file.name : ''}
+                              </p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                {duplicate.sourceType === 'queue' && 'duplicateFile' in duplicate && getFileIcon(duplicate.duplicateFile.file.type)}
+                                <span>{'duplicateFile' in duplicate ? formatFileSize(duplicate.duplicateFile.file.size) : ''}</span>
+                                <span>•</span>
+                                <span>Also in upload queue</span>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -217,10 +242,11 @@ export const PreUploadDuplicateDialog = ({
                       variant="outline"
                       size="sm"
                       onClick={() => handleComparisonClick(duplicate)}
+                      disabled={duplicate.sourceType === 'queue'}
                       className="flex items-center gap-1 shrink-0"
                     >
                       <Eye className="w-3 h-3" />
-                      Compare
+                      {duplicate.sourceType === 'database' ? 'Compare' : 'No Preview'}
                     </Button>
                   </div>
                 ))}
@@ -250,8 +276,8 @@ export const PreUploadDuplicateDialog = ({
         </DialogContent>
       </Dialog>
 
-      {/* File comparison dialog */}
-      {selectedDuplicateForComparison && (
+      {/* File comparison dialog - only for database duplicates */}
+      {selectedDuplicateForComparison && selectedDuplicateForComparison.sourceType === 'database' && 'existingFile' in selectedDuplicateForComparison && (
         <FileComparisonDialog
           open={comparisonDialogOpen}
           onOpenChange={setComparisonDialogOpen}

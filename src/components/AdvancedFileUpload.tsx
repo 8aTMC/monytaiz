@@ -12,7 +12,7 @@ import { SelectionHeader } from './SelectionHeader';
 import { FilePreviewDialog } from './FilePreviewDialog';
 import { DuplicateFilesDialog } from './DuplicateFilesDialog';
 import { PreUploadDuplicateDialog } from './PreUploadDuplicateDialog';
-import { useDuplicateDetection, DatabaseDuplicate } from '@/hooks/useDuplicateDetection';
+import { useDuplicateDetection, DuplicateMatch } from '@/hooks/useDuplicateDetection';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -31,10 +31,10 @@ export const AdvancedFileUpload = () => {
   
   // Pre-upload duplicate dialog state
   const [preUploadDuplicateDialogOpen, setPreUploadDuplicateDialogOpen] = useState(false);
-  const [databaseDuplicates, setDatabaseDuplicates] = useState<DatabaseDuplicate[]>([]);
+  const [allDuplicates, setAllDuplicates] = useState<DuplicateMatch[]>([]);
   const [duplicateCheckLoading, setDuplicateCheckLoading] = useState(false);
   
-  const { checkDatabaseDuplicates, addDuplicateTag } = useDuplicateDetection();
+  const { checkAllDuplicates, addDuplicateTag } = useDuplicateDetection();
   
   const {
     uploadQueue,
@@ -216,13 +216,15 @@ export const AdvancedFileUpload = () => {
     try {
       setDuplicateCheckLoading(true);
       
-      // Check for database duplicates with enhanced detection
-      const duplicates = await checkDatabaseDuplicates(uploadQueue);
+      // Check for both queue and database duplicates
+      const duplicates = await checkAllDuplicates(uploadQueue);
       
       if (duplicates.length > 0) {
-        setDatabaseDuplicates(duplicates);
+        console.log('🎯 Showing duplicate dialog with', duplicates.length, 'duplicates');
+        setAllDuplicates(duplicates);
         setPreUploadDuplicateDialogOpen(true);
       } else {
+        console.log('✅ No duplicates found, proceeding with upload');
         // No duplicates found, proceed with upload
         startUpload(true); // Skip duplicate check since we already did it
       }
@@ -243,7 +245,7 @@ export const AdvancedFileUpload = () => {
   const handlePurgeSelected = (duplicateIds: string[]) => {
     duplicateIds.forEach(id => removeFile(id));
     setPreUploadDuplicateDialogOpen(false);
-    setDatabaseDuplicates([]);
+    setAllDuplicates([]);
     
     // Start upload with remaining files
     setTimeout(() => startUpload(true), 100);
@@ -252,7 +254,7 @@ export const AdvancedFileUpload = () => {
   // Handle keeping both versions (upload with duplicate tags)
   const handleKeepBoth = () => {
     // Add duplicate tags to queue files
-    databaseDuplicates.forEach((duplicate, index) => {
+    allDuplicates.forEach((duplicate, index) => {
       const currentMetadata = duplicate.queueFile.metadata || {
         mentions: [],
         tags: [],
@@ -266,7 +268,7 @@ export const AdvancedFileUpload = () => {
     });
     
     setPreUploadDuplicateDialogOpen(false);
-    setDatabaseDuplicates([]);
+    setAllDuplicates([]);
     
     // Start upload with duplicate tags
     setTimeout(() => startUpload(true), 100);
@@ -275,7 +277,7 @@ export const AdvancedFileUpload = () => {
   // Handle canceling upload
   const handleCancelUpload = () => {
     setPreUploadDuplicateDialogOpen(false);
-    setDatabaseDuplicates([]);
+    setAllDuplicates([]);
   };
 
   const getStatusText = (status: string) => {
@@ -508,7 +510,7 @@ export const AdvancedFileUpload = () => {
       <PreUploadDuplicateDialog
         open={preUploadDuplicateDialogOpen}
         onOpenChange={setPreUploadDuplicateDialogOpen}
-        duplicates={databaseDuplicates}
+        duplicates={allDuplicates}
         onPurgeSelected={handlePurgeSelected}
         onKeepBoth={handleKeepBoth}
         onCancel={handleCancelUpload}
