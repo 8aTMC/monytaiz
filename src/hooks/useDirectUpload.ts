@@ -34,6 +34,7 @@ export const useDirectUpload = () => {
     message: 'Starting upload...'
   });
   const { toast } = useToast();
+
   // Check if browser supports WebP encoding
   const checkWebPSupport = useCallback((): boolean => {
     const canvas = document.createElement('canvas');
@@ -48,158 +49,260 @@ export const useDirectUpload = () => {
            file.type === 'image/heif';
   }, []);
 
-  // Convert HEIC/HEIF to optimal format with adaptive quality and dimension capping
+  // Convert HEIC file with bulletproof processing and server fallback
   const convertHeicFile = useCallback(async (file: File): Promise<File> => {
     const startTime = performance.now();
-    const processingTimeout = 1500; // 1.5s timeout
     
     try {
-      // Create processing timeout
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('HEIC conversion timeout')), processingTimeout);
-      });
-      
-      const conversionPromise = (async () => {
-        const supportsWebP = checkWebPSupport();
-        const targetType = supportsWebP ? 'image/webp' : 'image/jpeg';
-        const fileExtension = supportsWebP ? '.webp' : '.jpg';
-        
-        // Get image dimensions first to check if we need dimension capping
-        const img = new Image();
-        const imgUrl = URL.createObjectURL(file);
-        
-        const dimensions = await new Promise<{width: number, height: number}>((resolve, reject) => {
-          img.onload = () => {
-            resolve({ width: img.naturalWidth, height: img.naturalHeight });
-            URL.revokeObjectURL(imgUrl);
-          };
-          img.onerror = () => {
-            URL.revokeObjectURL(imgUrl);
-            reject(new Error('Failed to load image for dimension check'));
-          };
-          img.src = imgUrl;
-        });
-        
-        // Check dimension limits (4000px max on longest side)
-        const maxDimension = 4000;
-        const needsDownscale = Math.max(dimensions.width, dimensions.height) > maxDimension;
-        
-        if (needsDownscale) {
-          console.log(`📏 HEIC ${file.name}: ${dimensions.width}x${dimensions.height} exceeds ${maxDimension}px, will be downscaled`);
-        }
-        
-        // Adaptive quality system: start high, step down if needed
-        const qualityLevels = [0.82, 0.76, 0.70, 0.68];
-        let bestResult: { blob: Blob; quality: number } | null = null;
-        const targetReduction = 0.4; // Target 40% size reduction minimum
-        
-        for (const quality of qualityLevels) {
-          try {
-            const convertedBlob = await heic2any({
-              blob: file,
-              toType: targetType,
-              quality: quality
-            }) as Blob;
-            
-            const reduction = (file.size - convertedBlob.size) / file.size;
-            bestResult = { blob: convertedBlob, quality };
-            
-            // Stop early if we hit our target reduction
-            if (reduction >= targetReduction) {
-              console.log(`✅ HEIC conversion achieved ${Math.round(reduction * 100)}% reduction at quality ${quality}`);
-              break;
-            }
-          } catch (qualityError) {
-            console.warn(`Quality ${quality} failed, trying lower...`);
-            continue;
-          }
-        }
-        
-        if (!bestResult) {
-          throw new Error('All quality levels failed');
-        }
-        
-        const convertedFileName = file.name.replace(/\.(heic|heif)$/i, fileExtension);
-        const processingTime = performance.now() - startTime;
-        const compressionRatio = Math.round(((file.size - bestResult.blob.size) / file.size) * 100);
-        
-        // Enhanced telemetry
-        console.log(`📊 HEIC Processing Metrics:
-          File: ${file.name}
-          Original: ${(file.size / 1024 / 1024).toFixed(2)}MB (${dimensions.width}x${dimensions.height})
-          Processed: ${(bestResult.blob.size / 1024 / 1024).toFixed(2)}MB
-          Compression: ${compressionRatio}%
-          Quality: ${bestResult.quality}
-          Time: ${processingTime.toFixed(0)}ms
-          Target: ${targetType}`);
-        
-        return new File([bestResult.blob], convertedFileName, {
-          type: targetType,
-          lastModified: file.lastModified
-        });
-      })();
-      
-      return await Promise.race([conversionPromise, timeoutPromise]);
-      
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const processingTime = performance.now() - startTime;
-      
-      // Categorize errors properly
-      let errorCategory = 'unknown_error';
-      let userMessage = 'Failed to convert HEIC image';
-      
-      if (errorMessage.includes('already browser readable')) {
-        errorCategory = 'jpeg_passthrough';
-        // Extract the actual file type from the error message
-        const actualType = errorMessage.match(/image\/(jpeg|jpg|png|webp)/i)?.[0] || file.type;
-        
-        // Create new file with correct extension based on actual content
-        let correctExtension = '.jpg';
-        if (actualType.includes('png')) correctExtension = '.png';
-        else if (actualType.includes('webp')) correctExtension = '.webp';
-        else if (actualType.includes('jpeg') || actualType.includes('jpg')) correctExtension = '.jpg';
-        
-        const correctedFileName = file.name.replace(/\.(heic|heif)$/i, correctExtension);
-        
-        console.log(`📄 HEIC Passthrough: ${file.name} → ${correctedFileName} (already ${actualType})`);
-        
-        return new File([file], correctedFileName, {
-          type: actualType,
-          lastModified: file.lastModified
-        });
-      } else if (errorMessage.includes('timeout')) {
-        errorCategory = 'processing_timeout';
-        userMessage = 'Image too complex to process (timeout)';
-      } else if (errorMessage.includes('canvas') || errorMessage.includes('memory')) {
-        errorCategory = 'canvas_limit';
-        userMessage = 'Image too large for processing';
-      } else if (errorMessage.includes('decode') || errorMessage.includes('HEVC')) {
-        errorCategory = 'decode_failure';
-        userMessage = 'HEIC format not supported in this browser';
-      } else if (errorMessage.includes('WASM')) {
-        errorCategory = 'wasm_error';
-        userMessage = 'Processing engine unavailable';
+      setUploadProgress(prev => ({
+        ...prev,
+        phase: 'processing',
+        message: 'Processing HEIC image...',
+        progress: 10
+      }));
+
+      // Check if file is actually HEIC/HEIF
+      if (!isHeicFile(file)) {
+        console.log('File is not HEIC/HEIF, skipping conversion');
+        return file;
       }
-      
-      // Enhanced error telemetry
-      console.error(`❌ HEIC Error: ${errorCategory} for ${file.name} (${processingTime.toFixed(0)}ms)`, {
-        category: errorCategory,
-        file: file.name,
+
+      console.log('Starting bulletproof HEIC processing:', {
+        filename: file.name,
         size: file.size,
-        processingTime,
-        error: errorMessage
+        type: file.type
       });
+
+      // Step 1: Try client-side processing with Web Worker
+      const clientResult = await tryClientProcessing(file);
       
-      throw new Error(`${userMessage}: ${errorCategory}`);
+      if (clientResult.success && clientResult.file) {
+        const processingTime = performance.now() - startTime;
+        
+        setUploadProgress(prev => ({
+          ...prev,
+          message: `Converted to WebP (-${clientResult.reductionPercent}%)`,
+          progress: 90
+        }));
+
+        // Log successful conversion telemetry
+        console.log('HEIC client conversion telemetry:', {
+          filename: file.name,
+          path: clientResult.path,
+          originalSize: file.size,
+          convertedSize: clientResult.file.size,
+          compressionRatio: clientResult.reductionPercent,
+          processingTime: processingTime,
+          quality: clientResult.quality
+        });
+
+        toast({
+          title: "HEIC Converted",
+          description: `Converted to WebP with ${clientResult.reductionPercent}% size reduction`,
+        });
+
+        return clientResult.file;
+      }
+
+      // Step 2: Client failed, try server fallback
+      console.log('Client processing failed, attempting server fallback:', clientResult.error);
+      
+      setUploadProgress(prev => ({
+        ...prev,
+        message: 'Processing on server...',
+        progress: 50
+      }));
+
+      const serverResult = await tryServerFallback(file, clientResult.error);
+      
+      if (serverResult.success) {
+        // Server processing is async, return original for now
+        // UI will show "Processing on server..." state
+        
+        toast({
+          title: "Processing on Server",
+          description: "HEIC file is being processed on the server. You'll be notified when complete.",
+        });
+
+        return file; // Return original, server will update the record later
+      }
+
+      // Both client and server failed - this should never happen with proper fallback
+      throw new Error(`Processing failed: ${serverResult.error}`);
+
+    } catch (error) {
+      const processingTime = performance.now() - startTime;
+      const errorCategory = categorizeHEICError(error);
+      
+      console.error('HEIC processing completely failed:', {
+        error: errorCategory,
+        filename: file.name,
+        fileSize: file.size,
+        processingTime: processingTime,
+        originalError: error
+      });
+
+      // This should rarely happen with server fallback
+      setUploadProgress(prev => ({
+        ...prev,
+        phase: 'error',
+        message: `Processing failed: ${getErrorMessage(errorCategory)}`
+      }));
+
+      toast({
+        title: "Processing Failed",
+        description: "Unable to process HEIC file. Please try a different format or contact support.",
+        variant: "destructive"
+      });
+
+      throw error;
     }
-  }, [checkWebPSupport]);
+  }, [isHeicFile, toast]);
+
+  // Try client-side processing with Web Worker
+  const tryClientProcessing = useCallback(async (file: File): Promise<{
+    success: boolean;
+    file?: File;
+    path?: string;
+    reductionPercent?: number;
+    quality?: number;
+    error?: string;
+  }> => {
+    return new Promise((resolve) => {
+      // Create worker for this processing session
+      const worker = new Worker('/heic-worker.js', { type: 'module' });
+      
+      const timeout = setTimeout(() => {
+        worker.terminate();
+        resolve({
+          success: false,
+          error: 'client_timeout'
+        });
+      }, 2000); // 2s timeout for client processing
+
+      worker.onmessage = (e) => {
+        clearTimeout(timeout);
+        worker.terminate();
+        resolve(e.data);
+      };
+
+      worker.onerror = () => {
+        clearTimeout(timeout);
+        worker.terminate();
+        resolve({
+          success: false,
+          error: 'worker_error'
+        });
+      };
+
+      // Send file to worker
+      worker.postMessage({
+        id: Math.random().toString(36),
+        file: file
+      });
+    });
+  }, []);
+
+  // Try server fallback processing
+  const tryServerFallback = useCallback(async (file: File, clientError?: string): Promise<{
+    success: boolean;
+    error?: string;
+  }> => {
+    try {
+      // Upload original file for server processing
+      const mediaId = crypto.randomUUID();
+      const inputPath = `processing/heic/${mediaId}_${file.name}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('content')
+        .upload(inputPath, file, {
+          contentType: file.type || 'image/heic'
+        });
+
+      if (uploadError) {
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      // Trigger server processing
+      const { data, error } = await supabase.functions.invoke('heic-transcoder', {
+        body: {
+          mediaId,
+          inputPath,
+          originalFilename: file.name,
+          clientError
+        }
+      });
+
+      if (error) {
+        throw new Error(`Server processing failed: ${error.message}`);
+      }
+
+      return {
+        success: true
+      };
+
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'server_processing_failed'
+      };
+    }
+  }, []);
+
+  // Categorize HEIC processing errors
+  const categorizeHEICError = useCallback((error: any): string => {
+    const message = error?.message || error?.toString() || '';
+    
+    if (message.includes('timeout') || message.includes('processing_timeout')) {
+      return 'processing_timeout';
+    }
+    if (message.includes('canvas') || message.includes('canvas_limit')) {
+      return 'canvas_limit';
+    }
+    if (message.includes('decode') || message.includes('decode_failure')) {
+      return 'decode_failure';
+    }
+    if (message.includes('budget') || message.includes('client_budget_exceeded')) {
+      return 'client_budget_exceeded';
+    }
+    if (message.includes('memory') || message.includes('oom')) {
+      return 'wasm_oom';
+    }
+    if (message.includes('corrupt')) {
+      return 'container_corrupt';
+    }
+    if (message.includes('unsupported')) {
+      return 'decode_unsupported';
+    }
+    
+    return 'unknown_processing_error';
+  }, []);
+
+  // Get user-friendly error messages
+  const getErrorMessage = useCallback((errorCategory: string): string => {
+    switch (errorCategory) {
+      case 'processing_timeout':
+        return 'Processing took too long and was cancelled';
+      case 'canvas_limit':
+        return 'Image is too large for browser processing';
+      case 'decode_failure':
+        return 'Unable to decode HEIC file';
+      case 'client_budget_exceeded':
+        return 'Image exceeds processing limits';
+      case 'wasm_oom':
+        return 'Insufficient memory for processing';
+      case 'container_corrupt':
+        return 'HEIC file appears to be corrupted';
+      case 'decode_unsupported':
+        return 'HEIC format not supported';
+      default:
+        return 'An unexpected error occurred during processing';
+    }
+  }, []);
 
   // Generate thumbnail asynchronously (non-blocking)
   const generateThumbnailAsync = useCallback(async (file: File, mediaId: string) => {
     try {
-      
-      
       const video = document.createElement('video');
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -250,8 +353,6 @@ export const useDirectUpload = () => {
                     .from('simple_media')
                     .update({ thumbnail_path: thumbnailPath })
                     .eq('id', mediaId);
-                  
-                  console.log('✅ Background thumbnail generated:', thumbnailPath);
                 }
               }
               clearTimeout(timeout);
@@ -259,209 +360,199 @@ export const useDirectUpload = () => {
             }, 'image/jpeg', 0.8);
           } catch (error) {
             console.warn('Thumbnail generation error:', error);
-            clearTimeout(timeout);
             cleanup();
           }
         };
         
-        video.onerror = () => {
-          console.warn('Video load error for thumbnail');
-          clearTimeout(timeout);
-          cleanup();
-        };
-        
-        video.muted = true;
+        video.onerror = cleanup;
         video.src = URL.createObjectURL(file);
+        video.load();
       });
     } catch (error) {
-      console.warn('Background thumbnail generation failed:', error);
+      console.warn('Thumbnail generation failed:', error);
     }
   }, []);
 
-  // Chunked upload with real progress
+  // Upload file in chunks for better performance
   const uploadFileChunked = useCallback(async (file: File, uploadPath: string): Promise<void> => {
-    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-    let uploadedBytes = 0;
-    const startTime = Date.now();
+    const fileSize = file.size;
     
-    console.log(`📦 Uploading ${file.name} in ${totalChunks} chunks (${CHUNK_SIZE} bytes each)`);
-    
-    if (totalChunks === 1) {
-      // Small file - upload directly
+    if (fileSize <= CHUNK_SIZE) {
+      // Small file, upload directly
       const { error } = await supabase.storage
         .from('content')
-        .upload(uploadPath, file, { upsert: false });
+        .upload(uploadPath, file, {
+          contentType: file.type,
+          upsert: true
+        });
       
-      if (error) throw new Error(`Upload failed: ${error.message}`);
+      if (error) throw error;
       return;
     }
-    
-    // Large file - use chunked upload
-    for (let i = 0; i < totalChunks; i++) {
+
+    // Large file, upload in chunks
+    const chunks = Math.ceil(fileSize / CHUNK_SIZE);
+    let uploadedBytes = 0;
+    const startTime = performance.now();
+
+    for (let i = 0; i < chunks; i++) {
       const start = i * CHUNK_SIZE;
-      const end = Math.min(start + CHUNK_SIZE, file.size);
+      const end = Math.min(start + CHUNK_SIZE, fileSize);
       const chunk = file.slice(start, end);
+      
       const chunkPath = `${uploadPath}.part${i}`;
       
       const { error } = await supabase.storage
         .from('content')
-        .upload(chunkPath, chunk, { upsert: false });
+        .upload(chunkPath, chunk, {
+          contentType: 'application/octet-stream',
+          upsert: true
+        });
       
-      if (error) throw new Error(`Chunk ${i} upload failed: ${error.message}`);
+      if (error) throw error;
       
       uploadedBytes += chunk.size;
-      const progress = (uploadedBytes / file.size) * 100;
-      const elapsedTime = Date.now() - startTime;
-      const uploadSpeed = uploadedBytes / (elapsedTime / 1000); // bytes per second
-      const remainingBytes = file.size - uploadedBytes;
-      const eta = remainingBytes / uploadSpeed;
+      const elapsed = performance.now() - startTime;
+      const speed = uploadedBytes / (elapsed / 1000);
+      const remaining = fileSize - uploadedBytes;
+      const eta = remaining / speed;
       
-      setUploadProgress({
+      setUploadProgress(prev => ({
+        ...prev,
         phase: 'uploading',
-        progress: Math.min(progress, 95), // Cap at 95% until finalization
-        message: `Uploading chunk ${i + 1}/${totalChunks}...`,
+        progress: Math.round((uploadedBytes / fileSize) * 100),
+        message: `Uploading... ${Math.round((uploadedBytes / fileSize) * 100)}%`,
         bytesUploaded: uploadedBytes,
-        totalBytes: file.size,
-        uploadSpeed: formatSpeed(uploadSpeed),
+        totalBytes: fileSize,
+        uploadSpeed: formatSpeed(speed),
         eta: formatTime(eta)
-      });
+      }));
     }
+
+    // Combine chunks on server (would need an edge function)
+    // For now, we'll upload the final file directly
+    const { error: finalError } = await supabase.storage
+      .from('content')
+      .upload(uploadPath, file, {
+        contentType: file.type,
+        upsert: true
+      });
     
-    // Finalize chunked upload (this would need a server-side function to reassemble)
-    console.log('✅ All chunks uploaded successfully');
+    if (finalError) throw finalError;
+
+    // Clean up chunk files
+    for (let i = 0; i < chunks; i++) {
+      const chunkPath = `${uploadPath}.part${i}`;
+      await supabase.storage.from('content').remove([chunkPath]);
+    }
   }, []);
 
+  // Main upload function
   const uploadFile = useCallback(async (file: File): Promise<DirectUploadResult> => {
     setUploading(true);
+    const startTime = performance.now();
     
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      // Convert HEIC files before upload
-      let processedFile = file;
-      if (isHeicFile(file)) {
-        setUploadProgress({
-          phase: 'processing',
-          progress: 10,
-          message: 'Converting HEIC image...',
-          totalBytes: file.size
-        });
-        
-        processedFile = await convertHeicFile(file);
-        
-        console.log(`✅ HEIC conversion complete: ${file.name} -> ${processedFile.name}`);
+      // Step 1: Authentication check
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        throw new Error('Authentication required');
       }
 
+      // Step 2: Generate unique IDs and paths
       const mediaId = crypto.randomUUID();
-      const mediaType = processedFile.type.startsWith('image/') ? 'image' : 
-                       processedFile.type.startsWith('video/') ? 'video' : 
-                       processedFile.type.startsWith('audio/') ? 'audio' : 'image';
+      const uploadPath = `uploads/${user.id}/${mediaId}_${file.name}`;
       
-      const uploadPath = `processed/${mediaId}-${processedFile.name}`;
-      
-      setUploadProgress({
-        phase: 'uploading',
-        progress: 20,
-        message: 'Starting direct upload...',
-        totalBytes: processedFile.size
-      });
+      let processedFile = file;
+      let compressionInfo: any = null;
 
-      // Upload processed file directly
-      if (processedFile.size > CHUNK_SIZE) {
-        await uploadFileChunked(processedFile, uploadPath);
-      } else {
-        const { error } = await supabase.storage
-          .from('content')
-          .upload(uploadPath, processedFile, { upsert: false });
-        
-        if (error) throw new Error(`Upload failed: ${error.message}`);
+      // Step 3: Process HEIC files
+      if (isHeicFile(file)) {
+        processedFile = await convertHeicFile(file);
+        compressionInfo = {
+          originalSize: file.size,
+          processedSize: processedFile.size,
+          compressionRatio: Math.round((1 - processedFile.size / file.size) * 100)
+        };
       }
 
-      setUploadProgress({
+      // Step 4: Upload file
+      setUploadProgress(prev => ({
+        ...prev,
         phase: 'uploading',
-        progress: 97,
-        message: 'Creating database record...',
-        totalBytes: processedFile.size,
-        bytesUploaded: processedFile.size
-      });
+        message: 'Uploading file...',
+        progress: 80
+      }));
 
-      // Create database record with original filename but processed file info
+      await uploadFileChunked(processedFile, uploadPath);
+
+      // Step 5: Create database record
+      const mediaType = processedFile.type.startsWith('image/') ? 'image' : 
+                       processedFile.type.startsWith('video/') ? 'video' : 'audio';
+
       const { data: mediaRecord, error: dbError } = await supabase
         .from('simple_media')
         .insert({
           id: mediaId,
           creator_id: user.id,
-          original_filename: file.name, // Keep original HEIC name
-          title: file.name.split('.')[0],
-          mime_type: processedFile.type, // Use converted file type
-          original_size_bytes: file.size, // Original HEIC size
-          optimized_size_bytes: processedFile.size, // Converted file size
+          original_filename: file.name,
           original_path: uploadPath,
-          processed_path: uploadPath,
+          mime_type: processedFile.type,
           media_type: mediaType,
-          processing_status: 'processed', // Immediately available
-          tags: []
+          original_size_bytes: processedFile.size,
+          processing_status: 'processed',
+          processing_path: isHeicFile(file) ? 'webp_local' : 'direct_upload',
+          optimization_metrics: compressionInfo,
+          client_processing_time_ms: Math.round(performance.now() - startTime)
         })
         .select()
         .single();
 
-      if (dbError) throw new Error(`Database error: ${dbError.message}`);
+      if (dbError) throw dbError;
 
-      setUploadProgress({
-        phase: 'complete',
-        progress: 100,
-        message: 'Upload complete!',
-        totalBytes: processedFile.size,
-        bytesUploaded: processedFile.size
-      });
-
-      // Generate thumbnail in background (non-blocking)
+      // Step 6: Generate video thumbnail if needed (async)
       if (mediaType === 'video') {
         generateThumbnailAsync(processedFile, mediaId);
       }
 
-      const compressionRatio = file.size !== processedFile.size ? 
-        Math.round(((file.size - processedFile.size) / file.size) * 100) : 0;
+      setUploadProgress(prev => ({
+        ...prev,
+        phase: 'complete',
+        message: 'Upload complete!',
+        progress: 100
+      }));
 
-      toast({
-        title: "Upload successful",
-        description: `${file.name} ${isHeicFile(file) ? 'converted and ' : ''}uploaded successfully`,
-        variant: "default"
-      });
+      const totalTime = performance.now() - startTime;
+      console.log(`Upload completed in ${totalTime.toFixed(0)}ms`);
 
       return {
         id: mediaId,
         path: uploadPath,
         media_type: mediaType,
         size: processedFile.size,
-        compressionRatio,
-        processedSize: processedFile.size,
-        qualityInfo: isHeicFile(file) ? { converted: true, originalType: file.type } : null
+        compressionRatio: compressionInfo?.compressionRatio,
+        processedSize: compressionInfo?.processedSize,
+        qualityInfo: compressionInfo
       };
 
     } catch (error) {
-      console.error('Upload error:', error);
-      setUploadProgress({
+      console.error('Upload failed:', error);
+      
+      setUploadProgress(prev => ({
+        ...prev,
         phase: 'error',
-        progress: 0,
         message: error instanceof Error ? error.message : 'Upload failed'
-      });
-      
-      toast({
-        title: "Upload failed",
-        description: error instanceof Error ? error.message : 'Unknown error occurred',
-        variant: "destructive"
-      });
-      
+      }));
+
       throw error;
     } finally {
       setUploading(false);
     }
-  }, [uploadFileChunked, generateThumbnailAsync, toast, isHeicFile, convertHeicFile]);
+  }, [isHeicFile, convertHeicFile, uploadFileChunked, generateThumbnailAsync]);
 
+  // Upload multiple files
   const uploadMultiple = useCallback(async (files: File[]): Promise<DirectUploadResult[]> => {
-    const results = [];
+    const results: DirectUploadResult[] = [];
     
     for (const file of files) {
       try {
@@ -469,6 +560,7 @@ export const useDirectUpload = () => {
         results.push(result);
       } catch (error) {
         console.error(`Failed to upload ${file.name}:`, error);
+        // Continue with other files
       }
     }
     
@@ -477,21 +569,23 @@ export const useDirectUpload = () => {
 
   return {
     uploading,
+    uploadProgress,
     uploadFile,
-    uploadMultiple,
-    uploadProgress
+    uploadMultiple
   };
 };
 
 // Helper functions
 const formatSpeed = (bytesPerSecond: number): string => {
-  const mbps = bytesPerSecond / (1024 * 1024);
-  return `${mbps.toFixed(1)} MB/s`;
+  const mbPerSecond = bytesPerSecond / (1024 * 1024);
+  return `${mbPerSecond.toFixed(1)} MB/s`;
 };
 
 const formatTime = (seconds: number): string => {
-  if (seconds < 60) return `${Math.round(seconds)}s`;
+  if (seconds < 60) {
+    return `${Math.round(seconds)}s`;
+  }
   const minutes = Math.floor(seconds / 60);
-  const secs = Math.round(seconds % 60);
-  return `${minutes}m ${secs}s`;
+  const remainingSeconds = Math.round(seconds % 60);
+  return `${minutes}m ${remainingSeconds}s`;
 };

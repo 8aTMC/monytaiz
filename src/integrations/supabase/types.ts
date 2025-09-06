@@ -1185,6 +1185,54 @@ export type Database = {
         }
         Relationships: []
       }
+      processing_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          input_path: string
+          job_type: string
+          media_id: string
+          output_path: string | null
+          preview_path: string | null
+          processing_metadata: Json | null
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_path: string
+          job_type?: string
+          media_id: string
+          output_path?: string | null
+          preview_path?: string | null
+          processing_metadata?: Json | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_path?: string
+          job_type?: string
+          media_id?: string
+          output_path?: string | null
+          preview_path?: string | null
+          processing_metadata?: Json | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1438,6 +1486,7 @@ export type Database = {
       }
       simple_media: {
         Row: {
+          client_processing_time_ms: number | null
           content_hash: string | null
           created_at: string | null
           creator_id: string
@@ -1448,6 +1497,7 @@ export type Database = {
           media_type: string
           mentions: string[] | null
           mime_type: string
+          optimization_metrics: Json | null
           optimized_size_bytes: number | null
           original_filename: string
           original_path: string
@@ -1455,9 +1505,11 @@ export type Database = {
           processed_at: string | null
           processed_path: string | null
           processing_error: string | null
+          processing_path: string | null
           processing_status: string | null
           quality_info: Json | null
           revenue_generated_cents: number | null
+          server_fallback_reason: string | null
           suggested_price_cents: number | null
           tags: string[] | null
           thumbnail_path: string | null
@@ -1466,6 +1518,7 @@ export type Database = {
           width: number | null
         }
         Insert: {
+          client_processing_time_ms?: number | null
           content_hash?: string | null
           created_at?: string | null
           creator_id: string
@@ -1476,6 +1529,7 @@ export type Database = {
           media_type: string
           mentions?: string[] | null
           mime_type: string
+          optimization_metrics?: Json | null
           optimized_size_bytes?: number | null
           original_filename: string
           original_path: string
@@ -1483,9 +1537,11 @@ export type Database = {
           processed_at?: string | null
           processed_path?: string | null
           processing_error?: string | null
+          processing_path?: string | null
           processing_status?: string | null
           quality_info?: Json | null
           revenue_generated_cents?: number | null
+          server_fallback_reason?: string | null
           suggested_price_cents?: number | null
           tags?: string[] | null
           thumbnail_path?: string | null
@@ -1494,6 +1550,7 @@ export type Database = {
           width?: number | null
         }
         Update: {
+          client_processing_time_ms?: number | null
           content_hash?: string | null
           created_at?: string | null
           creator_id?: string
@@ -1504,6 +1561,7 @@ export type Database = {
           media_type?: string
           mentions?: string[] | null
           mime_type?: string
+          optimization_metrics?: Json | null
           optimized_size_bytes?: number | null
           original_filename?: string
           original_path?: string
@@ -1511,9 +1569,11 @@ export type Database = {
           processed_at?: string | null
           processed_path?: string | null
           processing_error?: string | null
+          processing_path?: string | null
           processing_status?: string | null
           quality_info?: Json | null
           revenue_generated_cents?: number | null
+          server_fallback_reason?: string | null
           suggested_price_cents?: number | null
           tags?: string[] | null
           thumbnail_path?: string | null
