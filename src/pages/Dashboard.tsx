@@ -10,6 +10,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus, TrendingUp, Users, DollarSign, Activity } from 'lucide-react';
 import { PerformanceAnalyticsDashboard } from '@/components/PerformanceAnalyticsDashboard';
 import AutoOptimizationEngine from '@/components/AutoOptimizationEngine';
+import { PredictiveAnalyticsDashboard } from '@/components/PredictiveAnalyticsDashboard';
+import { MLDecisionEngine } from '@/components/MLDecisionEngine';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import FanDashboard from './FanDashboard';
 
@@ -279,6 +281,37 @@ const Platform = () => {
           
           <TabsContent value="optimization" className="space-y-4">
             <AutoOptimizationEngine userId={user?.id} />
+          </TabsContent>
+          
+          <TabsContent value="analytics" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Advanced Analytics</CardTitle>
+                <CardDescription>Detailed insights and metrics</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">Advanced analytics dashboard coming soon.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="revenue" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Revenue Analytics</CardTitle>
+                <CardDescription>Earnings and financial insights</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">Revenue analytics dashboard coming soon.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="predictive" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <PredictiveAnalyticsDashboard />
+              <MLDecisionEngine />
+            </div>
           </TabsContent>
           
         </Tabs>
