@@ -244,8 +244,8 @@ export const FilePreviewDialog = ({
       const [width, height] = videoAspectRatio.split('/').map(Number);
       const aspectValue = width / height;
       
-      // Calculate available height (90vh minus header/footer space ~200px)
-      const availableHeight = Math.max(window.innerHeight * 0.9 - 200, 300); // Minimum 300px
+      // Calculate available height (95vh minus header/footer space ~120px)
+      const availableHeight = Math.max(window.innerHeight * 0.95 - 120, 300); // Minimum 300px
       
       // For vertical videos (aspect < 1), limit width and use available height
       if (aspectValue < 1) {
@@ -335,7 +335,7 @@ export const FilePreviewDialog = ({
               width: 'fit-content',
               height: 'fit-content',
               maxWidth: '90vw',
-              maxHeight: '90vh',
+              maxHeight: '95vh',
               minWidth: '400px'
             }}
             onClick={(e) => e.stopPropagation()}
