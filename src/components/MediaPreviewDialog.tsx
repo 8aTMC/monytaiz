@@ -256,7 +256,7 @@ export const MediaPreviewDialog = ({
         />
         <div 
           ref={modalRef}
-          className={`fixed left-[50%] top-[50%] z-[110] grid w-full ${getModalSize()} max-h-[90vh] translate-x-[-50%] translate-y-[-50%] gap-4 border-0 bg-background/95 backdrop-blur-sm p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg ${needsScroll ? 'overflow-y-auto' : 'overflow-hidden'}`}
+          className={`fixed left-[50%] top-[50%] z-[110] grid w-full ${getModalSize()} max-h-[90vh] translate-x-[-50%] translate-y-[-50%] gap-2 border-0 bg-background/95 backdrop-blur-sm p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg ${needsScroll ? 'overflow-y-auto' : 'overflow-hidden'}`}
         >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -290,7 +290,7 @@ export const MediaPreviewDialog = ({
             </Button>
           </div>
 
-          <div className="flex-1 flex flex-col justify-center min-h-[70vh]">
+          <div className="flex-1 flex items-center">
             <div className="flex items-center justify-center w-full bg-muted/20 rounded-lg overflow-hidden">
               {/* Error handling */}
               {!getItemStoragePath(item) && (
@@ -322,7 +322,7 @@ export const MediaPreviewDialog = ({
                         <img 
                           src={getCurrentUrl()}
                           alt={item.title || 'Preview'} 
-                          className="w-full h-auto object-contain rounded transition-all duration-300 max-h-[85vh] min-h-[70vh]"
+                          className="w-full h-auto object-contain rounded transition-all duration-300 max-h-[85vh]"
                           style={{
                             aspectRatio: item.width && item.height ? `${item.width}/${item.height}` : 'auto'
                           }}
@@ -359,7 +359,7 @@ export const MediaPreviewDialog = ({
                     <EnhancedVideoPlayer
                       src={getCurrentUrl()}
                       aspectRatio={item.width && item.height ? `${item.width}/${item.height}` : '16/9'}
-                      className="max-h-[85vh] min-h-[70vh]"
+                      className="max-h-[85vh]"
                       onError={(e) => {
                         console.error('Failed to load secure video:', e);
                       }}
