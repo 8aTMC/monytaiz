@@ -251,7 +251,7 @@ export const FilePreviewDialog = ({
       
       // For vertical videos (aspect < 1), maximize available height
       if (aspectValue < 1) {
-        const maxWidth = Math.min(window.innerWidth * 0.5, 600); // More width for vertical videos
+        const maxWidth = Math.min(window.innerWidth * 0.6, 700); // More width for vertical videos
         const calculatedHeight = maxWidth / aspectValue;
         const finalHeight = Math.min(calculatedHeight, availableHeight);
         const finalWidth = finalHeight * aspectValue;
@@ -264,7 +264,7 @@ export const FilePreviewDialog = ({
       } 
       // For horizontal videos (aspect >= 1), use most of available space
       else {
-        const maxWidth = Math.min(window.innerWidth * 0.85, 1200); // Use more width
+        const maxWidth = Math.min(window.innerWidth * 0.9, 1300); // Use more width
         const calculatedHeight = maxWidth / aspectValue;
         const finalHeight = Math.min(calculatedHeight, availableHeight);
         const finalWidth = finalHeight * aspectValue;
