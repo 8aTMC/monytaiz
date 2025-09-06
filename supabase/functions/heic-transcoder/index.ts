@@ -139,6 +139,18 @@ async function processHEICFile(jobId: string, mediaId: string, inputPath: string
       })
       .eq('id', mediaId);
 
+    // Clean up original HEIC file
+    console.log(`Cleaning up original HEIC file: ${inputPath}`);
+    const { error: deleteError } = await supabase.storage
+      .from('content')
+      .remove([inputPath]);
+
+    if (deleteError) {
+      console.warn(`Failed to delete original HEIC file ${inputPath}:`, deleteError);
+    } else {
+      console.log(`✅ Original HEIC file deleted: ${inputPath}`);
+    }
+
     console.log(`HEIC processing completed for media ${mediaId}`);
 
   } catch (error) {
