@@ -12,6 +12,7 @@ import { useFolderRecreation } from '@/hooks/useFolderRecreation';
 import { useToast } from '@/hooks/use-toast';
 import { ForceLogoutButton } from '@/components/ForceLogoutButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { OrphanedDataManager } from '@/components/OrphanedDataManager';
 
 const Admin = () => {
   const { t } = useTranslation();
@@ -221,6 +222,11 @@ const Admin = () => {
               <ThemeToggle />
             </div>
           </div>
+        </div>
+
+        {/* Orphaned Data Management */}
+        <div className="mb-6">
+          <OrphanedDataManager />
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
