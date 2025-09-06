@@ -1,11 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useDirectUpload } from '@/hooks/useDirectUpload';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Upload, Zap, TrendingDown, Clock, Trash2 } from 'lucide-react';
+import { Upload, Zap, TrendingDown, Clock, Trash2, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { FileUploadRowWithMetadata, UploadedFileWithMetadata } from '@/components/FileUploadRowWithMetadata';
 import { DetailedUploadProgressBar } from '@/components/DetailedUploadProgressBar';
@@ -13,6 +13,7 @@ import { VideoValidationError } from '@/components/VideoValidationError';
 import { FileReviewRow } from '@/components/FileReviewRow';
 import { SelectionHeader } from '@/components/SelectionHeader';
 import { BatchMetadataToolbar } from '@/components/BatchMetadataToolbar';
+import { DuplicateFilesDialog } from '@/components/DuplicateFilesDialog';
 import { useToast } from '@/hooks/use-toast';
 import { SelectedFilesProvider } from '@/contexts/SelectedFilesContext';
 
@@ -28,6 +29,9 @@ export default function SimpleUpload() {
   const [currentUploadProgress, setCurrentUploadProgress] = useState(0);
   const [currentUploadingFile, setCurrentUploadingFile] = useState<string | null>(null);
   const [reviewMode, setReviewMode] = useState(false);
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+  const [duplicateFiles, setDuplicateFiles] = useState<{ name: string; size: number; type: string }[]>([]);
+  const addMoreFileInputRef = useRef<HTMLInputElement>(null);
   
   // Selection state management
   const selectedFiles = files.filter(f => f.selected);
@@ -102,6 +106,71 @@ export default function SimpleUpload() {
     setFiles(prev => [...prev, ...newFiles]);
     setReviewMode(true);
   }, []);
+
+  const addMoreFiles = useCallback((acceptedFiles: File[]) => {
+    // Check for duplicates
+    const duplicates: { name: string; size: number; type: string }[] = [];
+    const uniqueFiles: File[] = [];
+
+    acceptedFiles.forEach(newFile => {
+      const isDuplicate = files.some(existingFile => 
+        existingFile.file.name === newFile.name && 
+        existingFile.file.size === newFile.size
+      );
+
+      if (isDuplicate) {
+        duplicates.push({
+          name: newFile.name,
+          size: newFile.size,
+          type: newFile.type
+        });
+      } else {
+        uniqueFiles.push(newFile);
+      }
+    });
+
+    // Add unique files to the queue
+    if (uniqueFiles.length > 0) {
+      const newFiles = uniqueFiles.map(file => ({
+        file,
+        id: crypto.randomUUID(),
+        status: 'pending' as const,
+        metadata: {
+          mentions: [],
+          tags: [],
+          folders: [],
+          description: '',
+          suggestedPrice: null,
+        }
+      }));
+
+      setFiles(prev => [...prev, ...newFiles]);
+      
+      toast({
+        title: "Files added",
+        description: `${uniqueFiles.length} file${uniqueFiles.length === 1 ? '' : 's'} added to upload queue`,
+      });
+    }
+
+    // Show duplicates dialog if any duplicates found
+    if (duplicates.length > 0) {
+      setDuplicateFiles(duplicates);
+      setDuplicateDialogOpen(true);
+    }
+  }, [files, toast]);
+
+  const handleAddMoreFiles = useCallback(() => {
+    addMoreFileInputRef.current?.click();
+  }, []);
+
+  const handleAddMoreFilesChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      addMoreFiles(Array.from(files));
+      // Reset input value to allow selecting the same files again
+      event.target.value = '';
+    }
+  }, [addMoreFiles]);
 
   const startUpload = useCallback(async () => {
     setReviewMode(false);
@@ -258,6 +327,14 @@ export default function SimpleUpload() {
               >
                 <Trash2 className="w-4 h-4" />
                 Clear Upload
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={handleAddMoreFiles}
+                className="flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Add More Files
               </Button>
               <Button 
                 onClick={startUpload}
@@ -419,6 +496,24 @@ export default function SimpleUpload() {
             )}
           </div>
         )}
+
+        {/* Hidden file input for adding more files */}
+        <input
+          ref={addMoreFileInputRef}
+          type="file"
+          multiple
+          accept="image/*,video/*,audio/*"
+          onChange={handleAddMoreFilesChange}
+          className="hidden"
+        />
+
+        {/* Duplicate Files Dialog */}
+        <DuplicateFilesDialog
+          open={duplicateDialogOpen}
+          onOpenChange={setDuplicateDialogOpen}
+          duplicateFiles={duplicateFiles}
+          onConfirm={() => setDuplicateDialogOpen(false)}
+        />
 
       </div>
     </Layout>
