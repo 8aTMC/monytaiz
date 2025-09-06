@@ -702,6 +702,39 @@ export type Database = {
         }
         Relationships: []
       }
+      general_settings: {
+        Row: {
+          collapsed_dark_logo_url: string | null
+          collapsed_light_logo_url: string | null
+          created_at: string
+          created_by: string
+          expanded_dark_logo_url: string | null
+          expanded_light_logo_url: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          collapsed_dark_logo_url?: string | null
+          collapsed_light_logo_url?: string | null
+          created_at?: string
+          created_by: string
+          expanded_dark_logo_url?: string | null
+          expanded_light_logo_url?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          collapsed_dark_logo_url?: string | null
+          collapsed_light_logo_url?: string | null
+          created_at?: string
+          created_by?: string
+          expanded_dark_logo_url?: string | null
+          expanded_light_logo_url?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       global_ai_settings: {
         Row: {
           created_at: string

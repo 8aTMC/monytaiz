@@ -12,6 +12,12 @@ interface UserProfile {
   username: string | null;
   avatar_url: string | null;
   is_verified: boolean;
+  logoSettings?: {
+    expanded_dark_logo_url?: string;
+    expanded_light_logo_url?: string;
+    collapsed_dark_logo_url?: string;
+    collapsed_light_logo_url?: string;
+  };
 }
 import { 
   Home, 
@@ -199,9 +205,23 @@ export const Navigation = ({ role }: NavigationProps) => {
     };
   }, []);
 
-  // Get the appropriate logo based on theme
+  // Get the appropriate logo based on theme and collapse state
   const getLogoSrc = () => {
-    return theme === 'dark' 
+    const isDark = theme === 'dark';
+    
+    // Check for custom logos from database settings
+    if (userProfile?.logoSettings) {
+      if (isCollapsed) {
+        const customLogo = isDark ? userProfile.logoSettings.collapsed_dark_logo_url : userProfile.logoSettings.collapsed_light_logo_url;
+        if (customLogo) return customLogo;
+      } else {
+        const customLogo = isDark ? userProfile.logoSettings.expanded_dark_logo_url : userProfile.logoSettings.expanded_light_logo_url;
+        if (customLogo) return customLogo;
+      }
+    }
+    
+    // Fallback to default logos
+    return isDark 
       ? "/lovable-uploads/MonytAIz-Logo-II.png"      // Dark theme: blue "AIz" logo
       : "/lovable-uploads/MonytAIz-Logo-Banner.png";  // Light theme: full "MonytAIz" logo
   };
@@ -236,7 +256,14 @@ export const Navigation = ({ role }: NavigationProps) => {
         .single();
 
       if (error) throw error;
-      setUserProfile(data);
+
+      // Fetch logo settings
+      const { data: logoSettings } = await supabase
+        .from('general_settings')
+        .select('expanded_dark_logo_url, expanded_light_logo_url, collapsed_dark_logo_url, collapsed_light_logo_url')
+        .single();
+
+      setUserProfile({ ...data, logoSettings: logoSettings || undefined });
 
       // Fetch user roles
       const { data: rolesData, error: rolesError } = await supabase
@@ -757,9 +784,22 @@ export const Navigation = ({ role }: NavigationProps) => {
                              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                        }`}
                      >
-                       <Users className="h-4 w-4" />
-                       <span>Users</span>
-                     </Link>
+                        <Users className="h-4 w-4" />
+                        <span>Users</span>
+                      </Link>
+                      {(userRoles.includes('owner') || userRoles.includes('superadmin') || userRoles.includes('admin')) && (
+                        <Link
+                          to="/management/general-settings"
+                          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
+                            location.pathname === '/management/general-settings'
+                              ? 'bg-primary/10 text-primary'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+                          }`}
+                        >
+                          <Settings className="h-4 w-4" />
+                          <span>General Settings</span>
+                        </Link>
+                      )}
                    </div>
                  </HoverCardContent>
               </HoverCard>
@@ -798,9 +838,22 @@ export const Navigation = ({ role }: NavigationProps) => {
                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                      }`}
                    >
-                     <Users className="h-4 w-4" />
-                     <span>Users</span>
-                   </Link>
+                      <Users className="h-4 w-4" />
+                      <span>Users</span>
+                    </Link>
+                    {(userRoles.includes('owner') || userRoles.includes('superadmin') || userRoles.includes('admin')) && (
+                      <Link
+                        to="/management/general-settings"
+                        className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
+                          location.pathname === '/management/general-settings'
+                            ? 'bg-primary/3 text-primary/90'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+                        }`}
+                      >
+                        <Settings className="h-4 w-4" />
+                        <span>General Settings</span>
+                      </Link>
+                    )}
                  </CollapsibleContent>
               </Collapsible>
             )}

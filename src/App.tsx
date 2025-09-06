@@ -29,6 +29,7 @@ import { AIManagement } from "./pages/AIManagement";
 import TagManagement from "./pages/TagManagement";
 import Collaborators from "./pages/Collaborators";
 import NotFound from "./pages/NotFound";
+import GeneralSettings from "./pages/GeneralSettings";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
@@ -164,6 +165,13 @@ const App = () => (
               <ProtectedRoute>
                 <Layout>
                   <TagManagement />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/management/general-settings" element={
+              <ProtectedRoute>
+                <Layout>
+                  <GeneralSettings />
                 </Layout>
               </ProtectedRoute>
             } />
