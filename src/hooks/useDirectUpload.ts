@@ -34,146 +34,6 @@ export const useDirectUpload = () => {
   });
   const { toast } = useToast();
 
-  // Check if file is HEIC/HEIF
-  const isHeicFile = useCallback((file: File): boolean => {
-    return /\.(heic|heif)$/i.test(file.name) || 
-           file.type === 'image/heic' || 
-           file.type === 'image/heif';
-  }, []);
-
-  // Try client-side processing with Web Worker
-  const tryClientProcessing = useCallback(async (file: File): Promise<{
-    success: boolean;
-    file?: File;
-    path?: string;
-    reductionPercent?: number;
-    quality?: number;
-    error?: string;
-  }> => {
-    return new Promise((resolve) => {
-      // Create worker for this processing session
-      const worker = new Worker('/heic-worker.js', { type: 'module' });
-      
-      const timeout = setTimeout(() => {
-        worker.terminate();
-        resolve({
-          success: false,
-          error: 'client_timeout'
-        });
-      }, 2000); // 2s timeout for client processing
-
-      worker.onmessage = (e) => {
-        clearTimeout(timeout);
-        worker.terminate();
-        resolve(e.data);
-      };
-
-      worker.onerror = () => {
-        clearTimeout(timeout);
-        worker.terminate();
-        resolve({
-          success: false,
-          error: 'worker_error'
-        });
-      };
-
-      // Send file to worker
-      worker.postMessage({
-        id: Math.random().toString(36),
-        file: file
-      });
-    });
-  }, []);
-
-  // Try server fallback processing with blob
-  const tryServerFallback = useCallback(async (file: File, clientError?: string): Promise<{
-    success: boolean;
-    error?: string;
-  }> => {
-    try {
-      const mediaId = crypto.randomUUID();
-
-      // Create FormData to send file blob directly
-      const formData = new FormData();
-      formData.append('mediaId', mediaId);
-      formData.append('originalFilename', file.name);
-      formData.append('heicFile', file);
-      if (clientError) {
-        formData.append('clientError', clientError);
-      }
-
-      // Send blob directly to server for processing
-      const { data, error } = await supabase.functions.invoke('heic-transcoder', {
-        body: formData
-      });
-
-      if (error) {
-        throw new Error(`Server processing failed: ${error.message}`);
-      }
-
-      return {
-        success: true
-      };
-
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'server_processing_failed'
-      };
-    }
-  }, []);
-
-  // Categorize HEIC processing errors
-  const categorizeHEICError = useCallback((error: any): string => {
-    const message = error?.message || error?.toString() || '';
-    
-    if (message.includes('timeout') || message.includes('processing_timeout')) {
-      return 'processing_timeout';
-    }
-    if (message.includes('canvas') || message.includes('canvas_limit')) {
-      return 'canvas_limit';
-    }
-    if (message.includes('decode') || message.includes('decode_failure')) {
-      return 'decode_failure';
-    }
-    if (message.includes('budget') || message.includes('client_budget_exceeded')) {
-      return 'client_budget_exceeded';
-    }
-    if (message.includes('memory') || message.includes('oom')) {
-      return 'wasm_oom';
-    }
-    if (message.includes('corrupt')) {
-      return 'container_corrupt';
-    }
-    if (message.includes('unsupported')) {
-      return 'decode_unsupported';
-    }
-    
-    return 'unknown_processing_error';
-  }, []);
-
-  // Get user-friendly error messages
-  const getErrorMessage = useCallback((errorCategory: string): string => {
-    switch (errorCategory) {
-      case 'processing_timeout':
-        return 'Processing took too long and was cancelled';
-      case 'canvas_limit':
-        return 'Image is too large for browser processing';
-      case 'decode_failure':
-        return 'Unable to decode HEIC file';
-      case 'client_budget_exceeded':
-        return 'Image exceeds processing limits';
-      case 'wasm_oom':
-        return 'Insufficient memory for processing';
-      case 'container_corrupt':
-        return 'HEIC file appears to be corrupted';
-      case 'decode_unsupported':
-        return 'HEIC format not supported';
-      default:
-        return 'An unexpected error occurred during processing';
-    }
-  }, []);
-
   // Generate thumbnail asynchronously (non-blocking)
   const generateThumbnailAsync = useCallback(async (file: File, mediaId: string) => {
     try {
@@ -368,9 +228,9 @@ export const useDirectUpload = () => {
 
       if (dbError) throw dbError;
 
-      // Step 6: Generate video thumbnail if needed (async)
+      // Step 5: Generate video thumbnail if needed (async)
       if (mediaType === 'video') {
-        generateThumbnailAsync(processedFile, mediaId);
+        generateThumbnailAsync(file, mediaId);
       }
 
       setUploadProgress(prev => ({
@@ -387,10 +247,7 @@ export const useDirectUpload = () => {
         id: mediaId,
         path: uploadPath,
         media_type: mediaType,
-        size: processedFile.size,
-        compressionRatio: compressionInfo?.compressionRatio,
-        processedSize: compressionInfo?.processedSize,
-        qualityInfo: compressionInfo
+        size: file.size
       };
 
     } catch (error) {
@@ -406,7 +263,7 @@ export const useDirectUpload = () => {
     } finally {
       setUploading(false);
     }
-  }, [isHeicFile, convertHeicFile, uploadFileChunked, generateThumbnailAsync]);
+  }, [uploadFileChunked, generateThumbnailAsync]);
 
   // Upload multiple files
   const uploadMultiple = useCallback(async (files: File[]): Promise<DirectUploadResult[]> => {
