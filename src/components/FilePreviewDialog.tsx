@@ -244,19 +244,25 @@ export const FilePreviewDialog = ({
       const [width, height] = videoAspectRatio.split('/').map(Number);
       const aspectValue = width / height;
       
-      // For vertical videos (aspect < 1), limit width
+      // Calculate available height (90vh minus header/footer space ~200px)
+      const availableHeight = Math.max(window.innerHeight * 0.9 - 200, 300); // Minimum 300px
+      
+      // For vertical videos (aspect < 1), limit width and use available height
       if (aspectValue < 1) {
-        const maxWidth = 400;
+        const maxWidth = 350; // Reduced from 400px for better fit
         const calculatedHeight = maxWidth / aspectValue;
+        const finalHeight = Math.min(calculatedHeight, availableHeight);
+        const finalWidth = finalHeight * aspectValue;
+        
         return {
-          width: `${maxWidth}px`,
-          height: `${Math.min(calculatedHeight, 700)}px`,
+          width: `${Math.min(finalWidth, maxWidth)}px`,
+          height: `${finalHeight}px`,
           aspectRatio: videoAspectRatio
         };
       } 
-      // For horizontal videos (aspect > 1), limit height  
+      // For horizontal videos (aspect > 1), limit height to available space
       else {
-        const maxHeight = 506;
+        const maxHeight = Math.min(506, availableHeight);
         const calculatedWidth = maxHeight * aspectValue;
         return {
           width: `${Math.min(calculatedWidth, 900)}px`,
