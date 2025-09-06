@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import heic2any from 'heic2any';
 
 interface UploadProgress {
   phase: 'processing' | 'uploading' | 'complete' | 'error';
@@ -35,129 +34,12 @@ export const useDirectUpload = () => {
   });
   const { toast } = useToast();
 
-  // Check if browser supports WebP encoding
-  const checkWebPSupport = useCallback((): boolean => {
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = 1;
-    return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
-  }, []);
-
   // Check if file is HEIC/HEIF
   const isHeicFile = useCallback((file: File): boolean => {
     return /\.(heic|heif)$/i.test(file.name) || 
            file.type === 'image/heic' || 
            file.type === 'image/heif';
   }, []);
-
-  // Convert HEIC file with bulletproof processing and server fallback
-  const convertHeicFile = useCallback(async (file: File): Promise<File> => {
-    const startTime = performance.now();
-    
-    try {
-      setUploadProgress(prev => ({
-        ...prev,
-        phase: 'processing',
-        message: 'Processing HEIC image...',
-        progress: 10
-      }));
-
-      // Check if file is actually HEIC/HEIF
-      if (!isHeicFile(file)) {
-        console.log('File is not HEIC/HEIF, skipping conversion');
-        return file;
-      }
-
-      console.log('Starting bulletproof HEIC processing:', {
-        filename: file.name,
-        size: file.size,
-        type: file.type
-      });
-
-      // Step 1: Try client-side processing with Web Worker
-      const clientResult = await tryClientProcessing(file);
-      
-      if (clientResult.success && clientResult.file) {
-        const processingTime = performance.now() - startTime;
-        
-        setUploadProgress(prev => ({
-          ...prev,
-          message: `Converted to WebP (-${clientResult.reductionPercent}%)`,
-          progress: 90
-        }));
-
-        // Log successful conversion telemetry
-        console.log('HEIC client conversion telemetry:', {
-          filename: file.name,
-          path: clientResult.path,
-          originalSize: file.size,
-          convertedSize: clientResult.file.size,
-          compressionRatio: clientResult.reductionPercent,
-          processingTime: processingTime,
-          quality: clientResult.quality
-        });
-
-        toast({
-          title: "HEIC Converted",
-          description: `Converted to WebP with ${clientResult.reductionPercent}% size reduction`,
-        });
-
-        return clientResult.file;
-      }
-
-      // Step 2: Client failed, try server fallback
-      console.log('Client processing failed, attempting server fallback:', clientResult.error);
-      
-      setUploadProgress(prev => ({
-        ...prev,
-        message: 'Processing on server...',
-        progress: 50
-      }));
-
-      const serverResult = await tryServerFallback(file, clientResult.error);
-      
-      if (serverResult.success) {
-        // Server processing is async, return original for now
-        // UI will show "Processing on server..." state
-        
-        toast({
-          title: "Processing on Server",
-          description: "HEIC file is being processed on the server. You'll be notified when complete.",
-        });
-
-        return file; // Return original, server will update the record later
-      }
-
-      // Both client and server failed - this should never happen with proper fallback
-      throw new Error(`Processing failed: ${serverResult.error}`);
-
-    } catch (error) {
-      const processingTime = performance.now() - startTime;
-      const errorCategory = categorizeHEICError(error);
-      
-      console.error('HEIC processing completely failed:', {
-        error: errorCategory,
-        filename: file.name,
-        fileSize: file.size,
-        processingTime: processingTime,
-        originalError: error
-      });
-
-      // This should rarely happen with server fallback
-      setUploadProgress(prev => ({
-        ...prev,
-        phase: 'error',
-        message: `Processing failed: ${getErrorMessage(errorCategory)}`
-      }));
-
-      toast({
-        title: "Processing Failed",
-        description: "Unable to process HEIC file. Please try a different format or contact support.",
-        variant: "destructive"
-      });
-
-      throw error;
-    }
-  }, [isHeicFile, toast]);
 
   // Try client-side processing with Web Worker
   const tryClientProcessing = useCallback(async (file: File): Promise<{
@@ -454,21 +336,8 @@ export const useDirectUpload = () => {
       // Step 2: Generate unique IDs and paths
       const mediaId = crypto.randomUUID();
       const uploadPath = `uploads/${user.id}/${mediaId}_${file.name}`;
-      
-      let processedFile = file;
-      let compressionInfo: any = null;
 
-      // Step 3: Process HEIC files
-      if (isHeicFile(file)) {
-        processedFile = await convertHeicFile(file);
-        compressionInfo = {
-          originalSize: file.size,
-          processedSize: processedFile.size,
-          compressionRatio: Math.round((1 - processedFile.size / file.size) * 100)
-        };
-      }
-
-      // Step 4: Upload file
+      // Step 3: Upload file
       setUploadProgress(prev => ({
         ...prev,
         phase: 'uploading',
@@ -476,11 +345,11 @@ export const useDirectUpload = () => {
         progress: 80
       }));
 
-      await uploadFileChunked(processedFile, uploadPath);
+      await uploadFileChunked(file, uploadPath);
 
-      // Step 5: Create database record
-      const mediaType = processedFile.type.startsWith('image/') ? 'image' : 
-                       processedFile.type.startsWith('video/') ? 'video' : 'audio';
+      // Step 4: Create database record
+      const mediaType = file.type.startsWith('image/') ? 'image' : 
+                       file.type.startsWith('video/') ? 'video' : 'audio';
 
       const { data: mediaRecord, error: dbError } = await supabase
         .from('simple_media')
@@ -489,13 +358,10 @@ export const useDirectUpload = () => {
           creator_id: user.id,
           original_filename: file.name,
           original_path: uploadPath,
-          mime_type: processedFile.type,
+          mime_type: file.type,
           media_type: mediaType,
-          original_size_bytes: processedFile.size,
-          processing_status: 'processed',
-          processing_path: isHeicFile(file) ? 'webp_local' : 'direct_upload',
-          optimization_metrics: compressionInfo,
-          client_processing_time_ms: Math.round(performance.now() - startTime)
+          original_size_bytes: file.size,
+          processing_status: 'processed'
         })
         .select()
         .single();

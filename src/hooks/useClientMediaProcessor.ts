@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import heic2any from 'heic2any';
 import { useToast } from '@/hooks/use-toast';
 import { useVideoConverter } from '@/hooks/useVideoConverter';
 
@@ -194,130 +193,6 @@ export const useClientMediaProcessor = () => {
     });
   }, [getCanvas, trackBlobUrl, cleanupBlobUrl]);
 
-  // Check if browser supports WebP encoding
-  const checkWebPSupport = useCallback((): boolean => {
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = 1;
-    return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
-  }, []);
-
-  // Convert HEIC/HEIF to optimal format with adaptive quality and dimension capping
-  const convertHeicToOptimalFormat = useCallback(async (file: File): Promise<File> => {
-    const startTime = performance.now();
-    const processingTimeout = 1500; // 1.5s timeout
-    
-    try {
-      // Create processing timeout
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('HEIC conversion timeout')), processingTimeout);
-      });
-      
-      const conversionPromise = (async () => {
-        const supportsWebP = checkWebPSupport();
-        const targetType = supportsWebP ? 'image/webp' : 'image/jpeg';
-        const fileExtension = supportsWebP ? '.webp' : '.jpg';
-        
-        // Adaptive quality system: start high, step down if needed
-        const qualityLevels = [0.82, 0.76, 0.70, 0.68];
-        let bestResult: { blob: Blob; quality: number } | null = null;
-        const targetReduction = 0.4; // Target 40% size reduction minimum
-        
-        for (const quality of qualityLevels) {
-          try {
-            const convertedBlob = await heic2any({
-              blob: file,
-              toType: targetType,
-              quality: quality
-            }) as Blob;
-            
-            const reduction = (file.size - convertedBlob.size) / file.size;
-            bestResult = { blob: convertedBlob, quality };
-            
-            // Stop early if we hit our target reduction
-            if (reduction >= targetReduction) {
-              console.log(`✅ HEIC conversion achieved ${Math.round(reduction * 100)}% reduction at quality ${quality}`);
-              break;
-            }
-          } catch (qualityError) {
-            console.warn(`Quality ${quality} failed, trying lower...`);
-            continue;
-          }
-        }
-        
-        if (!bestResult) {
-          throw new Error('All quality levels failed');
-        }
-        
-        const processingTime = performance.now() - startTime;
-        const compressionRatio = Math.round(((file.size - bestResult.blob.size) / file.size) * 100);
-        
-        // Enhanced telemetry
-        console.log(`📊 HEIC Processing Metrics:
-          File: ${file.name}
-          Original: ${(file.size / 1024 / 1024).toFixed(2)}MB
-          Processed: ${(bestResult.blob.size / 1024 / 1024).toFixed(2)}MB
-          Compression: ${compressionRatio}%
-          Quality: ${bestResult.quality}
-          Time: ${processingTime.toFixed(0)}ms
-          Target: ${targetType}`);
-        
-        return new File([bestResult.blob], file.name.replace(/\.(heic|heif)$/i, fileExtension), {
-          type: targetType,
-          lastModified: file.lastModified
-        });
-      })();
-      
-      return await Promise.race([conversionPromise, timeoutPromise]);
-      
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const processingTime = performance.now() - startTime;
-      
-      // Categorize errors properly
-      let errorCategory = 'unknown_error';
-      
-      if (errorMessage.includes('already browser readable')) {
-        errorCategory = 'jpeg_passthrough';
-        // Extract the actual file type from the error message
-        const actualType = errorMessage.match(/image\/(jpeg|jpg|png|webp)/i)?.[0] || file.type;
-        
-        // Create new file with correct extension based on actual content
-        let correctExtension = '.jpg';
-        if (actualType.includes('png')) correctExtension = '.png';
-        else if (actualType.includes('webp')) correctExtension = '.webp';
-        else if (actualType.includes('jpeg') || actualType.includes('jpg')) correctExtension = '.jpg';
-        
-        const correctedFileName = file.name.replace(/\.(heic|heif)$/i, correctExtension);
-        
-        console.log(`📄 HEIC Passthrough: ${file.name} → ${correctedFileName} (already ${actualType})`);
-        
-        return new File([file], correctedFileName, {
-          type: actualType,
-          lastModified: file.lastModified
-        });
-      } else if (errorMessage.includes('timeout')) {
-        errorCategory = 'processing_timeout';
-      } else if (errorMessage.includes('canvas') || errorMessage.includes('memory')) {
-        errorCategory = 'canvas_limit';
-      } else if (errorMessage.includes('decode') || errorMessage.includes('HEVC')) {
-        errorCategory = 'decode_failure';
-      } else if (errorMessage.includes('WASM')) {
-        errorCategory = 'wasm_error';
-      }
-      
-      // Enhanced error telemetry
-      console.error(`❌ HEIC Error: ${errorCategory} for ${file.name} (${processingTime.toFixed(0)}ms)`, {
-        category: errorCategory,
-        file: file.name,
-        size: file.size,
-        processingTime,
-        error: errorMessage
-      });
-      
-      throw new Error(`Failed to convert HEIC image: ${errorCategory}`);
-    }
-  }, [checkWebPSupport]);
-
   // Check if file is HEIC/HEIF
   const isHeicFile = useCallback((file: File): boolean => {
     return /\.(heic|heif)$/i.test(file.name) || 
@@ -325,15 +200,9 @@ export const useClientMediaProcessor = () => {
            file.type === 'image/heif';
   }, []);
 
-  // Process image using Canvas
+  // Process image using Canvas  
   const processImage = useCallback(async (file: File): Promise<ProcessedMedia | null> => {
     try {
-      // Convert HEIC/HEIF files first
-      let processedFile = file;
-      if (isHeicFile(file)) {
-        processedFile = await convertHeicToOptimalFormat(file);
-      }
-
       const result = await new Promise<{ blob: Blob; width: number; height: number }>((resolve, reject) => {
         const img = new Image();
         img.onload = () => {
@@ -347,7 +216,7 @@ export const useClientMediaProcessor = () => {
           const height = Math.round(img.height * ratio);
           
           if (ratio < 1) {
-            console.log(`📏 Downscaling ${processedFile.name}: ${img.width}x${img.height} → ${width}x${height}`);
+            console.log(`📏 Downscaling ${file.name}: ${img.width}x${img.height} → ${width}x${height}`);
           }
 
           canvas.width = width;
@@ -377,11 +246,17 @@ export const useClientMediaProcessor = () => {
             let bestBlob: Blob | null = null;
             
             // Try WebP first with adaptive quality
+            const checkWebPSupport = () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = canvas.height = 1;
+              return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+            };
+            
             if (checkWebPSupport()) {
               for (const quality of qualityLevels) {
                 const blob = await tryWebPEncoding(quality);
                 if (blob) {
-                  const reduction = (processedFile.size - blob.size) / processedFile.size;
+                  const reduction = (file.size - blob.size) / file.size;
                   bestBlob = blob;
                   if (reduction >= 0.4) break; // Stop if we achieve 40% reduction
                 }
@@ -414,10 +289,10 @@ export const useClientMediaProcessor = () => {
           reject(new Error('Failed to load image'));
           cleanupBlobUrl(img.src);
         };
-        img.src = trackBlobUrl(URL.createObjectURL(processedFile));
+        img.src = trackBlobUrl(URL.createObjectURL(file));
       });
 
-      const placeholder = await createTinyPlaceholder(processedFile);
+      const placeholder = await createTinyPlaceholder(file);
       const compressionRatio = Math.round(((file.size - result.blob.size) / file.size) * 100);
 
       const processedBlobs = new Map<string, Blob>();

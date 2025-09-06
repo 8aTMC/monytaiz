@@ -15,6 +15,7 @@ import { PreUploadDuplicateDialog } from './PreUploadDuplicateDialog';
 import { useDuplicateDetection, DuplicateMatch } from '@/hooks/useDuplicateDetection';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { HEICWarningDialog } from './HEICWarningDialog';
 
 export const AdvancedFileUpload = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -33,6 +34,10 @@ export const AdvancedFileUpload = () => {
   const [preUploadDuplicateDialogOpen, setPreUploadDuplicateDialogOpen] = useState(false);
   const [allDuplicates, setAllDuplicates] = useState<DuplicateMatch[]>([]);
   const [duplicateCheckLoading, setDuplicateCheckLoading] = useState(false);
+  
+  // HEIC warning dialog state
+  const [heicWarningOpen, setHeicWarningOpen] = useState(false);
+  const [heicFiles, setHeicFiles] = useState<string[]>([]);
   
   const { checkAllDuplicates, addDuplicateTag } = useDuplicateDetection();
   
@@ -64,18 +69,41 @@ export const AdvancedFileUpload = () => {
     [uploadQueue]
   );
 
+  // Check if file is HEIC/HEIF
+  const isHeicFile = useCallback((file: File): boolean => {
+    return /\.(heic|heif)$/i.test(file.name) || 
+           file.type === 'image/heic' || 
+           file.type === 'image/heif';
+  }, []);
+
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
     
-    addFiles(Array.from(files));
+    const fileArray = Array.from(files);
+    const heicFileNames = fileArray.filter(isHeicFile).map(f => f.name);
+    
+    if (heicFileNames.length > 0) {
+      setHeicFiles(heicFileNames);
+      setHeicWarningOpen(true);
+    }
+    
+    addFiles(fileArray);
     // Reset input so same file can be selected again
     event.target.value = '';
-  }, [addFiles]);
+  }, [addFiles, isHeicFile]);
 
   const handleAddMoreFiles = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
+    
+    const fileArray = Array.from(files);
+    const heicFileNames = fileArray.filter(isHeicFile).map(f => f.name);
+    
+    if (heicFileNames.length > 0) {
+      setHeicFiles(heicFileNames);
+      setHeicWarningOpen(true);
+    }
     
     const showDuplicateDialog = (duplicates: { name: string; size: number; type: string; existingFile: File; newFile: File }[]) => {
       const duplicatesWithId = duplicates.map(dup => ({
@@ -86,10 +114,10 @@ export const AdvancedFileUpload = () => {
       setDuplicateDialogOpen(true);
     };
     
-    addFiles(Array.from(files), showDuplicateDialog);
+    addFiles(fileArray, showDuplicateDialog);
     // Reset input so same file can be selected again
     event.target.value = '';
-  }, [addFiles]);
+  }, [addFiles, isHeicFile]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -102,6 +130,14 @@ export const AdvancedFileUpload = () => {
     
     const files = e.dataTransfer.files;
     if (files) {
+      const fileArray = Array.from(files);
+      const heicFileNames = fileArray.filter(isHeicFile).map(f => f.name);
+      
+      if (heicFileNames.length > 0) {
+        setHeicFiles(heicFileNames);
+        setHeicWarningOpen(true);
+      }
+      
       // For drag and drop, show duplicate dialog if needed
       const showDuplicateDialog = (duplicates: { name: string; size: number; type: string; existingFile: File; newFile: File }[]) => {
         const duplicatesWithId = duplicates.map(dup => ({
@@ -111,9 +147,9 @@ export const AdvancedFileUpload = () => {
         setDuplicateFiles(duplicatesWithId);
         setDuplicateDialogOpen(true);
       };
-      addFiles(Array.from(files), showDuplicateDialog);
+      addFiles(fileArray, showDuplicateDialog);
     }
-  }, [addFiles]);
+  }, [addFiles, isHeicFile]);
 
   // Centralized preview functions with validation
   const openPreview = useCallback((index: number) => {
