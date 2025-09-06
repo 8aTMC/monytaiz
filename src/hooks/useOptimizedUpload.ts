@@ -34,9 +34,17 @@ export const useOptimizedUpload = () => {
 
   // Get file type for storage organization
   const getFileType = useCallback((file: File): 'image' | 'video' | 'audio' | 'document' => {
+    // Check MIME type first
     if (file.type.startsWith('image/')) return 'image';
     if (file.type.startsWith('video/')) return 'video';
     if (file.type.startsWith('audio/')) return 'audio';
+    
+    // Fallback to file extension for files with missing/unknown MIME types (e.g., HEIC)
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (extension && ['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif'].includes(extension)) return 'image';
+    if (extension && ['mp4', 'mov', 'webm', 'avi', 'mkv'].includes(extension)) return 'video';
+    if (extension && ['mp3', 'wav', 'aac', 'ogg'].includes(extension)) return 'audio';
+    
     return 'document';
   }, []);
 

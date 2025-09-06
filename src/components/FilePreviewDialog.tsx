@@ -205,7 +205,7 @@ export const FilePreviewDialog = ({
 
   const getFileType = () => {
     const extension = '.' + displayFile.name.split('.').pop()?.toLowerCase();
-    if (['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(extension)) return 'image';
+    if (['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif'].includes(extension)) return 'image';
     if (['.mp4', '.mov', '.webm', '.avi', '.mkv'].includes(extension)) return 'video';
     if (['.mp3', '.wav', '.aac', '.ogg'].includes(extension)) return 'audio';
     return 'document';
