@@ -11,6 +11,7 @@ interface DuplicateFile {
   name: string;
   size: number;
   type: string;
+  file?: File; // Add actual file for thumbnail generation
 }
 
 interface DuplicateFilesDialogProps {
@@ -76,6 +77,38 @@ export const DuplicateFilesDialog = ({
     return <FileIcon className="w-8 h-8 text-muted-foreground" />;
   };
 
+  const FileThumbnail = ({ file }: { file: DuplicateFile }) => {
+    const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+    const extension = file.name.split('.').pop()?.toLowerCase() || '';
+    const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'].includes(extension);
+    
+    useEffect(() => {
+      if (isImage && file.file) {
+        const url = URL.createObjectURL(file.file);
+        setThumbnailUrl(url);
+        
+        return () => {
+          URL.revokeObjectURL(url);
+        };
+      }
+    }, [file.file, isImage]);
+    
+    if (isImage && thumbnailUrl) {
+      return (
+        <div className="w-8 h-8 rounded overflow-hidden bg-muted flex-shrink-0">
+          <img 
+            src={thumbnailUrl} 
+            alt={file.name}
+            className="w-full h-full object-cover"
+            onError={() => setThumbnailUrl(null)}
+          />
+        </div>
+      );
+    }
+    
+    return getFileIcon(file);
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -114,7 +147,7 @@ export const DuplicateFilesDialog = ({
               {duplicateFiles.map((file) => (
                 <div key={file.id} className="flex items-center gap-3 p-3 rounded-lg border bg-muted/20">
                   <div className="flex-shrink-0">
-                    {getFileIcon(file)}
+                    <FileThumbnail file={file} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{file.name}</p>

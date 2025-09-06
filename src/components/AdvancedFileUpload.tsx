@@ -23,7 +23,7 @@ export const AdvancedFileUpload = () => {
   
   // Duplicate files dialog state
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
-  const [duplicateFiles, setDuplicateFiles] = useState<{ id: string; name: string; size: number; type: string }[]>([]);
+  const [duplicateFiles, setDuplicateFiles] = useState<{ id: string; name: string; size: number; type: string; file?: File }[]>([]);
   
   const {
     uploadQueue,
