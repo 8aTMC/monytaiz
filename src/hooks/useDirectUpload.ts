@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import heic2any from 'heic2any';
 
 interface UploadProgress {
   phase: 'processing' | 'uploading' | 'complete' | 'error';
@@ -33,6 +34,46 @@ export const useDirectUpload = () => {
     message: 'Starting upload...'
   });
   const { toast } = useToast();
+  // Check if browser supports WebP encoding
+  const checkWebPSupport = useCallback((): boolean => {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+  }, []);
+
+  // Check if file is HEIC/HEIF
+  const isHeicFile = useCallback((file: File): boolean => {
+    return /\.(heic|heif)$/i.test(file.name) || 
+           file.type === 'image/heic' || 
+           file.type === 'image/heif';
+  }, []);
+
+  // Convert HEIC/HEIF to optimal format (WebP or JPEG)
+  const convertHeicFile = useCallback(async (file: File): Promise<File> => {
+    try {
+      const supportsWebP = checkWebPSupport();
+      const targetType = supportsWebP ? 'image/webp' : 'image/jpeg';
+      const fileExtension = supportsWebP ? '.webp' : '.jpg';
+      
+      console.log(`Converting HEIC file ${file.name} to ${targetType}`);
+      
+      const convertedBlob = await heic2any({
+        blob: file,
+        toType: targetType,
+        quality: 0.9
+      }) as Blob;
+      
+      const convertedFileName = file.name.replace(/\.(heic|heif)$/i, fileExtension);
+      
+      return new File([convertedBlob], convertedFileName, {
+        type: targetType,
+        lastModified: file.lastModified
+      });
+    } catch (error) {
+      console.error('HEIC conversion failed:', error);
+      throw new Error(`Failed to convert HEIC image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }, [checkWebPSupport]);
 
   // Generate thumbnail asynchronously (non-blocking)
   const generateThumbnailAsync = useCallback(async (file: File, mediaId: string) => {
@@ -177,27 +218,42 @@ export const useDirectUpload = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      // Convert HEIC files before upload
+      let processedFile = file;
+      if (isHeicFile(file)) {
+        setUploadProgress({
+          phase: 'processing',
+          progress: 10,
+          message: 'Converting HEIC image...',
+          totalBytes: file.size
+        });
+        
+        processedFile = await convertHeicFile(file);
+        
+        console.log(`✅ HEIC conversion complete: ${file.name} -> ${processedFile.name}`);
+      }
+
       const mediaId = crypto.randomUUID();
-      const mediaType = file.type.startsWith('image/') ? 'image' : 
-                       file.type.startsWith('video/') ? 'video' : 
-                       file.type.startsWith('audio/') ? 'audio' : 'image';
+      const mediaType = processedFile.type.startsWith('image/') ? 'image' : 
+                       processedFile.type.startsWith('video/') ? 'video' : 
+                       processedFile.type.startsWith('audio/') ? 'audio' : 'image';
       
-      const uploadPath = `processed/${mediaId}-${file.name}`;
+      const uploadPath = `processed/${mediaId}-${processedFile.name}`;
       
       setUploadProgress({
         phase: 'uploading',
-        progress: 0,
+        progress: 20,
         message: 'Starting direct upload...',
-        totalBytes: file.size
+        totalBytes: processedFile.size
       });
 
-      // Upload file directly (no processing)
-      if (file.size > CHUNK_SIZE) {
-        await uploadFileChunked(file, uploadPath);
+      // Upload processed file directly
+      if (processedFile.size > CHUNK_SIZE) {
+        await uploadFileChunked(processedFile, uploadPath);
       } else {
         const { error } = await supabase.storage
           .from('content')
-          .upload(uploadPath, file, { upsert: false });
+          .upload(uploadPath, processedFile, { upsert: false });
         
         if (error) throw new Error(`Upload failed: ${error.message}`);
       }
@@ -206,21 +262,21 @@ export const useDirectUpload = () => {
         phase: 'uploading',
         progress: 97,
         message: 'Creating database record...',
-        totalBytes: file.size,
-        bytesUploaded: file.size
+        totalBytes: processedFile.size,
+        bytesUploaded: processedFile.size
       });
 
-      // Create database record immediately (video shows up in library right away)
+      // Create database record with original filename but processed file info
       const { data: mediaRecord, error: dbError } = await supabase
         .from('simple_media')
         .insert({
           id: mediaId,
           creator_id: user.id,
-          original_filename: file.name,
+          original_filename: file.name, // Keep original HEIC name
           title: file.name.split('.')[0],
-          mime_type: file.type,
-          original_size_bytes: file.size,
-          optimized_size_bytes: file.size,
+          mime_type: processedFile.type, // Use converted file type
+          original_size_bytes: file.size, // Original HEIC size
+          optimized_size_bytes: processedFile.size, // Converted file size
           original_path: uploadPath,
           processed_path: uploadPath,
           media_type: mediaType,
@@ -236,25 +292,21 @@ export const useDirectUpload = () => {
         phase: 'complete',
         progress: 100,
         message: 'Upload complete!',
-        totalBytes: file.size,
-        bytesUploaded: file.size
+        totalBytes: processedFile.size,
+        bytesUploaded: processedFile.size
       });
 
       // Generate thumbnail in background (non-blocking)
       if (mediaType === 'video') {
-        generateThumbnailAsync(file, mediaId);
+        generateThumbnailAsync(processedFile, mediaId);
       }
 
-      console.log('🚀 Ultra-fast upload complete:', { 
-        id: mediaId, 
-        path: uploadPath,
-        size: file.size,
-        thumbnailGenerating: mediaType === 'video'
-      });
+      const compressionRatio = file.size !== processedFile.size ? 
+        Math.round(((file.size - processedFile.size) / file.size) * 100) : 0;
 
       toast({
         title: "Upload successful",
-        description: `${file.name} uploaded instantly. ${mediaType === 'video' ? 'Thumbnail generating...' : ''}`,
+        description: `${file.name} ${isHeicFile(file) ? 'converted and ' : ''}uploaded successfully`,
         variant: "default"
       });
 
@@ -262,14 +314,14 @@ export const useDirectUpload = () => {
         id: mediaId,
         path: uploadPath,
         media_type: mediaType,
-        size: file.size,
-        compressionRatio: 0, // No compression in direct upload
-        processedSize: file.size, // Same size as original
-        qualityInfo: null // No quality processing
+        size: processedFile.size,
+        compressionRatio,
+        processedSize: processedFile.size,
+        qualityInfo: isHeicFile(file) ? { converted: true, originalType: file.type } : null
       };
 
     } catch (error) {
-      console.error('Direct upload error:', error);
+      console.error('Upload error:', error);
       setUploadProgress({
         phase: 'error',
         progress: 0,
@@ -286,7 +338,7 @@ export const useDirectUpload = () => {
     } finally {
       setUploading(false);
     }
-  }, [uploadFileChunked, generateThumbnailAsync, toast]);
+  }, [uploadFileChunked, generateThumbnailAsync, toast, isHeicFile, convertHeicFile]);
 
   const uploadMultiple = useCallback(async (files: File[]): Promise<DirectUploadResult[]> => {
     const results = [];
