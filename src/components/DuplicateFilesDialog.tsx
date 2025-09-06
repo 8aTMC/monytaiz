@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FileText, Image, Video, Music, FileIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface DuplicateFile {
   id: string;
@@ -27,6 +27,13 @@ export const DuplicateFilesDialog = ({
   onConfirm 
 }: DuplicateFilesDialogProps) => {
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  
+  // Initialize with all files selected by default and reset when duplicateFiles changes
+  useEffect(() => {
+    if (duplicateFiles.length > 0) {
+      setSelectedFiles(new Set(duplicateFiles.map(f => f.id)));
+    }
+  }, [duplicateFiles]);
   
   const handleSelectAll = () => {
     if (selectedFiles.size === duplicateFiles.length) {
@@ -83,14 +90,14 @@ export const DuplicateFilesDialog = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileIcon className="w-5 h-5 text-orange-500" />
-            Duplicate Files Found
+            Duplicate Files Found in the Queue
           </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Found {duplicateFiles.length} duplicate file{duplicateFiles.length > 1 ? 's' : ''}. Select which ones to ignore:
+              Found {duplicateFiles.length} duplicate file{duplicateFiles.length > 1 ? 's' : ''}. Selected files will be ignored, unselected files will be added to the queue:
             </p>
             <Button 
               variant="outline" 
@@ -98,7 +105,7 @@ export const DuplicateFilesDialog = ({
               onClick={handleSelectAll}
               className="text-xs"
             >
-              {selectedFiles.size === duplicateFiles.length ? 'Deselect All' : 'Select All'}
+              {selectedFiles.size === duplicateFiles.length ? 'Unselect All' : 'Select All'}
             </Button>
           </div>
           
