@@ -149,11 +149,14 @@ const Platform = () => {
         </div>
         
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="performance">Performance Analytics</TabsTrigger>
-            <TabsTrigger value="optimization">Auto-Optimization</TabsTrigger>
-          </TabsList>
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="revenue">Revenue</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="optimization">Auto-Optimization</TabsTrigger>
+          <TabsTrigger value="predictive">ML Analytics</TabsTrigger>
+        </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
 
