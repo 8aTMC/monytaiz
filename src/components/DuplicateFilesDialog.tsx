@@ -32,6 +32,7 @@ export const DuplicateFilesDialog = ({
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false);
   const [selectedFileForComparison, setSelectedFileForComparison] = useState<DuplicateFile | null>(null);
+  const [isConfirmedClose, setIsConfirmedClose] = useState(false);
   
   // Initialize with all files selected by default and reset when duplicateFiles changes
   useEffect(() => {
@@ -59,8 +60,19 @@ export const DuplicateFilesDialog = ({
   };
   
   const handleConfirm = () => {
+    setIsConfirmedClose(true);
     onConfirm(Array.from(selectedFiles));
     setSelectedFiles(new Set());
+  };
+
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen && !isConfirmedClose) {
+      // Auto-ignore selected files when dialog closes without confirmation
+      onConfirm(Array.from(selectedFiles));
+      setSelectedFiles(new Set());
+    }
+    setIsConfirmedClose(false);
+    onOpenChange(newOpen);
   };
 
   const handleComparisonClick = (file: DuplicateFile, event: React.MouseEvent) => {
@@ -128,7 +140,7 @@ export const DuplicateFilesDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -197,7 +209,7 @@ export const DuplicateFilesDialog = ({
         </div>
 
         <DialogFooter className="flex-col gap-2 sm:flex-row">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+          <Button variant="outline" onClick={() => { setIsConfirmedClose(true); onOpenChange(false); }} className="flex-1">
             Cancel
           </Button>
           <Button onClick={handleConfirm} className="flex-1">

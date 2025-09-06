@@ -418,7 +418,11 @@ export const AdvancedFileUpload = () => {
         open={duplicateDialogOpen}
         onOpenChange={setDuplicateDialogOpen}
         duplicateFiles={duplicateFiles}
-        onConfirm={(filesToIgnore: string[]) => setDuplicateDialogOpen(false)}
+        onConfirm={(filesToIgnore: string[]) => {
+          // Remove ignored duplicates from the duplicates list
+          setDuplicateFiles(prev => prev.filter(dup => !filesToIgnore.includes(dup.id)));
+          setDuplicateDialogOpen(false);
+        }}
       />
     </Card>
   );
