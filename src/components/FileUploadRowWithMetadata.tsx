@@ -63,9 +63,11 @@ export function FileUploadRowWithMetadata({
 
   // Helper to detect HEIC files by extension when MIME type is unreliable
   const isHeicFile = (file: File) => {
-    return /\.(heic|heif)$/i.test(file.name) || 
+    const isHeic = /\.(heic|heif)$/i.test(file.name) || 
            file.type === 'image/heic' || 
            file.type === 'image/heif';
+    console.log(`HEIC detection for ${file.name}: ${isHeic}, file.type: ${file.type}`);
+    return isHeic;
   };
 
   const getFileIcon = (file: File) => {
@@ -92,8 +94,13 @@ export function FileUploadRowWithMetadata({
     original_path: '',
     processed_path: URL.createObjectURL(uploadedFile.file),
     mime_type: uploadedFile.file.type,
-    media_type: (uploadedFile.file.type.startsWith('image/') || isHeicFile(uploadedFile.file) ? 'image' : 
-                uploadedFile.file.type.startsWith('video/') ? 'video' : 'audio') as 'image' | 'video' | 'audio',
+    media_type: (() => {
+      const isImage = uploadedFile.file.type.startsWith('image/') || isHeicFile(uploadedFile.file);
+      const mediaType = isImage ? 'image' : 
+                       uploadedFile.file.type.startsWith('video/') ? 'video' : 'audio';
+      console.log(`Media type for ${uploadedFile.file.name}: ${mediaType}, isImage: ${isImage}`);
+      return mediaType;
+    })() as 'image' | 'video' | 'audio',
     original_size_bytes: uploadedFile.file.size,
     processing_status: 'processed' as const,
     created_at: new Date().toISOString(),

@@ -362,17 +362,20 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                        aspectRatio: aspectRatio
                      }}
                    >
-                     {item?.media_type === 'image' && (
-                       <img
-                         src={fullUrl}
-                         alt={item.title || item.original_filename}
-                         className="w-full h-full object-contain"
-                         onError={(e) => {
-                           console.error('Failed to load image:', e);
-                           setFullUrl(null);
-                         }}
-                       />
-                     )}
+                      {(item?.media_type === 'image' || 
+                        (item?.mime_type && (item.mime_type.startsWith('image/') || 
+                         item.mime_type === 'image/heic' || item.mime_type === 'image/heif')) ||
+                        (item?.original_filename && /\.(heic|heif|jpg|jpeg|png|gif|webp)$/i.test(item.original_filename))) && (
+                        <img
+                          src={fullUrl}
+                          alt={item.title || item.original_filename}
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            console.error('Failed to load image:', e);
+                            setFullUrl(null);
+                          }}
+                        />
+                      )}
                       {item?.media_type === 'video' && (
                         <EnhancedVideoPlayer
                           src={fullUrl}
