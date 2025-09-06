@@ -12,12 +12,8 @@ import { PerformanceAnalyticsDashboard } from '@/components/PerformanceAnalytics
 import AutoOptimizationEngine from '@/components/AutoOptimizationEngine';
 import { PredictiveAnalyticsDashboard } from '@/components/PredictiveAnalyticsDashboard';
 import { MLDecisionEngine } from '@/components/MLDecisionEngine';
-import { SystemIntegrationManager } from '@/components/SystemIntegrationManager';
-import { ProductionMonitoringDashboard } from '@/components/ProductionMonitoringDashboard';
-import { SecurityManager } from '@/components/SecurityManager';
-import { AdminControlPanel } from '@/components/AdminControlPanel';
-import { PerformanceSLAMonitor } from '@/components/PerformanceSLAMonitor';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DashboardErrorBoundary } from '@/components/DashboardErrorBoundary';
 import FanDashboard from './FanDashboard';
 
 const Platform = () => {
@@ -64,18 +60,23 @@ const Platform = () => {
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching user role:', error);
         setUserRole('fan'); // Default to fan if no role found
+      } else if (data) {
+        // Handle both object and array responses
+        const role = Array.isArray(data) ? data[0]?.role : data.role;
+        setUserRole(role || 'fan');
       } else {
-        setUserRole(data.role);
+        // No role found, default to fan
+        setUserRole('fan');
       }
-      setLoading(false);
     } catch (error) {
       console.error('Error fetching user role:', error);
       setUserRole('fan');
+    } finally {
       setLoading(false);
     }
   };
@@ -281,11 +282,15 @@ const Platform = () => {
           </TabsContent>
           
           <TabsContent value="performance" className="space-y-4">
-            <PerformanceAnalyticsDashboard />
+            <DashboardErrorBoundary>
+              <PerformanceAnalyticsDashboard />
+            </DashboardErrorBoundary>
           </TabsContent>
           
           <TabsContent value="optimization" className="space-y-4">
-            <AutoOptimizationEngine userId={user?.id} />
+            <DashboardErrorBoundary>
+              <AutoOptimizationEngine userId={user?.id} />
+            </DashboardErrorBoundary>
           </TabsContent>
           
           <TabsContent value="analytics" className="space-y-4">
@@ -313,10 +318,12 @@ const Platform = () => {
           </TabsContent>
           
           <TabsContent value="predictive" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <PredictiveAnalyticsDashboard />
-              <MLDecisionEngine />
-            </div>
+            <DashboardErrorBoundary>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <PredictiveAnalyticsDashboard />
+                <MLDecisionEngine />
+              </div>
+            </DashboardErrorBoundary>
           </TabsContent>
           
         </Tabs>
