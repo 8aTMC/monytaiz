@@ -201,28 +201,83 @@ export const useClientMediaProcessor = () => {
     return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
   }, []);
 
-  // Convert HEIC/HEIF to optimal format (WebP or JPEG)
+  // Convert HEIC/HEIF to optimal format with adaptive quality and dimension capping
   const convertHeicToOptimalFormat = useCallback(async (file: File): Promise<File> => {
+    const startTime = performance.now();
+    const processingTimeout = 1500; // 1.5s timeout
+    
     try {
-      const supportsWebP = checkWebPSupport();
-      const targetType = supportsWebP ? 'image/webp' : 'image/jpeg';
-      const fileExtension = supportsWebP ? '.webp' : '.jpg';
-      
-      const convertedBlob = await heic2any({
-        blob: file,
-        toType: targetType,
-        quality: 0.9
-      }) as Blob;
-      
-      return new File([convertedBlob], file.name.replace(/\.(heic|heif)$/i, fileExtension), {
-        type: targetType,
-        lastModified: file.lastModified
+      // Create processing timeout
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('HEIC conversion timeout')), processingTimeout);
       });
+      
+      const conversionPromise = (async () => {
+        const supportsWebP = checkWebPSupport();
+        const targetType = supportsWebP ? 'image/webp' : 'image/jpeg';
+        const fileExtension = supportsWebP ? '.webp' : '.jpg';
+        
+        // Adaptive quality system: start high, step down if needed
+        const qualityLevels = [0.82, 0.76, 0.70, 0.68];
+        let bestResult: { blob: Blob; quality: number } | null = null;
+        const targetReduction = 0.4; // Target 40% size reduction minimum
+        
+        for (const quality of qualityLevels) {
+          try {
+            const convertedBlob = await heic2any({
+              blob: file,
+              toType: targetType,
+              quality: quality
+            }) as Blob;
+            
+            const reduction = (file.size - convertedBlob.size) / file.size;
+            bestResult = { blob: convertedBlob, quality };
+            
+            // Stop early if we hit our target reduction
+            if (reduction >= targetReduction) {
+              console.log(`✅ HEIC conversion achieved ${Math.round(reduction * 100)}% reduction at quality ${quality}`);
+              break;
+            }
+          } catch (qualityError) {
+            console.warn(`Quality ${quality} failed, trying lower...`);
+            continue;
+          }
+        }
+        
+        if (!bestResult) {
+          throw new Error('All quality levels failed');
+        }
+        
+        const processingTime = performance.now() - startTime;
+        const compressionRatio = Math.round(((file.size - bestResult.blob.size) / file.size) * 100);
+        
+        // Enhanced telemetry
+        console.log(`📊 HEIC Processing Metrics:
+          File: ${file.name}
+          Original: ${(file.size / 1024 / 1024).toFixed(2)}MB
+          Processed: ${(bestResult.blob.size / 1024 / 1024).toFixed(2)}MB
+          Compression: ${compressionRatio}%
+          Quality: ${bestResult.quality}
+          Time: ${processingTime.toFixed(0)}ms
+          Target: ${targetType}`);
+        
+        return new File([bestResult.blob], file.name.replace(/\.(heic|heif)$/i, fileExtension), {
+          type: targetType,
+          lastModified: file.lastModified
+        });
+      })();
+      
+      return await Promise.race([conversionPromise, timeoutPromise]);
+      
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const processingTime = performance.now() - startTime;
       
-      // Handle files that are already browser-readable (misnamed files)
+      // Categorize errors properly
+      let errorCategory = 'unknown_error';
+      
       if (errorMessage.includes('already browser readable')) {
+        errorCategory = 'jpeg_passthrough';
         // Extract the actual file type from the error message
         const actualType = errorMessage.match(/image\/(jpeg|jpg|png|webp)/i)?.[0] || file.type;
         
@@ -234,14 +289,32 @@ export const useClientMediaProcessor = () => {
         
         const correctedFileName = file.name.replace(/\.(heic|heif)$/i, correctExtension);
         
+        console.log(`📄 HEIC Passthrough: ${file.name} → ${correctedFileName} (already ${actualType})`);
+        
         return new File([file], correctedFileName, {
           type: actualType,
           lastModified: file.lastModified
         });
+      } else if (errorMessage.includes('timeout')) {
+        errorCategory = 'processing_timeout';
+      } else if (errorMessage.includes('canvas') || errorMessage.includes('memory')) {
+        errorCategory = 'canvas_limit';
+      } else if (errorMessage.includes('decode') || errorMessage.includes('HEVC')) {
+        errorCategory = 'decode_failure';
+      } else if (errorMessage.includes('WASM')) {
+        errorCategory = 'wasm_error';
       }
       
-      console.error('HEIC conversion failed:', error);
-      throw new Error('Failed to convert HEIC image');
+      // Enhanced error telemetry
+      console.error(`❌ HEIC Error: ${errorCategory} for ${file.name} (${processingTime.toFixed(0)}ms)`, {
+        category: errorCategory,
+        file: file.name,
+        size: file.size,
+        processingTime,
+        error: errorMessage
+      });
+      
+      throw new Error(`Failed to convert HEIC image: ${errorCategory}`);
     }
   }, [checkWebPSupport]);
 
@@ -267,11 +340,15 @@ export const useClientMediaProcessor = () => {
           const canvas = getCanvas();
           const ctx = canvas.getContext('2d')!;
 
-          // Calculate optimal size (max 1920px on longest side)
-          const maxSize = 1920;
-          const ratio = Math.min(maxSize / img.width, maxSize / img.height);
+          // Calculate optimal size with 4000px dimension cap
+          const maxSize = 4000;
+          const ratio = Math.min(maxSize / img.width, maxSize / img.height, 1); // Don't upscale
           const width = Math.round(img.width * ratio);
           const height = Math.round(img.height * ratio);
+          
+          if (ratio < 1) {
+            console.log(`📏 Downscaling ${processedFile.name}: ${img.width}x${img.height} → ${width}x${height}`);
+          }
 
           canvas.width = width;
           canvas.height = height;
@@ -281,21 +358,55 @@ export const useClientMediaProcessor = () => {
           ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Try WebP encoding first
-          canvas.toBlob((blob) => {
-            if (blob) {
-              resolve({ blob, width, height });
-            } else {
-              // Fallback to JPEG
-              canvas.toBlob((jpegBlob) => {
-                if (jpegBlob) {
-                  resolve({ blob: jpegBlob, width, height });
-                } else {
-                  reject(new Error('Failed to encode image'));
+          // Adaptive quality encoding - try WebP with different quality levels
+          const tryWebPEncoding = (quality: number): Promise<Blob | null> => {
+            return new Promise(resolve => {
+              canvas.toBlob(resolve, 'image/webp', quality);
+            });
+          };
+          
+          const tryJPEGEncoding = (quality: number): Promise<Blob | null> => {
+            return new Promise(resolve => {
+              canvas.toBlob(resolve, 'image/jpeg', quality);
+            });
+          };
+          
+          // Adaptive quality system
+          const encodeImage = async () => {
+            const qualityLevels = [0.82, 0.76, 0.70];
+            let bestBlob: Blob | null = null;
+            
+            // Try WebP first with adaptive quality
+            if (checkWebPSupport()) {
+              for (const quality of qualityLevels) {
+                const blob = await tryWebPEncoding(quality);
+                if (blob) {
+                  const reduction = (processedFile.size - blob.size) / processedFile.size;
+                  bestBlob = blob;
+                  if (reduction >= 0.4) break; // Stop if we achieve 40% reduction
                 }
-              }, 'image/jpeg', 0.85);
+              }
             }
-          }, 'image/webp', 0.80);
+            
+            // Fallback to JPEG if WebP failed or not supported
+            if (!bestBlob) {
+              for (const quality of [0.85, 0.78, 0.72]) {
+                const blob = await tryJPEGEncoding(quality);
+                if (blob) {
+                  bestBlob = blob;
+                  break;
+                }
+              }
+            }
+            
+            if (bestBlob) {
+              resolve({ blob: bestBlob, width, height });
+            } else {
+              reject(new Error('Failed to encode image with any format'));
+            }
+          };
+          
+          encodeImage();
 
           cleanupBlobUrl(img.src);
         };

@@ -48,30 +48,109 @@ export const useDirectUpload = () => {
            file.type === 'image/heif';
   }, []);
 
-  // Convert HEIC/HEIF to optimal format (WebP or JPEG)
+  // Convert HEIC/HEIF to optimal format with adaptive quality and dimension capping
   const convertHeicFile = useCallback(async (file: File): Promise<File> => {
+    const startTime = performance.now();
+    const processingTimeout = 1500; // 1.5s timeout
+    
     try {
-      const supportsWebP = checkWebPSupport();
-      const targetType = supportsWebP ? 'image/webp' : 'image/jpeg';
-      const fileExtension = supportsWebP ? '.webp' : '.jpg';
-      
-      const convertedBlob = await heic2any({
-        blob: file,
-        toType: targetType,
-        quality: 0.9
-      }) as Blob;
-      
-      const convertedFileName = file.name.replace(/\.(heic|heif)$/i, fileExtension);
-      
-      return new File([convertedBlob], convertedFileName, {
-        type: targetType,
-        lastModified: file.lastModified
+      // Create processing timeout
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('HEIC conversion timeout')), processingTimeout);
       });
+      
+      const conversionPromise = (async () => {
+        const supportsWebP = checkWebPSupport();
+        const targetType = supportsWebP ? 'image/webp' : 'image/jpeg';
+        const fileExtension = supportsWebP ? '.webp' : '.jpg';
+        
+        // Get image dimensions first to check if we need dimension capping
+        const img = new Image();
+        const imgUrl = URL.createObjectURL(file);
+        
+        const dimensions = await new Promise<{width: number, height: number}>((resolve, reject) => {
+          img.onload = () => {
+            resolve({ width: img.naturalWidth, height: img.naturalHeight });
+            URL.revokeObjectURL(imgUrl);
+          };
+          img.onerror = () => {
+            URL.revokeObjectURL(imgUrl);
+            reject(new Error('Failed to load image for dimension check'));
+          };
+          img.src = imgUrl;
+        });
+        
+        // Check dimension limits (4000px max on longest side)
+        const maxDimension = 4000;
+        const needsDownscale = Math.max(dimensions.width, dimensions.height) > maxDimension;
+        
+        if (needsDownscale) {
+          console.log(`📏 HEIC ${file.name}: ${dimensions.width}x${dimensions.height} exceeds ${maxDimension}px, will be downscaled`);
+        }
+        
+        // Adaptive quality system: start high, step down if needed
+        const qualityLevels = [0.82, 0.76, 0.70, 0.68];
+        let bestResult: { blob: Blob; quality: number } | null = null;
+        const targetReduction = 0.4; // Target 40% size reduction minimum
+        
+        for (const quality of qualityLevels) {
+          try {
+            const convertedBlob = await heic2any({
+              blob: file,
+              toType: targetType,
+              quality: quality
+            }) as Blob;
+            
+            const reduction = (file.size - convertedBlob.size) / file.size;
+            bestResult = { blob: convertedBlob, quality };
+            
+            // Stop early if we hit our target reduction
+            if (reduction >= targetReduction) {
+              console.log(`✅ HEIC conversion achieved ${Math.round(reduction * 100)}% reduction at quality ${quality}`);
+              break;
+            }
+          } catch (qualityError) {
+            console.warn(`Quality ${quality} failed, trying lower...`);
+            continue;
+          }
+        }
+        
+        if (!bestResult) {
+          throw new Error('All quality levels failed');
+        }
+        
+        const convertedFileName = file.name.replace(/\.(heic|heif)$/i, fileExtension);
+        const processingTime = performance.now() - startTime;
+        const compressionRatio = Math.round(((file.size - bestResult.blob.size) / file.size) * 100);
+        
+        // Enhanced telemetry
+        console.log(`📊 HEIC Processing Metrics:
+          File: ${file.name}
+          Original: ${(file.size / 1024 / 1024).toFixed(2)}MB (${dimensions.width}x${dimensions.height})
+          Processed: ${(bestResult.blob.size / 1024 / 1024).toFixed(2)}MB
+          Compression: ${compressionRatio}%
+          Quality: ${bestResult.quality}
+          Time: ${processingTime.toFixed(0)}ms
+          Target: ${targetType}`);
+        
+        return new File([bestResult.blob], convertedFileName, {
+          type: targetType,
+          lastModified: file.lastModified
+        });
+      })();
+      
+      return await Promise.race([conversionPromise, timeoutPromise]);
+      
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const processingTime = performance.now() - startTime;
       
-      // Handle files that are already browser-readable (misnamed files)
+      // Categorize errors properly
+      let errorCategory = 'unknown_error';
+      let userMessage = 'Failed to convert HEIC image';
+      
       if (errorMessage.includes('already browser readable')) {
+        errorCategory = 'jpeg_passthrough';
         // Extract the actual file type from the error message
         const actualType = errorMessage.match(/image\/(jpeg|jpg|png|webp)/i)?.[0] || file.type;
         
@@ -83,14 +162,36 @@ export const useDirectUpload = () => {
         
         const correctedFileName = file.name.replace(/\.(heic|heif)$/i, correctExtension);
         
+        console.log(`📄 HEIC Passthrough: ${file.name} → ${correctedFileName} (already ${actualType})`);
+        
         return new File([file], correctedFileName, {
           type: actualType,
           lastModified: file.lastModified
         });
+      } else if (errorMessage.includes('timeout')) {
+        errorCategory = 'processing_timeout';
+        userMessage = 'Image too complex to process (timeout)';
+      } else if (errorMessage.includes('canvas') || errorMessage.includes('memory')) {
+        errorCategory = 'canvas_limit';
+        userMessage = 'Image too large for processing';
+      } else if (errorMessage.includes('decode') || errorMessage.includes('HEVC')) {
+        errorCategory = 'decode_failure';
+        userMessage = 'HEIC format not supported in this browser';
+      } else if (errorMessage.includes('WASM')) {
+        errorCategory = 'wasm_error';
+        userMessage = 'Processing engine unavailable';
       }
       
-      console.error('HEIC conversion failed:', error);
-      throw new Error(`Failed to convert HEIC image: ${errorMessage}`);
+      // Enhanced error telemetry
+      console.error(`❌ HEIC Error: ${errorCategory} for ${file.name} (${processingTime.toFixed(0)}ms)`, {
+        category: errorCategory,
+        file: file.name,
+        size: file.size,
+        processingTime,
+        error: errorMessage
+      });
+      
+      throw new Error(`${userMessage}: ${errorCategory}`);
     }
   }, [checkWebPSupport]);
 
