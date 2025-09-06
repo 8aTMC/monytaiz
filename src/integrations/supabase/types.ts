@@ -1438,6 +1438,7 @@ export type Database = {
       }
       simple_media: {
         Row: {
+          content_hash: string | null
           created_at: string | null
           creator_id: string
           description: string | null
@@ -1465,6 +1466,7 @@ export type Database = {
           width: number | null
         }
         Insert: {
+          content_hash?: string | null
           created_at?: string | null
           creator_id: string
           description?: string | null
@@ -1492,6 +1494,7 @@ export type Database = {
           width?: number | null
         }
         Update: {
+          content_hash?: string | null
           created_at?: string | null
           creator_id?: string
           description?: string | null

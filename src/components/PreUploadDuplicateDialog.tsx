@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { FileText, Image, Video, Music, FileIcon, Eye, Calendar, Database } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
-import { DatabaseDuplicate } from '@/hooks/useDuplicateDetection';
+import { DatabaseDuplicate, useDuplicateDetection } from '@/hooks/useDuplicateDetection';
 import { FileComparisonDialog } from './FileComparisonDialog';
 
 interface PreUploadDuplicateDialogProps {
@@ -28,6 +28,7 @@ export const PreUploadDuplicateDialog = ({
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false);
   const [selectedDuplicateForComparison, setSelectedDuplicateForComparison] = useState<DatabaseDuplicate | null>(null);
+  const { getConfidenceBadge } = useDuplicateDetection();
   
   // Initialize with all files selected by default
   useEffect(() => {
@@ -131,11 +132,10 @@ export const PreUploadDuplicateDialog = ({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Database className="w-5 h-5" />
-              Duplicate Files Detected ({duplicates.length})
+              Enhanced Duplicate Detection ({duplicates.length})
             </DialogTitle>
             <p className="text-sm text-muted-foreground">
-              The following files already exist in your library. You can purge selected duplicates from upload, 
-              keep both versions, or cancel the upload.
+              Advanced content analysis detected these potential duplicates. Review confidence levels and detection methods before proceeding.
             </p>
           </DialogHeader>
           
@@ -175,7 +175,12 @@ export const PreUploadDuplicateDialog = ({
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Queue file (new) */}
                         <div className="space-y-1">
-                          <Badge variant="outline" className="mb-1">Queue File (New)</Badge>
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge variant="outline">Queue File (New)</Badge>
+                            <div className={`px-2 py-1 rounded text-xs text-white ${getConfidenceBadge(duplicate).color}`}>
+                              {getConfidenceBadge(duplicate).text}
+                            </div>
+                          </div>
                           <p className="font-medium text-sm truncate" title={duplicate.queueFile.file.name}>
                             {duplicate.queueFile.file.name}
                           </p>
@@ -184,6 +189,9 @@ export const PreUploadDuplicateDialog = ({
                             <span>{formatFileSize(duplicate.queueFile.file.size)}</span>
                             <span>•</span>
                             <span>Ready to upload</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Detection: {duplicate.detectionMethod.replace(/_/g, ' ')}
                           </div>
                         </div>
                         

@@ -14,10 +14,12 @@ import { DuplicateFilesDialog } from './DuplicateFilesDialog';
 import { PreUploadDuplicateDialog } from './PreUploadDuplicateDialog';
 import { useDuplicateDetection, DatabaseDuplicate } from '@/hooks/useDuplicateDetection';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 export const AdvancedFileUpload = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addMoreFileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
   
   // Centralized preview state
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
@@ -30,6 +32,7 @@ export const AdvancedFileUpload = () => {
   // Pre-upload duplicate dialog state
   const [preUploadDuplicateDialogOpen, setPreUploadDuplicateDialogOpen] = useState(false);
   const [databaseDuplicates, setDatabaseDuplicates] = useState<DatabaseDuplicate[]>([]);
+  const [duplicateCheckLoading, setDuplicateCheckLoading] = useState(false);
   
   const { checkDatabaseDuplicates, addDuplicateTag } = useDuplicateDetection();
   
@@ -208,9 +211,12 @@ export const AdvancedFileUpload = () => {
 
   // Handle start upload with duplicate detection
   const handleStartUpload = async () => {
-    const result = await startUpload(false);
-    
-    if (result?.requiresDuplicateCheck) {
+    if (uploadQueue.length === 0) return;
+
+    try {
+      setDuplicateCheckLoading(true);
+      
+      // Check for database duplicates with enhanced detection
       const duplicates = await checkDatabaseDuplicates(uploadQueue);
       
       if (duplicates.length > 0) {
@@ -218,19 +224,28 @@ export const AdvancedFileUpload = () => {
         setPreUploadDuplicateDialogOpen(true);
       } else {
         // No duplicates found, proceed with upload
-        startUpload(true);
+        startUpload(true); // Skip duplicate check since we already did it
       }
+    } catch (error) {
+      console.error('Error checking for duplicates:', error);
+      toast({
+        title: "Duplicate Check Failed",
+        description: "Proceeding with upload anyway.",
+        variant: "destructive",
+      });
+      startUpload(true);
+    } finally {
+      setDuplicateCheckLoading(false);
     }
   };
 
-  // Handle purging selected duplicates
+  // Handle purging selected duplicates from queue
   const handlePurgeSelected = (duplicateIds: string[]) => {
-    // Remove selected files from upload queue
     duplicateIds.forEach(id => removeFile(id));
     setPreUploadDuplicateDialogOpen(false);
     setDatabaseDuplicates([]);
     
-    // Start upload of remaining files
+    // Start upload with remaining files
     setTimeout(() => startUpload(true), 100);
   };
 
