@@ -54,6 +54,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { SettingsDialog } from '@/components/SettingsDialog';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Create a context for sidebar state
 const SidebarContext = createContext<{
@@ -231,6 +232,11 @@ export const Navigation = ({ role }: NavigationProps) => {
 
   // Get the appropriate logo based on theme and collapse state
   const getLogoSrc = () => {
+    // Return null while userProfile is loading to prevent flash
+    if (userProfile === null) {
+      return null;
+    }
+
     const isDark = theme === 'dark';
     
     console.log('🖼️ Logo Selection Debug:', {
@@ -436,12 +442,18 @@ export const Navigation = ({ role }: NavigationProps) => {
         <>
           <div className="h-[73px] flex items-center justify-center border-b border-border">
             <Link to="/" className="group relative overflow-hidden rounded-lg p-1 transition-all duration-300">
-              <img 
-                src={getLogoSrc()} 
-                alt="MonytAIz Logo" 
-                className="w-10 h-10 object-contain transition-all duration-300 group-hover:scale-110 group-hover:rotate-2 group-hover:drop-shadow-lg"
-              />
-              <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 group-hover:animate-border-glow transition-opacity duration-300" />
+              {getLogoSrc() ? (
+                <>
+                  <img 
+                    src={getLogoSrc()} 
+                    alt="MonytAIz Logo" 
+                    className="w-10 h-10 object-contain transition-all duration-300 group-hover:scale-110 group-hover:rotate-2 group-hover:drop-shadow-lg"
+                  />
+                  <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 group-hover:animate-border-glow transition-opacity duration-300" />
+                </>
+              ) : (
+                <Skeleton className="w-10 h-10 rounded-lg" />
+              )}
             </Link>
           </div>
           <Button
@@ -459,12 +471,18 @@ export const Navigation = ({ role }: NavigationProps) => {
         <>
           <div className="h-[73px] flex items-center justify-center px-4 border-b border-border">
             <Link to="/" className="group relative overflow-hidden rounded-lg p-2 transition-all duration-300">
-              <img 
-                src={getLogoSrc()} 
-                alt="MonytAIz Logo" 
-                className="h-[50px] w-[200px] object-contain transition-all duration-300 group-hover:scale-105 group-hover:drop-shadow-xl"
-              />
-              <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 group-hover:animate-border-glow transition-opacity duration-300" />
+              {getLogoSrc() ? (
+                <>
+                  <img 
+                    src={getLogoSrc()} 
+                    alt="MonytAIz Logo" 
+                    className="h-[50px] w-[200px] object-contain transition-all duration-300 group-hover:scale-105 group-hover:drop-shadow-xl"
+                  />
+                  <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 group-hover:animate-border-glow transition-opacity duration-300" />
+                </>
+              ) : (
+                <Skeleton className="h-[50px] w-[200px] rounded-lg" />
+              )}
             </Link>
           </div>
           <Button
