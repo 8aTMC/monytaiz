@@ -7,7 +7,9 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, TrendingUp, Users, DollarSign } from 'lucide-react';
+import { Plus, TrendingUp, Users, DollarSign, Activity } from 'lucide-react';
+import { PerformanceAnalyticsDashboard } from '@/components/PerformanceAnalyticsDashboard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import FanDashboard from './FanDashboard';
 
 const Platform = () => {
@@ -144,6 +146,14 @@ const Platform = () => {
             {t('platform.dashboard.title', 'Dashboard')}
           </h1>
         </div>
+        
+        <Tabs defaultValue="overview" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="performance">Performance Analytics</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-4">
 
           {/* Quick Actions */}
           <div className="mb-8 flex gap-4">
@@ -255,6 +265,14 @@ const Platform = () => {
                </CardContent>
             </Card>
           </div>
+          
+          </TabsContent>
+          
+          <TabsContent value="performance" className="space-y-4">
+            <PerformanceAnalyticsDashboard />
+          </TabsContent>
+          
+        </Tabs>
        </div>
      </div>
    );

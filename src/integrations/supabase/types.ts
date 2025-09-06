@@ -1089,6 +1089,48 @@ export type Database = {
           },
         ]
       }
+      performance_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          description: string
+          id: string
+          metadata: Json | null
+          resolved: boolean | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          description: string
+          id?: string
+          metadata?: Json | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       permissions: {
         Row: {
           created_at: string | null
@@ -1445,6 +1487,36 @@ export type Database = {
         }
         Relationships: []
       }
+      system_health_metrics: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json | null
+          metric_type: string
+          metric_unit: string
+          metric_value: number
+          recorded_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          metric_type: string
+          metric_unit: string
+          metric_value: number
+          recorded_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          metric_type?: string
+          metric_unit?: string
+          metric_value?: number
+          recorded_at?: string
+        }
+        Relationships: []
+      }
       typing_indicators: {
         Row: {
           conversation_id: string
@@ -1503,6 +1575,45 @@ export type Database = {
           status?: string
           total_files?: number
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_behavior_analytics: {
+        Row: {
+          created_at: string
+          device_info: Json | null
+          event_type: string
+          id: string
+          interaction_data: Json | null
+          media_id: string | null
+          page_url: string | null
+          session_id: string
+          timestamp_ms: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_info?: Json | null
+          event_type: string
+          id?: string
+          interaction_data?: Json | null
+          media_id?: string | null
+          page_url?: string | null
+          session_id: string
+          timestamp_ms: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_info?: Json | null
+          event_type?: string
+          id?: string
+          interaction_data?: Json | null
+          media_id?: string | null
+          page_url?: string | null
+          session_id?: string
+          timestamp_ms?: number
           user_id?: string
         }
         Relationships: []
@@ -1675,6 +1786,63 @@ export type Database = {
         }
         Relationships: []
       }
+      video_performance_metrics: {
+        Row: {
+          buffer_events: number | null
+          cache_hit: boolean | null
+          completion_percentage: number | null
+          created_at: string
+          error_count: number | null
+          final_quality: string
+          id: string
+          initial_quality: string
+          load_time_ms: number
+          media_id: string
+          network_quality: string | null
+          quality_switches: number | null
+          session_id: string
+          updated_at: string
+          user_id: string
+          watch_duration_seconds: number | null
+        }
+        Insert: {
+          buffer_events?: number | null
+          cache_hit?: boolean | null
+          completion_percentage?: number | null
+          created_at?: string
+          error_count?: number | null
+          final_quality: string
+          id?: string
+          initial_quality: string
+          load_time_ms: number
+          media_id: string
+          network_quality?: string | null
+          quality_switches?: number | null
+          session_id: string
+          updated_at?: string
+          user_id: string
+          watch_duration_seconds?: number | null
+        }
+        Update: {
+          buffer_events?: number | null
+          cache_hit?: boolean | null
+          completion_percentage?: number | null
+          created_at?: string
+          error_count?: number | null
+          final_quality?: string
+          id?: string
+          initial_quality?: string
+          load_time_ms?: number
+          media_id?: string
+          network_quality?: string | null
+          quality_switches?: number | null
+          session_id?: string
+          updated_at?: string
+          user_id?: string
+          watch_duration_seconds?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1793,6 +1961,22 @@ export type Database = {
           total_purchased: number
           total_revenue_cents: number
           total_sent: number
+        }[]
+      }
+      get_performance_analytics: {
+        Args: {
+          p_end_date?: string
+          p_media_id?: string
+          p_start_date?: string
+        }
+        Returns: {
+          avg_load_time_ms: number
+          avg_watch_duration: number
+          buffer_events_total: number
+          cache_hit_rate: number
+          date_period: string
+          quality_switches_total: number
+          total_views: number
         }[]
       }
       get_secure_media_url: {

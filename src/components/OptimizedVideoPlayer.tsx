@@ -19,6 +19,7 @@ import { useSmartQuality, QualityLevel } from '@/hooks/useSmartQuality';
 import { useOptimizedSecureMedia } from '@/hooks/useOptimizedSecureMedia';
 import { useVideoQualityLoader } from '@/hooks/useVideoQualityLoader';
 import { useAdaptiveStreaming } from '@/hooks/useAdaptiveStreaming';
+import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
 import { NetworkQualityIndicator } from './NetworkQualityIndicator';
 import { QualityTransitionNotification } from './QualityTransitionNotification';
 
@@ -98,6 +99,15 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
 
   const { getSecureUrl, preloadMultipleQualities, loading: mediaLoading } = useOptimizedSecureMedia();
   
+  // Performance monitoring
+  const { 
+    startTracking, 
+    stopTracking, 
+    trackVideoEvent, 
+    trackBehaviorEvent,
+    getDeviceInfo 
+  } = usePerformanceMonitor();
+  
   // Load available video qualities
   const { availableQualities: videoQualities, loading: qualitiesLoading, loadQualities } = useVideoQualityLoader(mediaId);
   
@@ -126,6 +136,13 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
       setQuality(adaptiveQuality);
       setQualityLoading(true);
       
+      // Track quality change
+      trackVideoEvent('qualitychange', { 
+        from: selectedQuality,
+        to: adaptiveQuality,
+        automatic: true
+      });
+      
       // Generate new URL for the selected quality
       if (storagePath) {
         const transforms = qualityToTransforms(adaptiveQuality);
@@ -133,11 +150,12 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
           if (url && url !== currentVideoUrl) {
             setCurrentVideoUrl(url);
             setQualityLoading(false);
+            trackVideoEvent('cachehit', { quality: adaptiveQuality });
           }
         });
       }
     }
-  }, [adaptiveQuality, adaptiveEnabled, selectedQuality, setQuality, storagePath, getSecureUrl, currentVideoUrl]);
+  }, [adaptiveQuality, adaptiveEnabled, selectedQuality, setQuality, storagePath, getSecureUrl, currentVideoUrl, trackVideoEvent]);
 
   // Fallback URL update when not using adaptive mode
   useEffect(() => {
@@ -157,13 +175,38 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
     
     if (isPlaying) {
       videoRef.current.pause();
+      // Track pause event
+      trackBehaviorEvent({
+        eventType: 'pause',
+        mediaId,
+        interactionData: { 
+          currentTime: videoRef.current.currentTime,
+          position: (videoRef.current.currentTime / duration) * 100
+        },
+        pageUrl: window.location.href,
+        deviceInfo: getDeviceInfo()
+      });
     } else {
-      videoRef.current.play().catch(error => {
+      videoRef.current.play().then(() => {
+        // Track play event
+        trackBehaviorEvent({
+          eventType: 'play',
+          mediaId,
+          interactionData: { 
+            currentTime: videoRef.current?.currentTime || 0,
+            quality: selectedQuality
+          },
+          pageUrl: window.location.href,
+          deviceInfo: getDeviceInfo()
+        });
+      }).catch(error => {
         console.error('Failed to play video:', error);
         onError?.(error);
+        // Track error
+        trackVideoEvent('error', { error: error.message });
       });
     }
-  }, [isPlaying, onError]);
+  }, [isPlaying, onError, trackBehaviorEvent, trackVideoEvent, mediaId, getDeviceInfo, duration, selectedQuality]);
 
   const toggleMute = useCallback(() => {
     if (!videoRef.current) return;
@@ -227,10 +270,17 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
       setVolume([video.volume]);
       setIsMuted(video.muted);
     };
-    const handleWaiting = () => setIsBuffering(true);
-    const handleCanPlay = () => setIsBuffering(false);
+    const handleWaiting = () => {
+      setIsBuffering(true);
+      trackVideoEvent('waiting');
+    };
+    const handleCanPlay = () => {
+      setIsBuffering(false);
+      trackVideoEvent('canplaythrough');
+    };
     const handleError = (e: Event) => {
       setIsBuffering(false);
+      trackVideoEvent('error', { error: (e.target as HTMLVideoElement)?.error });
       onError?.(e);
     };
     const handleLoadedMetadata = () => {
@@ -240,7 +290,25 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
         
         const qualityInfo = getVideoMetadata(video);
         setVideoQualityInfo(qualityInfo);
+        
+        // Track metadata loaded
+        trackVideoEvent('loadedmetadata', { 
+          duration: video.duration,
+          width: video.videoWidth,
+          height: video.videoHeight
+        });
       }
+    };
+    const handleLoadStart = () => {
+      trackVideoEvent('loadstart');
+      // Start performance tracking when video begins loading
+      if (mediaId) {
+        startTracking(mediaId);
+      }
+    };
+    const handleEnded = () => {
+      const completionPercentage = (video.currentTime / video.duration) * 100;
+      stopTracking(video.currentTime, completionPercentage);
     };
 
     video.addEventListener('play', handlePlay);
@@ -252,6 +320,8 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
     video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('error', handleError);
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('loadstart', handleLoadStart);
+    video.addEventListener('ended', handleEnded);
 
     return () => {
       video.removeEventListener('play', handlePlay);
@@ -263,8 +333,10 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('error', handleError);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('loadstart', handleLoadStart);
+      video.removeEventListener('ended', handleEnded);
     };
-  }, [onError]);
+  }, [onError, trackVideoEvent, startTracking, stopTracking, mediaId]);
 
   // Auto-hide controls
   useEffect(() => {
