@@ -450,27 +450,6 @@ export const Navigation = ({ role }: NavigationProps) => {
             </li>
           )}
           
-          {/* General Settings - standalone menu item for admins */}
-          {(userRoles.includes('owner') || userRoles.includes('superadmin') || userRoles.includes('admin')) && (
-            <li>
-              <Link
-                to="/management/general-settings"
-                className={`flex items-center rounded-lg transition-smooth ${
-                  isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
-                } ${
-                  isActive('/management/general-settings') 
-                    ? isCollapsed 
-                      ? 'bg-primary/20 text-primary' 
-                      : 'bg-primary/10 text-primary border border-primary/20'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
-                }`}
-                title={isCollapsed ? 'General Settings' : undefined}
-              >
-                <Settings className="h-5 w-5 flex-shrink-0" />
-                {!isCollapsed && <span>General Settings</span>}
-              </Link>
-            </li>
-          )}
 
           {/* Show expanded menus only for management users */}
           {!isFan && (
@@ -854,10 +833,32 @@ export const Navigation = ({ role }: NavigationProps) => {
               </Collapsible>
             )}
            </li>
-            </>
-          )}
-        </ul>
-      </div>
+             </>
+           )}
+           
+           {/* General Settings - positioned at bottom of menu */}
+           {(userRoles.includes('owner') || userRoles.includes('superadmin') || userRoles.includes('admin')) && (
+             <li>
+               <Link
+                 to="/management/general-settings"
+                 className={`flex items-center rounded-lg transition-smooth ${
+                   isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
+                 } ${
+                   isActive('/management/general-settings') 
+                     ? isCollapsed 
+                       ? 'bg-primary/20 text-primary' 
+                       : 'bg-primary/10 text-primary border border-primary/20'
+                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+                 }`}
+                 title={isCollapsed ? 'General Settings' : undefined}
+               >
+                 <Settings className="h-5 w-5 flex-shrink-0" />
+                 {!isCollapsed && <span>General Settings</span>}
+               </Link>
+             </li>
+           )}
+         </ul>
+       </div>
       
       <div className="p-4 border-t border-border">
         <Popover>
