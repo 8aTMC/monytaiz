@@ -55,8 +55,6 @@ export const useDirectUpload = () => {
       const targetType = supportsWebP ? 'image/webp' : 'image/jpeg';
       const fileExtension = supportsWebP ? '.webp' : '.jpg';
       
-      console.log(`Converting HEIC file ${file.name} to ${targetType}`);
-      
       const convertedBlob = await heic2any({
         blob: file,
         toType: targetType,
@@ -70,8 +68,29 @@ export const useDirectUpload = () => {
         lastModified: file.lastModified
       });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Handle files that are already browser-readable (misnamed files)
+      if (errorMessage.includes('already browser readable')) {
+        // Extract the actual file type from the error message
+        const actualType = errorMessage.match(/image\/(jpeg|jpg|png|webp)/i)?.[0] || file.type;
+        
+        // Create new file with correct extension based on actual content
+        let correctExtension = '.jpg';
+        if (actualType.includes('png')) correctExtension = '.png';
+        else if (actualType.includes('webp')) correctExtension = '.webp';
+        else if (actualType.includes('jpeg') || actualType.includes('jpg')) correctExtension = '.jpg';
+        
+        const correctedFileName = file.name.replace(/\.(heic|heif)$/i, correctExtension);
+        
+        return new File([file], correctedFileName, {
+          type: actualType,
+          lastModified: file.lastModified
+        });
+      }
+      
       console.error('HEIC conversion failed:', error);
-      throw new Error(`Failed to convert HEIC image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Failed to convert HEIC image: ${errorMessage}`);
     }
   }, [checkWebPSupport]);
 
