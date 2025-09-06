@@ -261,13 +261,13 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                  <div className="flex items-center gap-2">
                    {/* Selection checkbox - only shown when selecting is active */}
                    {selecting && onToggleSelection && (
-                     <div 
-                       className="flex items-center justify-center w-8 h-8 cursor-pointer rounded hover:bg-muted/50 transition-colors z-[220]"
-                       onClick={(e) => {
-                         e.stopPropagation();
-                         onToggleSelection(item.id);
-                       }}
-                     >
+                      <div 
+                        className="flex items-center justify-center w-8 h-8 cursor-pointer rounded hover:bg-muted/50 transition-colors z-[115]"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleSelection(item.id);
+                        }}
+                      >
                        <Checkbox
                          checked={selectedItems.has(item.id)}
                          onChange={() => {}} // Handled by parent div onClick
