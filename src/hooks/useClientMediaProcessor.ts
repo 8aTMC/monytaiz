@@ -194,24 +194,35 @@ export const useClientMediaProcessor = () => {
     });
   }, [getCanvas, trackBlobUrl, cleanupBlobUrl]);
 
-  // Convert HEIC/HEIF to regular image format
-  const convertHeicToJpeg = useCallback(async (file: File): Promise<File> => {
+  // Check if browser supports WebP encoding
+  const checkWebPSupport = useCallback((): boolean => {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+  }, []);
+
+  // Convert HEIC/HEIF to optimal format (WebP or JPEG)
+  const convertHeicToOptimalFormat = useCallback(async (file: File): Promise<File> => {
     try {
+      const supportsWebP = checkWebPSupport();
+      const targetType = supportsWebP ? 'image/webp' : 'image/jpeg';
+      const fileExtension = supportsWebP ? '.webp' : '.jpg';
+      
       const convertedBlob = await heic2any({
         blob: file,
-        toType: 'image/jpeg',
+        toType: targetType,
         quality: 0.9
       }) as Blob;
       
-      return new File([convertedBlob], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
-        type: 'image/jpeg',
+      return new File([convertedBlob], file.name.replace(/\.(heic|heif)$/i, fileExtension), {
+        type: targetType,
         lastModified: file.lastModified
       });
     } catch (error) {
       console.error('HEIC conversion failed:', error);
       throw new Error('Failed to convert HEIC image');
     }
-  }, []);
+  }, [checkWebPSupport]);
 
   // Check if file is HEIC/HEIF
   const isHeicFile = useCallback((file: File): boolean => {
@@ -226,7 +237,7 @@ export const useClientMediaProcessor = () => {
       // Convert HEIC/HEIF files first
       let processedFile = file;
       if (isHeicFile(file)) {
-        processedFile = await convertHeicToJpeg(file);
+        processedFile = await convertHeicToOptimalFormat(file);
       }
 
       const result = await new Promise<{ blob: Blob; width: number; height: number }>((resolve, reject) => {
