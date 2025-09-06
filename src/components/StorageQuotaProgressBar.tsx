@@ -38,7 +38,7 @@ export function StorageQuotaProgressBar({ totalSizeBytes, className = "" }: Stor
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <HardDrive className="w-4 h-4 text-muted-foreground" />
-            <span className="font-medium text-sm">Storage Usage</span>
+            <span className="font-medium text-sm">Upload Limit</span>
             {isNearLimit && (
               <AlertTriangle className="w-4 h-4 text-yellow-500" />
             )}
