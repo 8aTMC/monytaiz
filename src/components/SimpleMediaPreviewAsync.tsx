@@ -204,11 +204,40 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  // Determine orientation and aspect ratio - increased sizes
+  // Determine orientation and aspect ratio - improved detection
   const isVertical = item?.width && item?.height && item.height > item.width;
-  const aspectRatio = isVertical ? '9/16' : '16/9';
-  const containerWidth = isVertical ? '500px' : '900px';
-  const containerHeight = isVertical ? '889px' : '506px';
+  const isSquare = item?.width && item?.height && Math.abs(item.width - item.height) < 10;
+  
+  let aspectRatio;
+  let containerWidth;
+  let containerHeight;
+  
+  if (isSquare) {
+    aspectRatio = '1/1';
+    containerWidth = '600px';
+    containerHeight = '600px';
+  } else if (isVertical) {
+    // Common vertical ratios
+    const ratio = item?.width && item?.height ? item.width / item.height : 0.5625;
+    if (ratio > 0.5) {
+      aspectRatio = '9/16';
+      containerWidth = '500px';
+      containerHeight = '889px';
+    } else if (ratio > 0.4) {
+      aspectRatio = '2/3';
+      containerWidth = '450px';
+      containerHeight = '675px';
+    } else {
+      aspectRatio = item?.width && item?.height ? `${item.width}/${item.height}` : '9/16';
+      containerWidth = '400px';
+      containerHeight = '700px';
+    }
+  } else {
+    // Horizontal videos
+    aspectRatio = item?.width && item?.height ? `${item.width}/${item.height}` : '16/9';
+    containerWidth = '900px';
+    containerHeight = '506px';
+  }
 
   if (!isOpen) return null;
 

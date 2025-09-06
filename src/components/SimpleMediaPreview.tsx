@@ -22,6 +22,7 @@ import { QualitySelector } from '@/components/QualitySelector';
 import { format } from 'date-fns';
 import { SimpleMediaItem } from '@/hooks/useSimpleMedia';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
+import { EnhancedVideoPlayer } from '@/components/EnhancedVideoPlayer';
 
 interface SimpleMediaPreviewProps {
   mediaItems: SimpleMediaItem[];
@@ -127,14 +128,13 @@ export const SimpleMediaPreview: React.FC<SimpleMediaPreviewProps> = ({
               
               {currentItem.media_type === 'video' && mediaUrl && (
                 <div className="flex justify-center">
-                  <video 
-                    controls 
+                  <EnhancedVideoPlayer 
+                    src={mediaUrl}
                     className="max-w-full max-h-96 rounded-lg"
-                    poster={thumbnailUrl || undefined}
-                  >
-                    <source src={mediaUrl} type={currentItem.mime_type} />
-                    Your browser does not support the video tag.
-                  </video>
+                    onError={(e) => {
+                      console.error('Failed to load video:', e);
+                    }}
+                  />
                 </div>
               )}
               

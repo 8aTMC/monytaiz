@@ -153,7 +153,23 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
     const handleLoadedMetadata = () => {
       // Update aspect ratio based on video's natural dimensions
       if (video.videoWidth && video.videoHeight) {
-        const calculatedAspectRatio = `${video.videoWidth}/${video.videoHeight}`;
+        const isVertical = video.videoHeight > video.videoWidth;
+        const isSquare = Math.abs(video.videoWidth - video.videoHeight) < 10;
+        
+        let calculatedAspectRatio;
+        if (isSquare) {
+          calculatedAspectRatio = '1/1';
+        } else if (isVertical) {
+          // Common vertical ratios
+          const ratio = video.videoWidth / video.videoHeight;
+          if (ratio > 0.5) calculatedAspectRatio = '9/16';
+          else if (ratio > 0.4) calculatedAspectRatio = '2/3';
+          else calculatedAspectRatio = `${video.videoWidth}/${video.videoHeight}`;
+        } else {
+          // Horizontal videos
+          calculatedAspectRatio = `${video.videoWidth}/${video.videoHeight}`;
+        }
+        
         setVideoAspectRatio(calculatedAspectRatio);
         
         // Get video quality info
@@ -267,7 +283,7 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
       <video 
         ref={videoRef}
         src={src}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-contain"
         preload="metadata"
         onDoubleClick={toggleFullscreen}
         onClick={togglePlayPause}
