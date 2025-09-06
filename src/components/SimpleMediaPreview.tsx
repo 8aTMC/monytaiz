@@ -17,7 +17,8 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { useSecureMedia } from '@/hooks/useSecureMedia';
+import { usePersistentMediaCache } from '@/hooks/usePersistentMediaCache';
+import { useInstantMedia } from '@/hooks/useInstantMedia';
 import { QualitySelector } from '@/components/QualitySelector';
 import { format } from 'date-fns';
 import { SimpleMediaItem } from '@/hooks/useSimpleMedia';
@@ -40,26 +41,29 @@ export const SimpleMediaPreview: React.FC<SimpleMediaPreviewProps> = ({
   onNext
 }) => {
   const [currentQuality, setCurrentQuality] = useState('original');
-  const [mediaUrl, setMediaUrl] = useState<string>('');
-  const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
-  const { getSecureUrl } = useSecureMedia();
+  const { getSecureMediaUrl } = usePersistentMediaCache();
+  const { 
+    loadInstantMedia, 
+    enhanceQuality, 
+    placeholder, 
+    lowQuality, 
+    highQuality, 
+    currentUrl, 
+    isLoading, 
+    error: mediaError 
+  } = useInstantMedia();
 
   const currentItem = mediaItems[selectedIndex];
   
   useEffect(() => {
     if (currentItem) {
-      const loadUrls = async () => {
-        const mainUrl = await getSecureUrl(currentItem.processed_path || currentItem.original_path);
-        setMediaUrl(mainUrl);
-        
-        if (currentItem.thumbnail_path) {
-          const thumbUrl = await getSecureUrl(currentItem.thumbnail_path);
-          setThumbnailUrl(thumbUrl);
-        }
-      };
-      loadUrls();
+      const path = currentItem.processed_path || currentItem.original_path;
+      if (path) {
+        // Load media with instant caching and progressive enhancement
+        loadInstantMedia(path, currentItem.thumbnail_path);
+      }
     }
-  }, [currentItem, getSecureUrl]);
+  }, [currentItem, loadInstantMedia]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -116,20 +120,31 @@ export const SimpleMediaPreview: React.FC<SimpleMediaPreviewProps> = ({
 
           <div className="flex-1 p-4 overflow-auto">
             <div className="space-y-4">
-              {currentItem.media_type === 'image' && mediaUrl && (
-                <div className="flex justify-center">
+              {currentItem.media_type === 'image' && currentUrl && (
+                <div className="flex justify-center relative">
+                  {isLoading && placeholder && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-muted/20 rounded-lg">
+                      <img 
+                        src={placeholder} 
+                        alt="Loading..."
+                        className="max-w-full max-h-96 object-contain rounded-lg opacity-50 blur-sm"
+                      />
+                    </div>
+                  )}
                   <img 
-                    src={mediaUrl} 
+                    src={currentUrl} 
                     alt={currentItem.title || currentItem.original_filename}
-                    className="max-w-full max-h-96 object-contain rounded-lg"
+                    className="max-w-full max-h-96 object-contain rounded-lg transition-opacity duration-300"
+                    onMouseEnter={() => enhanceQuality()}
+                    style={{ opacity: isLoading ? 0.7 : 1 }}
                   />
                 </div>
               )}
               
-              {currentItem.media_type === 'video' && mediaUrl && (
+              {currentItem.media_type === 'video' && currentUrl && (
                 <div className="flex justify-center">
                   <EnhancedVideoPlayer 
-                    src={mediaUrl}
+                    src={currentUrl}
                     className="max-w-full max-h-96 rounded-lg"
                     onError={(e) => {
                       console.error('Failed to load video:', e);
@@ -138,10 +153,10 @@ export const SimpleMediaPreview: React.FC<SimpleMediaPreviewProps> = ({
                 </div>
               )}
               
-              {currentItem.media_type === 'audio' && mediaUrl && (
+              {currentItem.media_type === 'audio' && currentUrl && (
                 <div className="flex justify-center">
                   <CustomAudioPlayer
-                    src={mediaUrl}
+                    src={currentUrl}
                     title={currentItem.title || currentItem.original_filename}
                   />
                 </div>

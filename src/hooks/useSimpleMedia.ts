@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { usePersistentMediaCache } from './usePersistentMediaCache';
 
 export interface SimpleMediaItem {
   id: string;
@@ -34,6 +35,7 @@ export const useSimpleMedia = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { getSecureMediaUrl } = usePersistentMediaCache();
 
   const fetchMedia = useCallback(async () => {
     setLoading(true);
@@ -72,34 +74,11 @@ export const useSimpleMedia = () => {
   const getMediaUrl = useCallback(async (path: string | undefined, useTransforms = false) => {
     if (!path) return null;
     
-    try {
-      // Since content bucket is private, use signed URLs
-      const options: any = {};
-      
-      if (useTransforms) {
-        options.transform = {
-          width: 512,
-          height: 512,
-          quality: 85,
-          resize: 'cover'
-        };
-      }
-      
-      const { data, error } = await supabase.storage
-        .from('content')
-        .createSignedUrl(path, 3600, options);
-
-      if (error || !data.signedUrl) {
-        console.error('Failed to get signed URL for:', path, error);
-        return null;
-      }
-      
-      return data.signedUrl;
-    } catch (error) {
-      console.error('Error generating signed URL:', error);
-      return null;
-    }
-  }, []);
+    const transforms = useTransforms ? { width: 512, height: 512, quality: 85 } : undefined;
+    
+    // Use persistent caching for better performance
+    return await getSecureMediaUrl(path, transforms);
+  }, [getSecureMediaUrl]);
 
   const getThumbnailUrl = useCallback((item: SimpleMediaItem) => {
     // Return null initially, components should handle async loading

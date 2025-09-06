@@ -6,6 +6,7 @@ import { LibrarySidebar } from '@/components/LibrarySidebar';
 import { LibraryGrid } from '@/components/LibraryGrid';
 import { LibrarySelectionToolbar } from '@/components/LibrarySelectionToolbar';
 import { LibraryFiltersDialog } from '@/components/LibraryFiltersDialog';
+import { SmartPreloadController } from '@/components/SmartPreloadController';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -812,13 +813,28 @@ export default function SimpleLibrary() {
                   </p>
                 </div>
               ) : (
-                <LibraryGrid
-                  content={filteredMedia}
-                  selectedItems={selectedItems}
-                  selecting={selecting}
-                  onItemClick={handleItemClick}
-                  onCheckboxClick={handleCheckboxClick}
-                />
+                <SmartPreloadController
+                  items={media.map(item => ({
+                    id: item.id,
+                    storage_path: item.processed_path || item.original_path,
+                    type: item.media_type,
+                    size: item.optimized_size_bytes || item.original_size_bytes,
+                    priority: 'medium' as const
+                  }))}
+                  currentItemId={selectedItem?.id || ''}
+                  maxCacheSize={100 * 1024 * 1024} // 100MB
+                  enabled={true}
+                  onPreloadProgress={(progress) => console.log('Preload progress:', progress)}
+                  onCacheOptimized={() => console.log('Cache optimized')}
+                >
+                  <LibraryGrid
+                    content={filteredMedia}
+                    selectedItems={selectedItems}
+                    selecting={selecting}
+                    onItemClick={handleItemClick}
+                    onCheckboxClick={handleCheckboxClick}
+                  />
+                </SmartPreloadController>
               )}
             </div>
           </div>

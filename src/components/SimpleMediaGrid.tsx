@@ -1,15 +1,63 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Play, Volume1, Image as ImageIcon } from 'lucide-react';
 import { SimpleMediaItem } from '@/hooks/useSimpleMedia';
-import { formatRevenue } from '@/lib/formatRevenue';
+import { useInstantMedia } from '@/hooks/useInstantMedia';
 
 interface SimpleMediaGridProps {
   media: SimpleMediaItem[];
   loading: boolean;
-  onItemClick: (item: SimpleMediaItem) => void;
-  getThumbnailUrl: (item: SimpleMediaItem) => string | null;
+  onItemClick: (item: SimpleMediaItem, event: React.MouseEvent, index: number) => void;
+  getThumbnailUrl?: (item: SimpleMediaItem) => Promise<string | null>;
 }
+
+const MediaThumbnail: React.FC<{ item: SimpleMediaItem; onHover?: () => void }> = ({ item, onHover }) => {
+  const { 
+    loadInstantMedia, 
+    enhanceQuality, 
+    placeholder, 
+    currentUrl, 
+    isLoading 
+  } = useInstantMedia();
+  
+  React.useEffect(() => {
+    const thumbnailPath = item.thumbnail_path || item.processed_path || item.original_path;
+    if (thumbnailPath) {
+      loadInstantMedia(thumbnailPath, item.thumbnail_path);
+    }
+  }, [item, loadInstantMedia]);
+
+  if (currentUrl) {
+    return (
+      <img
+        src={currentUrl}
+        alt={item.title || item.original_filename}
+        className="w-full h-full object-cover transition-all duration-300 hover:scale-105"
+        onMouseEnter={() => {
+          enhanceQuality();
+          onHover?.();
+        }}
+        style={{ 
+          opacity: isLoading ? 0.7 : 1,
+          filter: isLoading ? 'blur(1px)' : 'none'
+        }}
+      />
+    );
+  }
+
+  if (placeholder) {
+    return (
+      <img
+        src={placeholder}
+        alt="Loading..."
+        className="w-full h-full object-cover opacity-50 blur-sm"
+      />
+    );
+  }
+
+  return <MediaTypeIcon type={item.media_type} />;
+};
 
 const MediaTypeIcon = ({ type }: { type: string }) => {
   switch (type) {
@@ -22,25 +70,25 @@ const MediaTypeIcon = ({ type }: { type: string }) => {
   }
 };
 
-export const SimpleMediaGrid: React.FC<SimpleMediaGridProps> = ({
-  media,
-  loading,
+export const SimpleMediaGrid: React.FC<SimpleMediaGridProps> = ({ 
+  media, 
+  loading, 
   onItemClick,
-  getThumbnailUrl
+  getThumbnailUrl 
 }) => {
   if (loading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {Array.from({ length: 10 }).map((_, i) => (
-          <Card key={i} className="aspect-square rounded-xl overflow-hidden animate-pulse bg-muted" />
+        {Array.from({ length: 12 }).map((_, index) => (
+          <Card key={index} className="aspect-square rounded-xl overflow-hidden animate-pulse bg-muted" />
         ))}
       </div>
     );
   }
 
-  if (media.length === 0) {
+  if (!media.length) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
+      <div className="flex flex-col items-center justify-center py-16 text-center">
         <ImageIcon className="w-12 h-12 text-muted-foreground mb-4" />
         <h3 className="text-lg font-medium text-foreground mb-2">No media found</h3>
         <p className="text-muted-foreground">Upload some files to get started</p>
@@ -50,62 +98,49 @@ export const SimpleMediaGrid: React.FC<SimpleMediaGridProps> = ({
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-      {media.map((item) => {
-        const thumbnailUrl = getThumbnailUrl(item);
-        
-        return (
-          <Card
-            key={item.id}
-            className="aspect-square rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-200 relative group"
-            onClick={() => onItemClick(item)}
-          >
-            {thumbnailUrl ? (
-              <img
-                src={thumbnailUrl}
-                alt={item.title || item.original_filename}
-                className="w-full h-full object-cover block media"
-                loading="lazy"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-muted">
-                <MediaTypeIcon type={item.media_type} />
+      {media.map((item, index) => (
+        <Card 
+          key={item.id} 
+          className="aspect-square rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-200 relative group"
+          onClick={(e) => onItemClick?.(item, e, index)}
+        >
+          <div className="relative w-full h-full overflow-hidden">
+            <MediaThumbnail item={item} />
+            
+            {/* Processing status overlay */}
+            {item.processing_status && item.processing_status !== 'processed' && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <Badge 
+                  variant={
+                    item.processing_status === 'pending' ? 'secondary' :
+                    item.processing_status === 'processing' ? 'default' : 
+                    'destructive'
+                  }
+                  className="text-xs"
+                >
+                  {item.processing_status === 'pending' ? 'Processing...' :
+                   item.processing_status === 'processing' ? 'Converting...' :
+                   'Failed'}
+                </Badge>
               </div>
             )}
             
-            {/* Processing status indicator */}
-            {item.processing_status === 'pending' && (
-              <div className="absolute top-2 left-2 bg-amber-500/90 text-white px-2 py-1 rounded text-xs font-medium">
-                Processing...
-              </div>
-            )}
-            {item.processing_status === 'processing' && (
-              <div className="absolute top-2 left-2 bg-blue-500/90 text-white px-2 py-1 rounded text-xs font-medium animate-pulse">
-                Converting...
-              </div>
-            )}
-            {item.processing_status === 'failed' && (
-              <div className="absolute top-2 left-2 bg-red-500/90 text-white px-2 py-1 rounded text-xs font-medium">
-                Failed
-              </div>
-            )}
-            
-            
-            {/* Media type indicator */}
+            {/* Media type badge */}
             {item.media_type !== 'image' && (
               <div className="absolute top-2 right-2 bg-black/50 rounded-full p-1">
                 <MediaTypeIcon type={item.media_type} />
               </div>
             )}
             
-            {/* Title overlay */}
+            {/* Title overlay on hover */}
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <p className="text-white text-xs font-medium truncate">
                 {item.title || item.original_filename}
               </p>
             </div>
-          </Card>
-        );
-      })}
+          </div>
+        </Card>
+      ))}
     </div>
   );
 };
