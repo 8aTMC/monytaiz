@@ -78,12 +78,30 @@ export const FileComparisonDialog = ({
         video.currentTime = 1; // Seek to 1 second
         
         video.onloadedmetadata = () => {
-          canvas.width = 300;
-          canvas.height = 200;
-          
           video.onseeked = () => {
-            if (ctx) {
-              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            if (ctx && video.videoWidth && video.videoHeight) {
+              // Calculate thumbnail dimensions based on video aspect ratio
+              const videoAspect = video.videoWidth / video.videoHeight;
+              let thumbWidth, thumbHeight;
+              
+              if (videoAspect > 1) {
+                // Horizontal video
+                thumbWidth = 300;
+                thumbHeight = 200;
+              } else if (videoAspect < 1) {
+                // Vertical video
+                thumbWidth = 200;
+                thumbHeight = 300;
+              } else {
+                // Square video
+                thumbWidth = 250;
+                thumbHeight = 250;
+              }
+              
+              canvas.width = thumbWidth;
+              canvas.height = thumbHeight;
+              
+              ctx.drawImage(video, 0, 0, thumbWidth, thumbHeight);
               canvas.toBlob((blob) => {
                 if (blob) {
                   const url = URL.createObjectURL(blob);
