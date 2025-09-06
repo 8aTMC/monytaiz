@@ -41,7 +41,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         }}
       >
         {/* Inner container enforces minimum width for horizontal scroll within main */}
-        <div className="min-w-[1024px] h-full box-border p-6 pt-0 flex flex-col">
+        <div className="min-w-[1024px] h-full box-border px-6 pb-6 pt-[30px] flex flex-col">
           <div className="flex-1 min-h-0 overflow-visible">
             {children}
           </div>
