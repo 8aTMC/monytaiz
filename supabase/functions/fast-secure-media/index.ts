@@ -71,6 +71,14 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Generating signed URL for user ${user.id}, path: ${path}`)
+    console.log(`Request params - width: ${width}, height: ${height}, quality: ${quality}, format: ${format}`)
+
+    // Check if this is a HEIC file EARLY
+    const isHEICFile = path.toLowerCase().includes('.heic') || 
+                       path.toLowerCase().includes('.heif') || 
+                       path.toLowerCase().includes('.heix')
+    
+    console.log(`HEIC Detection - path: ${path}, isHEICFile: ${isHEICFile}`)
 
     // Generate optimized signed URL
     const supabaseService = createClient(
@@ -78,7 +86,62 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // For videos, check if we have processed quality variants
+    // IMMEDIATE HEIC CHECK - Exit early for HEIC files to avoid any transform logic
+    if (isHEICFile) {
+      console.log(`HEIC FILE DETECTED - Processing without transforms: ${path}`)
+      
+      try {
+        const { data: urlData, error: urlError } = await supabaseService.storage
+          .from('content')
+          .createSignedUrl(path, 7200) // No transforms for HEIC files
+
+        if (urlError) {
+          console.error('HEIC STORAGE ERROR:', {
+            path,
+            errorMessage: urlError.message,
+            errorName: urlError.name,
+            errorStack: urlError.stack
+          })
+          return new Response(
+            JSON.stringify({ 
+              error: 'Failed to generate secure URL for HEIC file', 
+              details: urlError.message,
+              path: path
+            }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        console.log('HEIC SUCCESS - Generated signed URL:', path)
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            url: urlData.signedUrl,
+            expires_at: new Date(Date.now() + 7200 * 1000).toISOString(),
+            fileType: 'HEIC'
+          }),
+          { 
+            headers: { 
+              ...corsHeaders, 
+              'Content-Type': 'application/json',
+              'Cache-Control': 'public, max-age=3600'
+            }
+          }
+        )
+      } catch (heicError) {
+        console.error('HEIC EXCEPTION:', heicError)
+        return new Response(
+          JSON.stringify({ 
+            error: 'Exception processing HEIC file', 
+            details: heicError.message,
+            path: path
+          }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
+    console.log(`NON-HEIC FILE - Proceeding with normal processing: ${path}`)
     if (path.includes('.mp4') || path.includes('.webm') || path.includes('.mov')) {
       // Try to find processed quality variant matching the request
       let targetPath = path
@@ -128,45 +191,21 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Check if this is a HEIC file
-    const isHEICFile = path.toLowerCase().includes('.heic') || 
-                       path.toLowerCase().includes('.heif') || 
-                       path.toLowerCase().includes('.heix')
-
-    // For HEIC files, serve as-is without transforms to avoid format conversion errors
-    if (isHEICFile) {
-      const { data: urlData, error: urlError } = await supabaseService.storage
-        .from('content')
-        .createSignedUrl(path, 7200) // No transforms for HEIC files
-
-      if (urlError) {
-        console.error('Signed URL error for HEIC file:', path, 'Error:', urlError)
-        return new Response(
-          JSON.stringify({ error: 'Failed to generate secure URL for HEIC file', details: urlError.message }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-
-      console.log('Successfully generated signed URL for HEIC file:', path)
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          url: urlData.signedUrl,
-          expires_at: new Date(Date.now() + 7200 * 1000).toISOString()
-        }),
-        { 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json',
-            'Cache-Control': 'public, max-age=3600'
-          }
-        }
-      )
-    }
-
     // Fallback to image transforms for regular files
     let transformOptions: any = {
       expiresIn: 7200, // 2 hours
+    }
+
+    // SAFETY CHECK - Should never reach here for HEIC files
+    if (isHEICFile) {
+      console.error('CRITICAL ERROR - HEIC file reached transform section!', path)
+      return new Response(
+        JSON.stringify({ 
+          error: 'HEIC file incorrectly reached transform section', 
+          path: path 
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     // Add transforms if specified (not for HEIC files)
