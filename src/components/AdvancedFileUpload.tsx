@@ -23,7 +23,7 @@ export const AdvancedFileUpload = () => {
   
   // Duplicate files dialog state
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
-  const [duplicateFiles, setDuplicateFiles] = useState<{ name: string; size: number; type: string }[]>([]);
+  const [duplicateFiles, setDuplicateFiles] = useState<{ id: string; name: string; size: number; type: string }[]>([]);
   
   const {
     uploadQueue,
@@ -67,7 +67,11 @@ export const AdvancedFileUpload = () => {
     if (!files) return;
     
     const showDuplicateDialog = (duplicates: { name: string; size: number; type: string }[]) => {
-      setDuplicateFiles(duplicates);
+      const duplicatesWithId = duplicates.map(dup => ({
+        ...dup,
+        id: `${dup.name}-${dup.size}-${Date.now()}`
+      }));
+      setDuplicateFiles(duplicatesWithId);
       setDuplicateDialogOpen(true);
     };
     
@@ -89,7 +93,11 @@ export const AdvancedFileUpload = () => {
     if (files) {
       // For drag and drop, show duplicate dialog if needed
       const showDuplicateDialog = (duplicates: { name: string; size: number; type: string }[]) => {
-        setDuplicateFiles(duplicates);
+        const duplicatesWithId = duplicates.map(dup => ({
+          ...dup,
+          id: `${dup.name}-${dup.size}-${Date.now()}`
+        }));
+        setDuplicateFiles(duplicatesWithId);
         setDuplicateDialogOpen(true);
       };
       addFiles(Array.from(files), showDuplicateDialog);
@@ -410,7 +418,7 @@ export const AdvancedFileUpload = () => {
         open={duplicateDialogOpen}
         onOpenChange={setDuplicateDialogOpen}
         duplicateFiles={duplicateFiles}
-        onConfirm={() => setDuplicateDialogOpen(false)}
+        onConfirm={(filesToIgnore: string[]) => setDuplicateDialogOpen(false)}
       />
     </Card>
   );

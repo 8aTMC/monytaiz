@@ -30,7 +30,7 @@ export default function SimpleUpload() {
   const [currentUploadingFile, setCurrentUploadingFile] = useState<string | null>(null);
   const [reviewMode, setReviewMode] = useState(false);
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
-  const [duplicateFiles, setDuplicateFiles] = useState<{ name: string; size: number; type: string }[]>([]);
+  const [duplicateFiles, setDuplicateFiles] = useState<{ id: string; name: string; size: number; type: string }[]>([]);
   const addMoreFileInputRef = useRef<HTMLInputElement>(null);
   
   // Selection state management
@@ -109,7 +109,7 @@ export default function SimpleUpload() {
 
   const addMoreFiles = useCallback((acceptedFiles: File[]) => {
     // Check for duplicates
-    const duplicates: { name: string; size: number; type: string }[] = [];
+    const duplicates: { id: string; name: string; size: number; type: string }[] = [];
     const uniqueFiles: File[] = [];
 
     acceptedFiles.forEach(newFile => {
@@ -120,6 +120,7 @@ export default function SimpleUpload() {
 
       if (isDuplicate) {
         duplicates.push({
+          id: `${newFile.name}-${newFile.size}-${newFile.lastModified}`,
           name: newFile.name,
           size: newFile.size,
           type: newFile.type
@@ -512,7 +513,7 @@ export default function SimpleUpload() {
           open={duplicateDialogOpen}
           onOpenChange={setDuplicateDialogOpen}
           duplicateFiles={duplicateFiles}
-          onConfirm={() => setDuplicateDialogOpen(false)}
+          onConfirm={(filesToIgnore: string[]) => setDuplicateDialogOpen(false)}
         />
 
       </div>
