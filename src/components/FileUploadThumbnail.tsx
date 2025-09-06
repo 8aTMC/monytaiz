@@ -22,20 +22,40 @@ export const FileUploadThumbnail = ({ file, className = "w-12 h-12" }: FileUploa
       return () => URL.revokeObjectURL(url);
     } else if (['.mp4', '.mov', '.webm', '.avi', '.mkv'].includes(extension)) {
       setFileType('video');
-      // Create video thumbnail
+      // Create video thumbnail with proper aspect ratio
       const video = document.createElement('video');
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       
       video.onloadeddata = () => {
-        canvas.width = 120;
-        canvas.height = 120;
         video.currentTime = 1; // Seek to 1 second
       };
       
       video.onseeked = () => {
-        if (ctx) {
-          ctx.drawImage(video, 0, 0, 120, 120);
+        if (ctx && video.videoWidth && video.videoHeight) {
+          // Calculate thumbnail dimensions based on video aspect ratio
+          const videoAspect = video.videoWidth / video.videoHeight;
+          let thumbWidth, thumbHeight;
+          
+          if (videoAspect > 1) {
+            // Horizontal video
+            thumbWidth = 120;
+            thumbHeight = 80;
+          } else if (videoAspect < 1) {
+            // Vertical video
+            thumbWidth = 80;
+            thumbHeight = 120;
+          } else {
+            // Square video
+            thumbWidth = 120;
+            thumbHeight = 120;
+          }
+          
+          canvas.width = thumbWidth;
+          canvas.height = thumbHeight;
+          
+          // Draw video frame maintaining aspect ratio
+          ctx.drawImage(video, 0, 0, thumbWidth, thumbHeight);
           const url = canvas.toDataURL();
           setThumbnailUrl(url);
         }
