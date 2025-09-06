@@ -203,34 +203,26 @@ export const useDirectUpload = () => {
     });
   }, []);
 
-  // Try server fallback processing
+  // Try server fallback processing with blob
   const tryServerFallback = useCallback(async (file: File, clientError?: string): Promise<{
     success: boolean;
     error?: string;
   }> => {
     try {
-      // Upload original file for server processing
       const mediaId = crypto.randomUUID();
-      const inputPath = `processing/heic/${mediaId}_${file.name}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('content')
-        .upload(inputPath, file, {
-          contentType: file.type || 'image/heic'
-        });
-
-      if (uploadError) {
-        throw new Error(`Upload failed: ${uploadError.message}`);
+      // Create FormData to send file blob directly
+      const formData = new FormData();
+      formData.append('mediaId', mediaId);
+      formData.append('originalFilename', file.name);
+      formData.append('heicFile', file);
+      if (clientError) {
+        formData.append('clientError', clientError);
       }
 
-      // Trigger server processing
+      // Send blob directly to server for processing
       const { data, error } = await supabase.functions.invoke('heic-transcoder', {
-        body: {
-          mediaId,
-          inputPath,
-          originalFilename: file.name,
-          clientError
-        }
+        body: formData
       });
 
       if (error) {

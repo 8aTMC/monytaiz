@@ -18,9 +18,16 @@ serve(async (req) => {
   }
 
   try {
-    const { mediaId, inputPath, originalFilename } = await req.json();
+    const formData = await req.formData();
+    const mediaId = formData.get('mediaId') as string;
+    const originalFilename = formData.get('originalFilename') as string;
+    const heicFile = formData.get('heicFile') as File;
+
+    if (!mediaId || !originalFilename || !heicFile) {
+      throw new Error('Missing required fields: mediaId, originalFilename, or heicFile');
+    }
     
-    console.log(`Starting HEIC transcoding for media ${mediaId}`);
+    console.log(`Starting HEIC blob transcoding for media ${mediaId}`);
 
     // Create processing job
     const { data: job, error: jobError } = await supabase
@@ -28,11 +35,12 @@ serve(async (req) => {
       .insert({
         media_id: mediaId,
         job_type: 'heic_conversion',
-        input_path: inputPath,
+        input_path: 'blob_processing',
         started_at: new Date().toISOString(),
         processing_metadata: {
           original_filename: originalFilename,
-          fallback_reason: 'client_processing_failed'
+          fallback_reason: 'client_processing_failed',
+          file_size: heicFile.size
         }
       })
       .select()
@@ -43,7 +51,7 @@ serve(async (req) => {
     }
 
     // Background processing - don't await
-    processHEICFile(job.id, mediaId, inputPath);
+    processHEICBlob(job.id, mediaId, heicFile, originalFilename);
 
     return new Response(JSON.stringify({
       success: true,
@@ -65,26 +73,17 @@ serve(async (req) => {
   }
 });
 
-async function processHEICFile(jobId: string, mediaId: string, inputPath: string) {
+async function processHEICBlob(jobId: string, mediaId: string, heicFile: File, originalFilename: string) {
   try {
-    console.log(`Processing HEIC file: ${inputPath}`);
+    console.log(`Processing HEIC blob: ${originalFilename}, size: ${heicFile.size}`);
 
-    // Download original file
-    const { data: fileData, error: downloadError } = await supabase.storage
-      .from('content')
-      .download(inputPath);
-
-    if (downloadError) {
-      throw new Error(`Failed to download file: ${downloadError.message}`);
-    }
-
-    // Convert using ImageMagick/Sharp equivalent
-    // For now, we'll simulate the conversion
-    const processedBuffer = await convertHEICToWebP(fileData);
+    // Convert HEIC blob directly to WebP
+    const processedBuffer = await convertHEICToWebP(heicFile);
     
-    // Generate output path
-    const outputPath = inputPath.replace(/\.(heic|heif)$/i, '.webp');
-    const previewPath = inputPath.replace(/\.(heic|heif)$/i, '_preview.webp');
+    // Generate output paths based on filename
+    const baseName = originalFilename.replace(/\.(heic|heif)$/i, '');
+    const outputPath = `processed/${baseName}_${mediaId}.webp`;
+    const previewPath = `previews/${baseName}_${mediaId}_preview.webp`;
 
     // Upload processed file
     const { error: uploadError } = await supabase.storage
@@ -116,9 +115,10 @@ async function processHEICFile(jobId: string, mediaId: string, inputPath: string
         preview_path: previewPath,
         completed_at: new Date().toISOString(),
         processing_metadata: {
-          original_size: fileData.size,
+          original_size: heicFile.size,
           processed_size: processedBuffer.byteLength,
-          compression_ratio: Math.round((1 - processedBuffer.byteLength / fileData.size) * 100)
+          compression_ratio: Math.round((1 - processedBuffer.byteLength / heicFile.size) * 100),
+          processing_method: 'server_blob_direct'
         }
       })
       .eq('id', jobId);
@@ -134,27 +134,16 @@ async function processHEICFile(jobId: string, mediaId: string, inputPath: string
         processed_at: new Date().toISOString(),
         optimization_metrics: {
           server_processing: true,
-          compression_ratio: Math.round((1 - processedBuffer.byteLength / fileData.size) * 100)
+          compression_ratio: Math.round((1 - processedBuffer.byteLength / heicFile.size) * 100),
+          blob_processing: true
         }
       })
       .eq('id', mediaId);
 
-    // Clean up original HEIC file
-    console.log(`Cleaning up original HEIC file: ${inputPath}`);
-    const { error: deleteError } = await supabase.storage
-      .from('content')
-      .remove([inputPath]);
-
-    if (deleteError) {
-      console.warn(`Failed to delete original HEIC file ${inputPath}:`, deleteError);
-    } else {
-      console.log(`✅ Original HEIC file deleted: ${inputPath}`);
-    }
-
-    console.log(`HEIC processing completed for media ${mediaId}`);
+    console.log(`✅ HEIC blob processing completed for media ${mediaId}`);
 
   } catch (error) {
-    console.error(`HEIC processing failed for media ${mediaId}:`, error);
+    console.error(`HEIC blob processing failed for media ${mediaId}:`, error);
 
     // Update job with error
     await supabase
@@ -172,7 +161,7 @@ async function processHEICFile(jobId: string, mediaId: string, inputPath: string
       .update({
         processing_status: 'failed',
         processing_error: error.message,
-        server_fallback_reason: 'server_processing_failed'
+        server_fallback_reason: 'server_blob_processing_failed'
       })
       .eq('id', mediaId);
   }
