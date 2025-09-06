@@ -244,8 +244,10 @@ export const FilePreviewDialog = ({
       const [width, height] = videoAspectRatio.split('/').map(Number);
       const aspectValue = width / height;
       
-      // Use more of the available viewport height - only subtract minimal space for header/footer
-      const availableHeight = Math.max(window.innerHeight * 0.85, 400); // More aggressive height usage
+      // Calculate available space based on modal size minus header and minimal padding
+      const headerHeight = 120; // Approximate header height
+      const modalMaxHeight = window.innerHeight * 0.95;
+      const availableHeight = modalMaxHeight - headerHeight - 4; // 4px for minimal spacing
       
       // For vertical videos (aspect < 1), maximize available height
       if (aspectValue < 1) {
@@ -275,10 +277,14 @@ export const FilePreviewDialog = ({
       }
     }
     
-    // Default for non-video content - use more space
+    // Default for non-video content - use available space efficiently
+    const headerHeight = 120;
+    const modalMaxHeight = window.innerHeight * 0.95;
+    const availableHeight = modalMaxHeight - headerHeight - 4;
+    
     return {
       width: `${Math.min(window.innerWidth * 0.8, 1200)}px`,
-      height: `${Math.min(window.innerHeight * 0.7, 800)}px`, 
+      height: `${Math.min(availableHeight, 800)}px`, 
       aspectRatio: '16/9'
     };
   };
@@ -451,9 +457,9 @@ export const FilePreviewDialog = ({
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-auto relative">
+            <div className="flex-1 overflow-hidden relative">
               {/* Media Display */}
-              <div className="p-2">
+              <div className="flex items-center justify-center p-1">
                 <div 
                   className="flex items-center justify-center bg-muted/20 rounded-xl overflow-hidden relative mx-auto"
                   style={{
