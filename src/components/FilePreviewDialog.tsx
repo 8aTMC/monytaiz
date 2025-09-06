@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, Download, AtSign, Hash, FolderOpen, FileText, DollarSign, Edit, Play, Pause, Volume2, VolumeX, Maximize, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { X, Download, AtSign, Hash, FolderOpen, FileText, DollarSign, Edit, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { VideoQualityBadge } from './VideoQualityBadge';
 import { getVideoMetadataFromFile, VideoQualityInfo } from '@/lib/videoQuality';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
+import { EnhancedVideoPlayer } from '@/components/EnhancedVideoPlayer';
 import { MentionsDialog } from './MentionsDialog';
 import { TagsDialog } from './TagsDialog';
 import { FolderSelectDialog } from './FolderSelectDialog';
@@ -74,11 +75,8 @@ export const FilePreviewDialog = ({
   
   // Media state
   const [fileUrl, setFileUrl] = useState<string>('');
-  const [videoDuration, setVideoDuration] = useState<number>(0);
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const [isVideoMuted, setIsVideoMuted] = useState(false);
-  const [videoCurrentTime, setVideoCurrentTime] = useState(0);
   const [videoQualityInfo, setVideoQualityInfo] = useState<VideoQualityInfo | null>(null);
+  const [videoAspectRatio, setVideoAspectRatio] = useState<string>('16/9');
   
   // Dialog states
   const [mentionsDialogOpen, setMentionsDialogOpen] = useState(false);
@@ -90,9 +88,6 @@ export const FilePreviewDialog = ({
   
   // Client-side mounting state
   const [isMounted, setIsMounted] = useState(false);
-  
-  // Refs
-  const videoRef = useRef<HTMLVideoElement>(null);
   
   // ===== DERIVED STATE AND COMPUTED VALUES =====
   
@@ -156,9 +151,31 @@ export const FilePreviewDialog = ({
       const url = URL.createObjectURL(displayFile);
       setFileUrl(url);
       
-      // Get video quality info for video files
+      // Get video quality info and aspect ratio for video files
       if (getFileType() === 'video') {
-        getVideoMetadataFromFile(displayFile).then(setVideoQualityInfo);
+        getVideoMetadataFromFile(displayFile).then(qualityInfo => {
+          setVideoQualityInfo(qualityInfo);
+          
+          // Create a temporary video element to get dimensions
+          const tempVideo = document.createElement('video');
+          tempVideo.src = url;
+          tempVideo.onloadedmetadata = () => {
+            const width = tempVideo.videoWidth;
+            const height = tempVideo.videoHeight;
+            
+            if (width && height) {
+              // Calculate aspect ratio
+              const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+              const divisor = gcd(width, height);
+              const aspectW = width / divisor;
+              const aspectH = height / divisor;
+              setVideoAspectRatio(`${aspectW}/${aspectH}`);
+            }
+            
+            // Clean up
+            tempVideo.remove();
+          };
+        });
       }
       
       return () => URL.revokeObjectURL(url);
@@ -210,17 +227,6 @@ export const FilePreviewDialog = ({
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!videoRef.current) return;
-    
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const newTime = (clickX / rect.width) * videoDuration;
-    
-    videoRef.current.currentTime = newTime;
-    setVideoCurrentTime(newTime);
-  };
-
   const handleDownload = () => {
     if (fileUrl) {
       const link = document.createElement('a');
@@ -232,10 +238,43 @@ export const FilePreviewDialog = ({
     }
   };
 
-  // Determine container size (using same logic as library viewer)
-  const containerWidth = '900px';
-  const containerHeight = '506px';
-  const aspectRatio = '16/9';
+  // Determine container size based on video aspect ratio
+  const getContainerDimensions = () => {
+    if (fileType === 'video' && videoAspectRatio) {
+      const [width, height] = videoAspectRatio.split('/').map(Number);
+      const aspectValue = width / height;
+      
+      // For vertical videos (aspect < 1), limit width
+      if (aspectValue < 1) {
+        const maxWidth = 400;
+        const calculatedHeight = maxWidth / aspectValue;
+        return {
+          width: `${maxWidth}px`,
+          height: `${Math.min(calculatedHeight, 700)}px`,
+          aspectRatio: videoAspectRatio
+        };
+      } 
+      // For horizontal videos (aspect > 1), limit height  
+      else {
+        const maxHeight = 506;
+        const calculatedWidth = maxHeight * aspectValue;
+        return {
+          width: `${Math.min(calculatedWidth, 900)}px`,
+          height: `${maxHeight}px`,
+          aspectRatio: videoAspectRatio
+        };
+      }
+    }
+    
+    // Default for non-video content
+    return {
+      width: '900px',
+      height: '506px', 
+      aspectRatio: '16/9'
+    };
+  };
+
+  const containerDimensions = getContainerDimensions();
 
   
 
@@ -409,9 +448,9 @@ export const FilePreviewDialog = ({
                 <div 
                   className="flex items-center justify-center bg-muted/20 rounded-xl overflow-hidden relative"
                   style={{
-                    width: containerWidth,
-                    height: containerHeight,
-                    aspectRatio: aspectRatio,
+                    width: containerDimensions.width,
+                    height: containerDimensions.height,
+                    aspectRatio: containerDimensions.aspectRatio,
                     pointerEvents: 'auto'
                   }}
                 >
@@ -427,109 +466,12 @@ export const FilePreviewDialog = ({
                   )}
                   
                   {fileType === 'video' && fileUrl && (
-                    <div className="relative w-full h-full rounded-xl overflow-hidden">
-                      <video
-                        ref={videoRef}
-                        src={fileUrl}
-                        className="w-full h-full object-cover block media rounded-xl"
-                        controls={false}
-                        muted={isVideoMuted}
-                        onPlay={() => setIsVideoPlaying(true)}
-                        onPause={() => setIsVideoPlaying(false)}
-                        onTimeUpdate={() => {
-                          if (videoRef.current) {
-                            setVideoCurrentTime(videoRef.current.currentTime);
-                          }
-                        }}
-                        onLoadedMetadata={() => {
-                          if (videoRef.current) {
-                            setVideoDuration(videoRef.current.duration);
-                          }
-                        }}
-                      />
-                      
-                      {/* Custom Video Controls Overlay */}
-                      <div className="absolute bottom-16 left-4 flex items-center gap-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => {
-                            if (videoRef.current) {
-                              if (isVideoPlaying) {
-                                videoRef.current.pause();
-                              } else {
-                                videoRef.current.play();
-                              }
-                            }
-                          }}
-                        >
-                          {isVideoPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                        </Button>
-                        
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => {
-                            if (videoRef.current) {
-                              videoRef.current.muted = !isVideoMuted;
-                              setIsVideoMuted(!isVideoMuted);
-                            }
-                          }}
-                        >
-                          {isVideoMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                        </Button>
-                        
-                        {/* Quality badge */}
-                        {videoQualityInfo && (
-                          <VideoQualityBadge 
-                            qualityInfo={videoQualityInfo}
-                            showResolution={true}
-                            width={videoRef.current?.videoWidth}
-                            height={videoRef.current?.videoHeight}
-                          />
-                        )}
-                      </div>
-                      
-                      {/* Fullscreen Button */}
-                      <div className="absolute bottom-16 right-4">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => {
-                            if (videoRef.current && videoRef.current.requestFullscreen) {
-                              videoRef.current.requestFullscreen();
-                            }
-                          }}
-                        >
-                          <Maximize className="w-4 h-4" />
-                        </Button>
-                      </div>
-
-                      {/* Video Progress Bar */}
-                      <div className="absolute bottom-4 left-4 right-4 bg-black/50 rounded-lg p-3">
-                        <div className="flex items-center gap-3 text-white text-sm">
-                          <span className="text-xs font-mono">{formatTime(videoCurrentTime)}</span>
-                          
-                          {/* Seek Bar */}
-                          <div 
-                            className="flex-1 h-2 bg-white/30 rounded-full cursor-pointer relative"
-                            onClick={handleSeek}
-                          >
-                            <div 
-                              className="h-full bg-blue-500 rounded-full transition-all"
-                              style={{ width: `${videoDuration ? (videoCurrentTime / videoDuration) * 100 : 0}%` }}
-                            />
-                            {/* Seek handle */}
-                            <div 
-                              className="absolute top-1/2 transform -translate-y-1/2 w-4 h-4 bg-blue-500 rounded-full shadow-lg transition-all"
-                              style={{ left: `${videoDuration ? (videoCurrentTime / videoDuration) * 100 : 0}%`, marginLeft: '-8px' }}
-                            />
-                          </div>
-                          
-                          <span className="text-xs font-mono">{formatTime(videoDuration)}</span>
-                        </div>
-                      </div>
-                    </div>
+                    <EnhancedVideoPlayer
+                      src={fileUrl}
+                      aspectRatio={containerDimensions.aspectRatio}
+                      className="w-full h-full rounded-xl"
+                      onError={(error) => console.error('Video playback error:', error)}
+                    />
                   )}
                   
                   {fileType === 'audio' && fileUrl && (

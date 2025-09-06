@@ -80,19 +80,22 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     };
   }, [stableMediaItem.id, stableMediaItem.type, stableMediaItem.storage_path, stableMediaItem.path, stableMediaItem.thumbnail_path]);
 
-  // Calculate aspect ratio with consistent heights for grid display
+  // Calculate aspect ratio respecting video proportions
   const calculateAspectRatio = () => {
-    // Force videos to use 1:1 aspect ratio for consistent grid height
-    if (item.type === 'video') {
-      return '1';
-    }
-    
     if (!item.width || !item.height) {
       return '1';
     }
     
     const ratio = item.width / item.height;
-    // Limit aspect ratios for consistent grid display
+    
+    // For videos, respect natural aspect ratio but with reasonable bounds
+    if (item.type === 'video') {
+      // Allow vertical videos to be taller, horizontal to be wider
+      const clampedRatio = Math.max(0.5, Math.min(2, ratio));
+      return clampedRatio.toFixed(3);
+    }
+    
+    // For images, limit aspect ratios for consistent grid display
     const clampedRatio = Math.max(0.75, Math.min(1.33, ratio));
     return clampedRatio.toFixed(3);
   };
@@ -114,7 +117,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
           <img
             src={thumbnailSrc}
             alt={item.title || `${item.type} thumbnail`}
-            className="w-full h-full object-cover block media"
+            className={`w-full h-full ${item.type === 'video' ? 'object-contain' : 'object-cover'} block media`}
             loading="lazy"
             decoding="async"
           />
