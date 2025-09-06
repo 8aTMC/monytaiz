@@ -244,12 +244,12 @@ export const FilePreviewDialog = ({
       const [width, height] = videoAspectRatio.split('/').map(Number);
       const aspectValue = width / height;
       
-      // Calculate available height (95vh minus header/footer space ~160px)
-      const availableHeight = Math.max(window.innerHeight * 0.95 - 160, 300); // Minimum 300px
+      // Use more of the available viewport height - only subtract minimal space for header/footer
+      const availableHeight = Math.max(window.innerHeight * 0.85, 400); // More aggressive height usage
       
-      // For vertical videos (aspect < 1), limit width and use available height
+      // For vertical videos (aspect < 1), maximize available height
       if (aspectValue < 1) {
-        const maxWidth = 350; // Reduced from 400px for better fit
+        const maxWidth = Math.min(window.innerWidth * 0.4, 500); // More width for vertical videos
         const calculatedHeight = maxWidth / aspectValue;
         const finalHeight = Math.min(calculatedHeight, availableHeight);
         const finalWidth = finalHeight * aspectValue;
@@ -260,22 +260,25 @@ export const FilePreviewDialog = ({
           aspectRatio: videoAspectRatio
         };
       } 
-      // For horizontal videos (aspect > 1), limit height to available space
+      // For horizontal videos (aspect >= 1), use most of available space
       else {
-        const maxHeight = Math.min(506, availableHeight);
-        const calculatedWidth = maxHeight * aspectValue;
+        const maxWidth = Math.min(window.innerWidth * 0.8, 1200); // Use more width
+        const calculatedHeight = maxWidth / aspectValue;
+        const finalHeight = Math.min(calculatedHeight, availableHeight);
+        const finalWidth = finalHeight * aspectValue;
+        
         return {
-          width: `${Math.min(calculatedWidth, 900)}px`,
-          height: `${maxHeight}px`,
+          width: `${finalWidth}px`,
+          height: `${finalHeight}px`,
           aspectRatio: videoAspectRatio
         };
       }
     }
     
-    // Default for non-video content
+    // Default for non-video content - use more space
     return {
-      width: '900px',
-      height: '506px', 
+      width: `${Math.min(window.innerWidth * 0.8, 1200)}px`,
+      height: `${Math.min(window.innerHeight * 0.7, 800)}px`, 
       aspectRatio: '16/9'
     };
   };
@@ -450,7 +453,7 @@ export const FilePreviewDialog = ({
             {/* Content */}
             <div className="flex-1 overflow-auto relative">
               {/* Media Display */}
-              <div className="p-4">
+              <div className="p-2">
                 <div 
                   className="flex items-center justify-center bg-muted/20 rounded-xl overflow-hidden relative mx-auto"
                   style={{
