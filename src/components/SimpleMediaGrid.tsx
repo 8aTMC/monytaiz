@@ -23,10 +23,14 @@ const MediaThumbnail: React.FC<{ item: SimpleMediaItem; onHover?: () => void }> 
   } = useInstantMedia();
   
   React.useEffect(() => {
-    // For HEIC files, use original_path as they don't have processed thumbnails
+    // Enhanced HEIC detection
     const isHEIC = item.original_filename?.toLowerCase().includes('.heic') || 
-                   item.original_filename?.toLowerCase().includes('.heif');
+                   item.original_filename?.toLowerCase().includes('.heif') ||
+                   item.original_filename?.toLowerCase().includes('.heix') ||
+                   item.original_path?.toLowerCase().includes('.heic') ||
+                   item.original_path?.toLowerCase().includes('.heif');
     
+    // For HEIC files, always use original_path as they need format conversion
     const thumbnailPath = isHEIC 
       ? item.original_path 
       : (item.thumbnail_path || item.processed_path || item.original_path);
@@ -35,7 +39,8 @@ const MediaThumbnail: React.FC<{ item: SimpleMediaItem; onHover?: () => void }> 
       console.log('Loading thumbnail:', {
         filename: item.original_filename,
         path: thumbnailPath,
-        isHEIC
+        isHEIC,
+        processingStatus: item.processing_status
       });
       loadInstantMedia(thumbnailPath);
     }

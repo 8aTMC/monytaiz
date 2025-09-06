@@ -186,7 +186,7 @@ export const useInstantMedia = () => {
 // Check if file is HEIC format
 const isHEICFile = (storagePath: string): boolean => {
   const extension = storagePath.toLowerCase().split('.').pop();
-  return extension === 'heic' || extension === 'heif';
+  return extension === 'heic' || extension === 'heif' || extension === 'heix';
 };
 
 // Generate a tiny base64 placeholder from the image
@@ -224,7 +224,7 @@ const hashCode = (str: string): number => {
   return hash;
 };
 
-// Get original file URL directly (for HEIC files)
+// Get original file URL directly (for HEIC files with format conversion)
 const getOriginalUrl = async (
   path: string,
   token: string,
@@ -232,7 +232,15 @@ const getOriginalUrl = async (
 ): Promise<string | null> => {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const params = new URLSearchParams({ path });
+      // Force format conversion for HEIC files to web-compatible format
+      const params = new URLSearchParams({ 
+        path,
+        // Force format conversion for HEIC files
+        format: 'webp',
+        quality: '80',
+        width: '512',
+        height: '512'
+      });
 
       const response = await fetch(
         `https://alzyzfjzwvofmjccirjq.supabase.co/functions/v1/fast-secure-media?${params.toString()}`,
@@ -246,16 +254,16 @@ const getOriginalUrl = async (
       );
 
       if (!response.ok) {
-        console.warn(`HTTP ${response.status} for original file:`, path);
+        console.warn(`HTTP ${response.status} for HEIC conversion:`, path);
         if (attempt === retries) throw new Error(`HTTP ${response.status}`);
         continue;
       }
       
       const result = await response.json();
-      console.log('Original URL response:', { path, result });
+      console.log('HEIC conversion URL response:', { path, result });
       return result.error ? null : result.url;
     } catch (error) {
-      console.warn(`Attempt ${attempt + 1} failed for original URL:`, { path, error });
+      console.warn(`Attempt ${attempt + 1} failed for HEIC conversion:`, { path, error });
       if (attempt === retries) {
         return null;
       }

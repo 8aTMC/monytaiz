@@ -34,6 +34,7 @@ Deno.serve(async (req) => {
     const width = searchParams.get('width')
     const height = searchParams.get('height')
     const quality = searchParams.get('quality') || '75'
+    const format = searchParams.get('format')
 
     if (!path) {
       return new Response(
@@ -127,19 +128,27 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Check if this is a HEIC file that needs format conversion
+    const isHEICFile = path.toLowerCase().includes('.heic') || 
+                       path.toLowerCase().includes('.heif') || 
+                       path.toLowerCase().includes('.heix')
+
     // Fallback to image transforms or original file
     let transformOptions: any = {
       expiresIn: 7200, // 2 hours
     }
 
-    // Add transforms if specified (mainly for images)
-    if (width || height || quality) {
+    // Add transforms if specified OR if it's a HEIC file (force conversion)
+    if (width || height || quality || format || isHEICFile) {
       transformOptions.transform = {
-        width: width ? Math.min(parseInt(width), 1920) : undefined,
-        height: height ? Math.min(parseInt(height), 1920) : undefined,
+        width: width ? Math.min(parseInt(width), 1920) : (isHEICFile ? 512 : undefined),
+        height: height ? Math.min(parseInt(height), 1920) : (isHEICFile ? 512 : undefined),
         quality: Math.min(parseInt(quality), 95),
-        resize: 'cover'
+        resize: 'cover',
+        // Force format conversion for HEIC files
+        format: format || (isHEICFile ? 'webp' : undefined)
       }
+      console.log(`Applied transforms for ${isHEICFile ? 'HEIC' : 'regular'} file:`, transformOptions.transform)
     }
 
     const { data: urlData, error: urlError } = await supabaseService.storage
