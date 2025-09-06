@@ -6,7 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Bot, Timer } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Bot, Timer, Clock, Calendar, Zap, MessageCircle, Heart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { invalidateGlobalSettings } from '@/ai/service';
@@ -176,85 +178,135 @@ export const GlobalAIControl = ({ isActive, onToggle }: GlobalAIControlProps) =>
 
           {globalSettings.enabled && (
             <>
-              <div className="space-y-2">
-                <Label>AI Mode</Label>
-                <Select
-                  value={globalSettings.mode}
-                  onValueChange={(value) => 
-                    setGlobalSettings(prev => ({ ...prev, mode: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="auto">Auto (AI decides approach)</SelectItem>
-                    <SelectItem value="friendly_chat">Friendly Chat</SelectItem>
-                    <SelectItem value="intimate_flirt">Intimate/Flirty</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-3">
-                <Label>Timer Settings (Max 24 hours)</Label>
-                
-                <div className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    id="timer-hours"
-                    name="timerType"
-                    checked={globalSettings.timerType === 'hours'}
-                    onChange={() => setGlobalSettings(prev => ({ ...prev, timerType: 'hours' }))}
-                  />
-                  <Label htmlFor="timer-hours" className="flex-1">Set duration (hours)</Label>
-                </div>
-                
-                {globalSettings.timerType === 'hours' && (
-                  <Input
-                    type="number"
-                    min="1"
-                    max="24"
-                    value={globalSettings.hoursRemaining}
-                    onChange={(e) => 
-                      setGlobalSettings(prev => ({ 
-                        ...prev, 
-                        hoursRemaining: Math.min(24, Math.max(0, parseInt(e.target.value) || 0))
-                      }))
+              <Card>
+                <CardContent className="p-4 space-y-3">
+                  <Label className="text-sm font-medium">AI Mode</Label>
+                  <Select
+                    value={globalSettings.mode}
+                    onValueChange={(value) => 
+                      setGlobalSettings(prev => ({ ...prev, mode: value }))
                     }
-                    placeholder="Hours (1-24)"
-                  />
-                )}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">
+                        <div className="flex items-center gap-2">
+                          <Zap className="h-4 w-4" />
+                          <span>Auto (AI decides approach)</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="friendly_chat">
+                        <div className="flex items-center gap-2">
+                          <MessageCircle className="h-4 w-4" />
+                          <span>Friendly Chat</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="intimate_flirt">
+                        <div className="flex items-center gap-2">
+                          <Heart className="h-4 w-4" />
+                          <span>Intimate/Flirty</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  {globalSettings.mode === 'auto' && (
+                    <div className="text-xs text-muted-foreground">
+                      AI will automatically adjust conversation style based on context
+                    </div>
+                  )}
+                  {globalSettings.mode === 'friendly_chat' && (
+                    <div className="text-xs text-muted-foreground">
+                      Maintain a warm, friendly conversation tone
+                    </div>
+                  )}
+                  {globalSettings.mode === 'intimate_flirt' && (
+                    <div className="text-xs text-muted-foreground">
+                      Use more intimate and flirtatious conversation style
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-                <div className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    id="timer-endtime"
-                    name="timerType"
-                    checked={globalSettings.timerType === 'endTime'}
-                    onChange={() => setGlobalSettings(prev => ({ ...prev, timerType: 'endTime' }))}
-                  />
-                  <Label htmlFor="timer-endtime" className="flex-1">Set end time</Label>
-                </div>
-                
-                {globalSettings.timerType === 'endTime' && (
-                  <Input
-                    type="datetime-local"
-                    value={globalSettings.endTime}
-                    onChange={(e) => 
-                      setGlobalSettings(prev => ({ ...prev, endTime: e.target.value }))
-                    }
-                    max={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
-                  />
-                )}
-              </div>
+              <Card>
+                <CardContent className="p-4 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Timer className="h-4 w-4" />
+                    <Label className="text-sm font-medium">Timer Settings</Label>
+                    <Badge variant="secondary" className="text-xs">Max 24 hours</Badge>
+                  </div>
+                  
+                  <ToggleGroup
+                    type="single"
+                    value={globalSettings.timerType}
+                    onValueChange={(value) => {
+                      if (value) {
+                        setGlobalSettings(prev => ({ ...prev, timerType: value as 'hours' | 'endTime' }));
+                      }
+                    }}
+                    className="grid grid-cols-2 gap-2 w-full"
+                  >
+                    <ToggleGroupItem value="hours" className="flex items-center gap-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                      <Clock className="h-4 w-4" />
+                      <span className="text-sm">Duration</span>
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="endTime" className="flex items-center gap-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                      <Calendar className="h-4 w-4" />
+                      <span className="text-sm">End Time</span>
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                  
+                  {globalSettings.timerType === 'hours' && (
+                    <div className="space-y-2">
+                      <Label className="text-sm text-muted-foreground">Hours (1-24)</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="24"
+                        value={globalSettings.hoursRemaining}
+                        onChange={(e) => 
+                          setGlobalSettings(prev => ({ 
+                            ...prev, 
+                            hoursRemaining: Math.min(24, Math.max(0, parseInt(e.target.value) || 0))
+                          }))
+                        }
+                        placeholder="Enter hours"
+                        className="w-full"
+                      />
+                    </div>
+                  )}
+
+                  {globalSettings.timerType === 'endTime' && (
+                    <div className="space-y-2">
+                      <Label className="text-sm text-muted-foreground">Select end time</Label>
+                      <Input
+                        type="datetime-local"
+                        value={globalSettings.endTime}
+                        onChange={(e) => 
+                          setGlobalSettings(prev => ({ ...prev, endTime: e.target.value }))
+                        }
+                        max={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
+                        className="w-full"
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
               {(globalSettings.hoursRemaining > 0 || globalSettings.endTime) && (
-                <div className="p-3 bg-muted rounded-lg">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Timer className="h-4 w-4" />
-                    <span>Remaining: {getRemainingTime()}</span>
-                  </div>
-                </div>
+                <Card className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+                      <Timer className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      <span className="font-medium text-green-700 dark:text-green-300">
+                        Time remaining: {getRemainingTime()}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
             </>
           )}
