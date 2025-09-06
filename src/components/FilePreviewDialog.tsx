@@ -457,11 +457,9 @@ export const FilePreviewDialog = ({
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-hidden relative p-4">
-              {/* Media Display */}
-              <div className="flex items-center justify-center h-full">
+            <div className="flex-1 overflow-hidden relative flex items-center justify-center">
                 <div 
-                  className="flex items-center justify-center bg-muted/20 rounded-xl overflow-hidden relative mx-auto"
+                  className="bg-muted/20 rounded-xl overflow-hidden relative"
                   style={{
                     width: containerDimensions.width,
                     height: containerDimensions.height,
@@ -512,7 +510,6 @@ export const FilePreviewDialog = ({
                     </div>
                   )}
                 </div>
-              </div>
             </div>
 
             {/* Metadata Editing Menu Bar */}
