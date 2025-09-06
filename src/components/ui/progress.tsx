@@ -23,4 +23,43 @@ const Progress = React.forwardRef<
 ))
 Progress.displayName = ProgressPrimitive.Root.displayName
 
-export { Progress }
+// Custom styled progress bar for quota visualization
+interface QuotaProgressProps extends React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> {
+  value?: number;
+  colorScheme?: 'normal' | 'warning' | 'danger';
+}
+
+const QuotaProgress = React.forwardRef<
+  React.ElementRef<typeof ProgressPrimitive.Root>,
+  QuotaProgressProps
+>(({ className, value, colorScheme = 'normal', ...props }, ref) => {
+  const getIndicatorColor = () => {
+    switch (colorScheme) {
+      case 'danger':
+        return 'bg-destructive';
+      case 'warning':
+        return 'bg-yellow-500';
+      default:
+        return 'bg-primary';
+    }
+  };
+
+  return (
+    <ProgressPrimitive.Root
+      ref={ref}
+      className={cn(
+        "relative h-4 w-full overflow-hidden rounded-full bg-secondary",
+        className
+      )}
+      {...props}
+    >
+      <ProgressPrimitive.Indicator
+        className={cn("h-full w-full flex-1 transition-all", getIndicatorColor())}
+        style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
+      />
+    </ProgressPrimitive.Root>
+  );
+});
+QuotaProgress.displayName = "QuotaProgress";
+
+export { Progress, QuotaProgress }

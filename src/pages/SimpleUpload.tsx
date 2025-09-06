@@ -14,6 +14,8 @@ import { FileReviewRow } from '@/components/FileReviewRow';
 import { SelectionHeader } from '@/components/SelectionHeader';
 import { BatchMetadataToolbar } from '@/components/BatchMetadataToolbar';
 import { DuplicateFilesDialog } from '@/components/DuplicateFilesDialog';
+import { StorageQuotaProgressBar, STORAGE_LIMIT_BYTES } from '@/components/StorageQuotaProgressBar';
+import { ExceedsLimitDialog, FileWithStatus } from '@/components/ExceedsLimitDialog';
 import { useToast } from '@/hooks/use-toast';
 import { SelectedFilesProvider } from '@/contexts/SelectedFilesContext';
 
@@ -31,12 +33,17 @@ export default function SimpleUpload() {
   const [reviewMode, setReviewMode] = useState(false);
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
   const [duplicateFiles, setDuplicateFiles] = useState<{ id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]>([]);
+  const [exceedsLimitDialogOpen, setExceedsLimitDialogOpen] = useState(false);
+  const [filesAnalysis, setFilesAnalysis] = useState<FileWithStatus[]>([]);
   const addMoreFileInputRef = useRef<HTMLInputElement>(null);
   
   // Selection state management
   const selectedFiles = files.filter(f => f.selected);
   const hasSelection = selectedFiles.length > 0;
   const allSelected = files.length > 0 && selectedFiles.length === files.length;
+
+  // Calculate total file size for storage quota
+  const totalFilesSize = files.reduce((acc, file) => acc + file.file.size, 0);
 
   // Selection functions
   const toggleFileSelection = useCallback((fileId: string, selected: boolean) => {
@@ -174,7 +181,43 @@ export default function SimpleUpload() {
     }
   }, [addMoreFiles]);
 
+  const validateStorageLimit = useCallback(() => {
+    if (totalFilesSize <= STORAGE_LIMIT_BYTES) {
+      return { canProceed: true, analysis: [] };
+    }
+
+    // Analyze which files can fit
+    const analysis: FileWithStatus[] = [];
+    let currentSize = 0;
+
+    for (const file of files) {
+      const canUpload = (currentSize + file.file.size) <= STORAGE_LIMIT_BYTES;
+      analysis.push({
+        id: file.id,
+        file: file.file,
+        name: file.file.name,
+        size: file.file.size,
+        canUpload
+      });
+      
+      if (canUpload) {
+        currentSize += file.file.size;
+      }
+    }
+
+    return { canProceed: false, analysis };
+  }, [files, totalFilesSize]);
+
   const startUpload = useCallback(async () => {
+    // Check storage limit before proceeding
+    const { canProceed, analysis } = validateStorageLimit();
+    
+    if (!canProceed) {
+      setFilesAnalysis(analysis);
+      setExceedsLimitDialogOpen(true);
+      return;
+    }
+
     setReviewMode(false);
     
     // Get pending files before updating status
@@ -230,7 +273,7 @@ export default function SimpleUpload() {
     }
     
     setCurrentUploadingFile(null);
-  }, [files, uploadFile]);
+  }, [files, uploadFile, validateStorageLimit]);
 
   const clearUpload = useCallback(() => {
     setFiles([]);
@@ -346,6 +389,14 @@ export default function SimpleUpload() {
                 Start Upload ({files.length} files)
               </Button>
             </div>
+          )}
+
+          {/* Storage Quota Progress Bar - Show in review mode */}
+          {reviewMode && files.length > 0 && (
+            <StorageQuotaProgressBar 
+              totalSizeBytes={totalFilesSize}
+              className="mt-4"
+            />
           )}
         </div>
 
@@ -526,6 +577,42 @@ export default function SimpleUpload() {
             }
             
             setDuplicateDialogOpen(false);
+          }}
+        />
+
+        {/* Exceeds Limit Dialog */}
+        <ExceedsLimitDialog
+          open={exceedsLimitDialogOpen}
+          onOpenChange={setExceedsLimitDialogOpen}
+          filesAnalysis={filesAnalysis}
+          totalCurrentSize={0} // Current usage would need to be tracked separately
+          onProceedWithPartial={() => {
+            // Filter files to only upload those that fit within limit
+            const filesToKeep = filesAnalysis.filter(f => f.canUpload).map(f => f.id);
+            setFiles(prev => prev.filter(f => filesToKeep.includes(f.id)));
+            
+            // Proceed with upload
+            setExceedsLimitDialogOpen(false);
+            setReviewMode(false);
+            
+            // Start upload with filtered files
+            const filesToUpload = files.filter(f => filesToKeep.includes(f.id) && f.status === 'pending');
+            
+            toast({
+              title: "Partial upload started",
+              description: `Uploading ${filesToUpload.length} files that fit within storage limit`,
+            });
+            
+            // Trigger upload for remaining files
+            setTimeout(() => {
+              const remainingFiles = files.filter(f => filesToKeep.includes(f.id));
+              if (remainingFiles.length > 0) {
+                startUpload();
+              }
+            }, 100);
+          }}
+          onCancel={() => {
+            setExceedsLimitDialogOpen(false);
           }}
         />
 
