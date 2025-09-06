@@ -524,7 +524,9 @@ async function deleteMediaHard(supabaseClient: any, userId: string, mediaIds: st
     await Promise.all(storagePromises)
 
     // Delete related records first to avoid foreign key constraints
-    await Promise.all([
+    console.log('Cleaning up related records for media IDs:', mediaIds)
+    
+    const cleanupResults = await Promise.allSettled([
       // Delete collection items
       supabaseClient
         .from('collection_items')
@@ -539,8 +541,53 @@ async function deleteMediaHard(supabaseClient: any, userId: string, mediaIds: st
       supabaseClient
         .from('file_folder_contents')
         .delete()
-        .in('media_id', mediaIds)
+        .in('media_id', mediaIds),
+      // Delete media analytics
+      supabaseClient
+        .from('media_analytics')
+        .delete()
+        .in('media_id', mediaIds),
+      // Delete quality metadata
+      supabaseClient
+        .from('quality_metadata')
+        .delete()
+        .in('media_id', mediaIds),
+      // Delete video performance metrics
+      supabaseClient
+        .from('video_performance_metrics')
+        .delete()
+        .in('media_id', mediaIds),
+      // Delete user behavior analytics
+      supabaseClient
+        .from('user_behavior_analytics')
+        .delete()
+        .in('media_id', mediaIds),
+      // Delete negotiations (content_id matches media id)
+      supabaseClient
+        .from('negotiations')
+        .delete()
+        .in('content_id', mediaIds),
+      // Delete purchases (content_id matches media id)
+      supabaseClient
+        .from('purchases')
+        .delete()
+        .in('content_id', mediaIds)
     ])
+
+    // Log cleanup results
+    const cleanupLabels = [
+      'collection_items', 'fan_media_grants', 'file_folder_contents', 
+      'media_analytics', 'quality_metadata', 'video_performance_metrics',
+      'user_behavior_analytics', 'negotiations', 'purchases'
+    ]
+    
+    cleanupResults.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.error(`Failed to cleanup ${cleanupLabels[index]}:`, result.reason)
+      } else {
+        console.log(`Successfully cleaned up ${cleanupLabels[index]}`)
+      }
+    })
 
     // Delete from all three database tables
     const [simpleDeleteResult, mediaDeleteResult, contentDeleteResult] = await Promise.all([
