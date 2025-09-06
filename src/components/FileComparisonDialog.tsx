@@ -1,6 +1,7 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Image, Video, Music, FileIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { FileText, Image, Video, Music, FileIcon, ArrowLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface FileInfo {
@@ -189,6 +190,17 @@ export const FileComparisonDialog = ({
             These files have the same name and size. Choose to ignore the new file or proceed with the upload to add both files to your library.
           </p>
         </div>
+
+        <DialogFooter className="mt-6">
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Go Back
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
