@@ -18,13 +18,26 @@ const MediaThumbnail: React.FC<{ item: SimpleMediaItem; onHover?: () => void }> 
     enhanceQuality, 
     placeholder, 
     currentUrl, 
-    isLoading 
+    isLoading,
+    error
   } = useInstantMedia();
   
   React.useEffect(() => {
-    const thumbnailPath = item.thumbnail_path || item.processed_path || item.original_path;
+    // For HEIC files, use original_path as they don't have processed thumbnails
+    const isHEIC = item.original_filename?.toLowerCase().includes('.heic') || 
+                   item.original_filename?.toLowerCase().includes('.heif');
+    
+    const thumbnailPath = isHEIC 
+      ? item.original_path 
+      : (item.thumbnail_path || item.processed_path || item.original_path);
+    
     if (thumbnailPath) {
-      loadInstantMedia(thumbnailPath, item.thumbnail_path);
+      console.log('Loading thumbnail:', {
+        filename: item.original_filename,
+        path: thumbnailPath,
+        isHEIC
+      });
+      loadInstantMedia(thumbnailPath);
     }
   }, [item, loadInstantMedia]);
 
@@ -42,6 +55,10 @@ const MediaThumbnail: React.FC<{ item: SimpleMediaItem; onHover?: () => void }> 
           opacity: isLoading ? 0.7 : 1,
           filter: isLoading ? 'blur(1px)' : 'none'
         }}
+        onLoad={() => console.log('Thumbnail loaded successfully:', item.original_filename)}
+        onError={(e) => {
+          console.error('Thumbnail failed to load:', item.original_filename, e);
+        }}
       />
     );
   }
@@ -52,11 +69,26 @@ const MediaThumbnail: React.FC<{ item: SimpleMediaItem; onHover?: () => void }> 
         src={placeholder}
         alt="Loading..."
         className="w-full h-full object-cover opacity-50 blur-sm"
+        onError={() => console.warn('Placeholder failed to load:', item.original_filename)}
       />
     );
   }
 
-  return <MediaTypeIcon type={item.media_type} />;
+  // Show loading state for longer loads
+  if (isLoading) {
+    return (
+      <div className="w-full h-full bg-muted/30 flex items-center justify-center animate-pulse">
+        <ImageIcon className="w-6 h-6 text-muted-foreground/50" />
+        <div className="absolute top-1 right-1 w-2 h-2 bg-primary/60 rounded-full animate-pulse" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full h-full bg-muted/50 flex items-center justify-center">
+      <MediaTypeIcon type={item.media_type} />
+    </div>
+  );
 };
 
 const MediaTypeIcon = ({ type }: { type: string }) => {

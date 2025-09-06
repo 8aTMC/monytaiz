@@ -97,28 +97,43 @@ export const useInstantMedia = () => {
         throw new Error('No auth session');
       }
 
-      // Load low quality first (for thumbnails)
+      // Load optimized version (with special handling for HEIC files)
       setTimeout(async () => {
         try {
-          const lowQualityUrl = await getOptimizedUrl(storagePath, session.data.session.access_token, 60, 256);
+          const isHEIC = isHEICFile(storagePath);
+          console.log('Loading media:', { storagePath, isHEIC });
           
-          if (lowQualityUrl) {
+          let optimizedUrl: string | null = null;
+          
+          if (isHEIC) {
+            // For HEIC files, try to get original file directly first
+            optimizedUrl = await getOriginalUrl(storagePath, session.data.session.access_token);
+            console.log('HEIC original URL result:', optimizedUrl);
+          } else {
+            // For other formats, use optimized transforms
+            optimizedUrl = await getOptimizedUrl(storagePath, session.data.session.access_token, 60, 256);
+            console.log('Optimized URL result:', optimizedUrl);
+          }
+          
+          if (optimizedUrl) {
             setMediaState(prev => ({
               ...prev,
-              lowQuality: lowQualityUrl,
-              currentUrl: lowQualityUrl || prev.placeholder,
+              lowQuality: optimizedUrl,
+              currentUrl: optimizedUrl || prev.placeholder,
               isLoading: false
             }));
 
-            // Cache low quality result
+            // Cache result
             saveToCache(cacheKey, {
               placeholder: placeholderUrl,
-              lowQuality: lowQualityUrl,
+              lowQuality: optimizedUrl,
               highQuality: null,
             });
+          } else {
+            console.warn('No optimized URL returned for:', storagePath);
           }
         } catch (error) {
-          console.warn('Failed to load low quality:', error);
+          console.warn('Failed to load optimized media:', error);
           // Don't show error for thumbnails, just keep placeholder
         }
       }, Math.random() * 200); // Random delay to prevent simultaneous requests
@@ -168,6 +183,12 @@ export const useInstantMedia = () => {
   };
 };
 
+// Check if file is HEIC format
+const isHEICFile = (storagePath: string): boolean => {
+  const extension = storagePath.toLowerCase().split('.').pop();
+  return extension === 'heic' || extension === 'heif';
+};
+
 // Generate a tiny base64 placeholder from the image
 const generateTinyPlaceholder = (storagePath: string): string => {
   try {
@@ -203,6 +224,47 @@ const hashCode = (str: string): number => {
   return hash;
 };
 
+// Get original file URL directly (for HEIC files)
+const getOriginalUrl = async (
+  path: string,
+  token: string,
+  retries: number = 2
+): Promise<string | null> => {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const params = new URLSearchParams({ path });
+
+      const response = await fetch(
+        `https://alzyzfjzwvofmjccirjq.supabase.co/functions/v1/fast-secure-media?${params.toString()}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          signal: AbortSignal.timeout(15000) // 15 second timeout for original files
+        }
+      );
+
+      if (!response.ok) {
+        console.warn(`HTTP ${response.status} for original file:`, path);
+        if (attempt === retries) throw new Error(`HTTP ${response.status}`);
+        continue;
+      }
+      
+      const result = await response.json();
+      console.log('Original URL response:', { path, result });
+      return result.error ? null : result.url;
+    } catch (error) {
+      console.warn(`Attempt ${attempt + 1} failed for original URL:`, { path, error });
+      if (attempt === retries) {
+        return null;
+      }
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 500));
+    }
+  }
+  return null;
+};
+
 // Optimized URL fetching with retries and better error handling
 const getOptimizedUrl = async (
   path: string, 
@@ -227,14 +289,14 @@ const getOptimizedUrl = async (
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          // Add timeout to prevent hanging requests
           signal: AbortSignal.timeout(10000) // 10 second timeout
         }
       );
 
       if (!response.ok) {
+        console.warn(`HTTP ${response.status} for optimized file:`, path);
         if (attempt === retries) throw new Error(`HTTP ${response.status}`);
-        continue; // Retry on HTTP errors
+        continue;
       }
       
       const result = await response.json();
@@ -244,7 +306,6 @@ const getOptimizedUrl = async (
         console.warn(`Failed to get optimized URL after ${retries + 1} attempts:`, error);
         return null;
       }
-      // Wait before retry with exponential backoff
       await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 500));
     }
   }
