@@ -28,7 +28,7 @@ export const PreUploadDuplicateDialog = ({
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false);
   const [selectedDuplicateForComparison, setSelectedDuplicateForComparison] = useState<DuplicateMatch | null>(null);
-  const { getConfidenceBadge } = useDuplicateDetection();
+  const { addDuplicateTag } = useDuplicateDetection();
   
   // Initialize with all files selected by default
   useEffect(() => {
@@ -105,6 +105,10 @@ export const PreUploadDuplicateDialog = ({
       minute: '2-digit'
     });
   };
+
+  const getBadgeText = (duplicate: DuplicateMatch) => {
+    return duplicate.sourceType === 'queue' ? 'Queue Duplicate' : 'Database Duplicate';
+  };
   
   const FileThumbnail = ({ duplicate }: { duplicate: DuplicateMatch }) => {
     const { queueFile } = duplicate;
@@ -135,10 +139,10 @@ export const PreUploadDuplicateDialog = ({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Database className="w-5 h-5" />
-              Enhanced Duplicate Detection ({duplicates.length})
+              Duplicate Files Found ({duplicates.length})
             </DialogTitle>
             <p className="text-sm text-muted-foreground">
-              Advanced content analysis detected these potential duplicates. Review confidence levels and detection methods before proceeding.
+              Found files with identical names and sizes. Choose how to handle these duplicates.
             </p>
           </DialogHeader>
           
@@ -180,9 +184,9 @@ export const PreUploadDuplicateDialog = ({
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 mb-1">
                             <Badge variant="outline">Queue File (New)</Badge>
-                            <div className={`px-2 py-1 rounded text-xs text-white ${getConfidenceBadge(duplicate).color}`}>
-                              {getConfidenceBadge(duplicate).text}
-                            </div>
+                            <Badge variant="destructive">
+                              {getBadgeText(duplicate)}
+                            </Badge>
                           </div>
                           <p className="font-medium text-sm truncate" title={duplicate.queueFile.file.name}>
                             {duplicate.queueFile.file.name}
@@ -194,7 +198,7 @@ export const PreUploadDuplicateDialog = ({
                             <span>Ready to upload</span>
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            Detection: {duplicate.detectionMethod.replace(/_/g, ' ')} | Source: {duplicate.sourceType}
+                            Match: Same filename and size | Source: {duplicate.sourceType}
                           </div>
                         </div>
                         
