@@ -459,7 +459,7 @@ export const FilePreviewDialog = ({
             {/* Content */}
             <div className="flex-1 overflow-hidden relative">
               {/* Media Display */}
-              <div className="flex items-center justify-center p-1">
+              <div className="flex items-center justify-center h-full">
                 <div 
                   className="flex items-center justify-center bg-muted/20 rounded-xl overflow-hidden relative mx-auto"
                   style={{
