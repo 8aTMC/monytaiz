@@ -1,6 +1,6 @@
 
-import { useEffect, useMemo } from 'react';
-import { Image, Video, Headphones } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Image, Video, Headphones, FileImage } from 'lucide-react';
 import { useOptimizedMediaDisplay } from '@/hooks/useOptimizedMediaDisplay';
 import { useThumbnailUrl } from '@/hooks/useThumbnailUrl';
 import { WaveformIcon } from '@/components/icons/WaveformIcon';
@@ -28,10 +28,26 @@ interface MediaThumbnailProps {
 
 export const MediaThumbnail = ({ item, className = "", isPublic = false }: MediaThumbnailProps) => {
   const { loadOptimizedMedia, currentUrl, isLoading, error, clearMedia } = useOptimizedMediaDisplay();
+  const [imageLoadError, setImageLoadError] = useState(false);
   
   // Use the exact thumbnail_path from database - don't reconstruct it
   console.log('MediaThumbnail - item thumbnail_path:', item.thumbnail_path, 'type:', item.type);
   const { thumbnailUrl, loading: thumbnailLoading } = useThumbnailUrl(item.thumbnail_path);
+
+  // HEIC detection utility
+  const isHEICFile = (path?: string) => {
+    if (!path) return false;
+    const fileName = path.toLowerCase();
+    return fileName.endsWith('.heic') || fileName.endsWith('.heif');
+  };
+
+  // Check if current item is HEIC
+  const isCurrentHEIC = isHEICFile(item.storage_path) || isHEICFile(item.file_path) || isHEICFile(item.path);
+
+  // Reset image load error when item changes
+  useEffect(() => {
+    setImageLoadError(false);
+  }, [item.id, currentUrl]);
 
   // Create stable media item object to prevent infinite re-renders
   const stableMediaItem = useMemo(() => ({
@@ -171,37 +187,58 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
       className={`bg-muted rounded-xl relative overflow-hidden ${className}`}
       style={{ aspectRatio }}
     >
-      {/* Show current URL if available */}
-      {currentUrl && !error && (
-        <>
-          <img
-            src={currentUrl}
-            alt={item.title || 'Media thumbnail'}
-            className="w-full h-full object-cover transition-opacity duration-200 block media"
-            loading="lazy"
-            decoding="async"
-            width={aspectWidth}
-            height={aspectHeight}
-            onError={(e) => {
-              // Hide broken image
-              e.currentTarget.style.display = 'none';
-            }}
-          />
-          {/* Media type icon */}
-          <div className="absolute bottom-3 right-2 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
-            <Image className="w-3.5 h-3.5 text-white" />
-          </div>
-        </>
-      )}
-
-      {/* Error state */}
-      {error && (
-        <div className="absolute inset-0 flex items-center justify-center">
+      {/* Show HEIC fallback for HEIC files that fail to load or have no URL */}
+      {(isCurrentHEIC && (imageLoadError || (!currentUrl && !isLoading))) ? (
+        <div className="w-full h-full flex items-center justify-center">
           <div className="flex flex-col items-center gap-2">
-            {getContentTypeIcon('image')}
-            <span className="text-xs text-muted-foreground">Failed to load</span>
+            <FileImage className="h-8 w-8 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground font-medium">HEIC</span>
+          </div>
+          {/* HEIC format badge */}
+          <div className="absolute bottom-3 right-2 px-2 py-1 bg-orange-500/90 rounded text-white text-xs font-medium">
+            HEIC
           </div>
         </div>
+      ) : (
+        <>
+          {/* Show current URL if available */}
+          {currentUrl && !error && (
+            <>
+              <img
+                src={currentUrl}
+                alt={item.title || 'Media thumbnail'}
+                className="w-full h-full object-cover transition-opacity duration-200 block media"
+                loading="lazy"
+                decoding="async"
+                width={aspectWidth}
+                height={aspectHeight}
+                onError={() => {
+                  setImageLoadError(true);
+                }}
+              />
+              {/* Media type icon or HEIC badge */}
+              {isCurrentHEIC ? (
+                <div className="absolute bottom-3 right-2 px-2 py-1 bg-orange-500/90 rounded text-white text-xs font-medium">
+                  HEIC
+                </div>
+              ) : (
+                <div className="absolute bottom-3 right-2 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
+                  <Image className="w-3.5 h-3.5 text-white" />
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Error state for non-HEIC files */}
+          {error && !isCurrentHEIC && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-2">
+                {getContentTypeIcon('image')}
+                <span className="text-xs text-muted-foreground">Failed to load</span>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
