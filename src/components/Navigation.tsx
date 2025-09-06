@@ -450,6 +450,28 @@ export const Navigation = ({ role }: NavigationProps) => {
             </li>
           )}
           
+          {/* General Settings - standalone menu item for admins */}
+          {(userRoles.includes('owner') || userRoles.includes('superadmin') || userRoles.includes('admin')) && (
+            <li>
+              <Link
+                to="/management/general-settings"
+                className={`flex items-center rounded-lg transition-smooth ${
+                  isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
+                } ${
+                  isActive('/management/general-settings') 
+                    ? isCollapsed 
+                      ? 'bg-primary/20 text-primary' 
+                      : 'bg-primary/10 text-primary border border-primary/20'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+                }`}
+                title={isCollapsed ? 'General Settings' : undefined}
+              >
+                <Settings className="h-5 w-5 flex-shrink-0" />
+                {!isCollapsed && <span>General Settings</span>}
+              </Link>
+            </li>
+          )}
+
           {/* Show expanded menus only for management users */}
           {!isFan && (
             <>
@@ -784,23 +806,10 @@ export const Navigation = ({ role }: NavigationProps) => {
                              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                        }`}
                      >
-                        <Users className="h-4 w-4" />
-                        <span>Users</span>
-                      </Link>
-                      {(userRoles.includes('owner') || userRoles.includes('superadmin') || userRoles.includes('admin')) && (
-                        <Link
-                          to="/management/general-settings"
-                          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-smooth ${
-                            location.pathname === '/management/general-settings'
-                              ? 'bg-primary/10 text-primary'
-                              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
-                          }`}
-                        >
-                          <Settings className="h-4 w-4" />
-                          <span>General Settings</span>
-                        </Link>
-                      )}
-                   </div>
+                         <Users className="h-4 w-4" />
+                         <span>Users</span>
+                       </Link>
+                    </div>
                  </HoverCardContent>
               </HoverCard>
             ) : (
@@ -838,23 +847,10 @@ export const Navigation = ({ role }: NavigationProps) => {
                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                      }`}
                    >
-                      <Users className="h-4 w-4" />
-                      <span>Users</span>
-                    </Link>
-                    {(userRoles.includes('owner') || userRoles.includes('superadmin') || userRoles.includes('admin')) && (
-                      <Link
-                        to="/management/general-settings"
-                        className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
-                          location.pathname === '/management/general-settings'
-                            ? 'bg-primary/3 text-primary/90'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
-                        }`}
-                      >
-                        <Settings className="h-4 w-4" />
-                        <span>General Settings</span>
-                      </Link>
-                    )}
-                 </CollapsibleContent>
+                       <Users className="h-4 w-4" />
+                       <span>Users</span>
+                     </Link>
+                  </CollapsibleContent>
               </Collapsible>
             )}
            </li>
