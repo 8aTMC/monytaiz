@@ -124,7 +124,7 @@ export const useFileUpload = () => {
     }
   }, []);
 
-  const addFiles = useCallback((files: File[]) => {
+  const addFiles = useCallback((files: File[], showDuplicateDialog?: (duplicates: { name: string; size: number; type: string }[]) => void) => {
     if (uploadQueue.length + files.length > 100) {
       toast({
         title: "Too many files",
@@ -137,6 +137,7 @@ export const useFileUpload = () => {
     const validFiles: FileUploadItem[] = [];
     const errors: string[] = [];
     const unsupportedFiles: string[] = [];
+    const duplicateFiles: { name: string; size: number; type: string }[] = [];
     
     // Calculate current upload size from existing queue
     const currentUploadSize = uploadQueue.reduce((total, item) => total + item.file.size, 0);
@@ -148,6 +149,21 @@ export const useFileUpload = () => {
       // Check for unsupported formats first
       if (isUnsupportedFormat(file)) {
         unsupportedFiles.push(file.name);
+        return;
+      }
+      
+      // Check for duplicates (same name and size)
+      const isDuplicate = uploadQueue.some(existingItem => 
+        existingItem.file.name === file.name && existingItem.file.size === file.size
+      );
+      
+      if (isDuplicate) {
+        const fileType = getFileType(file);
+        duplicateFiles.push({
+          name: file.name,
+          size: file.size,
+          type: fileType
+        });
         return;
       }
       
@@ -185,6 +201,11 @@ export const useFileUpload = () => {
       }
     });
 
+    // Show dialog for duplicate files if callback provided
+    if (duplicateFiles.length > 0 && showDuplicateDialog) {
+      showDuplicateDialog(duplicateFiles);
+    }
+
     // Show messages for unsupported files
     if (unsupportedFiles.length > 0) {
       toast({
@@ -204,8 +225,8 @@ export const useFileUpload = () => {
     }
 
     // Show warning if upload limit was reached
-    if (filesAdded < totalFiles - errors.length) {
-      const skippedCount = totalFiles - errors.length - filesAdded;
+    if (filesAdded < totalFiles - errors.length - duplicateFiles.length) {
+      const skippedCount = totalFiles - errors.length - filesAdded - duplicateFiles.length;
       toast({
         title: "Upload size limit reached",
         description: `Only ${filesAdded} of ${totalFiles} files have been set for upload due to the maximum upload size (10GB) being reached. ${skippedCount} files were excluded.`,

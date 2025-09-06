@@ -4,20 +4,26 @@ import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Upload, X, Play, CheckCircle, AlertCircle, RefreshCw, Pause, Clock } from 'lucide-react';
+import { Upload, X, Play, CheckCircle, AlertCircle, RefreshCw, Pause, Clock, Plus } from 'lucide-react';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { EnhancedFileUploadRow } from './EnhancedFileUploadRow';
 import { BatchMetadataToolbar } from './BatchMetadataToolbar';
 import { SelectionHeader } from './SelectionHeader';
 import { FilePreviewDialog } from './FilePreviewDialog';
+import { DuplicateFilesDialog } from './DuplicateFilesDialog';
 import { cn } from '@/lib/utils';
 
 export const AdvancedFileUpload = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const addMoreFileInputRef = useRef<HTMLInputElement>(null);
   
   // Centralized preview state
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  
+  // Duplicate files dialog state
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+  const [duplicateFiles, setDuplicateFiles] = useState<{ name: string; size: number; type: string }[]>([]);
   
   const {
     uploadQueue,
@@ -56,6 +62,20 @@ export const AdvancedFileUpload = () => {
     event.target.value = '';
   }, [addFiles]);
 
+  const handleAddMoreFiles = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+    
+    const showDuplicateDialog = (duplicates: { name: string; size: number; type: string }[]) => {
+      setDuplicateFiles(duplicates);
+      setDuplicateDialogOpen(true);
+    };
+    
+    addFiles(Array.from(files), showDuplicateDialog);
+    // Reset input so same file can be selected again
+    event.target.value = '';
+  }, [addFiles]);
+
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -67,7 +87,12 @@ export const AdvancedFileUpload = () => {
     
     const files = e.dataTransfer.files;
     if (files) {
-      addFiles(Array.from(files));
+      // For drag and drop, show duplicate dialog if needed
+      const showDuplicateDialog = (duplicates: { name: string; size: number; type: string }[]) => {
+        setDuplicateFiles(duplicates);
+        setDuplicateDialogOpen(true);
+      };
+      addFiles(Array.from(files), showDuplicateDialog);
     }
   }, [addFiles]);
 
@@ -194,17 +219,6 @@ export const AdvancedFileUpload = () => {
               )}
             </div>
             <div className="flex items-center gap-2">
-              {uploadQueue.length < 100 && !isUploading && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2"
-                >
-                  <Upload className="h-4 w-4" />
-                  Add More
-                </Button>
-              )}
               {isUploading ? (
                 <Button
                   variant="destructive"
@@ -307,6 +321,20 @@ export const AdvancedFileUpload = () => {
           </div>
         )}
 
+        {/* Add More Files Button - Below Start Upload when files exist */}
+        {uploadQueue.length > 0 && uploadQueue.length < 100 && !isUploading && (
+          <div className="flex justify-center mb-4">
+            <Button
+              variant="outline"
+              onClick={() => addMoreFileInputRef.current?.click()}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add More Files
+            </Button>
+          </div>
+        )}
+
         {/* Upload Queue - Takes remaining height */}
         {uploadQueue.length > 0 && (
           <div className="flex-1 flex flex-col min-h-0">
@@ -335,12 +363,20 @@ export const AdvancedFileUpload = () => {
           </div>
         )}
 
-        {/* Hidden input for upload more functionality */}
+        {/* Hidden inputs for file selection */}
         <input
           ref={fileInputRef}
           type="file"
           multiple
           onChange={handleFileSelect}
+          className="hidden"
+          accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.mov,.webm,.avi,.mkv,.mp3,.wav,.aac,.ogg,.pdf,.doc,.docx,.txt,.rtf"
+        />
+        <input
+          ref={addMoreFileInputRef}
+          type="file"
+          multiple
+          onChange={handleAddMoreFiles}
           className="hidden"
           accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.mov,.webm,.avi,.mkv,.mp3,.wav,.aac,.ogg,.pdf,.doc,.docx,.txt,.rtf"
         />
@@ -368,6 +404,13 @@ export const AdvancedFileUpload = () => {
         onFoldersChange={(folders) => handlePreviewMetadataUpdate('folders', folders)}
         onDescriptionChange={(description) => handlePreviewMetadataUpdate('description', description)}
         onPriceChange={(price) => handlePreviewMetadataUpdate('suggestedPrice', price ? price / 100 : null)}
+      />
+
+      <DuplicateFilesDialog
+        open={duplicateDialogOpen}
+        onOpenChange={setDuplicateDialogOpen}
+        duplicateFiles={duplicateFiles}
+        onConfirm={() => setDuplicateDialogOpen(false)}
       />
     </Card>
   );
