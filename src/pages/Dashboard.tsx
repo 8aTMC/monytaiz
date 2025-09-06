@@ -12,6 +12,11 @@ import { PerformanceAnalyticsDashboard } from '@/components/PerformanceAnalytics
 import AutoOptimizationEngine from '@/components/AutoOptimizationEngine';
 import { PredictiveAnalyticsDashboard } from '@/components/PredictiveAnalyticsDashboard';
 import { MLDecisionEngine } from '@/components/MLDecisionEngine';
+import { SystemIntegrationManager } from '@/components/SystemIntegrationManager';
+import { ProductionMonitoringDashboard } from '@/components/ProductionMonitoringDashboard';
+import { SecurityManager } from '@/components/SecurityManager';
+import { AdminControlPanel } from '@/components/AdminControlPanel';
+import { PerformanceSLAMonitor } from '@/components/PerformanceSLAMonitor';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import FanDashboard from './FanDashboard';
 
