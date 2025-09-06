@@ -61,8 +61,7 @@ const LibraryGridComponent = ({
   }
 
   return (
-    <TooltipProvider delayDuration={100}>
-      <div 
+      <div
         ref={gridContainerRef}
         className="masonry-grid select-none"
         style={{
@@ -193,7 +192,6 @@ const LibraryGridComponent = ({
         );
       })}
       </div>
-    </TooltipProvider>
   );
 };
 

@@ -115,7 +115,6 @@ export const NetworkQualityIndicator: React.FC<NetworkQualityIndicatorProps> = (
 
   if (showDetails) {
     return (
-      <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
             <div className={`flex items-center gap-2 ${className}`}>
@@ -136,12 +135,10 @@ export const NetworkQualityIndicator: React.FC<NetworkQualityIndicatorProps> = (
             {getTooltipContent()}
           </TooltipContent>
         </Tooltip>
-      </TooltipProvider>
     );
   }
 
   return (
-    <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
           <div className={`${getColorClass()} ${className}`}>
@@ -152,6 +149,5 @@ export const NetworkQualityIndicator: React.FC<NetworkQualityIndicatorProps> = (
           {getTooltipContent()}
         </TooltipContent>
       </Tooltip>
-    </TooltipProvider>
   );
 };
