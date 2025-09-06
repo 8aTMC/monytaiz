@@ -31,7 +31,6 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
   const [imageLoadError, setImageLoadError] = useState(false);
   
   // Use the exact thumbnail_path from database - don't reconstruct it
-  console.log('MediaThumbnail - item thumbnail_path:', item.thumbnail_path, 'type:', item.type);
   const { thumbnailUrl, loading: thumbnailLoading } = useThumbnailUrl(item.thumbnail_path);
 
   // HEIC detection utility
@@ -41,8 +40,10 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     return fileName.endsWith('.heic') || fileName.endsWith('.heif');
   };
 
-  // Check if current item is HEIC
-  const isCurrentHEIC = isHEICFile(item.storage_path) || isHEICFile(item.file_path) || isHEICFile(item.path);
+  // Memoize HEIC detection to prevent re-renders
+  const isCurrentHEIC = useMemo(() => {
+    return isHEICFile(item.storage_path) || isHEICFile(item.file_path) || isHEICFile(item.path);
+  }, [item.storage_path, item.file_path, item.path]);
 
   // Reset image load error when item changes
   useEffect(() => {
@@ -94,7 +95,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     return () => {
       clearMedia();
     };
-  }, [stableMediaItem.id, stableMediaItem.type, stableMediaItem.storage_path, stableMediaItem.path, isCurrentHEIC, loadOptimizedMedia, clearMedia]);
+  }, [stableMediaItem.id, stableMediaItem.type, stableMediaItem.storage_path, stableMediaItem.path, stableMediaItem.thumbnail_path, isCurrentHEIC]);
 
   // Calculate aspect ratio respecting video proportions
   const calculateAspectRatio = () => {
