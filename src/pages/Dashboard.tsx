@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus, TrendingUp, Users, DollarSign, Activity } from 'lucide-react';
 import { PerformanceAnalyticsDashboard } from '@/components/PerformanceAnalyticsDashboard';
+import AutoOptimizationEngine from '@/components/AutoOptimizationEngine';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import FanDashboard from './FanDashboard';
 
@@ -151,6 +152,7 @@ const Platform = () => {
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="performance">Performance Analytics</TabsTrigger>
+            <TabsTrigger value="optimization">Auto-Optimization</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
@@ -270,6 +272,10 @@ const Platform = () => {
           
           <TabsContent value="performance" className="space-y-4">
             <PerformanceAnalyticsDashboard />
+          </TabsContent>
+          
+          <TabsContent value="optimization" className="space-y-4">
+            <AutoOptimizationEngine userId={user?.id} />
           </TabsContent>
           
         </Tabs>
