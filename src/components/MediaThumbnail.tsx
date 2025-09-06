@@ -80,10 +80,10 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     }
   };
 
-  // Load optimized media on mount with stable dependencies, but skip for videos with thumbnails
+  // Load optimized media on mount with stable dependencies, but skip for videos with thumbnails and HEIC files
   useEffect(() => {
     // Skip loading optimized media for videos that have thumbnail_path - prioritize actual thumbnails
-    const shouldSkipOptimizedLoading = stableMediaItem.type === 'video' && stableMediaItem.thumbnail_path;
+    const shouldSkipOptimizedLoading = (stableMediaItem.type === 'video' && stableMediaItem.thumbnail_path) || isCurrentHEIC;
     
     if (stableMediaItem.type && (stableMediaItem.storage_path || stableMediaItem.path) && !shouldSkipOptimizedLoading) {
       // Always treat content as private since content bucket is private
@@ -94,7 +94,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     return () => {
       clearMedia();
     };
-  }, [stableMediaItem.id, stableMediaItem.type, stableMediaItem.storage_path, stableMediaItem.path, stableMediaItem.thumbnail_path]);
+  }, [stableMediaItem.id, stableMediaItem.type, stableMediaItem.storage_path, stableMediaItem.path, isCurrentHEIC, loadOptimizedMedia, clearMedia]);
 
   // Calculate aspect ratio respecting video proportions
   const calculateAspectRatio = () => {
