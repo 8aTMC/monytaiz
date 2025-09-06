@@ -180,13 +180,6 @@ export const Navigation = ({ role }: NavigationProps) => {
       const isDarkFromDOM = document.documentElement.classList.contains('dark');
       const detectedTheme = isDarkFromDOM ? 'dark' : 'light';
       
-      console.log('🎨 Theme Detection Debug:', {
-        isDarkFromDOM,
-        detectedTheme,
-        currentTheme: theme,
-        classList: Array.from(document.documentElement.classList),
-        localStorage: localStorage.getItem('theme')
-      });
       
       setTheme(detectedTheme);
     };
@@ -239,33 +232,14 @@ export const Navigation = ({ role }: NavigationProps) => {
 
     const isDark = theme === 'dark';
     
-    console.log('🖼️ Logo Selection Debug:', {
-      isDark,
-      theme,
-      isCollapsed,
-      hasLogoSettings: !!userProfile?.logoSettings,
-      logoSettings: userProfile?.logoSettings
-    });
     
     // Check for custom logos from database settings
     if (userProfile?.logoSettings) {
       if (isCollapsed) {
         const customLogo = isDark ? userProfile.logoSettings.collapsed_dark_logo_url : userProfile.logoSettings.collapsed_light_logo_url;
-        console.log('🔽 Collapsed Logo Selected:', {
-          isDark,
-          selectedUrl: customLogo,
-          darkUrl: userProfile.logoSettings.collapsed_dark_logo_url,
-          lightUrl: userProfile.logoSettings.collapsed_light_logo_url
-        });
         if (customLogo) return customLogo;
       } else {
         const customLogo = isDark ? userProfile.logoSettings.expanded_dark_logo_url : userProfile.logoSettings.expanded_light_logo_url;
-        console.log('🔼 Expanded Logo Selected:', {
-          isDark,
-          selectedUrl: customLogo,
-          darkUrl: userProfile.logoSettings.expanded_dark_logo_url,
-          lightUrl: userProfile.logoSettings.expanded_light_logo_url
-        });
         if (customLogo) return customLogo;
       }
     }
@@ -275,7 +249,7 @@ export const Navigation = ({ role }: NavigationProps) => {
       ? "/lovable-uploads/MonytAIz-Logo-II.png"      // Dark theme: blue "AIz" logo
       : "/lovable-uploads/MonytAIz-Logo-Banner.png";  // Light theme: full "MonytAIz" logo
       
-    console.log('📷 Using Fallback Logo:', { fallbackLogo, isDark });
+    
     return fallbackLogo;
   };
 

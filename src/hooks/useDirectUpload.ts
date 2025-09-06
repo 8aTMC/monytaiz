@@ -78,7 +78,7 @@ export const useDirectUpload = () => {
   // Generate thumbnail asynchronously (non-blocking)
   const generateThumbnailAsync = useCallback(async (file: File, mediaId: string) => {
     try {
-      console.log('🖼️ Starting background thumbnail generation for:', file.name);
+      
       
       const video = document.createElement('video');
       const canvas = document.createElement('canvas');
