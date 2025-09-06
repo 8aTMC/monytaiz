@@ -13,6 +13,7 @@ import {
 import { Button } from './ui/button';
 import { Slider } from './ui/slider';
 import { SpeedSelector } from './ui/speed-selector';
+import { VolumeControl } from './ui/volume-control';
 import { VideoQualityBadge } from './VideoQualityBadge';
 import { getVideoMetadata, VideoQualityInfo } from '@/lib/videoQuality';
 
@@ -349,24 +350,13 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
               <SkipForward className="h-4 w-4" />
             </Button>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleMute}
-              className="text-white hover:bg-white/20 p-2"
-            >
-              {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-            </Button>
-
-            <div className="w-20">
-              <Slider
-                value={volume}
-                onValueChange={handleVolumeChange}
-                max={1}
-                step={0.01}
-                className="cursor-pointer"
-              />
-            </div>
+            <VolumeControl
+              volume={volume}
+              isMuted={isMuted}
+              onVolumeChange={handleVolumeChange}
+              onToggleMute={toggleMute}
+              variant="video"
+            />
           </div>
 
           {/* Right Controls */}
