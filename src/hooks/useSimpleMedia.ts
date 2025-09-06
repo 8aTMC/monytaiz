@@ -115,11 +115,20 @@ export const useSimpleMedia = () => {
   const getThumbnailUrlAsync = useCallback(async (item: SimpleMediaItem) => {
     const thumbnailUrl = await getMediaUrl(item.thumbnail_path, true);
     if (thumbnailUrl) return thumbnailUrl;
-    return await getMediaUrl(item.processed_path, true);
+    
+    const processedUrl = await getMediaUrl(item.processed_path, true);
+    if (processedUrl) return processedUrl;
+    
+    // Fall back to original path for HEIC files or unprocessed media
+    return await getMediaUrl(item.original_path, true);
   }, [getMediaUrl]);
 
   const getFullUrlAsync = useCallback(async (item: SimpleMediaItem) => {
-    return await getMediaUrl(item.processed_path, false);
+    const processedUrl = await getMediaUrl(item.processed_path, false);
+    if (processedUrl) return processedUrl;
+    
+    // Fall back to original path for HEIC files or unprocessed media
+    return await getMediaUrl(item.original_path, false);
   }, [getMediaUrl]);
 
   // Update media metadata
