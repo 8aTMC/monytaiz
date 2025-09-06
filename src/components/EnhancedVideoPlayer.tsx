@@ -285,7 +285,7 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
       <video 
         ref={videoRef}
         src={src}
-        className="w-full h-full object-cover"
+        className="w-[85%] h-[85%] object-contain"
         preload="metadata"
         onDoubleClick={toggleFullscreen}
         onClick={togglePlayPause}
