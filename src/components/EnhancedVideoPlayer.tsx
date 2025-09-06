@@ -278,14 +278,14 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   return (
     <div 
       ref={containerRef}
-      className={`relative group rounded-xl overflow-hidden bg-black ${className}`}
+      className={`relative group rounded-xl overflow-hidden bg-black flex items-center justify-center ${className}`}
       style={{ aspectRatio: videoAspectRatio }}
       tabIndex={0}
     >
       <video 
         ref={videoRef}
         src={src}
-        className="w-full h-full object-contain"
+        className="w-[85%] h-[85%] object-contain"
         preload="metadata"
         onDoubleClick={toggleFullscreen}
         onClick={togglePlayPause}
