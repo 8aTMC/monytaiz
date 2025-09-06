@@ -149,8 +149,8 @@ export const DuplicateFilesDialog = ({
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between mt-2">
             <p className="text-sm text-muted-foreground">
               Found {duplicateFiles.length} duplicate file{duplicateFiles.length > 1 ? 's' : ''}. Selected files will be ignored, unselected files will be added to the queue:
             </p>
@@ -187,7 +187,7 @@ export const DuplicateFilesDialog = ({
                   </div>
                   <div className="flex-shrink-0">
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
                       onClick={(e) => handleComparisonClick(file, e)}
                       className="text-xs gap-1"
