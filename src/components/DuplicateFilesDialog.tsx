@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
-import { FileText, Image, Video, Music, FileIcon } from 'lucide-react';
+import { FileText, Image, Video, Music, FileIcon, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
 import { FileComparisonDialog } from './FileComparisonDialog';
@@ -63,7 +63,8 @@ export const DuplicateFilesDialog = ({
     setSelectedFiles(new Set());
   };
 
-  const handleRowDoubleClick = (file: DuplicateFile) => {
+  const handleComparisonClick = (file: DuplicateFile, event: React.MouseEvent) => {
+    event.stopPropagation();
     setSelectedFileForComparison(file);
     setComparisonDialogOpen(true);
   };
@@ -139,7 +140,7 @@ export const DuplicateFilesDialog = ({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Found {duplicateFiles.length} duplicate file{duplicateFiles.length > 1 ? 's' : ''}. Selected files will be ignored, unselected files will be added to the queue. Double-click a row to compare files:
+              Found {duplicateFiles.length} duplicate file{duplicateFiles.length > 1 ? 's' : ''}. Selected files will be ignored, unselected files will be added to the queue:
             </p>
             <Button 
               variant="outline" 
@@ -156,9 +157,7 @@ export const DuplicateFilesDialog = ({
               {duplicateFiles.map((file) => (
                 <div 
                   key={file.id} 
-                  className="flex items-center gap-3 p-3 rounded-lg border bg-muted/20 cursor-pointer hover:bg-muted/30 transition-colors"
-                  onDoubleClick={() => handleRowDoubleClick(file)}
-                  title="Double-click to compare files"
+                  className="flex items-center gap-3 p-3 rounded-lg border bg-muted/20 hover:bg-muted/30 transition-colors"
                 >
                   <div className="flex-shrink-0">
                     <FileThumbnail file={file} />
@@ -173,6 +172,17 @@ export const DuplicateFilesDialog = ({
                         {file.type}
                       </Badge>
                     </div>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => handleComparisonClick(file, e)}
+                      className="text-xs gap-1"
+                    >
+                      <Eye className="w-3 h-3" />
+                      See Comparison
+                    </Button>
                   </div>
                   <div className="flex-shrink-0">
                     <Checkbox
