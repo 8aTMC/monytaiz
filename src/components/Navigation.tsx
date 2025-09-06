@@ -172,36 +172,60 @@ export const Navigation = ({ role }: NavigationProps) => {
   const [openSection, setOpenSection] = useState<'fans' | 'content' | 'management' | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
-  // Custom theme detection to match ThemeToggle's localStorage system
+  // Improved theme detection using DOM state as source of truth
   useEffect(() => {
-    const getThemeFromStorage = () => {
-      const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
-      return savedTheme || 'dark';
+    const updateThemeFromDOM = () => {
+      // Use DOM state as source of truth for more reliable detection
+      const isDarkFromDOM = document.documentElement.classList.contains('dark');
+      const detectedTheme = isDarkFromDOM ? 'dark' : 'light';
+      
+      console.log('🎨 Theme Detection Debug:', {
+        isDarkFromDOM,
+        detectedTheme,
+        currentTheme: theme,
+        classList: Array.from(document.documentElement.classList),
+        localStorage: localStorage.getItem('theme')
+      });
+      
+      setTheme(detectedTheme);
     };
 
-    // Set initial theme
-    setTheme(getThemeFromStorage());
+    // Set initial theme from DOM
+    updateThemeFromDOM();
 
     // Listen for storage changes (when theme is changed in another tab)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'theme') {
-        setTheme(getThemeFromStorage());
+        setTimeout(updateThemeFromDOM, 50); // Small delay to let DOM update
       }
     };
 
     // Listen for theme changes in the same tab
     const handleThemeChange = () => {
-      setTheme(getThemeFromStorage());
+      setTimeout(updateThemeFromDOM, 50); // Small delay to let DOM update
     };
 
+    // Also listen for class changes on documentElement
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          updateThemeFromDOM();
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
     window.addEventListener('storage', handleStorageChange);
-    
-    // Create custom event listener for same-tab theme changes
     window.addEventListener('themeChange', handleThemeChange);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('themeChange', handleThemeChange);
+      observer.disconnect();
     };
   }, []);
 
@@ -209,21 +233,44 @@ export const Navigation = ({ role }: NavigationProps) => {
   const getLogoSrc = () => {
     const isDark = theme === 'dark';
     
+    console.log('🖼️ Logo Selection Debug:', {
+      isDark,
+      theme,
+      isCollapsed,
+      hasLogoSettings: !!userProfile?.logoSettings,
+      logoSettings: userProfile?.logoSettings
+    });
+    
     // Check for custom logos from database settings
     if (userProfile?.logoSettings) {
       if (isCollapsed) {
         const customLogo = isDark ? userProfile.logoSettings.collapsed_dark_logo_url : userProfile.logoSettings.collapsed_light_logo_url;
+        console.log('🔽 Collapsed Logo Selected:', {
+          isDark,
+          selectedUrl: customLogo,
+          darkUrl: userProfile.logoSettings.collapsed_dark_logo_url,
+          lightUrl: userProfile.logoSettings.collapsed_light_logo_url
+        });
         if (customLogo) return customLogo;
       } else {
         const customLogo = isDark ? userProfile.logoSettings.expanded_dark_logo_url : userProfile.logoSettings.expanded_light_logo_url;
+        console.log('🔼 Expanded Logo Selected:', {
+          isDark,
+          selectedUrl: customLogo,
+          darkUrl: userProfile.logoSettings.expanded_dark_logo_url,
+          lightUrl: userProfile.logoSettings.expanded_light_logo_url
+        });
         if (customLogo) return customLogo;
       }
     }
     
     // Fallback to default logos
-    return isDark 
+    const fallbackLogo = isDark 
       ? "/lovable-uploads/MonytAIz-Logo-II.png"      // Dark theme: blue "AIz" logo
       : "/lovable-uploads/MonytAIz-Logo-Banner.png";  // Light theme: full "MonytAIz" logo
+      
+    console.log('📷 Using Fallback Logo:', { fallbackLogo, isDark });
+    return fallbackLogo;
   };
 
   // Determine which section should be open based on current route
