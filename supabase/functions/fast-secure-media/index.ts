@@ -128,27 +128,57 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Check if this is a HEIC file that needs format conversion
+    // Check if this is a HEIC file
     const isHEICFile = path.toLowerCase().includes('.heic') || 
                        path.toLowerCase().includes('.heif') || 
                        path.toLowerCase().includes('.heix')
 
-    // Fallback to image transforms or original file
+    // For HEIC files, serve as-is without transforms to avoid format conversion errors
+    if (isHEICFile) {
+      const { data: urlData, error: urlError } = await supabaseService.storage
+        .from('content')
+        .createSignedUrl(path, 7200) // No transforms for HEIC files
+
+      if (urlError) {
+        console.error('Signed URL error for HEIC file:', path, 'Error:', urlError)
+        return new Response(
+          JSON.stringify({ error: 'Failed to generate secure URL for HEIC file', details: urlError.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      console.log('Successfully generated signed URL for HEIC file:', path)
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          url: urlData.signedUrl,
+          expires_at: new Date(Date.now() + 7200 * 1000).toISOString()
+        }),
+        { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=3600'
+          }
+        }
+      )
+    }
+
+    // Fallback to image transforms for regular files
     let transformOptions: any = {
       expiresIn: 7200, // 2 hours
     }
 
-    // Add transforms if specified OR if it's a HEIC file (force conversion)
-    if (width || height || quality || format || isHEICFile) {
+    // Add transforms if specified (not for HEIC files)
+    if (width || height || quality || format) {
       transformOptions.transform = {
-        width: width ? Math.min(parseInt(width), 1920) : (isHEICFile ? 512 : undefined),
-        height: height ? Math.min(parseInt(height), 1920) : (isHEICFile ? 512 : undefined),
+        width: width ? Math.min(parseInt(width), 1920) : undefined,
+        height: height ? Math.min(parseInt(height), 1920) : undefined,
         quality: Math.min(parseInt(quality), 95),
         resize: 'cover',
-        // Force format conversion for HEIC files
-        format: format || (isHEICFile ? 'webp' : undefined)
+        format: format
       }
-      console.log(`Applied transforms for ${isHEICFile ? 'HEIC' : 'regular'} file:`, transformOptions.transform)
+      console.log(`Applied transforms for regular file:`, transformOptions.transform)
     }
 
     const { data: urlData, error: urlError } = await supabaseService.storage
