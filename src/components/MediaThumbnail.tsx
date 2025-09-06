@@ -81,10 +81,10 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
     }
   };
 
-  // Load optimized media on mount with stable dependencies, but skip for videos with thumbnails and HEIC files with thumbnails
+  // Load optimized media on mount with stable dependencies, but skip for videos with thumbnails and ALL HEIC files
   useEffect(() => {
-    // Skip loading optimized media for videos that have thumbnail_path or HEIC files that have thumbnail_path - prioritize actual thumbnails
-    const shouldSkipOptimizedLoading = (stableMediaItem.type === 'video' && stableMediaItem.thumbnail_path) || (isCurrentHEIC && stableMediaItem.thumbnail_path);
+    // Skip loading optimized media for videos that have thumbnail_path and ALL HEIC files - prioritize actual thumbnails
+    const shouldSkipOptimizedLoading = (stableMediaItem.type === 'video' && stableMediaItem.thumbnail_path) || isCurrentHEIC;
     
     if (stableMediaItem.type && (stableMediaItem.storage_path || stableMediaItem.path) && !shouldSkipOptimizedLoading) {
       // Always treat content as private since content bucket is private
