@@ -83,22 +83,22 @@ const Platform = () => {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto min-w-[700px] p-8 animate-pulse">
+      <div className="space-y-8 animate-pulse">
         {/* Header Skeleton */}
-        <div className="mb-8">
-          <div className="h-8 w-64 bg-muted rounded mb-2"></div>
+        <div className="space-y-2">
+          <div className="h-8 w-64 bg-muted rounded"></div>
           <div className="h-4 w-96 bg-muted/60 rounded"></div>
         </div>
         
         {/* Quick Actions Skeleton */}
-        <div className="mb-8 flex gap-4">
+        <div className="flex gap-4">
           <div className="h-12 w-32 bg-muted rounded"></div>
           <div className="h-12 w-28 bg-muted/60 rounded"></div>
           <div className="h-12 w-24 bg-muted/60 rounded"></div>
         </div>
         
         {/* Stats Grid Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-24 bg-card border border-border rounded-lg"></div>
           ))}
@@ -147,16 +147,15 @@ const Platform = () => {
   ];
 
   return (
-    <div>
-      <div className="max-w-7xl mx-auto min-w-[700px]">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">
-            {t('platform.dashboard.title', 'Dashboard')}
-          </h1>
-        </div>
-        
-        <Tabs defaultValue="overview" className="space-y-4">
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">
+          {t('platform.dashboard.title', 'Dashboard')}
+        </h1>
+      </div>
+      
+      <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -166,10 +165,9 @@ const Platform = () => {
           <TabsTrigger value="predictive">ML Analytics</TabsTrigger>
         </TabsList>
 
-          <TabsContent value="overview" className="space-y-4">
-
+          <TabsContent value="overview" className="space-y-6">
           {/* Quick Actions */}
-          <div className="mb-8 flex gap-4">
+          <div className="flex gap-4">
             <Button variant="aiz" onClick={() => navigate('/upload')} className="gap-2">
               <Plus className="h-4 w-4" />
               {t('platform.dashboard.uploadContent', 'Upload Content')}
@@ -183,7 +181,7 @@ const Platform = () => {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {stats.map((stat) => (
               <Card key={stat.title}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -317,19 +315,22 @@ const Platform = () => {
             </Card>
           </TabsContent>
           
-          <TabsContent value="predictive" className="space-y-4">
+          <TabsContent value="predictive" className="space-y-6">
             <DashboardErrorBoundary>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <PredictiveAnalyticsDashboard />
-                <MLDecisionEngine />
+              <div className="space-y-6">
+                <div className="w-full">
+                  <PredictiveAnalyticsDashboard />
+                </div>
+                <div className="w-full">
+                  <MLDecisionEngine />
+                </div>
               </div>
             </DashboardErrorBoundary>
           </TabsContent>
           
         </Tabs>
-       </div>
-     </div>
-   );
+    </div>
+  );
  };
 
 export default Platform;
