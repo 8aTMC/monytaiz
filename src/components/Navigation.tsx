@@ -293,6 +293,36 @@ export const Navigation = ({ role }: NavigationProps) => {
     }
   }, [user?.id]);
 
+  // Real-time subscription for logo settings updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('general-settings-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'general_settings'
+        },
+        async (payload) => {
+          // Update logo settings when general_settings changes
+          const { data: logoSettings } = await supabase
+            .from('general_settings')
+            .select('expanded_dark_logo_url, expanded_light_logo_url, collapsed_dark_logo_url, collapsed_light_logo_url')
+            .single();
+
+          setUserProfile(prev => prev ? { ...prev, logoSettings: logoSettings || undefined } : prev);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
   const handleSignOut = async () => {
     try {
       console.log('Navigation: Attempting normal logout...');
