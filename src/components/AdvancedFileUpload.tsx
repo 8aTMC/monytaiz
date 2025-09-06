@@ -11,6 +11,8 @@ import { BatchMetadataToolbar } from './BatchMetadataToolbar';
 import { SelectionHeader } from './SelectionHeader';
 import { FilePreviewDialog } from './FilePreviewDialog';
 import { DuplicateFilesDialog } from './DuplicateFilesDialog';
+import { PreUploadDuplicateDialog } from './PreUploadDuplicateDialog';
+import { useDuplicateDetection, DatabaseDuplicate } from '@/hooks/useDuplicateDetection';
 import { cn } from '@/lib/utils';
 
 export const AdvancedFileUpload = () => {
@@ -24,6 +26,12 @@ export const AdvancedFileUpload = () => {
   // Duplicate files dialog state
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
   const [duplicateFiles, setDuplicateFiles] = useState<{ id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]>([]);
+  
+  // Pre-upload duplicate dialog state
+  const [preUploadDuplicateDialogOpen, setPreUploadDuplicateDialogOpen] = useState(false);
+  const [databaseDuplicates, setDatabaseDuplicates] = useState<DatabaseDuplicate[]>([]);
+  
+  const { checkDatabaseDuplicates, addDuplicateTag } = useDuplicateDetection();
   
   const {
     uploadQueue,
@@ -198,6 +206,63 @@ export const AdvancedFileUpload = () => {
     }
   };
 
+  // Handle start upload with duplicate detection
+  const handleStartUpload = async () => {
+    const result = await startUpload(false);
+    
+    if (result?.requiresDuplicateCheck) {
+      const duplicates = await checkDatabaseDuplicates(uploadQueue);
+      
+      if (duplicates.length > 0) {
+        setDatabaseDuplicates(duplicates);
+        setPreUploadDuplicateDialogOpen(true);
+      } else {
+        // No duplicates found, proceed with upload
+        startUpload(true);
+      }
+    }
+  };
+
+  // Handle purging selected duplicates
+  const handlePurgeSelected = (duplicateIds: string[]) => {
+    // Remove selected files from upload queue
+    duplicateIds.forEach(id => removeFile(id));
+    setPreUploadDuplicateDialogOpen(false);
+    setDatabaseDuplicates([]);
+    
+    // Start upload of remaining files
+    setTimeout(() => startUpload(true), 100);
+  };
+
+  // Handle keeping both versions (upload with duplicate tags)
+  const handleKeepBoth = () => {
+    // Add duplicate tags to queue files
+    databaseDuplicates.forEach((duplicate, index) => {
+      const currentMetadata = duplicate.queueFile.metadata || {
+        mentions: [],
+        tags: [],
+        folders: [],
+        description: '',
+        suggestedPrice: null,
+      };
+      
+      const updatedTags = addDuplicateTag(currentMetadata.tags || [], index + 1);
+      updateFileMetadata(duplicate.queueFile.id, { ...currentMetadata, tags: updatedTags });
+    });
+    
+    setPreUploadDuplicateDialogOpen(false);
+    setDatabaseDuplicates([]);
+    
+    // Start upload with duplicate tags
+    setTimeout(() => startUpload(true), 100);
+  };
+
+  // Handle canceling upload
+  const handleCancelUpload = () => {
+    setPreUploadDuplicateDialogOpen(false);
+    setDatabaseDuplicates([]);
+  };
+
   const getStatusText = (status: string) => {
     switch (status) {
       case 'pending': return 'Pending';
@@ -248,7 +313,7 @@ export const AdvancedFileUpload = () => {
                   </Button>
                   <Button
                     size="sm"
-                    onClick={startUpload}
+                    onClick={handleStartUpload}
                     disabled={uploadQueue.filter(i => i.status === 'pending' || i.status === 'error').length === 0}
                   >
                     <Play className="w-4 h-4 mr-2" />
@@ -423,6 +488,15 @@ export const AdvancedFileUpload = () => {
           setDuplicateFiles(prev => prev.filter(dup => !filesToIgnore.includes(dup.id)));
           setDuplicateDialogOpen(false);
         }}
+      />
+
+      <PreUploadDuplicateDialog
+        open={preUploadDuplicateDialogOpen}
+        onOpenChange={setPreUploadDuplicateDialogOpen}
+        duplicates={databaseDuplicates}
+        onPurgeSelected={handlePurgeSelected}
+        onKeepBoth={handleKeepBoth}
+        onCancel={handleCancelUpload}
       />
     </Card>
   );

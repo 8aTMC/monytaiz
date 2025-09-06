@@ -715,8 +715,13 @@ export const useFileUpload = () => {
     }
   }, [pausedUploads, toast]);
 
-  const startUpload = useCallback(async () => {
+  const startUpload = useCallback(async (skipDuplicateCheck = false) => {
     if (queueRef.current.length === 0 || isUploading) return;
+
+    // Return duplicate check results if not skipping
+    if (!skipDuplicateCheck) {
+      return { requiresDuplicateCheck: true };
+    }
 
     setIsUploading(true);
     setCurrentUploadIndex(0);
