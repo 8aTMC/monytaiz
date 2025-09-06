@@ -61,8 +61,15 @@ export function FileUploadRowWithMetadata({
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
 
+  // Helper to detect HEIC files by extension when MIME type is unreliable
+  const isHeicFile = (file: File) => {
+    return /\.(heic|heif)$/i.test(file.name) || 
+           file.type === 'image/heic' || 
+           file.type === 'image/heif';
+  };
+
   const getFileIcon = (file: File) => {
-    if (file.type.startsWith('image/')) return <FileImage className="w-6 h-6" />;
+    if (file.type.startsWith('image/') || isHeicFile(file)) return <FileImage className="w-6 h-6" />;
     if (file.type.startsWith('video/')) return <FileVideo className="w-6 h-6" />;
     if (file.type.startsWith('audio/')) return <FileAudio className="w-6 h-6" />;
     return <FileImage className="w-6 h-6" />;
@@ -85,7 +92,7 @@ export function FileUploadRowWithMetadata({
     original_path: '',
     processed_path: URL.createObjectURL(uploadedFile.file),
     mime_type: uploadedFile.file.type,
-    media_type: (uploadedFile.file.type.startsWith('image/') ? 'image' : 
+    media_type: (uploadedFile.file.type.startsWith('image/') || isHeicFile(uploadedFile.file) ? 'image' : 
                 uploadedFile.file.type.startsWith('video/') ? 'video' : 'audio') as 'image' | 'video' | 'audio',
     original_size_bytes: uploadedFile.file.size,
     processing_status: 'processed' as const,
