@@ -13,6 +13,7 @@ import {
 import { Button } from './ui/button';
 import { Slider } from './ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { SpeedSelector } from './ui/speed-selector';
 import { VideoQualityBadge } from './VideoQualityBadge';
 import { getVideoMetadata, VideoQualityInfo } from '@/lib/videoQuality';
 import { useSmartQuality, QualityLevel } from '@/hooks/useSmartQuality';
@@ -85,6 +86,7 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
   const [duration, setDuration] = useState(0);
   const [progress, setProgress] = useState([0]);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
   const [showControls, setShowControls] = useState(true);
   const [isBuffering, setIsBuffering] = useState(false);
   const [videoAspectRatio, setVideoAspectRatio] = useState(propAspectRatio || '16/9');
@@ -254,6 +256,18 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
     videoRef.current.currentTime = Math.max(0, Math.min(duration, currentTime + seconds));
   }, [currentTime, duration]);
 
+  const handlePlaybackRateChange = useCallback((rate: number) => {
+    if (!videoRef.current) return;
+    
+    try {
+      videoRef.current.playbackRate = rate;
+      setPlaybackRate(rate);
+      trackVideoEvent('playbackratechange', { rate });
+    } catch (error) {
+      console.error('Failed to set playback rate:', error);
+    }
+  }, [trackVideoEvent]);
+
   // Video event handlers
   useEffect(() => {
     const video = videoRef.current;
@@ -314,6 +328,8 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
           height: video.videoHeight
         });
       }
+      // Initialize playback rate from video element
+      setPlaybackRate(video.playbackRate || 1);
     };
     const handleLoadStart = () => {
       trackVideoEvent('loadstart');
@@ -325,6 +341,9 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
     const handleEnded = () => {
       const completionPercentage = (video.currentTime / video.duration) * 100;
       stopTracking(video.currentTime, completionPercentage);
+    };
+    const handleRateChange = () => {
+      setPlaybackRate(video.playbackRate);
     };
 
     video.addEventListener('play', handlePlay);
@@ -338,6 +357,7 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('loadstart', handleLoadStart);
     video.addEventListener('ended', handleEnded);
+    video.addEventListener('ratechange', handleRateChange);
 
     return () => {
       video.removeEventListener('play', handlePlay);
@@ -351,6 +371,7 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('loadstart', handleLoadStart);
       video.removeEventListener('ended', handleEnded);
+      video.removeEventListener('ratechange', handleRateChange);
     };
   }, [onError, trackVideoEvent, startTracking, stopTracking, mediaId]);
 
@@ -501,6 +522,13 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
 
           {/* Right Controls */}
           <div className="flex items-center gap-2">
+            {/* Playback Speed Controls */}
+            <SpeedSelector
+              currentSpeed={playbackRate}
+              onSpeedChange={handlePlaybackRateChange}
+              variant="video"
+            />
+
             {/* Quality Selector */}
             <Select
               value={adaptiveEnabled ? 'auto' : selectedQuality}

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { SpeedSelector } from '@/components/ui/speed-selector';
 import { 
   Play, 
   Pause, 
@@ -205,19 +206,12 @@ export const CustomAudioPlayer: React.FC<CustomAudioPlayerProps> = ({
           </Button>
 
           {/* Speed Control */}
-          <div className="flex border rounded-md overflow-hidden">
-            {playbackRates.map((rate) => (
-              <Button
-                key={rate}
-                variant={playbackRate === rate ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setSpeed(rate)}
-                className="text-xs px-2 py-1 h-7 rounded-none border-r last:border-r-0"
-              >
-                {rate}x
-              </Button>
-            ))}
-          </div>
+          <SpeedSelector
+            currentSpeed={playbackRate}
+            onSpeedChange={setSpeed}
+            speeds={playbackRates}
+            variant="audio"
+          />
         </div>
 
         {/* Volume Control */}

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Slider } from './ui/slider';
+import { SpeedSelector } from './ui/speed-selector';
 import { VideoQualityBadge } from './VideoQualityBadge';
 import { getVideoMetadata, VideoQualityInfo } from '@/lib/videoQuality';
 
@@ -371,23 +372,12 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
           {/* Right Controls */}
           <div className="flex items-center gap-2">
             {/* Playback Speed Controls */}
-            <div className="flex border border-white/20 rounded-md overflow-hidden">
-              {playbackSpeeds.map((speed) => (
-                <Button
-                  key={speed}
-                  variant={playbackRate === speed ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => handlePlaybackRateChange(speed)}
-                  className={`text-xs px-2 py-1 h-7 rounded-none border-r border-white/20 last:border-r-0 ${
-                    playbackRate === speed 
-                      ? 'bg-white text-black hover:bg-white/90' 
-                      : 'text-white hover:bg-white/20'
-                  }`}
-                >
-                  {speed}x
-                </Button>
-              ))}
-            </div>
+            <SpeedSelector
+              currentSpeed={playbackRate}
+              onSpeedChange={handlePlaybackRateChange}
+              speeds={playbackSpeeds}
+              variant="video"
+            />
 
             {/* Video Quality Badge */}
             {videoQualityInfo && (

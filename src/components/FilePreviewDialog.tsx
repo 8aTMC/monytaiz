@@ -452,7 +452,7 @@ export const FilePreviewDialog = ({
               {/* Media Display */}
               <div className="p-4">
                 <div 
-                  className="flex items-center justify-center bg-muted/20 rounded-xl overflow-hidden relative"
+                  className="flex items-center justify-center bg-muted/20 rounded-xl overflow-hidden relative mx-auto"
                   style={{
                     width: containerDimensions.width,
                     height: containerDimensions.height,
