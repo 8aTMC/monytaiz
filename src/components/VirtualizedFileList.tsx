@@ -74,37 +74,44 @@ export const VirtualizedFileList = memo(({
   if (!shouldVirtualize) {
   // For small lists, render directly without virtualization
   return (
-    <ScrollArea className="h-full min-h-[200px] max-h-[600px]">
-      <div className="space-y-2 p-2">
-        {files.map((file, index) => (
-          <OptimizedFileReviewRow
-            key={file.id}
-            file={file}
-            files={files}
-            currentIndex={index}
-            onRemove={onRemove}
-            onMetadataChange={onMetadataChange}
-            onSelectionChange={onSelectionChange}
-            formatFileSize={formatFileSize}
-          />
-        ))}
+    <ScrollArea className="h-full min-h-[200px] max-h-[600px] bg-card rounded-lg border border-border">
+      <div className="space-y-2 p-4 bg-card">
+        {files.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            No files to display
+          </div>
+        ) : (
+          files.map((file, index) => (
+            <OptimizedFileReviewRow
+              key={file.id}
+              file={file}
+              files={files}
+              currentIndex={index}
+              onRemove={onRemove}
+              onMetadataChange={onMetadataChange}
+              onSelectionChange={onSelectionChange}
+              formatFileSize={formatFileSize}
+            />
+          ))
+        )}
       </div>
     </ScrollArea>
   );
   }
 
   return (
-    <div className="w-full bg-background border border-border rounded-lg">
+    <div className="w-full bg-background border border-border rounded-lg min-h-[400px]">
       <List
         height={calculatedHeight}
         itemCount={files.length}
         itemSize={ITEM_HEIGHT}
         itemData={itemData}
         overscanCount={5} // Render 5 extra items for smoother scrolling
-        className="scrollbar-thin p-2"
+        className="p-2"
         style={{
-          backgroundColor: 'hsl(var(--background))',
-          color: 'hsl(var(--foreground))'
+          backgroundColor: 'hsl(var(--card))',
+          color: 'hsl(var(--card-foreground))',
+          width: '100%'
         }}
       >
         {ListItem}

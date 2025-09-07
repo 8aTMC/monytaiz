@@ -79,16 +79,16 @@ function OptimizedFileReviewRowComponent({
   const hasContentData = file.metadata.description || 
                         (file.metadata.suggestedPrice && file.metadata.suggestedPrice > 0);
   
-  let cardClassName = "p-4 hover:bg-muted/50 transition-colors cursor-pointer relative";
+  let cardClassName = "p-4 hover:bg-muted/50 transition-colors cursor-pointer relative bg-card text-card-foreground border border-border";
   
   if (file.selected) {
     cardClassName = hasMetadata 
-      ? "p-4 transition-colors cursor-pointer relative bg-green-100 border-green-300 hover:bg-green-100"
-      : "p-4 transition-colors cursor-pointer relative bg-primary/10 border-primary hover:bg-primary/10";
+      ? "p-4 transition-colors cursor-pointer relative bg-accent text-accent-foreground border-2 border-primary hover:bg-accent/80"
+      : "p-4 transition-colors cursor-pointer relative bg-primary/10 text-foreground border-2 border-primary hover:bg-primary/20";
   } else if (hasMetadata) {
-    cardClassName = "p-4 transition-colors cursor-pointer relative bg-green-50 border-green-200 hover:bg-green-100";
+    cardClassName = "p-4 transition-colors cursor-pointer relative bg-secondary text-secondary-foreground border border-secondary hover:bg-secondary/80";
   } else if (hasContentData) {
-    cardClassName = "p-4 transition-colors cursor-pointer relative bg-blue-50 border-blue-200 hover:bg-blue-100";
+    cardClassName = "p-4 transition-colors cursor-pointer relative bg-muted text-muted-foreground border border-muted hover:bg-muted/80";
   }
 
   return (
