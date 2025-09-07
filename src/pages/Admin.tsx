@@ -253,7 +253,7 @@ const Admin = () => {
                 variant="outline"
                 onClick={handleCleanPhantomFolders}
                 disabled={isCleaningUp || isRecreatingFolders}
-                className="w-full flex items-center gap-2 bg-orange-50 hover:bg-orange-100 border-orange-200"
+                className="w-full flex items-center gap-2 bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-300"
               >
                 <Folder className="h-4 w-4" />
                 {isCleaningUp ? 'Cleaning...' : 'Clean Phantom Folders'}
@@ -263,7 +263,7 @@ const Admin = () => {
                 variant="outline"
                 onClick={recreateFolders}
                 disabled={isCleaningUp || isRecreatingFolders}
-                className="w-full flex items-center gap-2 bg-green-50 hover:bg-green-100 border-green-200"
+                className="w-full flex items-center gap-2 bg-green-500/10 hover:bg-green-500/20 border-green-500/30 text-green-700 dark:text-green-300"
               >
                 <FolderPlus className="h-4 w-4" />
                 {isRecreatingFolders ? 'Creating...' : 'Recreate Folders'}
