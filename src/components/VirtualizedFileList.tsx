@@ -13,7 +13,7 @@ interface VirtualizedFileListProps {
   height?: number;
 }
 
-const ITEM_HEIGHT = 180; // Approximate height of each file row
+const ITEM_HEIGHT = 120; // Reduced height for tighter spacing
 
 interface ListItemProps {
   index: number;
@@ -34,7 +34,7 @@ const ListItem = memo(({ index, style, data }: ListItemProps) => {
   if (!file) return null;
 
   return (
-    <div style={style} className="px-2">
+    <div style={style}>
       <OptimizedFileReviewRow
         file={file}
         files={files}
@@ -75,7 +75,7 @@ export const VirtualizedFileList = memo(({
   // For small lists, render directly without virtualization
   return (
     <ScrollArea className="h-full min-h-[200px] max-h-[600px] bg-card rounded-lg border border-border">
-      <div className="space-y-[1px] p-4 bg-card">
+      <div className="space-y-0 bg-card">
         {files.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             No files to display
@@ -107,7 +107,6 @@ export const VirtualizedFileList = memo(({
         itemSize={ITEM_HEIGHT}
         itemData={itemData}
         overscanCount={5} // Render 5 extra items for smoother scrolling
-        className="px-2"
         style={{
           backgroundColor: 'hsl(var(--card))',
           color: 'hsl(var(--card-foreground))',
