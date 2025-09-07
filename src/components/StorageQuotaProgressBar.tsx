@@ -33,8 +33,8 @@ export function StorageQuotaProgressBar({ totalSizeBytes, className = "" }: Stor
   const isOverLimit = totalSizeBytes > STORAGE_LIMIT_BYTES;
 
   return (
-    <Card className={`p-4 ${className}`}>
-      <div className="space-y-3">
+    <div className={`p-2 bg-muted/30 rounded-lg border ${className}`}>
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <HardDrive className="w-4 h-4 text-muted-foreground" />
@@ -48,7 +48,7 @@ export function StorageQuotaProgressBar({ totalSizeBytes, className = "" }: Stor
           </span>
         </div>
         
-        <div className="space-y-2">
+        <div className="space-y-1">
           <QuotaProgress 
             value={percentage} 
             colorScheme={getColorScheme()}
@@ -72,6 +72,6 @@ export function StorageQuotaProgressBar({ totalSizeBytes, className = "" }: Stor
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

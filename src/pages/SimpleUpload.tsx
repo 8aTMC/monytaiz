@@ -441,14 +441,14 @@ export default function SimpleUpload() {
   return (
     <SelectedFilesProvider>
       <Layout>
-        <div className="container mx-auto px-4 py-6">
-        <div className="mb-6">
+        <div className="container mx-auto px-4 py-2">
+        <div className="mb-2">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">
+              <h1 className="text-2xl font-bold text-foreground">
                 {reviewMode ? 'Review Files' : 'Upload Media'}
               </h1>
-              <p className="text-muted-foreground mt-1">
+              <p className="text-muted-foreground">
                 {reviewMode 
                       ? 'Review your selected files before uploading. You can edit metadata and remove files.'
                       : 'Ultra-fast direct uploads. Files are immediately available in your library.'
@@ -495,7 +495,7 @@ export default function SimpleUpload() {
           {reviewMode && files.length > 0 && (
             <StorageQuotaProgressBar 
               totalSizeBytes={totalFilesSize}
-              className="mt-4"
+              className="mt-2"
             />
           )}
         </div>
