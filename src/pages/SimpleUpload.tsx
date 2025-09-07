@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { FileUploadRowWithMetadata, UploadedFileWithMetadata } from '@/components/FileUploadRowWithMetadata';
 import { DetailedUploadProgressBar } from '@/components/DetailedUploadProgressBar';
 import { VideoValidationError } from '@/components/VideoValidationError';
-import { FileReviewRow } from '@/components/FileReviewRow';
+import { VirtualizedFileList } from '@/components/VirtualizedFileList';
 import { SelectionHeader } from '@/components/SelectionHeader';
 import { BatchMetadataToolbar } from '@/components/BatchMetadataToolbar';
 import { DuplicateFilesDialog } from '@/components/DuplicateFilesDialog';
@@ -555,24 +555,14 @@ export default function SimpleUpload() {
               />
             )}
             
-            <div className="space-y-3">
-              {files.map((file, index) => (
-                <FileReviewRow
-                  key={file.id}
-                  file={file}
-                  files={files}
-                  currentIndex={index}
-                  onRemove={removeFile}
-                  onMetadataChange={handleMetadataChange}
-                  onSelectionChange={toggleFileSelection}
-                  onNavigateToFile={(targetIndex) => {
-                    // Navigation is handled by the individual FileReviewRow
-                    console.log('Navigate to file index:', targetIndex);
-                  }}
-                  formatFileSize={formatFileSize}
-                />
-              ))}
-            </div>
+            <VirtualizedFileList
+              files={files}
+              onRemove={removeFile}
+              onMetadataChange={handleMetadataChange}
+              onSelectionChange={toggleFileSelection}
+              formatFileSize={formatFileSize}
+              height={600}
+            />
             
             <Card className="p-4 bg-muted/30">
               <div className="text-center">
