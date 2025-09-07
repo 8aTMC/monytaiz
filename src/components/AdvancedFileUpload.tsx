@@ -21,6 +21,7 @@ import { HEICWarningDialog } from './HEICWarningDialog';
 export const AdvancedFileUpload = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addMoreFileInputRef = useRef<HTMLInputElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
   // Centralized preview state
@@ -337,6 +338,23 @@ export const AdvancedFileUpload = () => {
     setAllDuplicates([]);
   };
 
+  // Wrapper for removeFile that preserves scroll position
+  const handleRemoveFile = useCallback((fileId: string) => {
+    // Capture current scroll position
+    const scrollElement = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    const scrollTop = scrollElement?.scrollTop || 0;
+    
+    // Remove the file
+    removeFile(fileId);
+    
+    // Restore scroll position after DOM update
+    requestAnimationFrame(() => {
+      if (scrollElement) {
+        scrollElement.scrollTop = scrollTop;
+      }
+    });
+  }, [removeFile]);
+
   const getStatusText = (status: string) => {
     switch (status) {
       case 'pending': return 'Pending';
@@ -485,7 +503,7 @@ export const AdvancedFileUpload = () => {
         {/* Upload Queue - Takes remaining height */}
         {uploadQueue.length > 0 && (
           <div className="flex-1 flex flex-col min-h-0">
-            <ScrollArea className="flex-1">
+            <ScrollArea ref={scrollAreaRef} className="flex-1">
               <div className="space-y-2">
                 {uploadQueue.map((item, index) => (
                   <EnhancedFileUploadRow
@@ -494,7 +512,7 @@ export const AdvancedFileUpload = () => {
                     index={index}
                     currentUploadIndex={currentUploadIndex}
                     isUploading={isUploading}
-                    onRemove={removeFile}
+                    onRemove={handleRemoveFile}
                     onPause={pauseUpload}
                     onResume={resumeUpload}
                     onCancel={cancelUpload}
