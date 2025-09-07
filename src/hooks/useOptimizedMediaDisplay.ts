@@ -124,6 +124,13 @@ export const useOptimizedMediaDisplay = () => {
     }
   }, []);
 
+  // HEIC detection utility
+  const isHEICFile = useCallback((path?: string) => {
+    if (!path) return false;
+    const fileName = path.toLowerCase();
+    return fileName.endsWith('.heic') || fileName.endsWith('.heif');
+  }, []);
+
   // Simplified media loading with abort controller
   const loadOptimizedMedia = useCallback(async (item: MediaItem, isPublic: boolean = false) => {
     const itemKey = `${item.id}-${item.type}-${item.storage_path || item.path}`;
@@ -171,20 +178,33 @@ export const useOptimizedMediaDisplay = () => {
 
       let finalUrl: string | null = null;
 
-      // Always use signed URLs since content bucket is private
-      finalUrl = await getSignedTransformUrl(bestPath, {
-        quality: 85,
-        ...(item.type === 'image' && {
-          width: 512,
-          height: 512,
-          resize: 'cover'
-        })
-      });
+      // Check if this is a HEIC file - use fast-secure-media for format conversion
+      const isHEIC = isHEICFile(bestPath);
+      
+      if (isHEIC) {
+        // For HEIC files, call fast-secure-media with format conversion
+        try {
+          const { data: mediaData, error: mediaError } = await supabase.functions.invoke('fast-secure-media', {
+            body: { 
+              path: bestPath,
+              format: 'webp',
+              quality: 80,
+              width: 512,
+              height: 512
+            }
+          });
 
-      // If processed version fails, try original path as fallback
-      if (!finalUrl && (item.path || item.storage_path)) {
-        const fallbackPath = item.path || item.storage_path!;
-        finalUrl = await getSignedTransformUrl(fallbackPath, {
+          if (!mediaError && mediaData?.url) {
+            finalUrl = mediaData.url;
+          }
+        } catch (error) {
+          // If fast-secure-media fails, fall through to regular processing
+        }
+      }
+      
+      // For non-HEIC files or if HEIC processing failed, use regular signed URLs
+      if (!finalUrl) {
+        finalUrl = await getSignedTransformUrl(bestPath, {
           quality: 85,
           ...(item.type === 'image' && {
             width: 512,
@@ -192,6 +212,43 @@ export const useOptimizedMediaDisplay = () => {
             resize: 'cover'
           })
         });
+      }
+
+      // If processed version fails, try original path as fallback
+      if (!finalUrl && (item.path || item.storage_path)) {
+        const fallbackPath = item.path || item.storage_path!;
+        const isHEICFallback = isHEICFile(fallbackPath);
+        
+        if (isHEICFallback) {
+          try {
+            const { data: mediaData, error: mediaError } = await supabase.functions.invoke('fast-secure-media', {
+              body: { 
+                path: fallbackPath,
+                format: 'webp',
+                quality: 80,
+                width: 512,
+                height: 512
+              }
+            });
+
+            if (!mediaError && mediaData?.url) {
+              finalUrl = mediaData.url;
+            }
+          } catch (error) {
+            // If fast-secure-media fails, use regular signed URL
+          }
+        }
+        
+        if (!finalUrl) {
+          finalUrl = await getSignedTransformUrl(fallbackPath, {
+            quality: 85,
+            ...(item.type === 'image' && {
+              width: 512,
+              height: 512,
+              resize: 'cover'
+            })
+          });
+        }
       }
 
       // Final abort check before setting state
