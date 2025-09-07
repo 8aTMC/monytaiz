@@ -563,17 +563,6 @@ export default function SimpleUpload() {
               formatFileSize={formatFileSize}
               height={600}
             />
-            
-            <Card className="p-4 bg-muted/30">
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-2">
-                  Ready to upload {files.length} file{files.length === 1 ? '' : 's'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Files will be uploaded directly with no processing delays. Thumbnails generated in background.
-                </p>
-              </div>
-            </Card>
           </div>
         )}
 
