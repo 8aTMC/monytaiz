@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useEffect, useState } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import { UploadedFileWithMetadata } from '@/components/FileUploadRowWithMetadata';
 import { OptimizedFileReviewRow } from './OptimizedFileReviewRow';
@@ -58,6 +58,24 @@ export const VirtualizedFileList = memo(({
   formatFileSize,
   height = 600 
 }: VirtualizedFileListProps) => {
+  // Calculate available viewport height
+  const [maxHeight, setMaxHeight] = useState(600);
+  
+  useEffect(() => {
+    const calculateMaxHeight = () => {
+      // Account for layout: header (30px), padding (48px), buttons area (~120px), margins (~60px)
+      const reservedSpace = 260;
+      const availableHeight = window.innerHeight - reservedSpace;
+      // Ensure minimum height but cap at available space
+      const clampedHeight = Math.max(300, Math.min(availableHeight, 700));
+      setMaxHeight(clampedHeight);
+    };
+
+    calculateMaxHeight();
+    window.addEventListener('resize', calculateMaxHeight);
+    return () => window.removeEventListener('resize', calculateMaxHeight);
+  }, []);
+
   // Memoize the data object to prevent List re-renders
   const itemData = useMemo(() => ({
     files,
@@ -67,42 +85,50 @@ export const VirtualizedFileList = memo(({
     formatFileSize
   }), [files, onRemove, onMetadataChange, onSelectionChange, formatFileSize]);
 
-  // Calculate optimal height based on content
-  const calculatedHeight = Math.min(height, files.length * ITEM_HEIGHT);
+  // Use consistent height for both virtualized and non-virtualized
+  const containerHeight = Math.min(maxHeight, files.length * ITEM_HEIGHT + 20);
   const shouldVirtualize = files.length > 10; // Only virtualize for larger lists
 
   if (!shouldVirtualize) {
-  // For small lists, render directly without virtualization
-  return (
-    <ScrollArea className="h-full min-h-[200px] max-h-[600px] bg-card rounded-lg border border-border">
-      <div className="space-y-0 bg-card">
-        {files.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No files to display
+    // For small lists, render directly without virtualization
+    return (
+      <div 
+        className="w-full bg-card rounded-lg border border-border overflow-hidden"
+        style={{ height: containerHeight, maxHeight }}
+      >
+        <ScrollArea className="h-full">
+          <div className="space-y-0 bg-card">
+            {files.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No files to display
+              </div>
+            ) : (
+              files.map((file, index) => (
+                <OptimizedFileReviewRow
+                  key={file.id}
+                  file={file}
+                  files={files}
+                  currentIndex={index}
+                  onRemove={onRemove}
+                  onMetadataChange={onMetadataChange}
+                  onSelectionChange={onSelectionChange}
+                  formatFileSize={formatFileSize}
+                />
+              ))
+            )}
           </div>
-        ) : (
-          files.map((file, index) => (
-            <OptimizedFileReviewRow
-              key={file.id}
-              file={file}
-              files={files}
-              currentIndex={index}
-              onRemove={onRemove}
-              onMetadataChange={onMetadataChange}
-              onSelectionChange={onSelectionChange}
-              formatFileSize={formatFileSize}
-            />
-          ))
-        )}
+        </ScrollArea>
       </div>
-    </ScrollArea>
-  );
+    );
   }
 
   return (
-    <div className="w-full bg-background border border-border rounded-lg min-h-[400px]">
+    <div 
+      className="w-full bg-background border border-border rounded-lg overflow-hidden"
+      style={{ height: containerHeight, maxHeight }}
+    >
       <List
-        height={calculatedHeight}
+        height={containerHeight}
         itemCount={files.length}
         itemSize={ITEM_HEIGHT}
         itemData={itemData}
