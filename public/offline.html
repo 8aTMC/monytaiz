@@ -5,6 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Offline - Monytaiz</title>
     <style>
+        :root {
+            /* Light theme colors matching main app */
+            --background: hsl(0, 0%, 100%);
+            --foreground: hsl(220, 9%, 14%);
+            --primary: hsl(220, 85%, 60%);
+            --primary-glow: hsl(220, 85%, 75%);
+            --gradient-aiz: linear-gradient(135deg, hsl(220, 85%, 45%), hsl(220, 85%, 60%), hsl(220, 90%, 75%));
+            --shadow-glow: 0 0 40px hsla(220, 85%, 60%, 0.15);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                /* Dark theme colors matching main app */
+                --background: hsl(0, 0%, 4%);
+                --foreground: hsl(0, 0%, 98%);
+                --primary: hsl(259, 94%, 51%);
+                --primary-glow: hsl(259, 100%, 80%);
+                --gradient-aiz: linear-gradient(135deg, hsl(259, 94%, 35%), hsl(259, 94%, 51%), hsl(259, 100%, 80%));
+                --shadow-glow: 0 0 40px hsla(259, 94%, 51%, 0.2);
+            }
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -13,19 +35,36 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #8b5cf6, #a855f7);
-            color: white;
+            background: var(--gradient-aiz);
+            color: var(--foreground);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
             padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 20%, var(--primary) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 80%, var(--primary-glow) 0%, transparent 50%);
+            opacity: 0.1;
+            z-index: -1;
         }
         
         .container {
             max-width: 400px;
             width: 100%;
+            position: relative;
+            z-index: 1;
         }
         
         .icon {
@@ -33,49 +72,79 @@
             height: 80px;
             margin: 0 auto 20px;
             background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 32px;
+            box-shadow: var(--shadow-glow);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .icon:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-glow), 0 8px 32px rgba(0, 0, 0, 0.1);
         }
         
         h1 {
-            font-size: 24px;
+            font-size: 28px;
             margin-bottom: 12px;
             font-weight: 600;
+            background: linear-gradient(135deg, var(--foreground), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
         p {
             font-size: 16px;
-            opacity: 0.9;
-            line-height: 1.5;
-            margin-bottom: 20px;
+            opacity: 0.85;
+            line-height: 1.6;
+            margin-bottom: 24px;
+            color: var(--foreground);
         }
         
         .retry-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--foreground);
+            padding: 14px 28px;
+            border-radius: 12px;
             font-size: 16px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
         
         .retry-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        }
+
+        .retry-btn:active {
+            transform: translateY(0);
         }
         
         .features {
-            margin-top: 30px;
+            margin-top: 32px;
             text-align: left;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
         }
         
         .features h3 {
             font-size: 18px;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: var(--foreground);
         }
         
         .features ul {
@@ -85,16 +154,71 @@
         }
         
         .features li {
-            margin-bottom: 8px;
-            padding-left: 20px;
+            margin-bottom: 10px;
+            padding-left: 24px;
             position: relative;
+            color: var(--foreground);
+            line-height: 1.4;
         }
         
         .features li:before {
             content: "✓";
             position: absolute;
             left: 0;
-            color: #10b981;
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .container {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .icon {
+            animation: fadeInUp 0.6s ease-out 0.1s both;
+        }
+
+        h1 {
+            animation: fadeInUp 0.6s ease-out 0.2s both;
+        }
+
+        p {
+            animation: fadeInUp 0.6s ease-out 0.3s both;
+        }
+
+        .retry-btn {
+            animation: fadeInUp 0.6s ease-out 0.4s both;
+        }
+
+        .features {
+            animation: fadeInUp 0.6s ease-out 0.5s both;
+        }
+
+        /* Responsive design */
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 16px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .features {
+                padding: 16px;
+            }
         }
     </style>
 </head>
