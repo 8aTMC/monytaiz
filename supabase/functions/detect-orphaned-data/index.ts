@@ -76,8 +76,6 @@ Deno.serve(async (req) => {
   try {
     const { action = 'detect', include_items = false, dry_run = true } = await req.json().catch(() => ({}))
 
-    console.log(`Starting orphaned data ${action} with dry_run: ${dry_run}`)
-
     if (action === 'detect') {
       const results = await detectOrphanedData(include_items)
       return new Response(JSON.stringify(results), { 
@@ -109,8 +107,6 @@ Deno.serve(async (req) => {
 async function detectOrphanedData(includeItems: boolean = false): Promise<DetectionSummary> {
   const results: OrphanedDataResult[] = []
   let totalStorageSaved = 0
-
-  console.log('Starting comprehensive orphaned data detection...')
 
   // 1. Media Analytics with no corresponding media (using EXISTS instead of IN)
   try {
@@ -371,7 +367,6 @@ async function detectOrphanedData(includeItems: boolean = false): Promise<Detect
     categories: results
   }
 
-  console.log('Detection complete:', summary)
   return summary
 }
 
@@ -420,7 +415,6 @@ async function findOrphanedStorageFiles(bucket: string, folder: string = '', max
   }
   
   await scanFolder(folder)
-  console.log(`Found ${orphanedFiles.length} orphaned files after scanning ${processedFiles.size} items`)
   return orphanedFiles
 }
 
@@ -470,8 +464,6 @@ async function cleanupOrphanedData(dryRun: boolean = true): Promise<CleanupResul
     audit: {}
   }
 
-  console.log(`Starting orphaned data cleanup with dry_run: ${dryRun}`)
-
   // Preflight checks
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
@@ -486,9 +478,6 @@ async function cleanupOrphanedData(dryRun: boolean = true): Promise<CleanupResul
     return results
   }
 
-  console.log(`Tenant scope: ${supabaseUrl}`)
-  console.log(`Using service role for deletions: ${serviceKey ? 'Yes' : 'No'}`)
-
   try {
     // 1. Clean orphaned storage files (highest priority)
     await cleanupOrphanedStorageFiles(results, dryRun)
@@ -502,7 +491,6 @@ async function cleanupOrphanedData(dryRun: boolean = true): Promise<CleanupResul
     // 4. Run comprehensive cleanup
     await runComprehensiveCleanup(results, dryRun)
 
-    console.log('Cleanup results:', results)
     return results
 
   } catch (error) {
@@ -523,23 +511,17 @@ async function cleanupOrphanedStorageFiles(results: CleanupResult, dryRun: boole
   results.audit[category] = { attempted: 0, deleted: 0, skipped: 0, errors: 0 }
   
   try {
-    console.log('Starting orphaned storage file cleanup...')
-    
     const orphanedFiles = await findOrphanedStorageFiles('content', '')
     results.audit[category].attempted = orphanedFiles.length
     
     if (orphanedFiles.length === 0) {
-      console.log('No orphaned storage files found')
       return
     }
 
     const filesToDelete = orphanedFiles.map(f => f.name)
     const totalSize = orphanedFiles.reduce((sum, f) => sum + f.size, 0)
     
-    console.log(`Found ${filesToDelete.length} orphaned files (${totalSize} bytes)`)
-    
     if (dryRun) {
-      console.log(`DRY RUN: Would delete ${filesToDelete.length} files, freeing ${totalSize} bytes`)
       results.totals.files_deleted = filesToDelete.length
       results.totals.storage_freed_bytes = totalSize
       return
@@ -583,7 +565,6 @@ async function cleanupOrphanedStorageFiles(results: CleanupResult, dryRun: boole
       results.cleaned_categories.push(category)
       results.totals.files_deleted = totalDeleted
       results.totals.storage_freed_bytes = totalFreed
-      console.log(`Successfully deleted ${totalDeleted} storage files, freed ${totalFreed} bytes`)
     }
     
   } catch (error) {
@@ -607,8 +588,6 @@ async function deleteStorageBatch(bucket: string, filePaths: string[], fileSizes
   }
   
   try {
-    console.log(`Deleting batch of ${filePaths.length} files...`)
-    
     const { data, error } = await supabase.storage
       .from(bucket)
       .remove(filePaths)
@@ -619,7 +598,6 @@ async function deleteStorageBatch(bucket: string, filePaths: string[], fileSizes
         // Files already deleted - treat as success
         result.success = true
         result.processed = filePaths.length
-        console.log(`Files already deleted (404) - treating as success`)
       } else if (error.message.includes('permission') || error.message.includes('unauthorized')) {
         result.errors.push({
           key: 'batch',
@@ -642,7 +620,6 @@ async function deleteStorageBatch(bucket: string, filePaths: string[], fileSizes
     } else {
       result.success = true
       result.processed = filePaths.length
-      console.log(`Successfully deleted ${filePaths.length} files`)
     }
     
   } catch (error) {
@@ -707,14 +684,10 @@ async function cleanupDatabaseCategory(
     results.audit[category].attempted = recordCount
     
     if (recordCount === 0) {
-      console.log(`No ${category} records found`)
       return
     }
     
-    console.log(`Found ${recordCount} ${category} records`)
-    
     if (dryRun) {
-      console.log(`DRY RUN: Would delete ${recordCount} ${category} records`)
       results.totals.records_cleaned += recordCount
       return
     }
@@ -730,7 +703,6 @@ async function cleanupDatabaseCategory(
     results.audit[category].deleted = recordCount
     results.totals.records_cleaned += recordCount
     results.cleaned_categories.push(category)
-    console.log(`Successfully deleted ${recordCount} ${category} records`)
     
   } catch (error) {
     console.error(`${category} cleanup error:`, error)
@@ -761,12 +733,10 @@ async function cleanupStaleTemporaryData(results: CleanupResult, dryRun: boolean
 // Run comprehensive cleanup using existing RPC
 async function runComprehensiveCleanup(results: CleanupResult, dryRun: boolean) {
   if (dryRun) {
-    console.log('DRY RUN: Skipping comprehensive cleanup')
     return
   }
   
   try {
-    console.log('Running comprehensive database cleanup...')
     const { data: cleanupResult, error } = await supabase.rpc('cleanup_corrupted_media')
     
     if (error) {
@@ -783,7 +753,6 @@ async function runComprehensiveCleanup(results: CleanupResult, dryRun: boolean) 
         skipped: 0,
         errors: 0
       }
-      console.log(`Comprehensive cleanup completed: ${cleanupResult.deleted_media_records} records`)
     }
   } catch (error) {
     console.error('Comprehensive cleanup error:', error)
