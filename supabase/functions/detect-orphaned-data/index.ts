@@ -120,61 +120,24 @@ async function detectOrphanedData(includeItems: boolean = false): Promise<Detect
     console.error('Error checking orphaned collection items:', error)
   }
 
-  // 3. Storage files without database records
+  // 3. Storage files without database records (recursive scan)
   try {
-    const { data: storageFiles } = await supabase.storage
-      .from('content')
-      .list('', { limit: 1000, offset: 0 })
-
-    if (storageFiles) {
-      console.log(`Found ${storageFiles.length} files in storage`)
+    const orphanedFiles = await findOrphanedStorageFiles('content', '')
+    
+    if (orphanedFiles.length > 0) {
+      const totalSize = orphanedFiles.reduce((sum, f) => sum + f.size, 0)
+      totalStorageSaved += totalSize
       
-      // Check which files don't have database records
-      const orphanedFiles = []
-      for (const file of storageFiles.slice(0, 100)) { // Limit to avoid timeouts
-        const filePath = file.name
-
-        // Check in multiple tables
-        const { data: mediaRecord } = await supabase
-          .from('simple_media')
-          .select('id')
-          .or(`original_path.eq.${filePath},processed_path.eq.${filePath},thumbnail_path.eq.${filePath}`)
-          .limit(1)
-
-        const { data: contentRecord } = await supabase
-          .from('content_files')
-          .select('id')
-          .eq('file_path', filePath)
-          .limit(1)
-
-        const { data: legacyMediaRecord } = await supabase
-          .from('media')
-          .select('id')
-          .or(`storage_path.eq.${filePath},path.eq.${filePath}`)
-          .limit(1)
-
-        if (!mediaRecord?.length && !contentRecord?.length && !legacyMediaRecord?.length) {
-          orphanedFiles.push({
-            name: file.name,
-            size: file.metadata?.size || 0,
-            last_modified: file.updated_at
-          })
-          totalStorageSaved += file.metadata?.size || 0
-        }
-      }
-
-      if (orphanedFiles.length > 0) {
-        results.push({
-          category: 'Storage',
-          type: 'orphaned_storage_files',
-          count: orphanedFiles.length,
-          severity: 'high',
-          description: 'Storage files without corresponding database records',
-          items: includeItems ? orphanedFiles : undefined,
-          size_bytes: orphanedFiles.reduce((sum, f) => sum + f.size, 0),
-          recommendation: 'Review before deletion - could be recently uploaded files'
-        })
-      }
+      results.push({
+        category: 'Storage',
+        type: 'orphaned_storage_files',
+        count: orphanedFiles.length,
+        severity: 'high',
+        description: 'Storage files without corresponding database records',
+        items: includeItems ? orphanedFiles : undefined,
+        size_bytes: totalSize,
+        recommendation: 'Review before deletion - could be recently uploaded files'
+      })
     }
   } catch (error) {
     console.error('Error checking orphaned storage files:', error)
@@ -326,6 +289,88 @@ async function detectOrphanedData(includeItems: boolean = false): Promise<Detect
   return summary
 }
 
+// Helper function to recursively find orphaned storage files
+async function findOrphanedStorageFiles(bucket: string, folder: string = '', maxFiles: number = 100): Promise<any[]> {
+  const orphanedFiles = []
+  const processedFiles = new Set()
+  
+  async function scanFolder(currentPath: string) {
+    if (orphanedFiles.length >= maxFiles) return
+    
+    const { data: items, error } = await supabase.storage
+      .from(bucket)
+      .list(currentPath, { limit: 200, offset: 0 })
+    
+    if (error || !items) return
+    
+    for (const item of items) {
+      if (orphanedFiles.length >= maxFiles) break
+      
+      const fullPath = currentPath ? `${currentPath}/${item.name}` : item.name
+      
+      // Skip if already processed
+      if (processedFiles.has(fullPath)) continue
+      processedFiles.add(fullPath)
+      
+      // Check if it's a file (has metadata and size) or folder
+      const isFile = item.metadata && typeof item.metadata.size === 'number'
+      const hasFileExtension = item.name.includes('.')
+      
+      if (isFile || hasFileExtension) {
+        // This is a file - check if it's orphaned
+        const isOrphaned = await isFileOrphaned(fullPath)
+        if (isOrphaned) {
+          orphanedFiles.push({
+            name: fullPath,
+            size: item.metadata?.size || 0,
+            last_modified: item.updated_at
+          })
+        }
+      } else {
+        // This is likely a folder - scan it recursively
+        await scanFolder(fullPath)
+      }
+    }
+  }
+  
+  await scanFolder(folder)
+  console.log(`Found ${orphanedFiles.length} orphaned files after scanning ${processedFiles.size} items`)
+  return orphanedFiles
+}
+
+// Helper function to check if a file is orphaned
+async function isFileOrphaned(filePath: string): Promise<boolean> {
+  // Check in simple_media table
+  const { data: mediaRecord } = await supabase
+    .from('simple_media')
+    .select('id')
+    .or(`original_path.eq.${filePath},processed_path.eq.${filePath},thumbnail_path.eq.${filePath}`)
+    .limit(1)
+
+  if (mediaRecord?.length > 0) return false
+
+  // Check in content_files table
+  const { data: contentRecord } = await supabase
+    .from('content_files')
+    .select('id')
+    .eq('file_path', filePath)
+    .limit(1)
+
+  if (contentRecord?.length > 0) return false
+
+  // Check in legacy media table
+  const { data: legacyMediaRecord } = await supabase
+    .from('media')
+    .select('id')
+    .or(`storage_path.eq.${filePath},path.eq.${filePath}`)
+    .limit(1)
+
+  if (legacyMediaRecord?.length > 0) return false
+
+  // File is orphaned
+  return true
+}
+
 async function cleanupOrphanedData(dryRun: boolean = true): Promise<any> {
   const results = {
     dry_run: dryRun,
@@ -343,60 +388,26 @@ async function cleanupOrphanedData(dryRun: boolean = true): Promise<any> {
     if (!dryRun) {
       console.log('Starting orphaned storage file cleanup...')
       
-      const { data: storageFiles } = await supabase.storage
-        .from('content')
-        .list('', { limit: 1000, offset: 0 })
+      const orphanedFiles = await findOrphanedStorageFiles('content', '', 100)
+      
+      if (orphanedFiles.length > 0) {
+        const filesToDelete = orphanedFiles.map(f => f.name)
+        const storageSpaceFreed = orphanedFiles.reduce((sum, f) => sum + f.size, 0)
+        
+        console.log(`Deleting ${filesToDelete.length} orphaned storage files...`)
+        
+        const { data: deleteResult, error: deleteError } = await supabase.storage
+          .from('content')
+          .remove(filesToDelete)
 
-      if (storageFiles) {
-        const filesToDelete = []
-        let storageSpaceFreed = 0
-
-        // Find orphaned files (same logic as detection)
-        for (const file of storageFiles.slice(0, 100)) {
-          const filePath = file.name
-
-          // Check in multiple tables
-          const { data: mediaRecord } = await supabase
-            .from('simple_media')
-            .select('id')
-            .or(`original_path.eq.${filePath},processed_path.eq.${filePath},thumbnail_path.eq.${filePath}`)
-            .limit(1)
-
-          const { data: contentRecord } = await supabase
-            .from('content_files')
-            .select('id')
-            .eq('file_path', filePath)
-            .limit(1)
-
-          const { data: legacyMediaRecord } = await supabase
-            .from('media')
-            .select('id')
-            .or(`storage_path.eq.${filePath},path.eq.${filePath}`)
-            .limit(1)
-
-          if (!mediaRecord?.length && !contentRecord?.length && !legacyMediaRecord?.length) {
-            filesToDelete.push(filePath)
-            storageSpaceFreed += file.metadata?.size || 0
-          }
-        }
-
-        // Delete orphaned files from storage
-        if (filesToDelete.length > 0) {
-          console.log(`Deleting ${filesToDelete.length} orphaned storage files...`)
-          
-          const { data: deleteResult, error: deleteError } = await supabase.storage
-            .from('content')
-            .remove(filesToDelete)
-
-          if (deleteError) {
-            console.error('Storage file deletion error:', deleteError)
-            results.errors.push({ step: 'storage_cleanup', error: deleteError.message })
-          } else {
-            console.log(`Successfully deleted ${filesToDelete.length} storage files`)
-            results.cleaned_categories.push('orphaned_storage_files')
-            results.storage_files_deleted = filesToDelete.length
-            results.total_storage_freed = storageSpaceFreed
-          }
+        if (deleteError) {
+          console.error('Storage file deletion error:', deleteError)
+          results.errors.push({ step: 'storage_cleanup', error: deleteError.message })
+        } else {
+          console.log(`Successfully deleted ${filesToDelete.length} storage files`)
+          results.cleaned_categories.push('orphaned_storage_files')
+          results.storage_files_deleted = filesToDelete.length
+          results.total_storage_freed = storageSpaceFreed
         }
       }
     }
