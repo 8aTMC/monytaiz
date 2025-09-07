@@ -536,7 +536,7 @@ export default function SimpleUpload() {
 
         {/* Review Mode - File List with Selection and Batch Controls */}
         {reviewMode && files.length > 0 && (
-          <div className="space-y-4 mb-6">
+          <div key={`review-mode-${files.length}-${Date.now()}`} className="space-y-4 mb-6">
             {/* File count and selection header */}
             <SelectionHeader
               totalFiles={files.length}
