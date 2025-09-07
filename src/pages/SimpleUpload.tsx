@@ -457,41 +457,65 @@ export default function SimpleUpload() {
                     }
                   </p>
                 </div>
-                
+
+                {/* Selection Controls - Always Visible When in Review Mode */}
+                {reviewMode && files.length > 0 && (
+                  <div className="space-y-3">
+                    <SelectionHeader
+                      totalFiles={files.length}
+                      selectedCount={selectedFiles.length}
+                      allSelected={allSelected}
+                      onSelectAll={selectAllFiles}
+                      onClearSelection={clearSelection}
+                    />
+                    
+                    {hasSelection && (
+                      <BatchMetadataToolbar
+                        selectedCount={selectedFiles.length}
+                        onClearSelection={clearSelection}
+                        onUpdateMetadata={updateSelectedFilesMetadata}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-3 justify-between">
                 {hasCompletedFiles && !reviewMode && (
                   <Button onClick={() => navigate('/library')}>
                     View Library ({completedFiles})
                   </Button>
                 )}
+                
+                {reviewMode && files.length > 0 && (
+                  <div className="flex items-center gap-3 justify-end ml-auto">
+                    <Button 
+                      variant="outline" 
+                      onClick={clearUpload}
+                      className="flex items-center gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Clear Upload
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={handleAddMoreFiles}
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add More Files
+                    </Button>
+                    <Button 
+                      onClick={startUpload}
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Start Upload ({files.length} files)
+                    </Button>
+                  </div>
+                )}
               </div>
-              
-              {reviewMode && files.length > 0 && (
-                <div className="flex items-center gap-3 justify-end">
-                  <Button 
-                    variant="outline" 
-                    onClick={clearUpload}
-                    className="flex items-center gap-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Clear Upload
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={handleAddMoreFiles}
-                    className="flex items-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add More Files
-                  </Button>
-                  <Button 
-                    onClick={startUpload}
-                    className="flex items-center gap-2"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Start Upload ({files.length} files)
-                  </Button>
-                </div>
-              )}
 
               {/* Storage Quota Progress Bar - Show in review mode */}
               {reviewMode && files.length > 0 && (
@@ -540,27 +564,9 @@ export default function SimpleUpload() {
                 </Card>
               )}
 
-              {/* Review Mode - File List with Selection and Batch Controls */}
+              {/* Review Mode - File List Only */}
               {reviewMode && files.length > 0 && (
-                <div key={`cache-buster-${Math.random()}-${files.length}-${selectedFiles.length}`} className="space-y-4 mb-6 animate-in fade-in-0 duration-300 h-full flex flex-col">
-                  {/* File count and selection header */}
-                  <SelectionHeader
-                    totalFiles={files.length}
-                    selectedCount={selectedFiles.length}
-                    allSelected={allSelected}
-                    onSelectAll={selectAllFiles}
-                    onClearSelection={clearSelection}
-                  />
-                  
-                  {/* Batch metadata toolbar */}
-                  {hasSelection && (
-                    <BatchMetadataToolbar
-                      selectedCount={selectedFiles.length}
-                      onClearSelection={clearSelection}
-                      onUpdateMetadata={updateSelectedFilesMetadata}
-                    />
-                  )}
-                  
+                <div key={`cache-buster-${Math.random()}-${files.length}-${selectedFiles.length}`} className="h-full flex flex-col animate-in fade-in-0 duration-300">
                   <div className="flex-1 min-h-0">
                     <VirtualizedFileList
                       files={files}
