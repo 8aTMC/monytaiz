@@ -18,6 +18,7 @@ interface UnsupportedFilesDialogProps {
   onOpenChange: (open: boolean) => void;
   unsupportedFiles: UnsupportedFile[];
   onConfirm: () => void;
+  stepInfo?: { current: number; total: number } | null;
 }
 
 const getConversionUrl = (type: 'image' | 'video' | 'audio' | 'unknown'): string => {

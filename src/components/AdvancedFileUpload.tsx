@@ -18,6 +18,13 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { HEICWarningDialog } from './HEICWarningDialog';
 
+// Dialog queue types
+interface DialogQueueItem {
+  type: 'duplicates' | 'unsupported' | 'heic';
+  data: any;
+  title: string;
+}
+
 export const AdvancedFileUpload = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addMoreFileInputRef = useRef<HTMLInputElement>(null);
@@ -29,24 +36,48 @@ export const AdvancedFileUpload = () => {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   
-  // Duplicate files dialog state
-  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
-  const [duplicateFiles, setDuplicateFiles] = useState<{ id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]>([]);
+  // Dialog queue state
+  const [dialogQueue, setDialogQueue] = useState<DialogQueueItem[]>([]);
+  const [currentDialogIndex, setCurrentDialogIndex] = useState(0);
   
   // Pre-upload duplicate dialog state
   const [preUploadDuplicateDialogOpen, setPreUploadDuplicateDialogOpen] = useState(false);
   const [allDuplicates, setAllDuplicates] = useState<DuplicateMatch[]>([]);
   const [duplicateCheckLoading, setDuplicateCheckLoading] = useState(false);
   
-  // HEIC warning dialog state
+  // Individual dialog states for backward compatibility
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+  const [duplicateFiles, setDuplicateFiles] = useState<{ id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]>([]);
+  const [unsupportedDialogOpen, setUnsupportedDialogOpen] = useState(false);
+  const [unsupportedFiles, setUnsupportedFiles] = useState<{ id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]>([]);
   const [heicWarningOpen, setHeicWarningOpen] = useState(false);
   const [heicFiles, setHeicFiles] = useState<string[]>([]);
   
-  // Unsupported files dialog state
-  const [unsupportedDialogOpen, setUnsupportedDialogOpen] = useState(false);
-  const [unsupportedFiles, setUnsupportedFiles] = useState<{ id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]>([]);
-  
   const { checkAllDuplicates, addDuplicateTag } = useDuplicateDetection();
+  
+  // Dialog queue functions
+  const addToDialogQueue = useCallback((item: DialogQueueItem) => {
+    setDialogQueue(prev => [...prev, item]);
+  }, []);
+  
+  const processNextDialog = useCallback(() => {
+    setCurrentDialogIndex(prev => prev + 1);
+    if (currentDialogIndex + 1 >= dialogQueue.length) {
+      // Clear queue when all dialogs are processed
+      setDialogQueue([]);
+      setCurrentDialogIndex(0);
+    }
+  }, [currentDialogIndex, dialogQueue.length]);
+  
+  const clearDialogQueue = useCallback(() => {
+    setDialogQueue([]);
+    setCurrentDialogIndex(0);
+  }, []);
+  
+  // Current dialog info
+  const currentDialog = dialogQueue[currentDialogIndex];
+  const hasActiveDialog = dialogQueue.length > 0 && currentDialogIndex < dialogQueue.length;
+  const stepInfo = dialogQueue.length > 1 ? { current: currentDialogIndex + 1, total: dialogQueue.length } : null;
   
   const {
     uploadQueue,

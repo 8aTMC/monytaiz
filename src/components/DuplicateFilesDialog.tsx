@@ -21,13 +21,15 @@ interface DuplicateFilesDialogProps {
   onOpenChange: (open: boolean) => void;
   duplicateFiles: DuplicateFile[];
   onConfirm: (filesToIgnore: string[]) => void;
+  stepInfo?: { current: number; total: number } | null;
 }
 
 export const DuplicateFilesDialog = ({ 
   open, 
   onOpenChange, 
   duplicateFiles, 
-  onConfirm 
+  onConfirm,
+  stepInfo 
 }: DuplicateFilesDialogProps) => {
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false);

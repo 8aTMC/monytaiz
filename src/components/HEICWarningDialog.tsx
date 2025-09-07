@@ -12,6 +12,7 @@ interface HEICWarningDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   fileNames: string[];
+  stepInfo?: { current: number; total: number } | null;
 }
 
 export const HEICWarningDialog = ({ open, onOpenChange, fileNames }: HEICWarningDialogProps) => {
