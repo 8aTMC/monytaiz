@@ -332,41 +332,131 @@ async function cleanupOrphanedData(dryRun: boolean = true): Promise<any> {
     cleaned_categories: [],
     errors: [],
     total_records_cleaned: 0,
-    total_storage_freed: 0
+    total_storage_freed: 0,
+    storage_files_deleted: 0
   }
 
-  console.log(`Starting cleanup with dry_run: ${dryRun}`)
+  console.log(`Starting orphaned data cleanup with dry_run: ${dryRun}`)
 
   try {
-    // 1. Clean orphaned media analytics
+    // 1. Clean orphaned storage files first (most important for user's issue)
     if (!dryRun) {
-      const { error: analyticsError } = await supabase
+      console.log('Starting orphaned storage file cleanup...')
+      
+      const { data: storageFiles } = await supabase.storage
+        .from('content')
+        .list('', { limit: 1000, offset: 0 })
+
+      if (storageFiles) {
+        const filesToDelete = []
+        let storageSpaceFreed = 0
+
+        // Find orphaned files (same logic as detection)
+        for (const file of storageFiles.slice(0, 100)) {
+          const filePath = file.name
+
+          // Check in multiple tables
+          const { data: mediaRecord } = await supabase
+            .from('simple_media')
+            .select('id')
+            .or(`original_path.eq.${filePath},processed_path.eq.${filePath},thumbnail_path.eq.${filePath}`)
+            .limit(1)
+
+          const { data: contentRecord } = await supabase
+            .from('content_files')
+            .select('id')
+            .eq('file_path', filePath)
+            .limit(1)
+
+          const { data: legacyMediaRecord } = await supabase
+            .from('media')
+            .select('id')
+            .or(`storage_path.eq.${filePath},path.eq.${filePath}`)
+            .limit(1)
+
+          if (!mediaRecord?.length && !contentRecord?.length && !legacyMediaRecord?.length) {
+            filesToDelete.push(filePath)
+            storageSpaceFreed += file.metadata?.size || 0
+          }
+        }
+
+        // Delete orphaned files from storage
+        if (filesToDelete.length > 0) {
+          console.log(`Deleting ${filesToDelete.length} orphaned storage files...`)
+          
+          const { data: deleteResult, error: deleteError } = await supabase.storage
+            .from('content')
+            .remove(filesToDelete)
+
+          if (deleteError) {
+            console.error('Storage file deletion error:', deleteError)
+            results.errors.push({ step: 'storage_cleanup', error: deleteError.message })
+          } else {
+            console.log(`Successfully deleted ${filesToDelete.length} storage files`)
+            results.cleaned_categories.push('orphaned_storage_files')
+            results.storage_files_deleted = filesToDelete.length
+            results.total_storage_freed = storageSpaceFreed
+          }
+        }
+      }
+    }
+
+    // 2. Clean orphaned media analytics
+    if (!dryRun) {
+      console.log('Cleaning orphaned media analytics...')
+      const { error: analyticsError, count } = await supabase
         .from('media_analytics')
-        .delete()
+        .delete({ count: 'exact' })
         .not('media_id', 'in', 
           supabase.from('simple_media').select('id')
         )
 
       if (!analyticsError) {
         results.cleaned_categories.push('orphaned_media_analytics')
+        results.total_records_cleaned += count || 0
+      } else {
+        results.errors.push({ step: 'analytics_cleanup', error: analyticsError.message })
       }
     }
 
-    // 2. Clean stale typing indicators
+    // 3. Clean stale typing indicators
     if (!dryRun) {
+      console.log('Cleaning stale typing indicators...')
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
-      const { error: typingError } = await supabase
+      const { error: typingError, count } = await supabase
         .from('typing_indicators')
-        .delete()
+        .delete({ count: 'exact' })
         .lt('updated_at', oneHourAgo)
 
       if (!typingError) {
         results.cleaned_categories.push('stale_typing_indicators')
+        results.total_records_cleaned += count || 0
+      } else {
+        results.errors.push({ step: 'typing_cleanup', error: typingError.message })
       }
     }
 
-    // 3. Use existing cleanup function for comprehensive cleanup
+    // 4. Clean orphaned quality metadata
     if (!dryRun) {
+      console.log('Cleaning orphaned quality metadata...')
+      const { error: qualityError, count } = await supabase
+        .from('quality_metadata')
+        .delete({ count: 'exact' })
+        .not('media_id', 'in', 
+          supabase.from('simple_media').select('id')
+        )
+
+      if (!qualityError) {
+        results.cleaned_categories.push('orphaned_quality_metadata')
+        results.total_records_cleaned += count || 0
+      } else {
+        results.errors.push({ step: 'quality_cleanup', error: qualityError.message })
+      }
+    }
+
+    // 5. Use existing cleanup function for comprehensive cleanup
+    if (!dryRun) {
+      console.log('Running comprehensive database cleanup...')
       const { data: cleanupResult } = await supabase.rpc('cleanup_corrupted_media')
       if (cleanupResult?.success) {
         results.cleaned_categories.push('corrupted_media_cleanup')
