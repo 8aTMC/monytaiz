@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { Navigation, useSidebar } from '@/components/Navigation';
 import { AdvancedFileUpload } from '@/components/AdvancedFileUpload';
+import { FileFormatInfo } from '@/components/FileFormatInfo';
 import { useTranslation } from '@/hooks/useTranslation';
 
 const Upload = () => {
@@ -65,9 +66,9 @@ const Upload = () => {
           <h1 className="text-3xl font-bold text-foreground">
             {t('upload.title', 'Upload Content')}
           </h1>
-          <p className="text-muted-foreground mt-2">
-            📸 Photos: JPG, PNG, WEBP, GIF (max 50MB) • 🎥 Videos: MP4, MOV, WEBM, AVI, MKV (max 10GB) • 🎵 Audio: MP3, WAV, AAC, OGG (max 10MB)
-          </p>
+          <div className="mt-6">
+            <FileFormatInfo />
+          </div>
         </div>
 
         <AdvancedFileUpload />

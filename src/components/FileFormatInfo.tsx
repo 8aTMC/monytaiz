@@ -9,17 +9,17 @@ export const FileFormatInfo = () => {
 
   const supportedFormats = {
     audio: {
-      formats: ['mp3', 'ogg', 'flac', 'wav', 'opus', 'aac'],
+      formats: ['mp3', 'ogg', 'wav', 'opus', 'aac'],
       conversion: 'WebM/Opus',
       description: 'All audio files are converted to WebM format with Opus codec for optimal streaming and reduced file size.'
     },
     image: {
-      formats: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif', 'heic', 'heif'],
+      formats: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'heic', 'heif'],
       conversion: 'WebP',
       description: 'Images are converted to WebP format at 80% quality for faster loading while maintaining visual quality. HEIC/HEIF files are converted client-side.'
     },
     video: {
-      formats: ['avi', 'flv', 'wmv', 'mov', 'mp4', 'mkv', 'webm'],
+      formats: ['mov', 'mp4', 'mkv', 'webm'],
       conversion: 'Original Format',
       description: 'Videos are uploaded in their original format with backend processing for multiple quality levels.'
     }
@@ -27,8 +27,11 @@ export const FileFormatInfo = () => {
 
   const unsupportedFormats = [
     { format: 'tiff/tif', reason: 'Complex format, limited browser support' },
+    { format: 'avif', reason: 'Advanced image format with limited browser support' },
+    { format: 'avi', reason: 'Legacy video format, large file sizes' },
     { format: 'flv', reason: 'Flash video format, deprecated' },
     { format: 'wmv', reason: 'Proprietary Windows format' },
+    { format: 'flac', reason: 'Lossless audio format, very large file sizes' },
     { format: 'hevc/h265', reason: 'Patent-encumbered codec' }
   ];
 
