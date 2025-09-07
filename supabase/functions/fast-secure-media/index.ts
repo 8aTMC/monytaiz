@@ -210,13 +210,21 @@ Deno.serve(async (req) => {
 
     // Add transforms if specified (not for HEIC files)
     if (width || height || quality || format) {
-      transformOptions.transform = {
+      const transform: any = {
         width: width ? Math.min(parseInt(width), 1920) : undefined,
         height: height ? Math.min(parseInt(height), 1920) : undefined,
         quality: Math.min(parseInt(quality), 95),
-        resize: 'cover',
-        format: format
+        resize: 'cover'
       }
+      
+      // Only add format if it's a valid, non-null value
+      // Supported formats by Supabase Storage: webp, jpeg, png, avif
+      const validFormats = ['webp', 'jpeg', 'jpg', 'png', 'avif']
+      if (format && validFormats.includes(format.toLowerCase())) {
+        transform.format = format.toLowerCase()
+      }
+      
+      transformOptions.transform = transform
       console.log(`Applied transforms for regular file:`, transformOptions.transform)
     }
 
