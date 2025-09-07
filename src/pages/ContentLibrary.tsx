@@ -21,6 +21,7 @@ import { LibraryErrorBoundary } from '@/components/LibraryErrorBoundary';
 import { LibraryFiltersDialog } from '@/components/LibraryFiltersDialog';
 import { LibraryFilterState } from '@/types/library-filters';
 import { OrphanedDataManager } from '@/components/OrphanedDataManager';
+import { RecreateStorageFolders } from '@/components/RecreateStorageFolders';
 
 interface MediaItem {
   id: string;
@@ -547,8 +548,9 @@ const ContentLibrary = () => {
 
               {/* Cleanup Section (when enabled) */}
               {showCleanup && (
-                <div className="mt-4">
+                <div className="mt-4 space-y-4">
                   <OrphanedDataManager />
+                  <RecreateStorageFolders />
                 </div>
               )}
             </div>
