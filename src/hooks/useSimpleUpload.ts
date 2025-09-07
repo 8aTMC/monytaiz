@@ -79,28 +79,87 @@ export const useSimpleUpload = () => {
                        file.type.startsWith('video/') ? 'video' : 
                        file.type.startsWith('audio/') ? 'audio' : 'image';
 
-      // Upload directly to processed folder (no processing needed)
-      const uploadPath = `processed/${fileId}-${file.name}`;
+      // Check if image needs processing (WebP conversion)
+      const isHeicFile = (file: File): boolean => {
+        return /\.(heic|heif)$/i.test(file.name) || 
+               file.type === 'image/heic' || 
+               file.type === 'image/heif';
+      };
+
+      const shouldProcessImage = mediaType === 'image' && !isHeicFile(file);
       
+      let fileToUpload = file;
+      let uploadFileName = file.name;
       let thumbnailPath: string | undefined;
       let thumbnailBlob: Blob | undefined;
       let width: number | undefined;
       let height: number | undefined;
 
-      // For videos, generate thumbnail client-side
-      if (mediaType === 'video') {
+      // Process images (except HEIC/HEIF) to WebP
+      if (shouldProcessImage) {
         setUploadProgress({
           phase: 'processing',
-          progress: 30,
-          message: 'Generating thumbnail...',
+          progress: 20,
+          message: 'Converting image to WebP...',
           originalSize,
           processedSize: originalSize,
           compressionRatio: 0
         });
 
         try {
+          const processedFiles = await processFiles([file]);
+          if (processedFiles.length > 0) {
+            const processedMedia = processedFiles[0];
+            
+            // Get the processed WebP blob
+            const webpBlob = processedMedia.processedBlobs.get('webp') || processedMedia.thumbnail;
+            if (webpBlob) {
+              fileToUpload = new File([webpBlob], file.name.replace(/\.[^.]+$/, '.webp'), { 
+                type: webpBlob.type 
+              });
+              uploadFileName = file.name.replace(/\.[^.]+$/, '.webp');
+              
+              // Update progress with compression info
+              processedSize = webpBlob.size;
+              compressionRatio = Math.round(((originalSize - processedSize) / originalSize) * 100);
+              
+              width = processedMedia.metadata.width;
+              height = processedMedia.metadata.height;
+
+              console.log(`✅ Image processed: ${file.name} → ${uploadFileName} (${compressionRatio}% smaller)`);
+
+              setUploadProgress({
+                phase: 'processing',
+                progress: 50,
+                message: `WebP conversion complete (${compressionRatio}% smaller)`,
+                originalSize,
+                processedSize,
+                compressionRatio
+              });
+            }
+          }
+        } catch (error) {
+          console.warn('Image processing failed, uploading original:', error);
+          // Continue with original file if processing fails
+        }
+      }
+
+      const uploadPath = `processed/${fileId}-${uploadFileName}`;
+
+      // For videos, generate thumbnail client-side
+      if (mediaType === 'video') {
+        setUploadProgress({
+          phase: 'processing',
+          progress: shouldProcessImage ? 60 : 30,
+          message: 'Generating thumbnail...',
+          originalSize,
+          processedSize,
+          compressionRatio
+        });
+
+        try {
           // Add timeout wrapper for thumbnail generation
-          const thumbnailPromise = generateVideoThumbnail(file, {
+          const thumbnailPromise = generateVideoThumbnail(fileToUpload, {
             width: 320,
             height: 180,
             quality: 0.8,
@@ -135,7 +194,7 @@ export const useSimpleUpload = () => {
 
           // Try to get video dimensions using processFiles as fallback
           try {
-            const processedFiles = await processFiles([file]);
+            const processedFiles = await processFiles([fileToUpload]);
             if (processedFiles.length > 0) {
               const result = processedFiles[0];
               width = result.metadata.width;
@@ -152,23 +211,23 @@ export const useSimpleUpload = () => {
 
       setUploadProgress({
         phase: 'uploading',
-        progress: 60,
+        progress: shouldProcessImage ? 80 : 60,
         message: 'Uploading files...',
         originalSize,
         processedSize,
         compressionRatio
       });
 
-      // Upload original file directly to processed folder (skip processing)
-      console.log('Uploading original file directly to processed folder...');
-      const originalUpload = await supabase.storage.from('content').upload(uploadPath, file, { upsert: false });
-      if (originalUpload.error) throw new Error(`Original upload failed: ${originalUpload.error.message}`);
+      // Upload processed file (WebP for images, original for others) to processed folder
+      console.log('Uploading file to processed folder:', uploadFileName);
+      const originalUpload = await supabase.storage.from('content').upload(uploadPath, fileToUpload, { upsert: false });
+      if (originalUpload.error) throw new Error(`Upload failed: ${originalUpload.error.message}`);
 
       // Thumbnail already generated and uploaded for videos above
 
       setUploadProgress({
         phase: 'uploading',
-        progress: 80,
+        progress: shouldProcessImage ? 90 : 80,
         message: 'Creating database record...',
         originalSize,
         processedSize,
@@ -182,7 +241,7 @@ export const useSimpleUpload = () => {
           creator_id: user.id,
           original_filename: file.name,
           title: file.name.split('.')[0],
-          mime_type: file.type,
+          mime_type: fileToUpload.type,
           original_size_bytes: originalSize,
           optimized_size_bytes: processedSize,
           original_path: uploadPath,
@@ -236,7 +295,11 @@ export const useSimpleUpload = () => {
       setUploadProgress({
         phase: 'complete',
         progress: 100,
-        message: mediaType === 'video' ? 'Upload complete! Quality processing started in background.' : 'Upload complete!',
+        message: shouldProcessImage && compressionRatio > 0 
+          ? `Upload complete! Image converted to WebP (${compressionRatio}% smaller)` 
+          : mediaType === 'video' 
+            ? 'Upload complete! Quality processing started in background.' 
+            : 'Upload complete!',
         originalSize,
         processedSize,
         compressionRatio
@@ -245,12 +308,16 @@ export const useSimpleUpload = () => {
       console.log('✅ File uploaded successfully:', { 
         id: mediaRecord.id, 
         path: uploadPath,
-        thumbnailPath: thumbnailPath
+        thumbnailPath: thumbnailPath,
+        processed: shouldProcessImage,
+        compressionRatio: shouldProcessImage ? compressionRatio : 0
       });
 
       toast({
         title: "Upload successful",
-        description: `${file.name} uploaded successfully.`,
+        description: shouldProcessImage && compressionRatio > 0
+          ? `${file.name} converted to WebP and uploaded (${compressionRatio}% smaller).`
+          : `${file.name} uploaded successfully.`,
         variant: "default"
       });
 
