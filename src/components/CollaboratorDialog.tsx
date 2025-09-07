@@ -33,7 +33,7 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.avif']
+      'image/*': ['.jpeg', '.jpg', '.png', '.webp']
     },
     maxFiles: 1,
     maxSize: 10 * 1024 * 1024, // 10MB limit

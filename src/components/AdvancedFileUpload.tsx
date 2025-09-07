@@ -12,6 +12,7 @@ import { SelectionHeader } from './SelectionHeader';
 import { FilePreviewDialog } from './FilePreviewDialog';
 import { DuplicateFilesDialog } from './DuplicateFilesDialog';
 import { PreUploadDuplicateDialog } from './PreUploadDuplicateDialog';
+import { UnsupportedFilesDialog } from './UnsupportedFilesDialog';
 import { useDuplicateDetection, DuplicateMatch } from '@/hooks/useDuplicateDetection';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +39,10 @@ export const AdvancedFileUpload = () => {
   // HEIC warning dialog state
   const [heicWarningOpen, setHeicWarningOpen] = useState(false);
   const [heicFiles, setHeicFiles] = useState<string[]>([]);
+  
+  // Unsupported files dialog state
+  const [unsupportedDialogOpen, setUnsupportedDialogOpen] = useState(false);
+  const [unsupportedFiles, setUnsupportedFiles] = useState<{ id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]>([]);
   
   const { checkAllDuplicates, addDuplicateTag } = useDuplicateDetection();
   
@@ -88,7 +93,12 @@ export const AdvancedFileUpload = () => {
       setHeicWarningOpen(true);
     }
     
-    addFiles(fileArray);
+    const showUnsupportedDialog = (unsupported: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]) => {
+      setUnsupportedFiles(unsupported);
+      setUnsupportedDialogOpen(true);
+    };
+    
+    addFiles(fileArray, undefined, showUnsupportedDialog);
     // Reset input so same file can be selected again
     event.target.value = '';
   }, [addFiles, isHeicFile]);
@@ -114,7 +124,12 @@ export const AdvancedFileUpload = () => {
       setDuplicateDialogOpen(true);
     };
     
-    addFiles(fileArray, showDuplicateDialog);
+    const showUnsupportedDialog = (unsupported: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]) => {
+      setUnsupportedFiles(unsupported);
+      setUnsupportedDialogOpen(true);
+    };
+    
+    addFiles(fileArray, showDuplicateDialog, showUnsupportedDialog);
     // Reset input so same file can be selected again
     event.target.value = '';
   }, [addFiles, isHeicFile]);
@@ -147,7 +162,13 @@ export const AdvancedFileUpload = () => {
         setDuplicateFiles(duplicatesWithId);
         setDuplicateDialogOpen(true);
       };
-      addFiles(fileArray, showDuplicateDialog);
+      
+      const showUnsupportedDialog = (unsupported: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]) => {
+        setUnsupportedFiles(unsupported);
+        setUnsupportedDialogOpen(true);
+      };
+      
+      addFiles(fileArray, showDuplicateDialog, showUnsupportedDialog);
     }
   }, [addFiles, isHeicFile]);
 
@@ -442,7 +463,7 @@ export const AdvancedFileUpload = () => {
               multiple
               onChange={handleFileSelect}
               className="hidden"
-              accept=".jpg,.jpeg,.png,.webp,.gif,.avif,.mp4,.mov,.webm,.avi,.mkv,.mp3,.wav,.aac,.ogg,.pdf,.doc,.docx,.txt,.rtf"
+          accept=".jpg,.jpeg,.png,.webp,.gif,.heic,.heif,.mp4,.mov,.webm,.mkv,.mp3,.wav,.aac,.ogg,.opus"
             />
           </div>
         )}
@@ -496,7 +517,7 @@ export const AdvancedFileUpload = () => {
           multiple
           onChange={handleFileSelect}
           className="hidden"
-          accept=".jpg,.jpeg,.png,.webp,.gif,.avif,.mp4,.mov,.webm,.avi,.mkv,.mp3,.wav,.aac,.ogg,.pdf,.doc,.docx,.txt,.rtf"
+          accept=".jpg,.jpeg,.png,.webp,.gif,.heic,.heif,.mp4,.mov,.webm,.mkv,.mp3,.wav,.aac,.ogg,.opus"
         />
         <input
           ref={addMoreFileInputRef}
@@ -504,7 +525,7 @@ export const AdvancedFileUpload = () => {
           multiple
           onChange={handleAddMoreFiles}
           className="hidden"
-          accept=".jpg,.jpeg,.png,.webp,.gif,.avif,.mp4,.mov,.webm,.avi,.mkv,.mp3,.wav,.aac,.ogg,.pdf,.doc,.docx,.txt,.rtf"
+          accept=".jpg,.jpeg,.png,.webp,.gif,.heic,.heif,.mp4,.mov,.webm,.mkv,.mp3,.wav,.aac,.ogg,.opus"
         />
 
       </CardContent>
@@ -550,6 +571,23 @@ export const AdvancedFileUpload = () => {
         onPurgeSelected={handlePurgeSelected}
         onKeepBoth={handleKeepBoth}
         onCancel={handleCancelUpload}
+      />
+
+      <UnsupportedFilesDialog
+        open={unsupportedDialogOpen}
+        onOpenChange={setUnsupportedDialogOpen}
+        unsupportedFiles={unsupportedFiles}
+        onConfirm={(filesToIgnore: string[]) => {
+          // Remove ignored unsupported files from the list
+          setUnsupportedFiles(prev => prev.filter(file => !filesToIgnore.includes(file.id)));
+          setUnsupportedDialogOpen(false);
+        }}
+      />
+
+      <HEICWarningDialog
+        open={heicWarningOpen}
+        onOpenChange={setHeicWarningOpen}
+        fileNames={heicFiles}
       />
     </Card>
   );

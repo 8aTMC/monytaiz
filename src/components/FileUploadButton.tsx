@@ -21,29 +21,22 @@ const fileTypes: FileTypeConfig[] = [
     type: 'images',
     icon: Image,
     label: 'Photos',
-    accept: '.jpg,.jpeg,.png,.webp,.gif,.avif',
+    accept: '.jpg,.jpeg,.png,.webp,.gif,.heic,.heif',
     color: 'text-blue-500'
   },
   {
     type: 'videos',
     icon: Video,
     label: 'Videos',
-    accept: '.mp4,.mov,.webm,.avi,.mkv',
+    accept: '.mp4,.mov,.webm,.mkv',
     color: 'text-purple-500'
   },
   {
     type: 'audio',
     icon: Music,
     label: 'Audio',
-    accept: '.mp3,.wav,.aac,.ogg,.flac,.opus',
+    accept: '.mp3,.wav,.aac,.ogg,.opus',
     color: 'text-green-500'
-  },
-  {
-    type: 'documents',
-    icon: FileText,
-    label: 'Documents',
-    accept: '.pdf,.doc,.docx,.txt,.rtf',
-    color: 'text-orange-500'
   }
 ];
 

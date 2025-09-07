@@ -2,50 +2,59 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
-import { FileText, Image, Video, Music, FileIcon, Eye } from 'lucide-react';
+import { FileText, Image, Video, Music, FileIcon, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
-import { FileComparisonDialog } from './FileComparisonDialog';
 
-interface DuplicateFile {
+interface UnsupportedFile {
   id: string;
   name: string;
   size: number;
-  type: string;
-  existingFile: File; // File already in queue
-  newFile: File; // File being uploaded
+  type: 'image' | 'video' | 'audio' | 'unknown';
+  file: File;
 }
 
-interface DuplicateFilesDialogProps {
+interface UnsupportedFilesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  duplicateFiles: DuplicateFile[];
+  unsupportedFiles: UnsupportedFile[];
   onConfirm: (filesToIgnore: string[]) => void;
 }
 
-export const DuplicateFilesDialog = ({ 
+const getConversionUrl = (type: 'image' | 'video' | 'audio' | 'unknown'): string => {
+  switch (type) {
+    case 'image':
+      return 'https://www.freeconvert.com/image-converter';
+    case 'video':
+      return 'https://www.freeconvert.com/video-converter';
+    case 'audio':
+      return 'https://www.freeconvert.com/audio-converter';
+    default:
+      return 'https://www.freeconvert.com/';
+  }
+};
+
+export const UnsupportedFilesDialog = ({ 
   open, 
   onOpenChange, 
-  duplicateFiles, 
+  unsupportedFiles, 
   onConfirm 
-}: DuplicateFilesDialogProps) => {
+}: UnsupportedFilesDialogProps) => {
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
-  const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false);
-  const [selectedFileForComparison, setSelectedFileForComparison] = useState<DuplicateFile | null>(null);
   const [isConfirmedClose, setIsConfirmedClose] = useState(false);
   
-  // Initialize with all files selected by default and reset when duplicateFiles changes
+  // Initialize with all files selected by default and reset when unsupportedFiles changes
   useEffect(() => {
-    if (duplicateFiles.length > 0) {
-      setSelectedFiles(new Set(duplicateFiles.map(f => f.id)));
+    if (unsupportedFiles.length > 0) {
+      setSelectedFiles(new Set(unsupportedFiles.map(f => f.id)));
     }
-  }, [duplicateFiles]);
+  }, [unsupportedFiles]);
   
   const handleSelectAll = () => {
-    if (selectedFiles.size === duplicateFiles.length) {
+    if (selectedFiles.size === unsupportedFiles.length) {
       setSelectedFiles(new Set());
     } else {
-      setSelectedFiles(new Set(duplicateFiles.map(f => f.id)));
+      setSelectedFiles(new Set(unsupportedFiles.map(f => f.id)));
     }
   };
   
@@ -75,45 +84,39 @@ export const DuplicateFilesDialog = ({
     onOpenChange(newOpen);
   };
 
-  const handleComparisonClick = (file: DuplicateFile, event: React.MouseEvent) => {
+  const handleConvertClick = (file: UnsupportedFile, event: React.MouseEvent) => {
     event.stopPropagation();
-    setSelectedFileForComparison(file);
-    setComparisonDialogOpen(true);
+    const url = getConversionUrl(file.type);
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
   
-  const getFileIcon = (file: DuplicateFile) => {
-    const extension = file.name.split('.').pop()?.toLowerCase() || '';
-    
-    if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(extension)) {
-      return <Image className="w-8 h-8 text-blue-500" />;
+  const getFileIcon = (file: UnsupportedFile) => {
+    switch (file.type) {
+      case 'image':
+        return <Image className="w-8 h-8 text-blue-500" />;
+      case 'video':
+        return <Video className="w-8 h-8 text-purple-500" />;
+      case 'audio':
+        return <Music className="w-8 h-8 text-green-500" />;
+      default:
+        return <FileIcon className="w-8 h-8 text-muted-foreground" />;
     }
-    if (['mp4', 'mov', 'webm', 'avi', 'mkv'].includes(extension)) {
-      return <Video className="w-8 h-8 text-purple-500" />;
-    }
-    if (['mp3', 'wav', 'aac', 'ogg', 'flac', 'opus'].includes(extension)) {
-      return <Music className="w-8 h-8 text-green-500" />;
-    }
-    if (['pdf', 'doc', 'docx', 'txt', 'rtf'].includes(extension)) {
-      return <FileText className="w-8 h-8 text-orange-500" />;
-    }
-    return <FileIcon className="w-8 h-8 text-muted-foreground" />;
   };
 
-  const FileThumbnail = ({ file }: { file: DuplicateFile }) => {
+  const FileThumbnail = ({ file }: { file: UnsupportedFile }) => {
     const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-    const extension = file.name.split('.').pop()?.toLowerCase() || '';
-    const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(extension);
+    const isImage = file.type === 'image';
     
     useEffect(() => {
-      if (isImage && file.newFile) {
-        const url = URL.createObjectURL(file.newFile);
+      if (isImage && file.file) {
+        const url = URL.createObjectURL(file.file);
         setThumbnailUrl(url);
         
         return () => {
           URL.revokeObjectURL(url);
         };
       }
-    }, [file.newFile, isImage]);
+    }, [file.file, isImage]);
     
     if (isImage && thumbnailUrl) {
       return (
@@ -139,20 +142,29 @@ export const DuplicateFilesDialog = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const getTypeLabel = (type: 'image' | 'video' | 'audio' | 'unknown') => {
+    switch (type) {
+      case 'image': return 'Image';
+      case 'video': return 'Video';
+      case 'audio': return 'Audio';
+      default: return 'Unknown';
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileIcon className="w-5 h-5 text-orange-500" />
-            Duplicate Files Found in the Queue
+            Unsupported File Types Detected
           </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">
           <div className="flex items-center justify-between mt-2">
             <p className="text-sm text-muted-foreground">
-              Found {duplicateFiles.length} duplicate file{duplicateFiles.length > 1 ? 's' : ''}. Selected files will be ignored, unselected files will be added to the queue:
+              Found {unsupportedFiles.length} unsupported file{unsupportedFiles.length > 1 ? 's' : ''}. Selected files will be ignored, unselected files can be converted:
             </p>
             <Button 
               variant="outline" 
@@ -160,13 +172,13 @@ export const DuplicateFilesDialog = ({
               onClick={handleSelectAll}
               className="text-xs"
             >
-              {selectedFiles.size === duplicateFiles.length ? 'Unselect All' : 'Select All'}
+              {selectedFiles.size === unsupportedFiles.length ? 'Unselect All' : 'Select All'}
             </Button>
           </div>
           
           <ScrollArea className="max-h-[400px] pr-4">
             <div className="space-y-2">
-              {duplicateFiles.map((file) => (
+              {unsupportedFiles.map((file) => (
                 <div 
                   key={file.id} 
                   className="flex items-center gap-3 p-3 rounded-lg border bg-muted/20 hover:bg-muted/30 transition-colors"
@@ -181,7 +193,7 @@ export const DuplicateFilesDialog = ({
                         {formatFileSize(file.size)}
                       </Badge>
                       <Badge variant="outline" className="text-xs">
-                        {file.type}
+                        {getTypeLabel(file.type)}
                       </Badge>
                     </div>
                   </div>
@@ -189,11 +201,11 @@ export const DuplicateFilesDialog = ({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={(e) => handleComparisonClick(file, e)}
+                      onClick={(e) => handleConvertClick(file, e)}
                       className="text-xs gap-1"
                     >
-                      <Eye className="w-3 h-3" />
-                      See Comparison
+                      <ExternalLink className="w-3 h-3" />
+                      Convert
                     </Button>
                   </div>
                   <div className="flex-shrink-0">
@@ -206,6 +218,17 @@ export const DuplicateFilesDialog = ({
               ))}
             </div>
           </ScrollArea>
+
+          <div className="bg-muted/50 p-3 rounded-lg">
+            <p className="text-xs text-muted-foreground">
+              <strong>Supported file types:</strong>
+              <br />• Images: JPG, JPEG, PNG, WebP, GIF, HEIC, HEIF
+              <br />• Videos: MP4, MOV, WebM, MKV  
+              <br />• Audio: MP3, WAV, AAC, OGG, Opus
+              <br /><br />
+              <em>If the conversion site cannot convert your file, please browse the internet for a specific converter for your file type.</em>
+            </p>
+          </div>
         </div>
 
         <DialogFooter className="flex-col gap-2 sm:flex-row">
@@ -217,15 +240,6 @@ export const DuplicateFilesDialog = ({
           </Button>
         </DialogFooter>
       </DialogContent>
-      
-      {selectedFileForComparison && (
-        <FileComparisonDialog
-          open={comparisonDialogOpen}
-          onOpenChange={setComparisonDialogOpen}
-          existingFile={{ file: selectedFileForComparison.existingFile }}
-          newFile={{ file: selectedFileForComparison.newFile }}
-        />
-      )}
     </Dialog>
   );
 };

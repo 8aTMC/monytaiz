@@ -27,32 +27,22 @@ const FILE_LIMITS = {
   video: 50 * 1024 * 1024, // 50MB - Supabase Free tier limit
   image: 50 * 1024 * 1024, // 50MB
   audio: 10 * 1024 * 1024, // 10MB
-  document: 10 * 1024 * 1024, // 10MB
 };
 
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024 * 1024; // 10GB total per upload session
 
 const ALLOWED_TYPES = {
-  video: ['.mp4', '.mov', '.webm', '.avi', '.mkv'],
-  image: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif', '.heic', '.heif'],
-  audio: ['.mp3', '.wav', '.aac', '.ogg', '.flac', '.opus'],
-  document: ['.pdf', '.doc', '.docx', '.txt', '.rtf'],
+  video: ['.mp4', '.mov', '.webm', '.mkv'],
+  image: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif'],
+  audio: ['.mp3', '.wav', '.aac', '.ogg', '.opus'],
 };
 
 // Formats that require conversion but we can handle
 const CONVERSION_FORMATS = {
-  audio: ['.mp3', '.wav', '.aac', '.ogg', '.flac', '.opus'], // Convert to WebM/Opus
-  image: ['.jpg', '.jpeg', '.png', '.gif', '.avif', '.heic', '.heif'], // Convert to WebP
-  video: ['.mp4', '.mov', '.avi', '.mkv'] // Keep as-is, backend processing
+  audio: ['.mp3', '.wav', '.aac', '.ogg', '.opus'], // Convert to WebM/Opus
+  image: ['.jpg', '.jpeg', '.png', '.gif', '.heic', '.heif'], // Convert to WebP
+  video: ['.mp4', '.mov', '.webm', '.mkv'] // Keep as-is, backend processing
 };
-
-// Formats we cannot support (will be filtered out with error message)
-const UNSUPPORTED_FORMATS = [
-  '.tiff', '.tif', // TIFF images
-  '.flv', // Flash video
-  '.wmv', // Windows Media Video  
-  '.hevc', '.h265' // HEVC codec files
-];
 
 const getFileType = (file: File): keyof typeof FILE_LIMITS => {
   const extension = '.' + file.name.split('.').pop()?.toLowerCase();
@@ -60,14 +50,34 @@ const getFileType = (file: File): keyof typeof FILE_LIMITS => {
   if (ALLOWED_TYPES.video.includes(extension)) return 'video';
   if (ALLOWED_TYPES.image.includes(extension)) return 'image';
   if (ALLOWED_TYPES.audio.includes(extension)) return 'audio';
-  if (ALLOWED_TYPES.document.includes(extension)) return 'document';
   
   throw new Error(`Unsupported file type: ${extension}`);
 };
 
-const isUnsupportedFormat = (file: File): boolean => {
+const getUnsupportedFileType = (file: File): 'image' | 'video' | 'audio' | 'unknown' => {
   const extension = '.' + file.name.split('.').pop()?.toLowerCase();
-  return UNSUPPORTED_FORMATS.includes(extension);
+  const mimeType = file.type.toLowerCase();
+  
+  // Check by extension first
+  if (['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.tiff', '.tif', '.avif', '.svg', '.ico'].includes(extension)) return 'image';
+  if (['.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.wmv', '.m4v', '.3gp'].includes(extension)) return 'video';
+  if (['.mp3', '.wav', '.aac', '.flac', '.opus', '.m4a', '.wma'].includes(extension)) return 'audio';
+  
+  // Check by MIME type
+  if (mimeType.startsWith('image/')) return 'image';
+  if (mimeType.startsWith('video/')) return 'video';
+  if (mimeType.startsWith('audio/')) return 'audio';
+  
+  return 'unknown';
+};
+
+const isUnsupportedFormat = (file: File): boolean => {
+  try {
+    getFileType(file);
+    return false; // If getFileType doesn't throw, it's supported
+  } catch {
+    return true; // If getFileType throws, it's unsupported
+  }
 };
 
 const needsConversion = (file: File): boolean => {
@@ -80,8 +90,7 @@ const getStorageFolder = (fileType: keyof typeof FILE_LIMITS): string => {
   const folderMap = {
     video: 'videos',
     image: 'photos', 
-    audio: 'audios',
-    document: 'documents'
+    audio: 'audios'
   };
   return folderMap[fileType];
 };
@@ -123,7 +132,7 @@ export const useFileUpload = () => {
     }
   }, []);
 
-  const addFiles = useCallback((files: File[], showDuplicateDialog?: (duplicates: { name: string; size: number; type: string; existingFile: File; newFile: File }[]) => void) => {
+  const addFiles = useCallback((files: File[], showDuplicateDialog?: (duplicates: { name: string; size: number; type: string; existingFile: File; newFile: File }[]) => void, showUnsupportedDialog?: (unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]) => void) => {
     if (uploadQueue.length + files.length > 100) {
       toast({
         title: "Too many files",
@@ -135,7 +144,7 @@ export const useFileUpload = () => {
 
     const validFiles: FileUploadItem[] = [];
     const errors: string[] = [];
-    const unsupportedFiles: string[] = [];
+    const unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[] = [];
     const duplicateFiles: { name: string; size: number; type: string; existingFile: File; newFile: File }[] = [];
     
     // Calculate current upload size from existing queue
@@ -147,7 +156,14 @@ export const useFileUpload = () => {
     files.forEach((file, index) => {
       // Check for unsupported formats first
       if (isUnsupportedFormat(file)) {
-        unsupportedFiles.push(file.name);
+        const unsupportedType = getUnsupportedFileType(file);
+        unsupportedFiles.push({
+          id: `unsupported-${Date.now()}-${index}`,
+          name: file.name,
+          size: file.size,
+          type: unsupportedType,
+          file: file
+        });
         return;
       }
       
@@ -207,13 +223,9 @@ export const useFileUpload = () => {
       showDuplicateDialog(duplicateFiles);
     }
 
-    // Show messages for unsupported files
-    if (unsupportedFiles.length > 0) {
-      toast({
-        title: "Unsupported files ignored",
-        description: `${unsupportedFiles.length} unsupported file${unsupportedFiles.length > 1 ? 's' : ''} were ignored. Only supported types have been added.`,
-        variant: "destructive",
-      });
+    // Show dialog for unsupported files if callback provided
+    if (unsupportedFiles.length > 0 && showUnsupportedDialog) {
+      showUnsupportedDialog(unsupportedFiles);
     }
 
      // Show error messages for other rejected files
@@ -890,5 +902,6 @@ export const useFileUpload = () => {
     allSelected,
     processedCount: uploadQueue.filter(f => f.status === 'completed').length,
     totalCount: uploadQueue.length,
+    getUnsupportedFileType,
   };
 };
