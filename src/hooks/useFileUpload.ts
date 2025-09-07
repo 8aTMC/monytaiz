@@ -72,10 +72,15 @@ const getUnsupportedFileType = (file: File): 'image' | 'video' | 'audio' | 'unkn
 };
 
 const isUnsupportedFormat = (file: File): boolean => {
+  const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+  console.log(`Checking file: ${file.name} with extension: ${extension}`);
+  
   try {
     getFileType(file);
+    console.log(`File ${file.name} is SUPPORTED`);
     return false; // If getFileType doesn't throw, it's supported
-  } catch {
+  } catch (error) {
+    console.log(`File ${file.name} is UNSUPPORTED:`, error);
     return true; // If getFileType throws, it's unsupported
   }
 };
@@ -174,8 +179,11 @@ export const useFileUpload = () => {
     let totalFiles = files.length;
 
     files.forEach((file, index) => {
+      console.log(`Processing file: ${file.name}`);
+      
       // Check for unsupported formats first
       if (isUnsupportedFormat(file)) {
+        console.log(`Adding ${file.name} to unsupported files list`);
         const unsupportedType = getUnsupportedFileType(file);
         unsupportedFiles.push({
           id: `unsupported-${Date.now()}-${index}`,
@@ -244,7 +252,11 @@ export const useFileUpload = () => {
     }
 
     // Show dialog for unsupported files if callback provided
+    console.log(`Unsupported files found: ${unsupportedFiles.length}`, unsupportedFiles);
+    console.log(`Dialog callback provided: ${!!showUnsupportedDialog}`);
+    
     if (unsupportedFiles.length > 0 && showUnsupportedDialog) {
+      console.log(`Showing unsupported files dialog for ${unsupportedFiles.length} files`);
       showUnsupportedDialog(unsupportedFiles);
     }
 
@@ -268,11 +280,26 @@ export const useFileUpload = () => {
     }
 
     if (validFiles.length > 0) {
-      setUploadQueue(prev => [...prev, ...validFiles]);
+      // Final safety check: Filter out any unsupported files that somehow made it through
+      const safeFiles = validFiles.filter(item => {
+        try {
+          getFileType(item.file);
+          return true;
+        } catch (error) {
+          console.error(`Blocking unsupported file from queue: ${item.file.name}`, error);
+          return false;
+        }
+      });
+      
+      if (safeFiles.length !== validFiles.length) {
+        console.warn(`Filtered out ${validFiles.length - safeFiles.length} unsupported files from upload queue`);
+      }
+      
+      setUploadQueue(prev => [...prev, ...safeFiles]);
       const totalSizeGB = (cumulativeSize / (1024 * 1024 * 1024)).toFixed(2);
       toast({
         title: "Files added",
-        description: `${validFiles.length} file(s) ready for upload (${totalSizeGB}GB total)`,
+        description: `${safeFiles.length} file(s) ready for upload (${totalSizeGB}GB total)`,
         variant: "success",
       });
     }
