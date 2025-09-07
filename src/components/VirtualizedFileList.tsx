@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useEffect, useState } from 'react';
+import React, { memo, useMemo } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import { UploadedFileWithMetadata } from '@/components/FileUploadRowWithMetadata';
 import { OptimizedFileReviewRow } from './OptimizedFileReviewRow';
@@ -56,26 +56,8 @@ export const VirtualizedFileList = memo(({
   onMetadataChange, 
   onSelectionChange, 
   formatFileSize,
-  height = 600 
+  height = 400 
 }: VirtualizedFileListProps) => {
-  // Calculate available viewport height
-  const [maxHeight, setMaxHeight] = useState(600);
-  
-  useEffect(() => {
-    const calculateMaxHeight = () => {
-      // Account for layout: header (30px), padding (48px), buttons area (~120px), margins (~60px)
-      const reservedSpace = 260;
-      const availableHeight = window.innerHeight - reservedSpace;
-      // Ensure minimum height but cap at available space
-      const clampedHeight = Math.max(300, Math.min(availableHeight, 700));
-      setMaxHeight(clampedHeight);
-    };
-
-    calculateMaxHeight();
-    window.addEventListener('resize', calculateMaxHeight);
-    return () => window.removeEventListener('resize', calculateMaxHeight);
-  }, []);
-
   // Memoize the data object to prevent List re-renders
   const itemData = useMemo(() => ({
     files,
@@ -85,8 +67,8 @@ export const VirtualizedFileList = memo(({
     formatFileSize
   }), [files, onRemove, onMetadataChange, onSelectionChange, formatFileSize]);
 
-  // Use consistent height for both virtualized and non-virtualized
-  const containerHeight = Math.min(maxHeight, files.length * ITEM_HEIGHT + 20);
+  // Use the height passed from parent - no dynamic calculation
+  const containerHeight = Math.min(height, files.length * ITEM_HEIGHT + 20);
   const shouldVirtualize = files.length > 10; // Only virtualize for larger lists
 
   if (!shouldVirtualize) {
@@ -94,7 +76,7 @@ export const VirtualizedFileList = memo(({
     return (
       <div 
         className="w-full bg-card rounded-lg border border-border overflow-hidden"
-        style={{ height: containerHeight, maxHeight }}
+        style={{ height: containerHeight }}
       >
         <ScrollArea className="h-full">
           <div className="space-y-0 bg-card">
@@ -125,7 +107,7 @@ export const VirtualizedFileList = memo(({
   return (
     <div 
       className="w-full bg-background border border-border rounded-lg overflow-hidden"
-      style={{ height: containerHeight, maxHeight }}
+      style={{ height: containerHeight }}
     >
       <List
         height={containerHeight}

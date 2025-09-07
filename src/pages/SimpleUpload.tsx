@@ -441,278 +441,285 @@ export default function SimpleUpload() {
   return (
     <SelectedFilesProvider>
       <Layout>
-        <div className="container mx-auto px-4 py-2">
-        <div className="mb-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                {reviewMode ? 'Review Files' : 'Upload Media'}
-              </h1>
-              <p className="text-muted-foreground">
-                {reviewMode 
-                      ? 'Review your selected files before uploading. You can edit metadata and remove files.'
-                      : 'Ultra-fast direct uploads. Files are immediately available in your library.'
-                }
-              </p>
-            </div>
-            
-            {hasCompletedFiles && !reviewMode && (
-              <Button onClick={() => navigate('/library')}>
-                View Library ({completedFiles})
-              </Button>
-            )}
-          </div>
-          
-          {reviewMode && files.length > 0 && (
-            <div className="flex items-center gap-3 mt-4 justify-end">
-              <Button 
-                variant="outline" 
-                onClick={clearUpload}
-                className="flex items-center gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                Clear Upload
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={handleAddMoreFiles}
-                className="flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Add More Files
-              </Button>
-              <Button 
-                onClick={startUpload}
-                className="flex items-center gap-2"
-              >
-                <Upload className="w-4 h-4" />
-                Start Upload ({files.length} files)
-              </Button>
-            </div>
-          )}
-
-          {/* Storage Quota Progress Bar - Show in review mode */}
-          {reviewMode && files.length > 0 && (
-            <StorageQuotaProgressBar 
-              totalSizeBytes={totalFilesSize}
-              className="mt-2"
-            />
-          )}
-        </div>
-
-        {/* Upload Area - Hide in review mode */}
-        {!reviewMode && (
-          <Card className="mb-6">
-            <div
-              {...getRootProps()}
-              className={`
-                p-8 border-2 border-dashed rounded-lg transition-colors cursor-pointer
-                ${isDragActive 
-                  ? 'border-primary bg-primary/5' 
-                  : 'border-muted-foreground/25 hover:border-primary/50'
-                }
-                ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
-              `}
-            >
-              <input {...getInputProps()} />
-              <div className="text-center">
-                <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                {isDragActive ? (
-                  <p className="text-lg font-medium text-primary">Drop files here...</p>
-                ) : (
-                  <>
-                    <p className="text-lg font-medium text-foreground mb-2">
-                      Drag & drop files here, or click to browse
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Supports images, videos, and audio files
-                    </p>
-                  </>
+        <div className="flex flex-col h-screen">
+          {/* Fixed Header Section */}
+          <div className="flex-none bg-background border-b border-border">
+            <div className="container mx-auto px-4 py-4">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">
+                    {reviewMode ? 'Review Files' : 'Upload Media'}
+                  </h1>
+                  <p className="text-muted-foreground">
+                    {reviewMode 
+                          ? 'Review your selected files before uploading. You can edit metadata and remove files.'
+                          : 'Ultra-fast direct uploads. Files are immediately available in your library.'
+                    }
+                  </p>
+                </div>
+                
+                {hasCompletedFiles && !reviewMode && (
+                  <Button onClick={() => navigate('/library')}>
+                    View Library ({completedFiles})
+                  </Button>
                 )}
               </div>
+              
+              {reviewMode && files.length > 0 && (
+                <div className="flex items-center gap-3 justify-end">
+                  <Button 
+                    variant="outline" 
+                    onClick={clearUpload}
+                    className="flex items-center gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Clear Upload
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={handleAddMoreFiles}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add More Files
+                  </Button>
+                  <Button 
+                    onClick={startUpload}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Start Upload ({files.length} files)
+                  </Button>
+                </div>
+              )}
+
+              {/* Storage Quota Progress Bar - Show in review mode */}
+              {reviewMode && files.length > 0 && (
+                <StorageQuotaProgressBar 
+                  totalSizeBytes={totalFilesSize}
+                  className="mt-4"
+                />
+              )}
             </div>
-          </Card>
-        )}
-
-        {/* Review Mode - File List with Selection and Batch Controls */}
-        {reviewMode && files.length > 0 && (
-          <div key={`cache-buster-${Math.random()}-${files.length}-${selectedFiles.length}`} className="space-y-4 mb-6 animate-in fade-in-0 duration-300">
-            {/* File count and selection header */}
-            <SelectionHeader
-              totalFiles={files.length}
-              selectedCount={selectedFiles.length}
-              allSelected={allSelected}
-              onSelectAll={selectAllFiles}
-              onClearSelection={clearSelection}
-            />
-            
-            {/* Batch metadata toolbar */}
-            {hasSelection && (
-              <BatchMetadataToolbar
-                selectedCount={selectedFiles.length}
-                onClearSelection={clearSelection}
-                onUpdateMetadata={updateSelectedFilesMetadata}
-              />
-            )}
-            
-            <VirtualizedFileList
-              files={files}
-              onRemove={removeFile}
-              onMetadataChange={handleMetadataChange}
-              onSelectionChange={toggleFileSelection}
-              formatFileSize={formatFileSize}
-              height={600}
-            />
           </div>
-        )}
 
-        {/* Enhanced Upload Progress */}
-        {uploading && (
-          <div className="space-y-4 mb-6">
-            {/* Overall Progress Summary */}
-            {files.length > 1 && (
-              <Card className="p-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Upload className="w-4 h-4 text-primary" />
-                      <span className="font-medium">Upload Progress</span>
+          {/* Scrollable Content Area */}
+          <div className="flex-1 overflow-hidden">
+            <div className="container mx-auto px-4 py-4 h-full overflow-y-auto">
+              {/* Upload Area - Hide in review mode */}
+              {!reviewMode && (
+                <Card className="mb-6">
+                  <div
+                    {...getRootProps()}
+                    className={`
+                      p-8 border-2 border-dashed rounded-lg transition-colors cursor-pointer
+                      ${isDragActive 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-muted-foreground/25 hover:border-primary/50'
+                      }
+                      ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
+                    `}
+                  >
+                    <input {...getInputProps()} />
+                    <div className="text-center">
+                      <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      {isDragActive ? (
+                        <p className="text-lg font-medium text-primary">Drop files here...</p>
+                      ) : (
+                        <>
+                          <p className="text-lg font-medium text-foreground mb-2">
+                            Drag & drop files here, or click to browse
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Supports images, videos, and audio files
+                          </p>
+                        </>
+                      )}
                     </div>
-                    <span className="text-sm text-muted-foreground">
-                      {files.filter(f => f.status === 'completed').length} / {files.length} completed
-                    </span>
                   </div>
-                  <Progress value={currentUploadProgress} className="h-2" />
+                </Card>
+              )}
+
+              {/* Review Mode - File List with Selection and Batch Controls */}
+              {reviewMode && files.length > 0 && (
+                <div key={`cache-buster-${Math.random()}-${files.length}-${selectedFiles.length}`} className="space-y-4 mb-6 animate-in fade-in-0 duration-300">
+                  {/* File count and selection header */}
+                  <SelectionHeader
+                    totalFiles={files.length}
+                    selectedCount={selectedFiles.length}
+                    allSelected={allSelected}
+                    onSelectAll={selectAllFiles}
+                    onClearSelection={clearSelection}
+                  />
                   
-            {/* Statistics - Remove compression stats since no processing */}
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div>
-                <p className="text-xs text-muted-foreground">Files</p>
-                <p className="font-medium">{files.filter(f => f.status === 'completed').length}/{files.length}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Total Size</p>
-                <p className="font-medium text-primary">
-                  {formatFileSize(files.reduce((acc, f) => {
-                    if (f.status === 'completed') {
-                      return acc + f.file.size;
-                    }
-                    return acc;
-                  }, 0))}
-                </p>
-              </div>
-            </div>
+                  {/* Batch metadata toolbar */}
+                  {hasSelection && (
+                    <BatchMetadataToolbar
+                      selectedCount={selectedFiles.length}
+                      onClearSelection={clearSelection}
+                      onUpdateMetadata={updateSelectedFilesMetadata}
+                    />
+                  )}
+                  
+                  <VirtualizedFileList
+                    files={files}
+                    onRemove={removeFile}
+                    onMetadataChange={handleMetadataChange}
+                    onSelectionChange={toggleFileSelection}
+                    formatFileSize={formatFileSize}
+                    height={400}
+                  />
                 </div>
-              </Card>
-            )}
+              )}
 
-            {/* Current File Detailed Progress */}
-            {uploadProgress.phase !== 'complete' && uploadProgress.phase !== 'error' && currentUploadingFile && (
-              <DetailedUploadProgressBar
-                fileName={files.find(f => f.id === currentUploadingFile)?.file.name || 'Processing...'}
-                fileType={files.find(f => f.id === currentUploadingFile)?.file.type || ''}
-                progress={uploadProgress as any}
-                isActive={true}
+              {/* Enhanced Upload Progress */}
+              {uploading && (
+                <div className="space-y-4 mb-6">
+                  {/* Overall Progress Summary */}
+                  {files.length > 1 && (
+                    <Card className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Upload className="w-4 h-4 text-primary" />
+                            <span className="font-medium">Upload Progress</span>
+                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            {files.filter(f => f.status === 'completed').length} / {files.length} completed
+                          </span>
+                        </div>
+                        <Progress value={currentUploadProgress} className="h-2" />
+                        
+                  {/* Statistics - Remove compression stats since no processing */}
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Files</p>
+                      <p className="font-medium">{files.filter(f => f.status === 'completed').length}/{files.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Total Size</p>
+                      <p className="font-medium text-primary">
+                        {formatFileSize(files.reduce((acc, f) => {
+                          if (f.status === 'completed') {
+                            return acc + f.file.size;
+                          }
+                          return acc;
+                        }, 0))}
+                      </p>
+                    </div>
+                  </div>
+                      </div>
+                    </Card>
+                  )}
+
+                  {/* Current File Detailed Progress */}
+                  {uploadProgress.phase !== 'complete' && uploadProgress.phase !== 'error' && currentUploadingFile && (
+                    <DetailedUploadProgressBar
+                      fileName={files.find(f => f.id === currentUploadingFile)?.file.name || 'Processing...'}
+                      fileType={files.find(f => f.id === currentUploadingFile)?.file.type || ''}
+                      progress={uploadProgress as any}
+                      isActive={true}
+                    />
+                  )}
+
+                  {/* Error Display */}
+                  {uploadProgress.phase === 'error' && (
+                    <Card className="p-4 border-destructive">
+                      <div className="flex items-center gap-2 text-destructive">
+                        <Upload className="w-4 h-4" />
+                        <span className="font-medium">Upload Error</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">{uploadProgress.message}</p>
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              {/* Hidden file input for adding more files */}
+              <input
+                ref={addMoreFileInputRef}
+                type="file"
+                multiple
+                onChange={handleAddMoreFilesChange}
+                className="hidden"
               />
-            )}
 
-            {/* Error Display */}
-            {uploadProgress.phase === 'error' && (
-              <Card className="p-4 border-destructive">
-                <div className="flex items-center gap-2 text-destructive">
-                  <Upload className="w-4 h-4" />
-                  <span className="font-medium">Upload Error</span>
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">{uploadProgress.message}</p>
-              </Card>
-            )}
+              {/* Unsupported Files Dialog */}
+              <UnsupportedFilesDialog
+                open={unsupportedDialogOpen}
+                onOpenChange={setUnsupportedDialogOpen}
+                unsupportedFiles={unsupportedFiles}
+                onConfirm={() => {
+                  console.log(`Closing unsupported files dialog`);
+                  setUnsupportedDialogOpen(false);
+                  setUnsupportedFiles([]);
+                  
+                  toast({
+                    title: "Unsupported files detected",
+                    description: `${unsupportedFiles.length} unsupported file${unsupportedFiles.length > 1 ? 's' : ''} cannot be uploaded. Use the conversion links to convert them first.`,
+                  });
+                }}
+              />
+
+              {/* Duplicate Files Dialog */}
+              <DuplicateFilesDialog
+                open={duplicateDialogOpen}
+                onOpenChange={setDuplicateDialogOpen}
+                duplicateFiles={duplicateFiles}
+                onConfirm={(filesToIgnore: string[]) => {
+                  // Remove ignored duplicates from the duplicates list
+                  setDuplicateFiles(prev => prev.filter(dup => !filesToIgnore.includes(dup.id)));
+                  
+                  if (filesToIgnore.length > 0) {
+                    toast({
+                      title: "Duplicate files ignored",
+                      description: `${filesToIgnore.length} duplicate file${filesToIgnore.length > 1 ? 's' : ''} were ignored`,
+                    });
+                  }
+                  
+                  setDuplicateDialogOpen(false);
+                }}
+              />
+
+              {/* Exceeds Limit Dialog */}
+              <ExceedsLimitDialog
+                open={exceedsLimitDialogOpen}
+                onOpenChange={setExceedsLimitDialogOpen}
+                filesAnalysis={filesAnalysis}
+                totalCurrentSize={0} // Current usage would need to be tracked separately
+                onProceedWithPartial={() => {
+                  // Filter files to only upload those that fit within limit
+                  const filesToKeep = filesAnalysis.filter(f => f.canUpload).map(f => f.id);
+                  setFiles(prev => prev.filter(f => filesToKeep.includes(f.id)));
+                  
+                  // Proceed with upload
+                  setExceedsLimitDialogOpen(false);
+                  setReviewMode(false);
+                  
+                  // Start upload with filtered files
+                  const filesToUpload = files.filter(f => filesToKeep.includes(f.id) && f.status === 'pending');
+                  
+                  toast({
+                    title: "Partial upload started",
+                    description: `Uploading ${filesToUpload.length} files that fit within storage limit`,
+                  });
+                  
+                  // Trigger upload for remaining files
+                  setTimeout(() => {
+                    const remainingFiles = files.filter(f => filesToKeep.includes(f.id));
+                    if (remainingFiles.length > 0) {
+                      startUpload();
+                    }
+                  }, 100);
+                }}
+                onCancel={() => {
+                  setExceedsLimitDialogOpen(false);
+                }}
+              />
+            </div>
           </div>
-        )}
-
-        {/* Hidden file input for adding more files */}
-        <input
-          ref={addMoreFileInputRef}
-          type="file"
-          multiple
-          onChange={handleAddMoreFilesChange}
-          className="hidden"
-        />
-
-        {/* Unsupported Files Dialog */}
-        <UnsupportedFilesDialog
-          open={unsupportedDialogOpen}
-          onOpenChange={setUnsupportedDialogOpen}
-          unsupportedFiles={unsupportedFiles}
-          onConfirm={() => {
-            console.log(`Closing unsupported files dialog`);
-            setUnsupportedDialogOpen(false);
-            setUnsupportedFiles([]);
-            
-            toast({
-              title: "Unsupported files detected",
-              description: `${unsupportedFiles.length} unsupported file${unsupportedFiles.length > 1 ? 's' : ''} cannot be uploaded. Use the conversion links to convert them first.`,
-            });
-          }}
-        />
-
-        {/* Duplicate Files Dialog */}
-        <DuplicateFilesDialog
-          open={duplicateDialogOpen}
-          onOpenChange={setDuplicateDialogOpen}
-          duplicateFiles={duplicateFiles}
-          onConfirm={(filesToIgnore: string[]) => {
-            // Remove ignored duplicates from the duplicates list
-            setDuplicateFiles(prev => prev.filter(dup => !filesToIgnore.includes(dup.id)));
-            
-            if (filesToIgnore.length > 0) {
-              toast({
-                title: "Duplicate files ignored",
-                description: `${filesToIgnore.length} duplicate file${filesToIgnore.length > 1 ? 's' : ''} were ignored`,
-              });
-            }
-            
-            setDuplicateDialogOpen(false);
-          }}
-        />
-
-        {/* Exceeds Limit Dialog */}
-        <ExceedsLimitDialog
-          open={exceedsLimitDialogOpen}
-          onOpenChange={setExceedsLimitDialogOpen}
-          filesAnalysis={filesAnalysis}
-          totalCurrentSize={0} // Current usage would need to be tracked separately
-          onProceedWithPartial={() => {
-            // Filter files to only upload those that fit within limit
-            const filesToKeep = filesAnalysis.filter(f => f.canUpload).map(f => f.id);
-            setFiles(prev => prev.filter(f => filesToKeep.includes(f.id)));
-            
-            // Proceed with upload
-            setExceedsLimitDialogOpen(false);
-            setReviewMode(false);
-            
-            // Start upload with filtered files
-            const filesToUpload = files.filter(f => filesToKeep.includes(f.id) && f.status === 'pending');
-            
-            toast({
-              title: "Partial upload started",
-              description: `Uploading ${filesToUpload.length} files that fit within storage limit`,
-            });
-            
-            // Trigger upload for remaining files
-            setTimeout(() => {
-              const remainingFiles = files.filter(f => filesToKeep.includes(f.id));
-              if (remainingFiles.length > 0) {
-                startUpload();
-              }
-            }, 100);
-          }}
-          onCancel={() => {
-            setExceedsLimitDialogOpen(false);
-          }}
-        />
-
-      </div>
-    </Layout>
+        </div>
+      </Layout>
     </SelectedFilesProvider>
   );
 }
