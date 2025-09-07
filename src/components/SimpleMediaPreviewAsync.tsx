@@ -191,8 +191,50 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
 
   if (!item) return null;
 
-  const handleDownload = () => {
-    if (fullUrl) {
+  const handleDownload = async () => {
+    if (!fullUrl || !item) return;
+    
+    try {
+      // Fetch the actual file blob
+      const response = await fetch(fullUrl);
+      if (!response.ok) throw new Error('Failed to fetch file');
+      
+      const blob = await response.blob();
+      
+      // Generate clean filename from original filename
+      const originalFilename = item.original_filename || item.title || 'download';
+      let cleanFilename = originalFilename;
+      
+      // Remove existing extension and add appropriate one
+      const nameWithoutExt = cleanFilename.replace(/\.[^/.]+$/, '');
+      
+      // For processed images, use .webp extension
+      if (item.media_type === 'image' && (item.processed_path || item.optimized_size_bytes)) {
+        cleanFilename = `${nameWithoutExt}.webp`;
+      } else if (item.media_type === 'video') {
+        cleanFilename = `${nameWithoutExt}.mp4`; // Default to mp4 for processed videos
+      } else {
+        // Keep original extension or add generic one
+        const originalExt = originalFilename.split('.').pop();
+        cleanFilename = originalExt ? `${nameWithoutExt}.${originalExt}` : nameWithoutExt;
+      }
+      
+      // Create download link
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = cleanFilename;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Failed to download file:', error);
+      // Fallback to original behavior
       window.open(fullUrl, '_blank');
     }
   };
