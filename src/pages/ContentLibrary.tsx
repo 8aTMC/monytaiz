@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Grid, BookOpen, Zap, MessageSquare, Filter } from 'lucide-react';
+import { Search, Grid, BookOpen, Zap, MessageSquare, Filter, AlertTriangle } from 'lucide-react';
 import { DeletionProgressDialog } from '@/components/DeletionProgressDialog';
 import { LibrarySelectionToolbar } from '@/components/LibrarySelectionToolbar';
 import { useMediaOperations } from '@/hooks/useMediaOperations';
@@ -20,6 +20,7 @@ import { useLibraryData } from '@/hooks/useLibraryData';
 import { LibraryErrorBoundary } from '@/components/LibraryErrorBoundary';
 import { LibraryFiltersDialog } from '@/components/LibraryFiltersDialog';
 import { LibraryFilterState } from '@/types/library-filters';
+import { OrphanedDataManager } from '@/components/OrphanedDataManager';
 
 interface MediaItem {
   id: string;
@@ -74,6 +75,9 @@ const ContentLibrary = () => {
   
   // Filter dialog state
   const [filtersDialogOpen, setFiltersDialogOpen] = useState(false);
+  
+  // Cleanup dialog state
+  const [showCleanup, setShowCleanup] = useState(false);
   
   // Selection state
   const [selecting, setSelecting] = useState(false);
@@ -431,29 +435,41 @@ const ContentLibrary = () => {
             <div className="space-y-4">
               {/* Top Row: Advanced Filters Button + Search + Sort + Select */}
               <div className="flex items-center gap-3 justify-between">
-                {/* Left Side: Advanced Filters (Always Visible) */}
-                <Button
-                  variant={hasActiveFilters ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setFiltersDialogOpen(true)}
-                  className={`shrink-0 font-medium ${
-                    hasActiveFilters
-                      ? "bg-primary text-primary-foreground shadow-md"
-                      : "border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
-                  }`}
-                >
-                  <Filter className="h-4 w-4 mr-2" />
-                  Advanced Filters
-                  {hasActiveFilters && (
-                    <Badge variant="secondary" className="ml-2 bg-primary-foreground/20 text-primary text-xs px-1.5 py-0.5">
-                      {[
-                        ...advancedFilters.collaborators,
-                        ...advancedFilters.tags,
-                        ...(advancedFilters.priceRange[0] > 0 || advancedFilters.priceRange[1] < 1000000 ? ['price'] : [])
-                      ].length}
-                    </Badge>
-                  )}
-                </Button>
+                {/* Left Side: Advanced Filters + Cleanup (Always Visible) */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={hasActiveFilters ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setFiltersDialogOpen(true)}
+                    className={`shrink-0 font-medium ${
+                      hasActiveFilters
+                        ? "bg-primary text-primary-foreground shadow-md"
+                        : "border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                    }`}
+                  >
+                    <Filter className="h-4 w-4 mr-2" />
+                    Advanced Filters
+                    {hasActiveFilters && (
+                      <Badge variant="secondary" className="ml-2 bg-primary-foreground/20 text-primary text-xs px-1.5 py-0.5">
+                        {[
+                          ...advancedFilters.collaborators,
+                          ...advancedFilters.tags,
+                          ...(advancedFilters.priceRange[0] > 0 || advancedFilters.priceRange[1] < 1000000 ? ['price'] : [])
+                        ].length}
+                      </Badge>
+                    )}
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowCleanup(!showCleanup)}
+                    className="shrink-0 font-medium border-2 border-warning/20 hover:border-warning/40 hover:bg-warning/5"
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    {showCleanup ? 'Hide Cleanup' : 'DB Cleanup'}
+                  </Button>
+                </div>
 
                 {/* Right Side: Search + Sort + Select */}
                 <div className="flex items-center gap-3">
@@ -528,6 +544,13 @@ const ContentLibrary = () => {
                   );
                 })}
               </div>
+
+              {/* Cleanup Section (when enabled) */}
+              {showCleanup && (
+                <div className="mt-4">
+                  <OrphanedDataManager />
+                </div>
+              )}
             </div>
           </div>
 
@@ -541,7 +564,6 @@ const ContentLibrary = () => {
               onItemClick={handleCardClick}
               onCheckboxClick={handleCheckboxClick}
               loading={loadingContent}
-              debug={true}
             />
           </div>
         </div>
