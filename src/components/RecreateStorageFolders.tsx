@@ -10,10 +10,47 @@ export const RecreateStorageFolders = () => {
   const executeRecreateFolder = async () => {
     setIsRecreating(true);
     try {
-      console.log('Starting direct folder creation...');
+      console.log('Starting storage cleanup and folder creation...');
 
+      // Step 1: Clean up uploads folder
+      console.log('Cleaning up uploads/ folder...');
+      let uploadCleanupResults = { deleted: 0, errors: 0 };
+      
+      try {
+        // List all files in uploads folder
+        const { data: uploadFiles, error: listError } = await supabase.storage
+          .from('content')
+          .list('uploads', {
+            limit: 1000,
+            sortBy: { column: 'name', order: 'asc' }
+          });
+
+        if (listError) {
+          console.error('Error listing uploads folder:', listError);
+        } else if (uploadFiles && uploadFiles.length > 0) {
+          // Delete all files in uploads folder
+          const filePaths = uploadFiles.map(file => `uploads/${file.name}`);
+          console.log(`Deleting ${filePaths.length} files from uploads folder...`);
+          
+          const { data: deleteData, error: deleteError } = await supabase.storage
+            .from('content')
+            .remove(filePaths);
+
+          if (deleteError) {
+            console.error('Error deleting upload files:', deleteError);
+            uploadCleanupResults.errors = filePaths.length;
+          } else {
+            uploadCleanupResults.deleted = filePaths.length;
+            console.log(`Successfully deleted ${filePaths.length} files from uploads folder`);
+          }
+        }
+      } catch (cleanupError) {
+        console.error('Cleanup error:', cleanupError);
+      }
+
+      // Step 2: Create required folders
       const folders = ['processed/', 'thumbnails/'];
-      const results = [];
+      const folderResults = [];
 
       for (const folder of folders) {
         console.log(`Creating folder: ${folder}`);
@@ -30,37 +67,47 @@ export const RecreateStorageFolders = () => {
 
         if (error) {
           console.error(`Error creating folder ${folder}:`, error);
-          results.push({ folder, success: false, error: error.message });
+          folderResults.push({ folder, success: false, error: error.message });
         } else {
           console.log(`Successfully created folder: ${folder}`, data);
-          results.push({ folder, success: true, path: data.path });
+          folderResults.push({ folder, success: true, path: data.path });
         }
       }
 
-      const successCount = results.filter(r => r.success).length;
-      const failedCount = results.filter(r => !r.success).length;
+      // Step 3: Provide comprehensive feedback
+      const successCount = folderResults.filter(r => r.success).length;
+      const failedCount = folderResults.filter(r => !r.success).length;
 
+      let message = '';
+      if (uploadCleanupResults.deleted > 0) {
+        message += `Deleted ${uploadCleanupResults.deleted} files from uploads/. `;
+      }
       if (successCount === folders.length) {
+        message += `Created ${successCount} folders (processed/, thumbnails/)`;
         toast({
-          title: "Folders Created Successfully",
-          description: `Successfully created ${successCount} folders (processed/, thumbnails/)`,
+          title: "Storage Cleanup Complete",
+          description: message,
           variant: "default"
         });
       } else if (successCount > 0) {
+        message += `Created ${successCount} folders, ${failedCount} failed`;
         toast({
           title: "Partial Success",
-          description: `Created ${successCount} folders, ${failedCount} failed. Check console for details.`,
+          description: message + ". Check console for details.",
           variant: "default"
         });
       } else {
         toast({
-          title: "Creation Failed",
+          title: "Folder Creation Failed",
           description: "Failed to create storage folders. Check console for details.",
           variant: "destructive"
         });
       }
 
-      console.log('Folder creation results:', results);
+      console.log('Storage operation results:', {
+        uploadCleanup: uploadCleanupResults,
+        folders: folderResults
+      });
     } catch (error) {
       console.error('Folder creation failed:', error);
       toast({
