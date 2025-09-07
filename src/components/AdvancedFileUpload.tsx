@@ -114,58 +114,89 @@ export const AdvancedFileUpload = () => {
            file.type === 'image/heif';
   }, []);
 
+  // Process files and handle validation dialogs
+  const processFiles = useCallback((files: File[]) => {
+    const dialogs: DialogQueueItem[] = [];
+    
+    // Check for HEIC files
+    const heicFileNames = files.filter(isHeicFile).map(f => f.name);
+    if (heicFileNames.length > 0) {
+      dialogs.push({
+        type: 'heic',
+        data: heicFileNames,
+        title: 'HEIC Files Detected'
+      });
+    }
+    
+    // Handle duplicates and unsupported files
+    const showDuplicateDialog = (duplicates: { name: string; size: number; type: string; existingFile: File; newFile: File }[]) => {
+      if (duplicates.length > 0) {
+        const duplicatesWithId = duplicates.map(dup => ({
+          ...dup,
+          id: `${dup.name}-${dup.size}-${Date.now()}`
+        }));
+        dialogs.push({
+          type: 'duplicates',
+          data: duplicatesWithId,
+          title: 'Duplicate Files Found'
+        });
+      }
+    };
+    
+    const showUnsupportedDialog = (unsupported: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]) => {
+      if (unsupported.length > 0) {
+        dialogs.push({
+          type: 'unsupported',
+          data: unsupported,
+          title: 'Unsupported Files Found'
+        });
+      }
+    };
+    
+    // Add files and collect dialogs
+    addFiles(files, showDuplicateDialog, showUnsupportedDialog);
+    
+    // Set up dialog queue if we have dialogs to show
+    if (dialogs.length > 0) {
+      setDialogQueue(dialogs);
+      setCurrentDialogIndex(0);
+    }
+  }, [addFiles, isHeicFile]);
+
+  // Dialog handlers for queue system
+  const handleDialogClose = useCallback(() => {
+    processNextDialog();
+  }, [processNextDialog]);
+
+  const handleDuplicateConfirm = useCallback((filesToIgnore: string[]) => {
+    // Remove ignored files from dialog data (but files already in queue aren't affected)
+    handleDialogClose();
+  }, [handleDialogClose]);
+
+  const handleUnsupportedConfirm = useCallback(() => {
+    handleDialogClose();
+  }, [handleDialogClose]);
+
+  const handleHeicConfirm = useCallback(() => {
+    handleDialogClose();
+  }, [handleDialogClose]);
+
+  // Modified file handlers to use queue system
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
     
-    const fileArray = Array.from(files);
-    const heicFileNames = fileArray.filter(isHeicFile).map(f => f.name);
-    
-    if (heicFileNames.length > 0) {
-      setHeicFiles(heicFileNames);
-      setHeicWarningOpen(true);
-    }
-    
-    const showUnsupportedDialog = (unsupported: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]) => {
-      setUnsupportedFiles(unsupported);
-      setUnsupportedDialogOpen(true);
-    };
-    
-    addFiles(fileArray, undefined, showUnsupportedDialog);
-    // Reset input so same file can be selected again
+    processFiles(Array.from(files));
     event.target.value = '';
-  }, [addFiles, isHeicFile]);
+  }, [processFiles]);
 
   const handleAddMoreFiles = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
     
-    const fileArray = Array.from(files);
-    const heicFileNames = fileArray.filter(isHeicFile).map(f => f.name);
-    
-    if (heicFileNames.length > 0) {
-      setHeicFiles(heicFileNames);
-      setHeicWarningOpen(true);
-    }
-    
-    const showDuplicateDialog = (duplicates: { name: string; size: number; type: string; existingFile: File; newFile: File }[]) => {
-      const duplicatesWithId = duplicates.map(dup => ({
-        ...dup,
-        id: `${dup.name}-${dup.size}-${Date.now()}`
-      }));
-      setDuplicateFiles(duplicatesWithId);
-      setDuplicateDialogOpen(true);
-    };
-    
-    const showUnsupportedDialog = (unsupported: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]) => {
-      setUnsupportedFiles(unsupported);
-      setUnsupportedDialogOpen(true);
-    };
-    
-    addFiles(fileArray, showDuplicateDialog, showUnsupportedDialog);
-    // Reset input so same file can be selected again
+    processFiles(Array.from(files));
     event.target.value = '';
-  }, [addFiles, isHeicFile]);
+  }, [processFiles]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -178,32 +209,9 @@ export const AdvancedFileUpload = () => {
     
     const files = e.dataTransfer.files;
     if (files) {
-      const fileArray = Array.from(files);
-      const heicFileNames = fileArray.filter(isHeicFile).map(f => f.name);
-      
-      if (heicFileNames.length > 0) {
-        setHeicFiles(heicFileNames);
-        setHeicWarningOpen(true);
-      }
-      
-      // For drag and drop, show duplicate dialog if needed
-      const showDuplicateDialog = (duplicates: { name: string; size: number; type: string; existingFile: File; newFile: File }[]) => {
-        const duplicatesWithId = duplicates.map(dup => ({
-          ...dup,
-          id: `${dup.name}-${dup.size}-${Date.now()}`
-        }));
-        setDuplicateFiles(duplicatesWithId);
-        setDuplicateDialogOpen(true);
-      };
-      
-      const showUnsupportedDialog = (unsupported: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]) => {
-        setUnsupportedFiles(unsupported);
-        setUnsupportedDialogOpen(true);
-      };
-      
-      addFiles(fileArray, showDuplicateDialog, showUnsupportedDialog);
+      processFiles(Array.from(files));
     }
-  }, [addFiles, isHeicFile]);
+  }, [processFiles]);
 
   // Centralized preview functions with validation
   const openPreview = useCallback((index: number) => {
@@ -625,42 +633,62 @@ export const AdvancedFileUpload = () => {
         onPriceChange={(price) => handlePreviewMetadataUpdate('suggestedPrice', price ? price / 100 : null)}
       />
 
-      <DuplicateFilesDialog
-        open={duplicateDialogOpen}
-        onOpenChange={setDuplicateDialogOpen}
-        duplicateFiles={duplicateFiles}
-        onConfirm={(filesToIgnore: string[]) => {
-          // Remove ignored duplicates from the duplicates list
-          setDuplicateFiles(prev => prev.filter(dup => !filesToIgnore.includes(dup.id)));
-          setDuplicateDialogOpen(false);
-        }}
-      />
+        {/* Dialog Components */}
+        <FilePreviewDialog
+          open={previewOpen}
+          onOpenChange={setPreviewOpen}
+          file={previewIndex !== null ? uploadQueue[previewIndex]?.file : null}
+          onTagsChange={(tags) => handlePreviewMetadataUpdate('tags', tags)}
+          onMentionsChange={(mentions) => handlePreviewMetadataUpdate('mentions', mentions)}
+          onFoldersChange={(folders) => handlePreviewMetadataUpdate('folders', folders)}
+          onDescriptionChange={(description) => handlePreviewMetadataUpdate('description', description)}
+          onPriceChange={(price) => handlePreviewMetadataUpdate('suggestedPrice', price ? price / 100 : null)}
+        />
 
-      <PreUploadDuplicateDialog
-        open={preUploadDuplicateDialogOpen}
-        onOpenChange={setPreUploadDuplicateDialogOpen}
-        duplicates={allDuplicates}
-        onPurgeSelected={handlePurgeSelected}
-        onKeepBoth={handleKeepBoth}
-        onCancel={handleCancelUpload}
-      />
+        <PreUploadDuplicateDialog
+          open={preUploadDuplicateDialogOpen}
+          onOpenChange={setPreUploadDuplicateDialogOpen}
+          duplicates={allDuplicates}
+          onPurgeSelected={handlePurgeSelected}
+          onKeepBoth={handleKeepBoth}
+          onCancel={handleCancelUpload}
+        />
 
-      <UnsupportedFilesDialog
-        open={unsupportedDialogOpen}
-        onOpenChange={setUnsupportedDialogOpen}
-        unsupportedFiles={unsupportedFiles}
-        onConfirm={() => {
-          // Just close the dialog - unsupported files are not added to the queue
-          setUnsupportedFiles([]);
-          setUnsupportedDialogOpen(false);
-        }}
-      />
-
-      <HEICWarningDialog
-        open={heicWarningOpen}
-        onOpenChange={setHeicWarningOpen}
-        fileNames={heicFiles}
-      />
-    </Card>
-  );
-};
+        {/* Render current dialog from queue */}
+        {hasActiveDialog && currentDialog && (
+          <>
+            {currentDialog.type === 'duplicates' && (
+              <DuplicateFilesDialog
+                open={true}
+                onOpenChange={() => clearDialogQueue()}
+                duplicateFiles={currentDialog.data}
+                onConfirm={(filesToIgnore: string[]) => {
+                  handleDialogClose();
+                }}
+                stepInfo={stepInfo}
+              />
+            )}
+            {currentDialog.type === 'unsupported' && (
+              <UnsupportedFilesDialog
+                open={true}
+                onOpenChange={() => clearDialogQueue()}
+                unsupportedFiles={currentDialog.data}
+                onConfirm={() => {
+                  handleDialogClose();
+                }}
+                stepInfo={stepInfo}
+              />
+            )}
+            {currentDialog.type === 'heic' && (
+              <HEICWarningDialog
+                open={true}
+                onOpenChange={() => clearDialogQueue()}
+                fileNames={currentDialog.data}
+                stepInfo={stepInfo}
+              />
+            )}
+          </>
+        )}
+      </Card>
+    );
+  };

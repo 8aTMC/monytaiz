@@ -662,14 +662,6 @@ export default function SimpleUpload() {
                 onConfirm={(filesToIgnore: string[]) => {
                   // Remove ignored duplicates from the duplicates list
                   setDuplicateFiles(prev => prev.filter(dup => !filesToIgnore.includes(dup.id)));
-                  
-                  if (filesToIgnore.length > 0) {
-                    toast({
-                      title: "Duplicate files ignored",
-                      description: `${filesToIgnore.length} duplicate file${filesToIgnore.length > 1 ? 's' : ''} were ignored`,
-                    });
-                  }
-                  
                   setDuplicateDialogOpen(false);
                 }}
               />
