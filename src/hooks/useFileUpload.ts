@@ -109,6 +109,26 @@ export const useFileUpload = () => {
     queueRef.current = uploadQueue;
   }, [uploadQueue]);
 
+  // Clear any potentially cached files that don't match current restrictions
+  useEffect(() => {
+    setUploadQueue(currentQueue => {
+      const validFiles = currentQueue.filter(item => {
+        try {
+          const fileType = getFileType(item.file);
+          return !isUnsupportedFormat(item.file);
+        } catch {
+          return false; // Remove files that can't be validated
+        }
+      });
+      
+      if (validFiles.length !== currentQueue.length) {
+        console.log(`Removed ${currentQueue.length - validFiles.length} cached files that no longer match file restrictions`);
+      }
+      
+      return validFiles;
+    });
+  }, []); // Run once on mount
+
   const validateFile = useCallback((file: File) => {
     try {
       // Check for unsupported formats first

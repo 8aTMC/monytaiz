@@ -8,19 +8,19 @@ interface FileUploadThumbnailProps {
 
 export const FileUploadThumbnail = ({ file, className = "w-12 h-12" }: FileUploadThumbnailProps) => {
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-  const [fileType, setFileType] = useState<'image' | 'video' | 'audio' | 'document' | 'unknown'>('unknown');
+  const [fileType, setFileType] = useState<'image' | 'video' | 'audio' | 'unknown'>('unknown');
 
   useEffect(() => {
     const extension = '.' + file.name.split('.').pop()?.toLowerCase();
     
     // Determine file type
-    if (['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(extension)) {
+    if (['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif'].includes(extension)) {
       setFileType('image');
       // Create thumbnail for images
       const url = URL.createObjectURL(file);
       setThumbnailUrl(url);
       return () => URL.revokeObjectURL(url);
-    } else if (['.mp4', '.mov', '.webm', '.avi', '.mkv'].includes(extension)) {
+    } else if (['.mp4', '.mov', '.webm', '.mkv'].includes(extension)) {
       setFileType('video');
       // Create video thumbnail with proper aspect ratio
       const video = document.createElement('video');
@@ -63,10 +63,8 @@ export const FileUploadThumbnail = ({ file, className = "w-12 h-12" }: FileUploa
       
       video.src = URL.createObjectURL(file);
       return () => URL.revokeObjectURL(video.src);
-    } else if (['.mp3', '.wav', '.aac', '.ogg'].includes(extension)) {
+    } else if (['.mp3', '.wav', '.aac', '.ogg', '.opus'].includes(extension)) {
       setFileType('audio');
-    } else if (['.pdf', '.doc', '.docx', '.txt', '.rtf'].includes(extension)) {
-      setFileType('document');
     }
   }, [file]);
 
@@ -93,12 +91,6 @@ export const FileUploadThumbnail = ({ file, className = "w-12 h-12" }: FileUploa
         return (
           <div className="bg-muted rounded flex items-center justify-center w-full h-full">
             <Music className={iconClass} />
-          </div>
-        );
-      case 'document':
-        return (
-          <div className="bg-muted rounded flex items-center justify-center w-full h-full">
-            <FileText className={iconClass} />
           </div>
         );
       case 'video':
