@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { useDirectUpload } from '@/hooks/useDirectUpload';
+import { useSimpleUpload } from '@/hooks/useSimpleUpload';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -22,7 +22,7 @@ import { SelectedFilesProvider } from '@/contexts/SelectedFilesContext';
 
 export default function SimpleUpload() {
   const navigate = useNavigate();
-  const { uploading, uploadFile, uploadProgress } = useDirectUpload();
+  const { uploading, uploadFile, uploadProgress } = useSimpleUpload();
   const { toast } = useToast();
   const [files, setFiles] = useState<(UploadedFileWithMetadata & { 
     compressionRatio?: number; 
@@ -621,7 +621,7 @@ export default function SimpleUpload() {
                   )}
 
                   {/* Current File Detailed Progress */}
-                  {uploadProgress.phase !== 'complete' && uploadProgress.phase !== 'error' && currentUploadingFile && (
+                  {uploadProgress.phase !== 'complete' && currentUploadingFile && (
                     <DetailedUploadProgressBar
                       fileName={files.find(f => f.id === currentUploadingFile)?.file.name || 'Processing...'}
                       fileType={files.find(f => f.id === currentUploadingFile)?.file.type || ''}
@@ -630,16 +630,6 @@ export default function SimpleUpload() {
                     />
                   )}
 
-                  {/* Error Display */}
-                  {uploadProgress.phase === 'error' && (
-                    <Card className="p-4 border-destructive">
-                      <div className="flex items-center gap-2 text-destructive">
-                        <Upload className="w-4 h-4" />
-                        <span className="font-medium">Upload Error</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">{uploadProgress.message}</p>
-                    </Card>
-                  )}
                 </div>
               )}
 
