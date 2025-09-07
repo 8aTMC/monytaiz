@@ -32,6 +32,7 @@ interface LibraryGridProps {
   onItemClick: (item: MediaItem, event: React.MouseEvent, index: number) => void;
   onCheckboxClick: (itemId: string, index: number, event?: React.MouseEvent) => void;
   loading?: boolean;
+  debug?: boolean;
 }
 
 const LibraryGridComponent = ({
@@ -40,7 +41,8 @@ const LibraryGridComponent = ({
   selecting,
   onItemClick,
   onCheckboxClick,
-  loading = false
+  loading = false,
+  debug = false
 }: LibraryGridProps) => {
   const gridContainerRef = useRef<HTMLDivElement>(null);
 
@@ -147,6 +149,7 @@ const LibraryGridComponent = ({
               {/* Thumbnail */}
               <MediaThumbnail 
                 item={{
+                  id: item.id,
                   type: item.type,
                   storage_path: item.storage_path,
                   title: item.title,
@@ -155,6 +158,7 @@ const LibraryGridComponent = ({
                   width: item.width,
                   height: item.height
                 }}
+                debug={debug}
               />
               
               {/* Enhanced Categories with improved styling */}

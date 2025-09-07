@@ -541,6 +541,7 @@ const ContentLibrary = () => {
               onItemClick={handleCardClick}
               onCheckboxClick={handleCheckboxClick}
               loading={loadingContent}
+              debug={true}
             />
           </div>
         </div>

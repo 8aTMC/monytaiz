@@ -4,6 +4,7 @@ import { Image, Video, Headphones, FileImage } from 'lucide-react';
 import { useOptimizedMediaDisplay } from '@/hooks/useOptimizedMediaDisplay';
 import { useThumbnailUrl } from '@/hooks/useThumbnailUrl';
 import { WaveformIcon } from '@/components/icons/WaveformIcon';
+import { MediaDebugPanel } from '@/components/MediaDebugPanel';
 
 interface MediaThumbnailProps {
   item: {
@@ -24,9 +25,10 @@ interface MediaThumbnailProps {
   };
   className?: string;
   isPublic?: boolean;
+  debug?: boolean;
 }
 
-export const MediaThumbnail = ({ item, className = "", isPublic = false }: MediaThumbnailProps) => {
+export const MediaThumbnail = ({ item, className = "", isPublic = false, debug = false }: MediaThumbnailProps) => {
   const { loadOptimizedMedia, currentUrl, isLoading, error, clearMedia } = useOptimizedMediaDisplay();
   const [imageLoadError, setImageLoadError] = useState(false);
   
@@ -119,7 +121,20 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
   
   const aspectRatio = calculateAspectRatio();
 
-  // For non-image types, show thumbnail if available, otherwise show icon with natural aspect ratio
+  return (
+    <div>
+      {debug && (
+        <MediaDebugPanel 
+          item={item} 
+          mediaState={{ currentUrl, isLoading, error }} 
+        />
+      )}
+      {renderThumbnail()}
+    </div>
+  );
+
+  function renderThumbnail() {
+    // For non-image types, show thumbnail if available, otherwise show icon with natural aspect ratio
   if (item.type !== 'image') {
     // Check for thumbnail from simple_media first, then tiny_placeholder
     const thumbnailSrc = thumbnailUrl || 
@@ -243,4 +258,5 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false }: Media
       )}
     </div>
   );
+  }
 };
