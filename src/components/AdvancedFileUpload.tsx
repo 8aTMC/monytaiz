@@ -23,6 +23,7 @@ interface DialogQueueItem {
   type: 'duplicates' | 'unsupported' | 'heic';
   data: any;
   title: string;
+  validFiles?: File[]; // Store valid files to add after dialog processing
 }
 
 export const AdvancedFileUpload = () => {
@@ -45,13 +46,7 @@ export const AdvancedFileUpload = () => {
   const [allDuplicates, setAllDuplicates] = useState<DuplicateMatch[]>([]);
   const [duplicateCheckLoading, setDuplicateCheckLoading] = useState(false);
   
-  // Individual dialog states for backward compatibility
-  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
-  const [duplicateFiles, setDuplicateFiles] = useState<{ id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]>([]);
-  const [unsupportedDialogOpen, setUnsupportedDialogOpen] = useState(false);
-  const [unsupportedFiles, setUnsupportedFiles] = useState<{ id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]>([]);
-  const [heicWarningOpen, setHeicWarningOpen] = useState(false);
-  const [heicFiles, setHeicFiles] = useState<string[]>([]);
+  // Legacy dialog states removed - using queue system only
   
   const { checkAllDuplicates, addDuplicateTag } = useDuplicateDetection();
   
@@ -114,11 +109,14 @@ export const AdvancedFileUpload = () => {
            file.type === 'image/heif';
   }, []);
 
-  // Process files and handle validation dialogs
+  // Process files and handle validation dialogs using queue system
   const processFiles = useCallback((files: File[]) => {
     const dialogs: DialogQueueItem[] = [];
+    const validFiles: File[] = [];
+    const duplicateFiles: { id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[] = [];
+    const unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[] = [];
     
-    // Check for HEIC files
+    // Check for HEIC files first
     const heicFileNames = files.filter(isHeicFile).map(f => f.name);
     if (heicFileNames.length > 0) {
       dialogs.push({
@@ -128,50 +126,127 @@ export const AdvancedFileUpload = () => {
       });
     }
     
-    // Handle duplicates and unsupported files
-    const showDuplicateDialog = (duplicates: { name: string; size: number; type: string; existingFile: File; newFile: File }[]) => {
-      if (duplicates.length > 0) {
-        const duplicatesWithId = duplicates.map(dup => ({
-          ...dup,
-          id: `${dup.name}-${dup.size}-${Date.now()}`
-        }));
-        dialogs.push({
-          type: 'duplicates',
-          data: duplicatesWithId,
-          title: 'Duplicate Files Found'
+    // Validate each file and categorize
+    files.forEach((file, index) => {
+      // Check for unsupported formats first
+      const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+      const ALLOWED_TYPES = {
+        video: ['.mp4', '.mov', '.webm', '.mkv'],
+        image: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif'],
+        audio: ['.mp3', '.wav', '.aac', '.ogg', '.opus'],
+      };
+      
+      const isSupported = Object.values(ALLOWED_TYPES).some(types => types.includes(extension));
+      
+      if (!isSupported) {
+        const getUnsupportedFileType = (file: File): 'image' | 'video' | 'audio' | 'unknown' => {
+          const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+          const mime = file.type.toLowerCase();
+          
+          if (['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.tiff', '.tif', '.avif', '.svg', '.ico'].includes(ext)) return 'image';
+          if (['.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.wmv', '.m4v', '.3gp'].includes(ext)) return 'video';
+          if (['.mp3', '.wav', '.aac', '.flac', '.opus', '.m4a', '.wma'].includes(ext)) return 'audio';
+          
+          if (mime.startsWith('image/')) return 'image';
+          if (mime.startsWith('video/')) return 'video';
+          if (mime.startsWith('audio/')) return 'audio';
+          
+          return 'unknown';
+        };
+        
+        unsupportedFiles.push({
+          id: `unsupported-${Date.now()}-${index}`,
+          name: file.name,
+          size: file.size,
+          type: getUnsupportedFileType(file),
+          file: file
         });
+        return;
       }
-    };
-    
-    const showUnsupportedDialog = (unsupported: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]) => {
-      if (unsupported.length > 0) {
-        dialogs.push({
-          type: 'unsupported',
-          data: unsupported,
-          title: 'Unsupported Files Found'
+      
+      // Check for duplicates in current queue
+      const existingItem = uploadQueue.find(existingItem => 
+        existingItem.file.name === file.name && existingItem.file.size === file.size
+      );
+      
+      if (existingItem) {
+        const getFileType = (file: File): string => {
+          if (ALLOWED_TYPES.video.includes(extension)) return 'video';
+          if (ALLOWED_TYPES.image.includes(extension)) return 'image';
+          if (ALLOWED_TYPES.audio.includes(extension)) return 'audio';
+          return 'unknown';
+        };
+        
+        duplicateFiles.push({
+          id: `${file.name}-${file.size}-${Date.now()}`,
+          name: file.name,
+          size: file.size,
+          type: getFileType(file),
+          existingFile: existingItem.file,
+          newFile: file
         });
+        return;
       }
-    };
+      
+      // File is valid, add to processing list
+      validFiles.push(file);
+    });
     
-    // Add files and collect dialogs
-    addFiles(files, showDuplicateDialog, showUnsupportedDialog);
+    // Build dialog queue based on validation results
+    if (duplicateFiles.length > 0) {
+      dialogs.push({
+        type: 'duplicates',
+        data: duplicateFiles,
+        title: 'Duplicate Files Found'
+      });
+    }
+    
+    if (unsupportedFiles.length > 0) {
+      dialogs.push({
+        type: 'unsupported',
+        data: unsupportedFiles,
+        title: 'Unsupported Files Found'
+      });
+    }
     
     // Set up dialog queue if we have dialogs to show
     if (dialogs.length > 0) {
+      // Store valid files in dialog queue for later processing
+      dialogs[dialogs.length - 1].validFiles = validFiles;
       setDialogQueue(dialogs);
       setCurrentDialogIndex(0);
+    } else {
+      // No validation issues, add files directly
+      addFiles(validFiles);
     }
-  }, [addFiles, isHeicFile]);
+  }, [addFiles, isHeicFile, uploadQueue]);
 
   // Dialog handlers for queue system
   const handleDialogClose = useCallback(() => {
+    // When we finish processing all dialogs, add any valid files
+    if (currentDialogIndex + 1 >= dialogQueue.length) {
+      const lastDialog = dialogQueue[dialogQueue.length - 1];
+      if (lastDialog?.validFiles && lastDialog.validFiles.length > 0) {
+        addFiles(lastDialog.validFiles);
+      }
+    }
     processNextDialog();
-  }, [processNextDialog]);
+  }, [processNextDialog, currentDialogIndex, dialogQueue, addFiles]);
 
   const handleDuplicateConfirm = useCallback((filesToIgnore: string[]) => {
-    // Remove ignored files from dialog data (but files already in queue aren't affected)
+    // Add files that weren't ignored
+    if (currentDialog?.type === 'duplicates') {
+      const duplicateData = currentDialog.data as Array<{newFile: File, name: string}>;
+      const validFiles = duplicateData
+        .filter(item => !filesToIgnore.includes(item.name))
+        .map(item => item.newFile);
+      
+      if (validFiles.length > 0) {
+        addFiles(validFiles);
+      }
+    }
     handleDialogClose();
-  }, [handleDialogClose]);
+  }, [handleDialogClose, currentDialog, addFiles]);
 
   const handleUnsupportedConfirm = useCallback(() => {
     handleDialogClose();
@@ -645,50 +720,49 @@ export const AdvancedFileUpload = () => {
           onPriceChange={(price) => handlePreviewMetadataUpdate('suggestedPrice', price ? price / 100 : null)}
         />
 
-        <PreUploadDuplicateDialog
-          open={preUploadDuplicateDialogOpen}
-          onOpenChange={setPreUploadDuplicateDialogOpen}
-          duplicates={allDuplicates}
-          onPurgeSelected={handlePurgeSelected}
-          onKeepBoth={handleKeepBoth}
-          onCancel={handleCancelUpload}
-        />
+      {/* Pre-upload duplicate dialog */}
+      <PreUploadDuplicateDialog
+        open={preUploadDuplicateDialogOpen}
+        onOpenChange={setPreUploadDuplicateDialogOpen}
+        duplicates={allDuplicates}
+        onPurgeSelected={handlePurgeSelected}
+        onKeepBoth={handleKeepBoth}
+        onCancel={handleCancelUpload}
+      />
 
-        {/* Render current dialog from queue */}
-        {hasActiveDialog && currentDialog && (
-          <>
-            {currentDialog.type === 'duplicates' && (
-              <DuplicateFilesDialog
-                open={true}
-                onOpenChange={() => clearDialogQueue()}
-                duplicateFiles={currentDialog.data}
-                onConfirm={(filesToIgnore: string[]) => {
-                  handleDialogClose();
-                }}
-                stepInfo={stepInfo}
-              />
-            )}
-            {currentDialog.type === 'unsupported' && (
-              <UnsupportedFilesDialog
-                open={true}
-                onOpenChange={() => clearDialogQueue()}
-                unsupportedFiles={currentDialog.data}
-                onConfirm={() => {
-                  handleDialogClose();
-                }}
-                stepInfo={stepInfo}
-              />
-            )}
-            {currentDialog.type === 'heic' && (
-              <HEICWarningDialog
-                open={true}
-                onOpenChange={() => clearDialogQueue()}
-                fileNames={currentDialog.data}
-                stepInfo={stepInfo}
-              />
-            )}
-          </>
-        )}
-      </Card>
-    );
-  };
+      {/* Sequential Dialog Queue System */}
+      {hasActiveDialog && currentDialog && (
+        <>
+          {currentDialog.type === 'duplicates' && (
+            <DuplicateFilesDialog
+              open={true}
+              onOpenChange={() => handleDialogClose()}
+              duplicateFiles={currentDialog.data}
+              onConfirm={handleDuplicateConfirm}
+              stepInfo={stepInfo}
+            />
+          )}
+          
+          {currentDialog.type === 'unsupported' && (
+            <UnsupportedFilesDialog
+              open={true}
+              onOpenChange={() => handleDialogClose()}
+              unsupportedFiles={currentDialog.data}
+              onConfirm={handleUnsupportedConfirm}
+              stepInfo={stepInfo}
+            />
+          )}
+          
+          {currentDialog.type === 'heic' && (
+            <HEICWarningDialog
+              open={true}
+              onOpenChange={() => handleDialogClose()}
+              fileNames={currentDialog.data}
+              stepInfo={stepInfo}
+            />
+          )}
+        </>
+      )}
+    </Card>
+  );
+};
