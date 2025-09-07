@@ -100,14 +100,20 @@ export default function SimpleUpload() {
   }, [selectedFiles.length, clearSelection, toast]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    console.log(`🔄 Processing ${acceptedFiles.length} files through onDrop`);
+    
     // Separate supported and unsupported files
     const supportedFiles: File[] = [];
     const unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[] = [];
     
     acceptedFiles.forEach((file, index) => {
+      console.log(`📁 Processing file: ${file.name} (type: ${file.type})`);
+      
       // Check file extension
       const extension = '.' + file.name.split('.').pop()?.toLowerCase();
       const supportedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif', '.mp4', '.mov', '.webm', '.mkv', '.mp3', '.wav', '.aac', '.ogg', '.opus'];
+      
+      console.log(`🔍 File extension: ${extension}, supported: ${supportedExtensions.includes(extension)}`);
       
       if (supportedExtensions.includes(extension)) {
         supportedFiles.push(file);
@@ -122,6 +128,8 @@ export default function SimpleUpload() {
           fileType = 'audio';
         }
         
+        console.log(`❌ Unsupported file detected: ${file.name} (${fileType})`);
+        
         unsupportedFiles.push({
           id: `unsupported-${Date.now()}-${index}`,
           name: file.name,
@@ -132,8 +140,11 @@ export default function SimpleUpload() {
       }
     });
 
+    console.log(`✅ Supported files: ${supportedFiles.length}, ❌ Unsupported files: ${unsupportedFiles.length}`);
+
     // Show unsupported files dialog if any
     if (unsupportedFiles.length > 0) {
+      console.log(`🚨 Opening unsupported files dialog for ${unsupportedFiles.length} files`);
       setUnsupportedFiles(unsupportedFiles);
       setUnsupportedDialogOpen(true);
     }
@@ -159,14 +170,20 @@ export default function SimpleUpload() {
   }, []);
 
   const addMoreFiles = useCallback((acceptedFiles: File[]) => {
+    console.log(`🔄 Processing ${acceptedFiles.length} files through addMoreFiles`);
+    
     // Separate supported and unsupported files first
     const supportedFiles: File[] = [];
     const unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[] = [];
     
     acceptedFiles.forEach((file, index) => {
+      console.log(`📁 Processing file: ${file.name} (type: ${file.type})`);
+      
       // Check file extension
       const extension = '.' + file.name.split('.').pop()?.toLowerCase();
       const supportedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif', '.mp4', '.mov', '.webm', '.mkv', '.mp3', '.wav', '.aac', '.ogg', '.opus'];
+      
+      console.log(`🔍 File extension: ${extension}, supported: ${supportedExtensions.includes(extension)}`);
       
       if (supportedExtensions.includes(extension)) {
         supportedFiles.push(file);
@@ -181,6 +198,8 @@ export default function SimpleUpload() {
           fileType = 'audio';
         }
         
+        console.log(`❌ Unsupported file detected: ${file.name} (${fileType})`);
+        
         unsupportedFiles.push({
           id: `unsupported-${Date.now()}-${index}`,
           name: file.name,
@@ -191,8 +210,11 @@ export default function SimpleUpload() {
       }
     });
 
+    console.log(`✅ Supported files: ${supportedFiles.length}, ❌ Unsupported files: ${unsupportedFiles.length}`);
+
     // Show unsupported files dialog if any
     if (unsupportedFiles.length > 0) {
+      console.log(`🚨 Opening unsupported files dialog for ${unsupportedFiles.length} files`);
       setUnsupportedFiles(unsupportedFiles);
       setUnsupportedDialogOpen(true);
     }
@@ -366,23 +388,7 @@ export default function SimpleUpload() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'image/jpeg': ['.jpg', '.jpeg'],
-      'image/png': ['.png'],
-      'image/webp': ['.webp'],
-      'image/gif': ['.gif'],
-      'image/heic': ['.heic'],
-      'image/heif': ['.heif'],
-      'video/mp4': ['.mp4'],
-      'video/quicktime': ['.mov'],
-      'video/webm': ['.webm'],
-      'video/x-matroska': ['.mkv'],
-      'audio/mpeg': ['.mp3'],
-      'audio/wav': ['.wav'],
-      'audio/aac': ['.aac'],
-      'audio/ogg': ['.ogg'],
-      'audio/opus': ['.opus']
-    },
+    // Remove accept parameter to let all files through to our validation logic
     disabled: uploading || reviewMode
   });
 
@@ -649,7 +655,6 @@ export default function SimpleUpload() {
           ref={addMoreFileInputRef}
           type="file"
           multiple
-          accept=".jpg,.jpeg,.png,.webp,.gif,.heic,.heif,.mp4,.mov,.webm,.mkv,.mp3,.wav,.aac,.ogg,.opus"
           onChange={handleAddMoreFilesChange}
           className="hidden"
         />
