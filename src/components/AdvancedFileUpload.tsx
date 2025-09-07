@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState, useEffect, useMemo } from 'react';
+import { useRef, useCallback, useState, useEffect, useLayoutEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +22,7 @@ export const AdvancedFileUpload = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addMoreFileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLElement | null>(null);
   const { toast } = useToast();
   
   // Centralized preview state
@@ -338,21 +339,43 @@ export const AdvancedFileUpload = () => {
     setAllDuplicates([]);
   };
 
+  // Effect to capture viewport element when ScrollArea mounts
+  useLayoutEffect(() => {
+    if (scrollAreaRef.current) {
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      viewportRef.current = viewport as HTMLElement;
+    }
+  }, [uploadQueue.length]);
+
   // Wrapper for removeFile that preserves scroll position
   const handleRemoveFile = useCallback((fileId: string) => {
-    // Capture current scroll position
-    const scrollElement = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
-    const scrollTop = scrollElement?.scrollTop || 0;
+    // Capture current scroll position from cached viewport element
+    const viewport = viewportRef.current;
+    const scrollTop = viewport?.scrollTop || 0;
+    const scrollHeight = viewport?.scrollHeight || 0;
     
     // Remove the file
     removeFile(fileId);
     
-    // Restore scroll position after DOM update
-    requestAnimationFrame(() => {
-      if (scrollElement) {
-        scrollElement.scrollTop = scrollTop;
-      }
-    });
+    // Use multiple restoration attempts with different timing
+    const restoreScrollPosition = (attempts = 0) => {
+      if (attempts > 3) return; // Max 3 attempts
+      
+      setTimeout(() => {
+        const currentViewport = viewportRef.current;
+        if (currentViewport && currentViewport.scrollHeight > 0) {
+          // Adjust scroll position if list became shorter
+          const maxScroll = Math.max(0, currentViewport.scrollHeight - currentViewport.clientHeight);
+          const targetScroll = Math.min(scrollTop, maxScroll);
+          currentViewport.scrollTop = targetScroll;
+        } else {
+          // Retry if viewport not ready
+          restoreScrollPosition(attempts + 1);
+        }
+      }, attempts === 0 ? 0 : 16 * (attempts + 1)); // 0ms, 32ms, 48ms, 64ms
+    };
+    
+    restoreScrollPosition();
   }, [removeFile]);
 
   const getStatusText = (status: string) => {
