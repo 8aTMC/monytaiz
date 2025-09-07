@@ -661,11 +661,6 @@ export default function SimpleUpload() {
                   console.log(`Closing unsupported files dialog`);
                   setUnsupportedDialogOpen(false);
                   setUnsupportedFiles([]);
-                  
-                  toast({
-                    title: "Unsupported files detected",
-                    description: `${unsupportedFiles.length} unsupported file${unsupportedFiles.length > 1 ? 's' : ''} cannot be uploaded. Use the conversion links to convert them first.`,
-                  });
                 }}
               />
 
