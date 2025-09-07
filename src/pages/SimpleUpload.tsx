@@ -441,7 +441,7 @@ export default function SimpleUpload() {
   return (
     <SelectedFilesProvider>
       <Layout>
-        <div className="flex flex-col h-screen">
+        <div className="flex flex-col h-full overflow-hidden">
           {/* Fixed Header Section */}
           <div className="flex-none bg-background border-b border-border">
             <div className="container mx-auto px-4 py-4">
@@ -542,7 +542,7 @@ export default function SimpleUpload() {
 
               {/* Review Mode - File List with Selection and Batch Controls */}
               {reviewMode && files.length > 0 && (
-                <div key={`cache-buster-${Math.random()}-${files.length}-${selectedFiles.length}`} className="space-y-4 mb-6 animate-in fade-in-0 duration-300">
+                <div key={`cache-buster-${Math.random()}-${files.length}-${selectedFiles.length}`} className="space-y-4 mb-6 animate-in fade-in-0 duration-300 h-full flex flex-col">
                   {/* File count and selection header */}
                   <SelectionHeader
                     totalFiles={files.length}
@@ -561,14 +561,16 @@ export default function SimpleUpload() {
                     />
                   )}
                   
-                  <VirtualizedFileList
-                    files={files}
-                    onRemove={removeFile}
-                    onMetadataChange={handleMetadataChange}
-                    onSelectionChange={toggleFileSelection}
-                    formatFileSize={formatFileSize}
-                    height={400}
-                  />
+                  <div className="flex-1 min-h-0">
+                    <VirtualizedFileList
+                      files={files}
+                      onRemove={removeFile}
+                      onMetadataChange={handleMetadataChange}
+                      onSelectionChange={toggleFileSelection}
+                      formatFileSize={formatFileSize}
+                      height={500}
+                    />
+                  </div>
                 </div>
               )}
 
