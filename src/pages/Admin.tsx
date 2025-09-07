@@ -224,7 +224,7 @@ const Admin = () => {
           </div>
         </div>
 
-        {/* Orphaned Data Management */}
+        {/* Database Cleanup Manager - Primary cleanup tool */}
         <div className="mb-6">
           <OrphanedDataManager />
         </div>
@@ -237,6 +237,9 @@ const Admin = () => {
                 <HardDrive className="h-5 w-5" />
                 Storage Management
               </CardTitle>
+              <p className="text-sm text-muted-foreground mt-2">
+                Optimize physical storage, clean phantom folders, and manage storage structure
+              </p>
             </CardHeader>
             <CardContent className="space-y-4">
               <Button
@@ -278,6 +281,9 @@ const Admin = () => {
                 <Folder className="h-5 w-5" />
                 Folder Management
               </CardTitle>
+              <p className="text-sm text-muted-foreground mt-2">
+                Check and fix folder consistency issues in the database
+              </p>
             </CardHeader>
             <CardContent className="space-y-4">
               <Button
@@ -322,25 +328,6 @@ const Admin = () => {
             </CardContent>
           </Card>
 
-          {/* Database Management */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
-                Database Management
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button
-                variant="outline"
-                onClick={handleCleanupCorruptedMedia}
-                className="w-full flex items-center gap-2"
-              >
-                <Recycle className="h-4 w-4" />
-                Clean Database
-              </Button>
-            </CardContent>
-          </Card>
 
           {/* System Information */}
           <Card>
@@ -382,11 +369,11 @@ const Admin = () => {
         <div className="mt-8 p-4 bg-muted/50 rounded-lg">
           <h3 className="font-semibold mb-2">⚠️ Important Notes</h3>
           <ul className="text-sm text-muted-foreground space-y-1">
-            <li>• Storage optimization should be run regularly to maintain performance</li>
-            <li>• Ghost file cleaning removes orphaned records and files</li>
-            <li>• Phantom folder cleanup removes empty storage folder references</li>
-            <li>• Recreate Folders creates the "incoming" and "processed" folder structure</li>
-            <li>• Force operations are irreversible - use with caution</li>
+            <li>• <strong>Database Cleanup Manager:</strong> Comprehensive scan and cleanup of orphaned database records (recommended for HEIC file issues)</li>
+            <li>• <strong>Storage Management:</strong> Optimize storage regularly for performance; phantom folder cleanup removes empty storage references</li>
+            <li>• <strong>Folder Management:</strong> Check and fix database folder inconsistencies; recreate folder structure when needed</li>
+            <li>• All cleanup operations are irreversible - review scan results before proceeding</li>
+            <li>• Run "Scan for Orphaned Data" first to identify issues before cleanup</li>
           </ul>
         </div>
       </div>
