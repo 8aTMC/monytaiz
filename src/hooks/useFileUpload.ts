@@ -157,7 +157,7 @@ export const useFileUpload = () => {
     }
   }, []);
 
-  const addFiles = useCallback((files: File[]) => {
+  const addFiles = useCallback((files: File[], showDuplicateDialog?: (duplicates: { id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]) => void, showUnsupportedDialog?: (unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]) => void) => {
     if (uploadQueue.length + files.length > 100) {
       toast({
         title: "Too many files",
@@ -246,7 +246,26 @@ export const useFileUpload = () => {
       }
     });
 
-    // Legacy dialog callbacks removed - validation now handled by dialog queue system
+    // Show dialog for duplicate files if callback provided
+    if (duplicateFiles.length > 0 && showDuplicateDialog) {
+      showDuplicateDialog(duplicateFiles.map(df => ({
+        id: `${df.name}-${df.size}-${Date.now()}`,
+        name: df.name,
+        size: df.size,
+        type: df.type,
+        existingFile: df.existingFile,
+        newFile: df.newFile
+      })));
+    }
+
+    // Show dialog for unsupported files if callback provided
+    console.log(`Unsupported files found: ${unsupportedFiles.length}`, unsupportedFiles);
+    console.log(`Dialog callback provided: ${!!showUnsupportedDialog}`);
+    
+    if (unsupportedFiles.length > 0 && showUnsupportedDialog) {
+      console.log(`Showing unsupported files dialog for ${unsupportedFiles.length} files`);
+      showUnsupportedDialog(unsupportedFiles);
+    }
 
      // Show error messages for other rejected files
     if (errors.length > 0) {

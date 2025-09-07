@@ -39,7 +39,7 @@ export const UnsupportedFilesDialog = ({
   onOpenChange, 
   unsupportedFiles, 
   onConfirm 
-}: UnsupportedFilesDialogProps) => {
+}: Omit<UnsupportedFilesDialogProps, 'stepInfo'>) => {
   const handleConfirm = () => {
     onConfirm();
     onOpenChange(false);
@@ -178,11 +178,8 @@ export const UnsupportedFilesDialog = ({
           </div>
         </div>
 
-        <DialogFooter className="flex-col gap-2 sm:flex-row">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
-            Cancel
-          </Button>
-          <Button onClick={handleConfirm} className="flex-1">
+        <DialogFooter>
+          <Button onClick={handleConfirm} className="w-full">
             OK
           </Button>
         </DialogFooter>
