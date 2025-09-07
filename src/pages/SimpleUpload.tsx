@@ -664,16 +664,15 @@ export default function SimpleUpload() {
           open={unsupportedDialogOpen}
           onOpenChange={setUnsupportedDialogOpen}
           unsupportedFiles={unsupportedFiles}
-          onConfirm={(filesToIgnore: string[]) => {
-            console.log(`Ignoring ${filesToIgnore.length} unsupported files`);
+          onConfirm={() => {
+            console.log(`Closing unsupported files dialog`);
             setUnsupportedDialogOpen(false);
+            setUnsupportedFiles([]);
             
-            if (filesToIgnore.length > 0) {
-              toast({
-                title: "Unsupported files ignored",
-                description: `${filesToIgnore.length} unsupported file${filesToIgnore.length > 1 ? 's' : ''} were ignored. Use the conversion links to convert them first.`,
-              });
-            }
+            toast({
+              title: "Unsupported files detected",
+              description: `${unsupportedFiles.length} unsupported file${unsupportedFiles.length > 1 ? 's' : ''} cannot be uploaded. Use the conversion links to convert them first.`,
+            });
           }}
         />
 

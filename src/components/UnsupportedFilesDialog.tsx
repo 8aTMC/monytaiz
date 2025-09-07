@@ -1,7 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Checkbox } from '@/components/ui/checkbox';
 import { FileText, Image, Video, Music, FileIcon, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
@@ -18,7 +17,7 @@ interface UnsupportedFilesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   unsupportedFiles: UnsupportedFile[];
-  onConfirm: (filesToIgnore: string[]) => void;
+  onConfirm: () => void;
 }
 
 const getConversionUrl = (type: 'image' | 'video' | 'audio' | 'unknown'): string => {
@@ -40,48 +39,9 @@ export const UnsupportedFilesDialog = ({
   unsupportedFiles, 
   onConfirm 
 }: UnsupportedFilesDialogProps) => {
-  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
-  const [isConfirmedClose, setIsConfirmedClose] = useState(false);
-  
-  // Initialize with all files selected by default and reset when unsupportedFiles changes
-  useEffect(() => {
-    if (unsupportedFiles.length > 0) {
-      setSelectedFiles(new Set(unsupportedFiles.map(f => f.id)));
-    }
-  }, [unsupportedFiles]);
-  
-  const handleSelectAll = () => {
-    if (selectedFiles.size === unsupportedFiles.length) {
-      setSelectedFiles(new Set());
-    } else {
-      setSelectedFiles(new Set(unsupportedFiles.map(f => f.id)));
-    }
-  };
-  
-  const handleFileToggle = (fileId: string) => {
-    const newSelected = new Set(selectedFiles);
-    if (newSelected.has(fileId)) {
-      newSelected.delete(fileId);
-    } else {
-      newSelected.add(fileId);
-    }
-    setSelectedFiles(newSelected);
-  };
-  
   const handleConfirm = () => {
-    setIsConfirmedClose(true);
-    onConfirm(Array.from(selectedFiles));
-    setSelectedFiles(new Set());
-  };
-
-  const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen && !isConfirmedClose) {
-      // Auto-ignore selected files when dialog closes without confirmation
-      onConfirm(Array.from(selectedFiles));
-      setSelectedFiles(new Set());
-    }
-    setIsConfirmedClose(false);
-    onOpenChange(newOpen);
+    onConfirm();
+    onOpenChange(false);
   };
 
   const handleConvertClick = (file: UnsupportedFile, event: React.MouseEvent) => {
@@ -152,7 +112,7 @@ export const UnsupportedFilesDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -162,18 +122,10 @@ export const UnsupportedFilesDialog = ({
         </DialogHeader>
         
         <div className="space-y-6">
-          <div className="flex items-center justify-between mt-2">
+          <div className="mt-2">
             <p className="text-sm text-muted-foreground">
-              Found {unsupportedFiles.length} unsupported file{unsupportedFiles.length > 1 ? 's' : ''}. Selected files will be ignored, unselected files can be converted:
+              Found {unsupportedFiles.length} unsupported file{unsupportedFiles.length > 1 ? 's' : ''} that cannot be uploaded. You can use the convert links below to convert them to supported formats.
             </p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleSelectAll}
-              className="text-xs"
-            >
-              {selectedFiles.size === unsupportedFiles.length ? 'Unselect All' : 'Select All'}
-            </Button>
           </div>
           
           <ScrollArea className="max-h-[400px] pr-4">
@@ -208,12 +160,6 @@ export const UnsupportedFilesDialog = ({
                       Convert
                     </Button>
                   </div>
-                  <div className="flex-shrink-0">
-                    <Checkbox
-                      checked={selectedFiles.has(file.id)}
-                      onCheckedChange={() => handleFileToggle(file.id)}
-                    />
-                  </div>
                 </div>
               ))}
             </div>
@@ -232,11 +178,11 @@ export const UnsupportedFilesDialog = ({
         </div>
 
         <DialogFooter className="flex-col gap-2 sm:flex-row">
-          <Button variant="outline" onClick={() => { setIsConfirmedClose(true); onOpenChange(false); }} className="flex-1">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
             Cancel
           </Button>
           <Button onClick={handleConfirm} className="flex-1">
-            Ignore Selected Files ({selectedFiles.size})
+            OK
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -577,9 +577,9 @@ export const AdvancedFileUpload = () => {
         open={unsupportedDialogOpen}
         onOpenChange={setUnsupportedDialogOpen}
         unsupportedFiles={unsupportedFiles}
-        onConfirm={(filesToIgnore: string[]) => {
-          // Remove ignored unsupported files from the list
-          setUnsupportedFiles(prev => prev.filter(file => !filesToIgnore.includes(file.id)));
+        onConfirm={() => {
+          // Just close the dialog - unsupported files are not added to the queue
+          setUnsupportedFiles([]);
           setUnsupportedDialogOpen(false);
         }}
       />
