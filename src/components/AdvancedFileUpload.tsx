@@ -442,7 +442,7 @@ export const AdvancedFileUpload = () => {
               multiple
               onChange={handleFileSelect}
               className="hidden"
-              accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.mov,.webm,.avi,.mkv,.mp3,.wav,.aac,.ogg,.pdf,.doc,.docx,.txt,.rtf"
+              accept=".jpg,.jpeg,.png,.webp,.gif,.avif,.mp4,.mov,.webm,.avi,.mkv,.mp3,.wav,.aac,.ogg,.pdf,.doc,.docx,.txt,.rtf"
             />
           </div>
         )}
@@ -496,7 +496,7 @@ export const AdvancedFileUpload = () => {
           multiple
           onChange={handleFileSelect}
           className="hidden"
-          accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.mov,.webm,.avi,.mkv,.mp3,.wav,.aac,.ogg,.pdf,.doc,.docx,.txt,.rtf"
+          accept=".jpg,.jpeg,.png,.webp,.gif,.avif,.mp4,.mov,.webm,.avi,.mkv,.mp3,.wav,.aac,.ogg,.pdf,.doc,.docx,.txt,.rtf"
         />
         <input
           ref={addMoreFileInputRef}
@@ -504,7 +504,7 @@ export const AdvancedFileUpload = () => {
           multiple
           onChange={handleAddMoreFiles}
           className="hidden"
-          accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.mov,.webm,.avi,.mkv,.mp3,.wav,.aac,.ogg,.pdf,.doc,.docx,.txt,.rtf"
+          accept=".jpg,.jpeg,.png,.webp,.gif,.avif,.mp4,.mov,.webm,.avi,.mkv,.mp3,.wav,.aac,.ogg,.pdf,.doc,.docx,.txt,.rtf"
         />
 
       </CardContent>
