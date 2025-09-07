@@ -708,27 +708,6 @@ export const AdvancedFileUpload = () => {
         onPriceChange={(price) => handlePreviewMetadataUpdate('suggestedPrice', price ? price / 100 : null)}
       />
 
-        {/* Dialog Components */}
-        <FilePreviewDialog
-          open={previewOpen}
-          onOpenChange={setPreviewOpen}
-          file={previewIndex !== null ? uploadQueue[previewIndex]?.file : null}
-          onTagsChange={(tags) => handlePreviewMetadataUpdate('tags', tags)}
-          onMentionsChange={(mentions) => handlePreviewMetadataUpdate('mentions', mentions)}
-          onFoldersChange={(folders) => handlePreviewMetadataUpdate('folders', folders)}
-          onDescriptionChange={(description) => handlePreviewMetadataUpdate('description', description)}
-          onPriceChange={(price) => handlePreviewMetadataUpdate('suggestedPrice', price ? price / 100 : null)}
-        />
-
-      {/* Pre-upload duplicate dialog */}
-      <PreUploadDuplicateDialog
-        open={preUploadDuplicateDialogOpen}
-        onOpenChange={setPreUploadDuplicateDialogOpen}
-        duplicates={allDuplicates}
-        onPurgeSelected={handlePurgeSelected}
-        onKeepBoth={handleKeepBoth}
-        onCancel={handleCancelUpload}
-      />
 
       {/* Sequential Dialog Queue System */}
       {hasActiveDialog && currentDialog && (
