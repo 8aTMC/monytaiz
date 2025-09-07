@@ -14,6 +14,7 @@ import { FileReviewRow } from '@/components/FileReviewRow';
 import { SelectionHeader } from '@/components/SelectionHeader';
 import { BatchMetadataToolbar } from '@/components/BatchMetadataToolbar';
 import { DuplicateFilesDialog } from '@/components/DuplicateFilesDialog';
+import { UnsupportedFilesDialog } from '@/components/UnsupportedFilesDialog';
 import { StorageQuotaProgressBar, STORAGE_LIMIT_BYTES } from '@/components/StorageQuotaProgressBar';
 import { ExceedsLimitDialog, FileWithStatus } from '@/components/ExceedsLimitDialog';
 import { useToast } from '@/hooks/use-toast';
@@ -35,6 +36,8 @@ export default function SimpleUpload() {
   const [duplicateFiles, setDuplicateFiles] = useState<{ id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]>([]);
   const [exceedsLimitDialogOpen, setExceedsLimitDialogOpen] = useState(false);
   const [filesAnalysis, setFilesAnalysis] = useState<FileWithStatus[]>([]);
+  const [unsupportedDialogOpen, setUnsupportedDialogOpen] = useState(false);
+  const [unsupportedFiles, setUnsupportedFiles] = useState<{ id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]>([]);
   const addMoreFileInputRef = useRef<HTMLInputElement>(null);
   
   // Selection state management
@@ -97,29 +100,108 @@ export default function SimpleUpload() {
   }, [selectedFiles.length, clearSelection, toast]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    const newFiles = acceptedFiles.map(file => ({
-      file,
-      id: crypto.randomUUID(),
-      status: 'pending' as const,
-      metadata: {
-        mentions: [],
-        tags: [],
-        folders: [],
-        description: '',
-        suggestedPrice: null,
+    // Separate supported and unsupported files
+    const supportedFiles: File[] = [];
+    const unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[] = [];
+    
+    acceptedFiles.forEach((file, index) => {
+      // Check file extension
+      const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+      const supportedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif', '.mp4', '.mov', '.webm', '.mkv', '.mp3', '.wav', '.aac', '.ogg', '.opus'];
+      
+      if (supportedExtensions.includes(extension)) {
+        supportedFiles.push(file);
+      } else {
+        // Determine file type for conversion suggestions
+        let fileType: 'image' | 'video' | 'audio' | 'unknown' = 'unknown';
+        if (file.type.startsWith('image/') || ['.avif', '.tiff', '.tif', '.bmp', '.svg', '.ico'].includes(extension)) {
+          fileType = 'image';
+        } else if (file.type.startsWith('video/') || ['.avi', '.wmv', '.flv', '.3gp', '.m4v'].includes(extension)) {
+          fileType = 'video';
+        } else if (file.type.startsWith('audio/') || ['.flac', '.wma', '.m4a', '.amr'].includes(extension)) {
+          fileType = 'audio';
+        }
+        
+        unsupportedFiles.push({
+          id: `unsupported-${Date.now()}-${index}`,
+          name: file.name,
+          size: file.size,
+          type: fileType,
+          file: file
+        });
       }
-    }));
+    });
 
-    setFiles(prev => [...prev, ...newFiles]);
-    setReviewMode(true);
+    // Show unsupported files dialog if any
+    if (unsupportedFiles.length > 0) {
+      setUnsupportedFiles(unsupportedFiles);
+      setUnsupportedDialogOpen(true);
+    }
+
+    // Add supported files
+    if (supportedFiles.length > 0) {
+      const newFiles = supportedFiles.map(file => ({
+        file,
+        id: crypto.randomUUID(),
+        status: 'pending' as const,
+        metadata: {
+          mentions: [],
+          tags: [],
+          folders: [],
+          description: '',
+          suggestedPrice: null,
+        }
+      }));
+
+      setFiles(prev => [...prev, ...newFiles]);
+      setReviewMode(true);
+    }
   }, []);
 
   const addMoreFiles = useCallback((acceptedFiles: File[]) => {
-    // Check for duplicates
+    // Separate supported and unsupported files first
+    const supportedFiles: File[] = [];
+    const unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[] = [];
+    
+    acceptedFiles.forEach((file, index) => {
+      // Check file extension
+      const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+      const supportedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif', '.mp4', '.mov', '.webm', '.mkv', '.mp3', '.wav', '.aac', '.ogg', '.opus'];
+      
+      if (supportedExtensions.includes(extension)) {
+        supportedFiles.push(file);
+      } else {
+        // Determine file type for conversion suggestions
+        let fileType: 'image' | 'video' | 'audio' | 'unknown' = 'unknown';
+        if (file.type.startsWith('image/') || ['.avif', '.tiff', '.tif', '.bmp', '.svg', '.ico'].includes(extension)) {
+          fileType = 'image';
+        } else if (file.type.startsWith('video/') || ['.avi', '.wmv', '.flv', '.3gp', '.m4v'].includes(extension)) {
+          fileType = 'video';
+        } else if (file.type.startsWith('audio/') || ['.flac', '.wma', '.m4a', '.amr'].includes(extension)) {
+          fileType = 'audio';
+        }
+        
+        unsupportedFiles.push({
+          id: `unsupported-${Date.now()}-${index}`,
+          name: file.name,
+          size: file.size,
+          type: fileType,
+          file: file
+        });
+      }
+    });
+
+    // Show unsupported files dialog if any
+    if (unsupportedFiles.length > 0) {
+      setUnsupportedFiles(unsupportedFiles);
+      setUnsupportedDialogOpen(true);
+    }
+
+    // Check for duplicates among supported files
     const duplicates: { id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[] = [];
     const uniqueFiles: File[] = [];
 
-    acceptedFiles.forEach(newFile => {
+    supportedFiles.forEach(newFile => {
       const existingFileItem = files.find(fileItem => 
         fileItem.file.name === newFile.name && fileItem.file.size === newFile.size
       );
@@ -285,9 +367,21 @@ export default function SimpleUpload() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.heic', '.heif'],
-      'video/*': ['.mp4', '.mov', '.mkv', '.webm'],
-      'audio/*': ['.mp3', '.wav', '.m4a', '.ogg', '.aac', '.opus']
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'image/webp': ['.webp'],
+      'image/gif': ['.gif'],
+      'image/heic': ['.heic'],
+      'image/heif': ['.heif'],
+      'video/mp4': ['.mp4'],
+      'video/quicktime': ['.mov'],
+      'video/webm': ['.webm'],
+      'video/x-matroska': ['.mkv'],
+      'audio/mpeg': ['.mp3'],
+      'audio/wav': ['.wav'],
+      'audio/aac': ['.aac'],
+      'audio/ogg': ['.ogg'],
+      'audio/opus': ['.opus']
     },
     disabled: uploading || reviewMode
   });
@@ -555,9 +649,27 @@ export default function SimpleUpload() {
           ref={addMoreFileInputRef}
           type="file"
           multiple
-          accept="image/*,video/*,audio/*"
+          accept=".jpg,.jpeg,.png,.webp,.gif,.heic,.heif,.mp4,.mov,.webm,.mkv,.mp3,.wav,.aac,.ogg,.opus"
           onChange={handleAddMoreFilesChange}
           className="hidden"
+        />
+
+        {/* Unsupported Files Dialog */}
+        <UnsupportedFilesDialog
+          open={unsupportedDialogOpen}
+          onOpenChange={setUnsupportedDialogOpen}
+          unsupportedFiles={unsupportedFiles}
+          onConfirm={(filesToIgnore: string[]) => {
+            console.log(`Ignoring ${filesToIgnore.length} unsupported files`);
+            setUnsupportedDialogOpen(false);
+            
+            if (filesToIgnore.length > 0) {
+              toast({
+                title: "Unsupported files ignored",
+                description: `${filesToIgnore.length} unsupported file${filesToIgnore.length > 1 ? 's' : ''} were ignored. Use the conversion links to convert them first.`,
+              });
+            }
+          }}
         />
 
         {/* Duplicate Files Dialog */}
