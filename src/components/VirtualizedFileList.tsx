@@ -34,7 +34,7 @@ const ListItem = memo(({ index, style, data }: ListItemProps) => {
   if (!file) return null;
 
   return (
-    <div style={style} className="px-1 py-1">
+    <div style={style} className="px-2 py-1">
       <OptimizedFileReviewRow
         file={file}
         files={files}
@@ -72,36 +72,40 @@ export const VirtualizedFileList = memo(({
   const shouldVirtualize = files.length > 10; // Only virtualize for larger lists
 
   if (!shouldVirtualize) {
-    // For small lists, render directly without virtualization
-    return (
-      <ScrollArea className="h-full">
-        <div className="space-y-2">
-          {files.map((file, index) => (
-            <OptimizedFileReviewRow
-              key={file.id}
-              file={file}
-              files={files}
-              currentIndex={index}
-              onRemove={onRemove}
-              onMetadataChange={onMetadataChange}
-              onSelectionChange={onSelectionChange}
-              formatFileSize={formatFileSize}
-            />
-          ))}
-        </div>
-      </ScrollArea>
-    );
+  // For small lists, render directly without virtualization
+  return (
+    <ScrollArea className="h-full min-h-[200px] max-h-[600px]">
+      <div className="space-y-2 p-2">
+        {files.map((file, index) => (
+          <OptimizedFileReviewRow
+            key={file.id}
+            file={file}
+            files={files}
+            currentIndex={index}
+            onRemove={onRemove}
+            onMetadataChange={onMetadataChange}
+            onSelectionChange={onSelectionChange}
+            formatFileSize={formatFileSize}
+          />
+        ))}
+      </div>
+    </ScrollArea>
+  );
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full bg-background border border-border rounded-lg">
       <List
         height={calculatedHeight}
         itemCount={files.length}
         itemSize={ITEM_HEIGHT}
         itemData={itemData}
         overscanCount={5} // Render 5 extra items for smoother scrolling
-        className="scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent"
+        className="scrollbar-thin p-2"
+        style={{
+          backgroundColor: 'hsl(var(--background))',
+          color: 'hsl(var(--foreground))'
+        }}
       >
         {ListItem}
       </List>
