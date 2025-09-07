@@ -10,44 +10,62 @@ export const RecreateStorageFolders = () => {
   const executeRecreateFolder = async () => {
     setIsRecreating(true);
     try {
-      console.log('Starting folder recreation...');
+      console.log('Starting direct folder creation...');
 
-      const { data, error } = await supabase.functions.invoke('recreate-folders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: {},
-      });
+      const folders = ['processed/', 'thumbnails/'];
+      const results = [];
 
-      if (error) {
-        console.error('Folder recreation error:', error);
-        toast({
-          title: "Recreation Failed",
-          description: `Failed to recreate folders: ${error.message}`,
-          variant: "destructive"
-        });
-        return;
+      for (const folder of folders) {
+        console.log(`Creating folder: ${folder}`);
+        
+        // Create a placeholder file to establish the folder structure
+        const placeholderContent = new TextEncoder().encode('# This file maintains the folder structure\n# Do not delete');
+        
+        const { data, error } = await supabase.storage
+          .from('content')
+          .upload(`${folder}.gitkeep`, placeholderContent, {
+            upsert: true,
+            contentType: 'text/plain'
+          });
+
+        if (error) {
+          console.error(`Error creating folder ${folder}:`, error);
+          results.push({ folder, success: false, error: error.message });
+        } else {
+          console.log(`Successfully created folder: ${folder}`, data);
+          results.push({ folder, success: true, path: data.path });
+        }
       }
 
-      if (data?.success) {
-        console.log('Folder recreation completed:', data);
+      const successCount = results.filter(r => r.success).length;
+      const failedCount = results.filter(r => !r.success).length;
+
+      if (successCount === folders.length) {
         toast({
           title: "Folders Created Successfully",
-          description: data.message || "Successfully recreated storage folders",
+          description: `Successfully created ${successCount} folders (processed/, thumbnails/)`,
+          variant: "default"
+        });
+      } else if (successCount > 0) {
+        toast({
+          title: "Partial Success",
+          description: `Created ${successCount} folders, ${failedCount} failed. Check console for details.`,
           variant: "default"
         });
       } else {
-        console.warn('Folder recreation completed with issues:', data);
         toast({
-          title: "Recreation Completed with Issues",
-          description: data?.message || "Some folders may not have been created. Check console for details.",
-          variant: "default"
+          title: "Creation Failed",
+          description: "Failed to create storage folders. Check console for details.",
+          variant: "destructive"
         });
       }
+
+      console.log('Folder creation results:', results);
     } catch (error) {
-      console.error('Folder recreation failed:', error);
+      console.error('Folder creation failed:', error);
       toast({
-        title: "Recreation Error",
-        description: "Failed to recreate folders due to network error",
+        title: "Creation Error",
+        description: "Failed to create folders due to unexpected error",
         variant: "destructive"
       });
     } finally {
