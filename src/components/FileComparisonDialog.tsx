@@ -9,10 +9,21 @@ interface FileInfo {
   id?: string;
 }
 
+interface DatabaseFileInfo {
+  id: string;
+  original_filename: string;
+  title?: string;
+  original_size_bytes: number;
+  mime_type: string;
+  created_at: string;
+  processing_status: string;
+  thumbnail_path?: string;
+}
+
 interface FileComparisonDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  existingFile: FileInfo;
+  existingFile: FileInfo | DatabaseFileInfo;
   newFile: FileInfo;
 }
 
@@ -35,22 +46,94 @@ export const FileComparisonDialog = ({
     return new Date(file.lastModified).toLocaleString();
   };
 
-  const getFileIcon = (file: File) => {
-    const extension = file.name.split('.').pop()?.toLowerCase() || '';
+  const formatDatabaseDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
+  };
+
+  const getFileIcon = (filename: string, mimeType?: string) => {
+    const extension = filename.split('.').pop()?.toLowerCase() || '';
+    const type = mimeType || '';
     
-    if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'].includes(extension)) {
+    if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'].includes(extension) || type.startsWith('image/')) {
       return <Image className="w-16 h-16 text-blue-500" />;
     }
-    if (['mp4', 'mov', 'webm', 'avi', 'mkv'].includes(extension)) {
+    if (['mp4', 'mov', 'webm', 'avi', 'mkv'].includes(extension) || type.startsWith('video/')) {
       return <Video className="w-16 h-16 text-purple-500" />;
     }
-    if (['mp3', 'wav', 'aac', 'ogg', 'flac', 'opus'].includes(extension)) {
+    if (['mp3', 'wav', 'aac', 'ogg', 'flac', 'opus'].includes(extension) || type.startsWith('audio/')) {
       return <Music className="w-16 h-16 text-green-500" />;
     }
-    if (['pdf', 'doc', 'docx', 'txt', 'rtf'].includes(extension)) {
+    if (['pdf', 'doc', 'docx', 'txt', 'rtf'].includes(extension) || type.includes('text') || type.includes('document')) {
       return <FileText className="w-16 h-16 text-orange-500" />;
     }
     return <FileIcon className="w-16 h-16 text-muted-foreground" />;
+  };
+
+  const DatabaseFilePreview = ({ dbFile, title }: { dbFile: DatabaseFileInfo; title: string }) => {
+    const extension = dbFile.original_filename.split('.').pop()?.toLowerCase() || '';
+    const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'].includes(extension) || dbFile.mime_type.startsWith('image/');
+    
+    return (
+      <div className="flex-1 p-6 border border-border rounded-lg bg-card">
+        <h3 className="text-lg font-semibold mb-4 text-card-foreground">{title}</h3>
+        
+        {/* Preview Area */}
+        <div className="mb-4 flex justify-center">
+          <div className="w-[300px] h-[200px] rounded-lg border border-border bg-muted flex items-center justify-center overflow-hidden">
+            {isImage && dbFile.thumbnail_path ? (
+              <img 
+                src={dbFile.thumbnail_path} 
+                alt={dbFile.original_filename}
+                className="max-w-full max-h-full object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling?.setAttribute('style', 'display: flex');
+                }}
+              />
+            ) : null}
+            <div className="flex items-center justify-center" style={{ display: isImage && dbFile.thumbnail_path ? 'none' : 'flex' }}>
+              {getFileIcon(dbFile.original_filename, dbFile.mime_type)}
+            </div>
+          </div>
+        </div>
+        
+        {/* File Details */}
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm font-medium text-muted-foreground">File Name</label>
+            <p className="text-sm font-mono break-all bg-muted p-2 rounded mt-1">{dbFile.title || dbFile.original_filename}</p>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Size</label>
+              <Badge variant="secondary" className="mt-1">
+                {formatFileSize(dbFile.original_size_bytes)}
+              </Badge>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Type</label>
+              <Badge variant="outline" className="mt-1">
+                {dbFile.mime_type || 'Unknown'}
+              </Badge>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Created</label>
+              <p className="text-sm text-muted-foreground mt-1">{formatDatabaseDate(dbFile.created_at)}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Status</label>
+              <Badge variant="outline" className="mt-1">
+                {dbFile.processing_status}
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const FilePreview = ({ file, title }: { file: File; title: string }) => {
@@ -152,7 +235,7 @@ export const FileComparisonDialog = ({
                 </div>
               </div>
             ) : (
-              getFileIcon(file)
+              getFileIcon(file.name, file.type)
             )}
           </div>
         </div>
@@ -199,7 +282,11 @@ export const FileComparisonDialog = ({
         </DialogHeader>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
-          <FilePreview file={existingFile.file} title="File in Queue" />
+          {'file' in existingFile ? (
+            <FilePreview file={existingFile.file} title="File in Queue" />
+          ) : (
+            <DatabaseFilePreview dbFile={existingFile} title="Existing File in Library" />
+          )}
           <FilePreview file={newFile.file} title="File Being Uploaded" />
         </div>
         

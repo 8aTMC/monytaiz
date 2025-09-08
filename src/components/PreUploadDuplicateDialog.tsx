@@ -385,10 +385,14 @@ export const PreUploadDuplicateDialog = ({
           open={comparisonDialogOpen}
           onOpenChange={setComparisonDialogOpen}
           existingFile={{
-            file: new File([new Blob()], selectedDuplicateForComparison.existingFile.original_filename, {
-              type: selectedDuplicateForComparison.existingFile.mime_type
-            }),
-            id: selectedDuplicateForComparison.existingFile.id
+            id: selectedDuplicateForComparison.existingFile.id,
+            original_filename: selectedDuplicateForComparison.existingFile.original_filename,
+            title: selectedDuplicateForComparison.existingFile.title,
+            original_size_bytes: selectedDuplicateForComparison.existingFile.original_size_bytes,
+            mime_type: selectedDuplicateForComparison.existingFile.mime_type,
+            created_at: selectedDuplicateForComparison.existingFile.created_at,
+            processing_status: selectedDuplicateForComparison.existingFile.processing_status,
+            thumbnail_path: selectedDuplicateForComparison.existingFile.thumbnail_path
           }}
           newFile={{
             file: selectedDuplicateForComparison.queueFile.file,
