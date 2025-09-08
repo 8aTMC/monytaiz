@@ -89,6 +89,9 @@ export const FilePreviewDialog = ({
   // Client-side mounting state
   const [isMounted, setIsMounted] = useState(false);
   
+  // Prevent dialog closing during selection operations
+  const [isSelectingFile, setIsSelectingFile] = useState(false);
+  
   // ===== DERIVED STATE AND COMPUTED VALUES =====
   
   // Validate files array to prevent undefined navigation
@@ -334,7 +337,15 @@ export const FilePreviewDialog = ({
           {/* Custom overlay */}
           <div 
             className="media-overlay"
-            onClick={() => onOpenChange(false)}
+            onClick={(e) => {
+              // Prevent closing during selection operations
+              if (isSelectingFile) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+              }
+              onOpenChange(false);
+            }}
           />
           
           {/* Dialog content */}
@@ -413,7 +424,11 @@ export const FilePreviewDialog = ({
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
+                        e.preventDefault();
+                        setIsSelectingFile(true);
                         onToggleSelection(fileId);
+                        // Reset flag after selection to allow normal dialog behavior
+                        setTimeout(() => setIsSelectingFile(false), 100);
                       }}
                       className="p-1 h-8 w-8"
                       aria-label="Toggle selection"

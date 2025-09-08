@@ -397,6 +397,7 @@ export const MediaPreviewDialog = ({
               onClick={(e) => {
                 console.log('✅ Selection checkbox clicked for item:', item.id);
                 e.stopPropagation();
+                e.preventDefault();
                 onToggleSelection(item.id);
               }}
             >
