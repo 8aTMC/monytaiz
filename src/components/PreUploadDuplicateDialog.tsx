@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { FileText, Image, Video, Music, FileIcon, Eye, Calendar, Database, Search, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
-import { DatabaseDuplicate, DuplicateMatch, useDuplicateDetection } from '@/hooks/useDuplicateDetection';
+import { DatabaseDuplicate, DuplicateMatch, useBatchDuplicateDetection } from '@/hooks/useBatchDuplicateDetection';
 import { FileComparisonDialog } from './FileComparisonDialog';
 
 interface PreUploadDuplicateDialogProps {
@@ -28,7 +28,7 @@ export const PreUploadDuplicateDialog = ({
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false);
   const [selectedDuplicateForComparison, setSelectedDuplicateForComparison] = useState<DuplicateMatch | null>(null);
-  const { addDuplicateTag } = useDuplicateDetection();
+  const { addDuplicateTag } = useBatchDuplicateDetection();
   
   // Initialize with all files selected by default
   useEffect(() => {
@@ -389,10 +389,12 @@ export const PreUploadDuplicateDialog = ({
             original_filename: selectedDuplicateForComparison.existingFile.original_filename,
             title: selectedDuplicateForComparison.existingFile.title,
             original_size_bytes: selectedDuplicateForComparison.existingFile.original_size_bytes,
+            optimized_size_bytes: selectedDuplicateForComparison.existingFile.optimized_size_bytes,
             mime_type: selectedDuplicateForComparison.existingFile.mime_type,
             created_at: selectedDuplicateForComparison.existingFile.created_at,
             processing_status: selectedDuplicateForComparison.existingFile.processing_status,
-            thumbnail_path: selectedDuplicateForComparison.existingFile.thumbnail_path
+            thumbnail_path: selectedDuplicateForComparison.existingFile.thumbnail_path,
+            processed_path: selectedDuplicateForComparison.existingFile.processed_path
           }}
           newFile={{
             file: selectedDuplicateForComparison.queueFile.file,

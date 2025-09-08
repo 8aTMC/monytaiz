@@ -15,6 +15,7 @@ interface DatabaseFileInfo {
   original_filename: string;
   title?: string;
   original_size_bytes: number;
+  optimized_size_bytes?: number;
   mime_type: string;
   created_at: string;
   processing_status: string;
@@ -159,9 +160,24 @@ export const FileComparisonDialog = ({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-muted-foreground">Size</label>
-              <Badge variant="secondary" className="mt-1">
-                {formatFileSize(dbFile.original_size_bytes)}
-              </Badge>
+              <div className="flex flex-col gap-1 mt-1">
+                {dbFile.optimized_size_bytes ? (
+                  <>
+                    <Badge variant="secondary">
+                      {formatFileSize(dbFile.optimized_size_bytes)} (WebP)
+                    </Badge>
+                    {dbFile.optimized_size_bytes !== dbFile.original_size_bytes && (
+                      <Badge variant="outline" className="text-xs">
+                        Original: {formatFileSize(dbFile.original_size_bytes)}
+                      </Badge>
+                    )}
+                  </>
+                ) : (
+                  <Badge variant="secondary">
+                    {formatFileSize(dbFile.original_size_bytes)}
+                  </Badge>
+                )}
+              </div>
             </div>
             <div>
               <label className="text-sm font-medium text-muted-foreground">Type</label>
