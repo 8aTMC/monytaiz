@@ -20,12 +20,12 @@ import { ExceedsLimitDialog, FileWithStatus } from '@/components/ExceedsLimitDia
 import { PreUploadDuplicateDialog } from '@/components/PreUploadDuplicateDialog';
 import { useToast } from '@/hooks/use-toast';
 import { SelectedFilesProvider } from '@/contexts/SelectedFilesContext';
-import { useDuplicateDetection, DuplicateMatch } from '@/hooks/useDuplicateDetection';
+import { useBatchDuplicateDetection, DuplicateMatch } from '@/hooks/useBatchDuplicateDetection';
 
 export default function SimpleUpload() {
   const navigate = useNavigate();
   const { uploading, uploadFile, uploadProgress } = useSimpleUpload();
-  const { checkAllDuplicates } = useDuplicateDetection();
+  const { checkAllDuplicates } = useBatchDuplicateDetection();
   const { toast } = useToast();
   const [files, setFiles] = useState<(UploadedFileWithMetadata & { 
     compressionRatio?: number; 
@@ -43,6 +43,8 @@ export default function SimpleUpload() {
   const [filesAnalysis, setFilesAnalysis] = useState<FileWithStatus[]>([]);
   const [unsupportedDialogOpen, setUnsupportedDialogOpen] = useState(false);
   const [unsupportedFiles, setUnsupportedFiles] = useState<{ id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]>([]);
+  const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
+  const [duplicateProgress, setDuplicateProgress] = useState({ current: 0, total: 1, step: '' });
   const addMoreFileInputRef = useRef<HTMLInputElement>(null);
   
   // Selection state management
@@ -179,7 +181,13 @@ export default function SimpleUpload() {
       }));
 
       try {
-        const duplicates = await checkAllDuplicates(uploadQueue);
+        setIsCheckingDuplicates(true);
+        setDuplicateProgress({ current: 0, total: 1, step: 'Initializing...' });
+        
+        const duplicates = await checkAllDuplicates(uploadQueue, (current, total, step) => {
+          setDuplicateProgress({ current, total, step });
+        });
+        
         if (duplicates.length > 0) {
           console.log(`🎯 Found ${duplicates.length} database duplicates`);
           setDatabaseDuplicates(duplicates);
@@ -195,6 +203,8 @@ export default function SimpleUpload() {
         // Continue with upload if duplicate check fails
         setFiles(prev => [...prev, ...newFiles]);
         setReviewMode(true);
+      } finally {
+        setIsCheckingDuplicates(false);
       }
     }
   }, []);
@@ -297,7 +307,13 @@ export default function SimpleUpload() {
       }));
 
       try {
-        const duplicates = await checkAllDuplicates(uploadQueue);
+        setIsCheckingDuplicates(true);
+        setDuplicateProgress({ current: 0, total: 1, step: 'Initializing...' });
+        
+        const duplicates = await checkAllDuplicates(uploadQueue, (current, total, step) => {
+          setDuplicateProgress({ current, total, step });
+        });
+        
         if (duplicates.length > 0) {
           console.log(`🎯 Found ${duplicates.length} database duplicates`);
           setDatabaseDuplicates(duplicates);
@@ -319,6 +335,8 @@ export default function SimpleUpload() {
           title: "Files added",
           description: `${uniqueFiles.length} file${uniqueFiles.length === 1 ? '' : 's'} added to upload queue`,
         });
+      } finally {
+        setIsCheckingDuplicates(false);
       }
     } else if (uniqueFiles.length > 0) {
       // Add unique files to the queue when there are queue duplicates
@@ -681,7 +699,7 @@ export default function SimpleUpload() {
                         ? 'border-primary bg-primary/5' 
                         : 'border-muted-foreground/25 hover:border-primary/50'
                       }
-                      ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
+                      ${uploading || isCheckingDuplicates ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}
                     `}
                   >
                     <input {...getInputProps()} />
@@ -700,6 +718,27 @@ export default function SimpleUpload() {
                         </>
                       )}
                     </div>
+                  </div>
+                </Card>
+              )}
+
+              {/* Duplicate Check Loading Overlay */}
+              {isCheckingDuplicates && (
+                <Card className="mb-6 border-primary/20 bg-primary/5">
+                  <div className="p-8 text-center">
+                    <div className="flex items-center justify-center gap-3 mb-4">
+                      <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
+                      <span className="text-lg font-medium text-primary">Checking for duplicates...</span>
+                    </div>
+                    
+                    <Progress 
+                      value={(duplicateProgress.current / duplicateProgress.total) * 100} 
+                      className="w-full max-w-md mx-auto mb-2"
+                    />
+                    
+                    <p className="text-sm text-muted-foreground">
+                      {duplicateProgress.step || 'Processing files...'}
+                    </p>
                   </div>
                 </Card>
               )}
