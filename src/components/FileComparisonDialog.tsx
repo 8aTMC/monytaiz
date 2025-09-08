@@ -1,8 +1,9 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, Image, Video, Music, FileIcon, ArrowLeft } from 'lucide-react';
+import { FileText, Image, Video, Music, FileIcon, ArrowLeft, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { usePersistentMediaCache } from '@/hooks/usePersistentMediaCache';
 
 interface FileInfo {
   file: File;
@@ -18,6 +19,7 @@ interface DatabaseFileInfo {
   created_at: string;
   processing_status: string;
   thumbnail_path?: string;
+  processed_path?: string;
 }
 
 interface FileComparisonDialogProps {
@@ -70,8 +72,55 @@ export const FileComparisonDialog = ({
   };
 
   const DatabaseFilePreview = ({ dbFile, title }: { dbFile: DatabaseFileInfo; title: string }) => {
+    const [secureImageUrl, setSecureImageUrl] = useState<string | null>(null);
+    const [imageLoading, setImageLoading] = useState(false);
+    const [imageError, setImageError] = useState(false);
+    const { getSecureMediaUrl } = usePersistentMediaCache();
+    
     const extension = dbFile.original_filename.split('.').pop()?.toLowerCase() || '';
     const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'].includes(extension) || dbFile.mime_type.startsWith('image/');
+    
+    // Load secure image URL with fallback logic
+    useEffect(() => {
+      if (!isImage) return;
+      
+      const loadSecureUrl = async () => {
+        setImageLoading(true);
+        setImageError(false);
+        
+        try {
+          // Try thumbnail_path first
+          if (dbFile.thumbnail_path) {
+            const thumbnailUrl = await getSecureMediaUrl(dbFile.thumbnail_path, { width: 512, height: 512, quality: 85 });
+            if (thumbnailUrl) {
+              setSecureImageUrl(thumbnailUrl);
+              setImageLoading(false);
+              return;
+            }
+          }
+          
+          // Fall back to processed_path
+          if (dbFile.processed_path) {
+            const processedUrl = await getSecureMediaUrl(dbFile.processed_path, { width: 512, height: 512, quality: 85 });
+            if (processedUrl) {
+              setSecureImageUrl(processedUrl);
+              setImageLoading(false);
+              return;
+            }
+          }
+          
+          // No valid URL found
+          setImageError(true);
+        } catch (error) {
+          console.error('Failed to load secure image URL:', error);
+          setImageError(true);
+        } finally {
+          setImageLoading(false);
+        }
+      };
+      
+      loadSecureUrl();
+    }, [dbFile.thumbnail_path, dbFile.processed_path, isImage, getSecureMediaUrl]);
     
     return (
       <div className="flex-1 p-6 border border-border rounded-lg bg-card">
@@ -80,20 +129,23 @@ export const FileComparisonDialog = ({
         {/* Preview Area */}
         <div className="mb-4 flex justify-center">
           <div className="w-[300px] h-[200px] rounded-lg border border-border bg-muted flex items-center justify-center overflow-hidden">
-            {isImage && dbFile.thumbnail_path ? (
+            {isImage && imageLoading ? (
+              <div className="flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : isImage && secureImageUrl && !imageError ? (
               <img 
-                src={dbFile.thumbnail_path} 
+                src={secureImageUrl} 
                 alt={dbFile.original_filename}
                 className="max-w-full max-h-full object-contain"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling?.setAttribute('style', 'display: flex');
-                }}
+                onError={() => setImageError(true)}
+                onLoad={() => setImageError(false)}
               />
-            ) : null}
-            <div className="flex items-center justify-center" style={{ display: isImage && dbFile.thumbnail_path ? 'none' : 'flex' }}>
-              {getFileIcon(dbFile.original_filename, dbFile.mime_type)}
-            </div>
+            ) : (
+              <div className="flex items-center justify-center">
+                {getFileIcon(dbFile.original_filename, dbFile.mime_type)}
+              </div>
+            )}
           </div>
         </div>
         

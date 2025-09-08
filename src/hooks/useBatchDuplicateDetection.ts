@@ -17,6 +17,7 @@ export interface DatabaseDuplicate {
     mime_type: string;
     created_at: string;
     thumbnail_path?: string;
+    processed_path?: string;
     processing_status: string;
   };
   sourceType: 'database';
@@ -117,7 +118,7 @@ export const useBatchDuplicateDetection = () => {
       
       const { data: exactMatches } = await supabase
         .from('simple_media')
-        .select('id, title, original_filename, original_size_bytes, mime_type, created_at, thumbnail_path, processing_status')
+        .select('id, title, original_filename, original_size_bytes, mime_type, created_at, thumbnail_path, processed_path, processing_status')
         .eq('creator_id', userData.user.id)
         .in('original_filename', filenames)
         .in('original_size_bytes', fileSizes);
@@ -156,7 +157,7 @@ export const useBatchDuplicateDetection = () => {
         
         const { data: sizeMatches } = await supabase
           .from('simple_media')
-          .select('id, title, original_filename, original_size_bytes, mime_type, created_at, thumbnail_path, processing_status')
+          .select('id, title, original_filename, original_size_bytes, mime_type, created_at, thumbnail_path, processed_path, processing_status')
           .eq('creator_id', userData.user.id)
           .in('original_size_bytes', uniqueSizes);
 
