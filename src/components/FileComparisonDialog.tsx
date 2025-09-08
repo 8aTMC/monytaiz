@@ -358,13 +358,13 @@ export const FileComparisonDialog = ({
           <FilePreview file={newFile.file} title="File Being Uploaded" />
         </div>
         
-        <div className="mt-6 p-4 bg-muted/30 rounded-lg">
+        <div className="mt-4 p-4 bg-muted/30 rounded-lg">
           <p className="text-sm text-muted-foreground text-center">
             These files have the same name and size. Choose to ignore the new file or proceed with the upload to add both files to your library.
           </p>
         </div>
 
-        <DialogFooter className="mt-6">
+        <DialogFooter className="mt-4">
           <Button 
             variant="outline" 
             onClick={() => onOpenChange(false)}
