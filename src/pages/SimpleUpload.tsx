@@ -17,12 +17,15 @@ import { DuplicateFilesDialog } from '@/components/DuplicateFilesDialog';
 import { UnsupportedFilesDialog } from '@/components/UnsupportedFilesDialog';
 import { StorageQuotaProgressBar, STORAGE_LIMIT_BYTES } from '@/components/StorageQuotaProgressBar';
 import { ExceedsLimitDialog, FileWithStatus } from '@/components/ExceedsLimitDialog';
+import { PreUploadDuplicateDialog } from '@/components/PreUploadDuplicateDialog';
 import { useToast } from '@/hooks/use-toast';
 import { SelectedFilesProvider } from '@/contexts/SelectedFilesContext';
+import { useDuplicateDetection, DuplicateMatch } from '@/hooks/useDuplicateDetection';
 
 export default function SimpleUpload() {
   const navigate = useNavigate();
   const { uploading, uploadFile, uploadProgress } = useSimpleUpload();
+  const { checkAllDuplicates } = useDuplicateDetection();
   const { toast } = useToast();
   const [files, setFiles] = useState<(UploadedFileWithMetadata & { 
     compressionRatio?: number; 
@@ -34,6 +37,8 @@ export default function SimpleUpload() {
   const [reviewMode, setReviewMode] = useState(false);
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
   const [duplicateFiles, setDuplicateFiles] = useState<{ id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]>([]);
+  const [databaseDuplicateDialogOpen, setDatabaseDuplicateDialogOpen] = useState(false);
+  const [databaseDuplicates, setDatabaseDuplicates] = useState<DuplicateMatch[]>([]);
   const [exceedsLimitDialogOpen, setExceedsLimitDialogOpen] = useState(false);
   const [filesAnalysis, setFilesAnalysis] = useState<FileWithStatus[]>([]);
   const [unsupportedDialogOpen, setUnsupportedDialogOpen] = useState(false);
@@ -149,7 +154,7 @@ export default function SimpleUpload() {
       setUnsupportedDialogOpen(true);
     }
 
-    // Add supported files
+    // Add supported files and check for database duplicates
     if (supportedFiles.length > 0) {
       const newFiles = supportedFiles.map(file => ({
         file,
@@ -164,12 +169,37 @@ export default function SimpleUpload() {
         }
       }));
 
-      setFiles(prev => [...prev, ...newFiles]);
-      setReviewMode(true);
+      // Check for database duplicates
+      const uploadQueue = newFiles.map(f => ({
+        id: f.id,
+        file: f.file,
+        status: f.status,
+        progress: 0,
+        metadata: f.metadata
+      }));
+
+      try {
+        const duplicates = await checkAllDuplicates(uploadQueue);
+        if (duplicates.length > 0) {
+          console.log(`🎯 Found ${duplicates.length} database duplicates`);
+          setDatabaseDuplicates(duplicates);
+          setDatabaseDuplicateDialogOpen(true);
+          // Store files for later processing
+          setFiles(prev => [...prev, ...newFiles]);
+        } else {
+          setFiles(prev => [...prev, ...newFiles]);
+          setReviewMode(true);
+        }
+      } catch (error) {
+        console.error('Database duplicate check failed:', error);
+        // Continue with upload if duplicate check fails
+        setFiles(prev => [...prev, ...newFiles]);
+        setReviewMode(true);
+      }
     }
   }, []);
 
-  const addMoreFiles = useCallback((acceptedFiles: File[]) => {
+  const addMoreFiles = useCallback(async (acceptedFiles: File[]) => {
     console.log(`🔄 Processing ${acceptedFiles.length} files through addMoreFiles`);
     
     // Separate supported and unsupported files first
@@ -220,7 +250,7 @@ export default function SimpleUpload() {
     }
 
     // Check for duplicates among supported files
-    const duplicates: { id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[] = [];
+    const queueDuplicates: { id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[] = [];
     const uniqueFiles: File[] = [];
 
     supportedFiles.forEach(newFile => {
@@ -229,7 +259,7 @@ export default function SimpleUpload() {
       );
 
       if (existingFileItem) {
-        duplicates.push({
+        queueDuplicates.push({
           id: `${newFile.name}-${newFile.size}-${newFile.lastModified}`,
           name: newFile.name,
           size: newFile.size,
@@ -242,8 +272,56 @@ export default function SimpleUpload() {
       }
     });
 
-    // Add unique files to the queue
-    if (uniqueFiles.length > 0) {
+    // If no queue duplicates, check for database duplicates
+    if (queueDuplicates.length === 0 && uniqueFiles.length > 0) {
+      const newFiles = uniqueFiles.map(file => ({
+        file,
+        id: crypto.randomUUID(),
+        status: 'pending' as const,
+        metadata: {
+          mentions: [],
+          tags: [],
+          folders: [],
+          description: '',
+          suggestedPrice: null,
+        }
+      }));
+
+      // Check for database duplicates
+      const uploadQueue = newFiles.map(f => ({
+        id: f.id,
+        file: f.file,
+        status: f.status,
+        progress: 0,
+        metadata: f.metadata
+      }));
+
+      try {
+        const duplicates = await checkAllDuplicates(uploadQueue);
+        if (duplicates.length > 0) {
+          console.log(`🎯 Found ${duplicates.length} database duplicates`);
+          setDatabaseDuplicates(duplicates);
+          setDatabaseDuplicateDialogOpen(true);
+          // Store files for later processing
+          setFiles(prev => [...prev, ...newFiles]);
+        } else {
+          setFiles(prev => [...prev, ...newFiles]);
+          toast({
+            title: "Files added",
+            description: `${uniqueFiles.length} file${uniqueFiles.length === 1 ? '' : 's'} added to upload queue`,
+          });
+        }
+      } catch (error) {
+        console.error('Database duplicate check failed:', error);
+        // Continue with upload if duplicate check fails
+        setFiles(prev => [...prev, ...newFiles]);
+        toast({
+          title: "Files added",
+          description: `${uniqueFiles.length} file${uniqueFiles.length === 1 ? '' : 's'} added to upload queue`,
+        });
+      }
+    } else if (uniqueFiles.length > 0) {
+      // Add unique files to the queue when there are queue duplicates
       const newFiles = uniqueFiles.map(file => ({
         file,
         id: crypto.randomUUID(),
@@ -265,9 +343,9 @@ export default function SimpleUpload() {
       });
     }
 
-    // Show duplicates dialog if any duplicates found
-    if (duplicates.length > 0) {
-      setDuplicateFiles(duplicates);
+    // Show queue duplicates dialog if any duplicates found
+    if (queueDuplicates.length > 0) {
+      setDuplicateFiles(queueDuplicates);
       setDuplicateDialogOpen(true);
     }
   }, [files, toast]);
@@ -437,6 +515,68 @@ export default function SimpleUpload() {
 
   const completedFiles = files.filter(f => f.status === 'completed').length;
   const hasCompletedFiles = completedFiles > 0;
+
+  // Database duplicate handlers
+  const handlePurgeSelectedDuplicates = (duplicateIds: string[]) => {
+    console.log(`🗑️ Purging ${duplicateIds.length} duplicate files`);
+    setFiles(prev => prev.filter(f => !duplicateIds.includes(f.id)));
+    setDatabaseDuplicates([]);
+    setDatabaseDuplicateDialogOpen(false);
+    
+    // Check if any files remain to enter review mode
+    const remainingFiles = files.filter(f => !duplicateIds.includes(f.id));
+    if (remainingFiles.length > 0) {
+      setReviewMode(true);
+    }
+    
+    toast({
+      title: "Duplicates removed",
+      description: `${duplicateIds.length} duplicate file${duplicateIds.length === 1 ? '' : 's'} removed from upload queue`,
+    });
+  };
+
+  const handleKeepBothDuplicates = () => {
+    console.log(`📝 Keeping both versions - adding duplicate tags`);
+    // Add duplicate tags to help identify files
+    setFiles(prev => prev.map(f => {
+      const duplicate = databaseDuplicates.find(d => d.queueFile.id === f.id);
+      if (duplicate) {
+        const duplicateTag = `duplicate-${Date.now()}`;
+        return {
+          ...f,
+          metadata: {
+            ...f.metadata,
+            tags: [...f.metadata.tags, duplicateTag]
+          }
+        };
+      }
+      return f;
+    }));
+    
+    setDatabaseDuplicates([]);
+    setDatabaseDuplicateDialogOpen(false);
+    setReviewMode(true);
+    
+    toast({
+      title: "Files kept",
+      description: "All files kept with duplicate tags added for identification",
+    });
+  };
+
+  const handleCancelDuplicateUpload = () => {
+    console.log(`❌ Canceling upload due to duplicates`);
+    // Remove all files that were being checked for duplicates
+    const duplicateFileIds = databaseDuplicates.map(d => d.queueFile.id);
+    setFiles(prev => prev.filter(f => !duplicateFileIds.includes(f.id)));
+    
+    setDatabaseDuplicates([]);
+    setDatabaseDuplicateDialogOpen(false);
+    
+    toast({
+      title: "Upload canceled",
+      description: "No files were added to the upload queue",
+    });
+  };
 
   return (
     <SelectedFilesProvider>
@@ -664,6 +804,16 @@ export default function SimpleUpload() {
                   setDuplicateFiles(prev => prev.filter(dup => !filesToIgnore.includes(dup.id)));
                   setDuplicateDialogOpen(false);
                 }}
+              />
+
+              {/* Database Duplicate Files Dialog */}
+              <PreUploadDuplicateDialog
+                open={databaseDuplicateDialogOpen}
+                onOpenChange={setDatabaseDuplicateDialogOpen}
+                duplicates={databaseDuplicates}
+                onPurgeSelected={handlePurgeSelectedDuplicates}
+                onKeepBoth={handleKeepBothDuplicates}
+                onCancel={handleCancelDuplicateUpload}
               />
 
               {/* Exceeds Limit Dialog */}
