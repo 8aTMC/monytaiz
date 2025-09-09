@@ -86,7 +86,7 @@ export const useSimpleUpload = () => {
                file.type === 'image/heif';
       };
 
-      const shouldProcessImage = mediaType === 'image' && !isHeicFile(file);
+      const shouldProcessImage = mediaType === 'image'; // Process ALL images including HEIC
       
       let fileToUpload = file;
       let uploadFileName = file.name;
@@ -95,7 +95,7 @@ export const useSimpleUpload = () => {
       let width: number | undefined;
       let height: number | undefined;
 
-      // Process images (except HEIC/HEIF) to WebP
+      // Process all images to WebP (including HEIC conversion)
       if (shouldProcessImage) {
         setUploadProgress({
           phase: 'processing',
