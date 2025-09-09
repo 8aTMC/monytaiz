@@ -30,8 +30,8 @@ export const HEICWarningDialog = ({ open, onOpenChange, fileNames }: HEICWarning
           </div>
           <DialogDescription className="space-y-3">
             <p>
-              The following HEIC images will be automatically converted to WebP format 
-              during upload for better compatibility:
+              The following files with HEIC extensions will be automatically processed 
+              during upload for optimal compatibility:
             </p>
             <ul className="text-sm text-muted-foreground space-y-1">
               {fileNames.map((name, index) => (
@@ -42,7 +42,10 @@ export const HEICWarningDialog = ({ open, onOpenChange, fileNames }: HEICWarning
               ))}
             </ul>
             <p className="text-sm text-emerald-600">
-              ✓ Automatic conversion ensures optimal compatibility and file size
+              ✓ True HEIC files will be converted to WebP format for better compatibility
+            </p>
+            <p className="text-sm text-blue-600">
+              ✓ Files with HEIC extension but different format will be processed appropriately
             </p>
           </DialogDescription>
         </DialogHeader>

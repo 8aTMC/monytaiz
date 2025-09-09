@@ -194,25 +194,84 @@ export const useClientMediaProcessor = () => {
     });
   }, [getCanvas, trackBlobUrl, cleanupBlobUrl]);
 
-  // Check if file is HEIC/HEIF
-  const isHeicFile = useCallback((file: File): boolean => {
+  // Check if file has HEIC/HEIF extension
+  const hasHeicExtension = useCallback((file: File): boolean => {
     return /\.(heic|heif)$/i.test(file.name) || 
            file.type === 'image/heic' || 
            file.type === 'image/heif';
   }, []);
 
-  // Convert HEIC to WebP
+  // Check if file is actually in HEIC format by validating file signature
+  const validateHeicFormat = useCallback(async (file: File): Promise<boolean> => {
+    try {
+      const arrayBuffer = await file.slice(0, 32).arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      // Check for HEIC/HEIF file signatures
+      // HEIC files typically start with specific byte patterns
+      const signature = Array.from(uint8Array.slice(4, 12))
+        .map(byte => String.fromCharCode(byte))
+        .join('');
+      
+      const isHeicFormat = signature.includes('ftyp') && 
+                          (signature.includes('heic') || 
+                           signature.includes('heix') || 
+                           signature.includes('hevc') || 
+                           signature.includes('hevx'));
+      
+      console.log(`File signature validation for ${file.name}:`, {
+        signature: signature,
+        isActualHeic: isHeicFormat,
+        fileType: file.type
+      });
+      
+      return isHeicFormat;
+    } catch (error) {
+      console.warn('Could not validate HEIC format:', error);
+      return false;
+    }
+  }, []);
+
+  // Check if file is HEIC/HEIF (extension-based check for initial detection)
+  const isHeicFile = useCallback((file: File): boolean => {
+    return hasHeicExtension(file);
+  }, [hasHeicExtension]);
+
+  // Convert HEIC to WebP with smart fallback handling
   const convertHeicToWebP = useCallback(async (file: File): Promise<File> => {
-    console.log(`Converting HEIC file: ${file.name} (${file.size} bytes)`);
+    console.log(`Processing HEIC file: ${file.name} (${file.size} bytes)`);
     
     setProgress({
       phase: 'analyzing',
       progress: 15,
+      message: 'Validating HEIC format...'
+    });
+
+    // First, validate if this is actually a HEIC file
+    const isActualHeic = await validateHeicFormat(file);
+    
+    if (!isActualHeic) {
+      console.log(`File ${file.name} has HEIC extension but is not in HEIC format - treating as regular image`);
+      setProgress({
+        phase: 'analyzing',
+        progress: 30,
+        message: 'Processing as regular image...'
+      });
+      
+      // Return the original file with corrected type - it will be processed as a regular image
+      const correctedType = file.type.startsWith('image/') ? file.type : 'image/jpeg';
+      const newFileName = file.name.replace(/\.(heic|heif)$/i, correctedType.includes('png') ? '.png' : '.jpg');
+      return new File([file], newFileName, { type: correctedType });
+    }
+    
+    setProgress({
+      phase: 'analyzing',
+      progress: 30,
       message: 'Converting HEIC to WebP...'
     });
     
     try {
-      // Configure heic2any with proper options
+      // Configure heic2any with proper options for true HEIC files
       const convertedBlobOrArray = await heic2any({
         blob: file,
         toType: 'image/webp',
@@ -235,11 +294,22 @@ export const useClientMediaProcessor = () => {
       return convertedFile;
     } catch (error) {
       console.error('HEIC conversion failed:', error);
-      // Re-throw with more specific error information
+      
+      // Check if it's the "already readable" error - indicates pseudo-HEIC file
       const errorMessage = error instanceof Error ? error.message : 'Unknown conversion error';
+      if (errorMessage.includes('already browser readable') || errorMessage.includes('already readable')) {
+        console.log(`File ${file.name} appears to be pseudo-HEIC (already readable) - processing as regular image`);
+        
+        // Return the file as a regular image with corrected extension and type
+        const correctedType = 'image/jpeg'; // Default to JPEG for pseudo-HEIC files
+        const newFileName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+        return new File([file], newFileName, { type: correctedType });
+      }
+      
+      // For other errors, re-throw with more specific information
       throw new Error(`Failed to convert HEIC file "${file.name}": ${errorMessage}`);
     }
-  }, []);
+  }, [validateHeicFormat]);
 
   // Process image using Canvas  
   const processImage = useCallback(async (file: File): Promise<ProcessedMedia | null> => {
