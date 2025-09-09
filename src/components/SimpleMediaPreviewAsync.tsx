@@ -316,7 +316,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
               height: 'fit-content',
               maxWidth: '90vw',
               maxHeight: '90vh',
-              minWidth: '400px'
+              minWidth: '700px'
             }}
             onClick={(e) => e.stopPropagation()}
           >
