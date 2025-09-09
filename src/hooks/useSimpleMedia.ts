@@ -92,22 +92,67 @@ export const useSimpleMedia = () => {
 
   // Async versions for when needed
   const getThumbnailUrlAsync = useCallback(async (item: SimpleMediaItem) => {
-    const thumbnailUrl = await getMediaUrl(item.thumbnail_path, true);
-    if (thumbnailUrl) return thumbnailUrl;
+    // First, try the thumbnail path if available
+    if (item.thumbnail_path) {
+      const thumbnailUrl = await getMediaUrl(item.thumbnail_path, true);
+      if (thumbnailUrl) return thumbnailUrl;
+    }
     
-    const processedUrl = await getMediaUrl(item.processed_path, true);
-    if (processedUrl) return processedUrl;
+    // Then try the processed path  
+    if (item.processed_path) {
+      const processedUrl = await getMediaUrl(item.processed_path, true);
+      if (processedUrl) return processedUrl;
+    }
     
-    // Fall back to original path for HEIC files or unprocessed media
+    // For HEIC files, try the converted WebP path first
+    if (item.original_path && /\.(heic|heif)$/i.test(item.original_path)) {
+      const webpPath = item.original_path.replace(/\.(heic|heif)$/i, '.webp');
+      const webpUrl = await getMediaUrl(webpPath, true);
+      if (webpUrl) return webpUrl;
+    }
+    
+    // Fall back to original path for other files or if WebP conversion failed
     return await getMediaUrl(item.original_path, true);
   }, [getMediaUrl]);
 
   const getFullUrlAsync = useCallback(async (item: SimpleMediaItem) => {
-    const processedUrl = await getMediaUrl(item.processed_path, false);
-    if (processedUrl) return processedUrl;
+    // First, try the processed path if available
+    if (item.processed_path) {
+      const processedUrl = await getMediaUrl(item.processed_path, false);
+      if (processedUrl) return processedUrl;
+    }
     
-    // Fall back to original path for HEIC files or unprocessed media
-    return await getMediaUrl(item.original_path, false);
+    // For HEIC files, try the converted WebP path first
+    if (item.original_path && /\.(heic|heif)$/i.test(item.original_path)) {
+      console.log('Processing HEIC file path conversion for:', item.original_path);
+      
+      // Try the WebP converted path (replace .heic/.heif with .webp)  
+      const webpPath = item.original_path.replace(/\.(heic|heif)$/i, '.webp');
+      console.log('Trying WebP converted path:', webpPath);
+      
+      const webpUrl = await getMediaUrl(webpPath, false);
+      if (webpUrl) {
+        console.log('Successfully loaded WebP converted URL:', webpUrl);
+        return webpUrl;
+      }
+      
+      console.log('WebP conversion not found, trying original HEIC path');
+    }
+    
+    // Fall back to original path for other files or if WebP conversion failed
+    const originalUrl = await getMediaUrl(item.original_path, false);
+    if (originalUrl) {
+      console.log('Successfully loaded original URL:', originalUrl);
+      return originalUrl;
+    }
+    
+    console.error('Failed to load media URL for item:', item.id, 'paths tried:', {
+      processed: item.processed_path,
+      converted: item.original_path && /\.(heic|heif)$/i.test(item.original_path) ? item.original_path.replace(/\.(heic|heif)$/i, '.webp') : null,
+      original: item.original_path
+    });
+    
+    return null;
   }, [getMediaUrl]);
 
   // Update media metadata
