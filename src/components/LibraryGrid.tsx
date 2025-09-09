@@ -159,6 +159,7 @@ const LibraryGridComponent = ({
                   height: item.height
                 }}
                 debug={debug}
+                forceSquare={true}
               />
               
               {/* Enhanced Categories with improved styling */}

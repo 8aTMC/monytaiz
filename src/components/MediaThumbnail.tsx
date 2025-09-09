@@ -26,9 +26,10 @@ interface MediaThumbnailProps {
   className?: string;
   isPublic?: boolean;
   debug?: boolean;
+  forceSquare?: boolean;
 }
 
-export const MediaThumbnail = ({ item, className = "", isPublic = false, debug = false }: MediaThumbnailProps) => {
+export const MediaThumbnail = ({ item, className = "", isPublic = false, debug = false, forceSquare = false }: MediaThumbnailProps) => {
   const { loadOptimizedMedia, currentUrl, isLoading, error, clearMedia } = useOptimizedMediaDisplay();
   const [imageLoadError, setImageLoadError] = useState(false);
   
@@ -101,6 +102,11 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false, debug =
 
   // Calculate aspect ratio respecting video proportions
   const calculateAspectRatio = () => {
+    // Force square aspect ratio when requested
+    if (forceSquare) {
+      return '1';
+    }
+    
     if (!item.width || !item.height) {
       return '1';
     }
@@ -149,7 +155,7 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false, debug =
           <img
             src={thumbnailSrc}
             alt={item.title || `${item.type} thumbnail`}
-            className={`w-full h-full ${item.type === 'video' ? 'object-contain' : 'object-cover'} block media`}
+            className={`w-full h-full ${forceSquare || item.type !== 'video' ? 'object-cover' : 'object-contain'} block media`}
             loading="lazy"
             decoding="async"
           />
