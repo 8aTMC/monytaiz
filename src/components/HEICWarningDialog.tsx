@@ -16,8 +16,8 @@ interface HEICWarningDialogProps {
 }
 
 export const HEICWarningDialog = ({ open, onOpenChange, fileNames }: HEICWarningDialogProps) => {
-  const handleConvertClick = () => {
-    window.open('https://www.freeconvert.com/heic-to-webp', '_blank');
+  const handleContinue = () => {
+    onOpenChange(false);
   };
 
   return (
@@ -30,8 +30,8 @@ export const HEICWarningDialog = ({ open, onOpenChange, fileNames }: HEICWarning
           </div>
           <DialogDescription className="space-y-3">
             <p>
-              The following images are in HEIC format and should be converted to WebP 
-              to maximize compatibility and optimize memory usage:
+              The following HEIC images will be automatically converted to WebP format 
+              during upload for better compatibility:
             </p>
             <ul className="text-sm text-muted-foreground space-y-1">
               {fileNames.map((name, index) => (
@@ -41,19 +41,14 @@ export const HEICWarningDialog = ({ open, onOpenChange, fileNames }: HEICWarning
                 </li>
               ))}
             </ul>
-            <p>
-              Please visit the conversion site and check the <strong>Lossless Compression</strong> box 
-              for best results.
+            <p className="text-sm text-emerald-600">
+              ✓ Automatic conversion ensures optimal compatibility and file size
             </p>
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Continue Anyway
-          </Button>
-          <Button onClick={handleConvertClick} className="flex items-center gap-2">
-            <ExternalLink className="h-4 w-4" />
-            Convert Files
+        <div className="flex justify-end">
+          <Button onClick={handleContinue}>
+            Continue with Upload
           </Button>
         </div>
       </DialogContent>

@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useVideoConverter } from '@/hooks/useVideoConverter';
+import heic2any from 'heic2any';
 
 export interface ProcessingProgress {
   phase: 'analyzing' | 'encoding' | 'uploading' | 'finalizing' | 'complete' | 'error';
@@ -200,9 +201,40 @@ export const useClientMediaProcessor = () => {
            file.type === 'image/heif';
   }, []);
 
+  // Convert HEIC to WebP
+  const convertHeicToWebP = useCallback(async (file: File): Promise<File> => {
+    console.log(`Converting HEIC file: ${file.name}`);
+    
+    setProgress({
+      phase: 'analyzing',
+      progress: 15,
+      message: 'Converting HEIC to WebP...'
+    });
+    
+    try {
+      const convertedBlob = await heic2any({
+        blob: file,
+        toType: 'image/webp',
+        quality: 0.85
+      }) as Blob;
+      
+      const newFileName = file.name.replace(/\.(heic|heif)$/i, '.webp');
+      return new File([convertedBlob], newFileName, { type: 'image/webp' });
+    } catch (error) {
+      console.error('HEIC conversion failed:', error);
+      throw new Error(`Failed to convert HEIC file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }, []);
+
   // Process image using Canvas  
   const processImage = useCallback(async (file: File): Promise<ProcessedMedia | null> => {
     try {
+      // Convert HEIC files to WebP first
+      let processedFile = file;
+      if (isHeicFile(file)) {
+        processedFile = await convertHeicToWebP(file);
+      }
+      
       const result = await new Promise<{ blob: Blob; width: number; height: number }>((resolve, reject) => {
         const img = new Image();
         img.onload = () => {
@@ -289,10 +321,10 @@ export const useClientMediaProcessor = () => {
           reject(new Error('Failed to load image'));
           cleanupBlobUrl(img.src);
         };
-        img.src = trackBlobUrl(URL.createObjectURL(file));
+        img.src = trackBlobUrl(URL.createObjectURL(processedFile));
       });
 
-      const placeholder = await createTinyPlaceholder(file);
+      const placeholder = await createTinyPlaceholder(processedFile);
       const compressionRatio = Math.round(((file.size - result.blob.size) / file.size) * 100);
 
       const processedBlobs = new Map<string, Blob>();
@@ -319,7 +351,7 @@ export const useClientMediaProcessor = () => {
       console.error('Image processing failed:', error);
       return null;
     }
-  }, [getCanvas, createTinyPlaceholder, trackBlobUrl, cleanupBlobUrl]);
+  }, [getCanvas, createTinyPlaceholder, trackBlobUrl, cleanupBlobUrl, isHeicFile, convertHeicToWebP]);
 
   // Helper function to create video thumbnail
   const createVideoThumbnail = useCallback(async (file: File): Promise<Blob | null> => {
