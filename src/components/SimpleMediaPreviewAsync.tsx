@@ -410,7 +410,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                 ) : fullUrl ? (
                   <div>
                     <div 
-                      className="flex items-center justify-center bg-muted/20 rounded-lg overflow-hidden mx-4 my-4"
+                      className="flex items-center justify-center bg-muted/20 rounded-lg overflow-hidden"
                       style={containerStyle}
                     >
                       {(item?.media_type === 'image' || 
