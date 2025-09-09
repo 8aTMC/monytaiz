@@ -203,7 +203,7 @@ export const useClientMediaProcessor = () => {
 
   // Convert HEIC to WebP
   const convertHeicToWebP = useCallback(async (file: File): Promise<File> => {
-    console.log(`Converting HEIC file: ${file.name}`);
+    console.log(`Converting HEIC file: ${file.name} (${file.size} bytes)`);
     
     setProgress({
       phase: 'analyzing',
@@ -212,17 +212,32 @@ export const useClientMediaProcessor = () => {
     });
     
     try {
-      const convertedBlob = await heic2any({
+      // Configure heic2any with proper options
+      const convertedBlobOrArray = await heic2any({
         blob: file,
         toType: 'image/webp',
         quality: 0.85
-      }) as Blob;
+      });
+      
+      // Handle the Blob | Blob[] return type
+      const convertedBlob = Array.isArray(convertedBlobOrArray) 
+        ? convertedBlobOrArray[0] 
+        : convertedBlobOrArray;
+      
+      if (!convertedBlob || !(convertedBlob instanceof Blob)) {
+        throw new Error('Invalid conversion result from heic2any');
+      }
       
       const newFileName = file.name.replace(/\.(heic|heif)$/i, '.webp');
-      return new File([convertedBlob], newFileName, { type: 'image/webp' });
+      const convertedFile = new File([convertedBlob], newFileName, { type: 'image/webp' });
+      
+      console.log(`HEIC conversion successful: ${newFileName} (${convertedBlob.size} bytes)`);
+      return convertedFile;
     } catch (error) {
       console.error('HEIC conversion failed:', error);
-      throw new Error(`Failed to convert HEIC file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Re-throw with more specific error information
+      const errorMessage = error instanceof Error ? error.message : 'Unknown conversion error';
+      throw new Error(`Failed to convert HEIC file "${file.name}": ${errorMessage}`);
     }
   }, []);
 
