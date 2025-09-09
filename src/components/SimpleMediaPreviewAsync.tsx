@@ -420,7 +420,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                         <img
                           src={fullUrl}
                           alt={item.title || item.original_filename}
-                          className="w-full h-full object-contain object-center"
+                          className="max-w-full max-h-full object-contain"
                           onError={(e) => {
                             console.error('Failed to load image:', fullUrl, e);
                             setFullUrl(null);
