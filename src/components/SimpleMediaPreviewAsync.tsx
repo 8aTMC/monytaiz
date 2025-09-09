@@ -246,39 +246,54 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  // Determine orientation and aspect ratio - improved detection
+  // Calculate responsive dimensions based on viewport
   const isVertical = item?.width && item?.height && item.height > item.width;
   const isSquare = item?.width && item?.height && Math.abs(item.width - item.height) < 10;
   
-  let aspectRatio;
-  let containerWidth;
-  let containerHeight;
+  // Calculate available space (90vh modal - header ~120px - metadata ~100px)
+  const availableHeight = 'calc(90vh - 220px)';
+  const availableWidth = 'calc(90vw - 100px)';
   
-  if (isSquare) {
+  let containerStyle: React.CSSProperties;
+  let aspectRatio: string;
+  
+  if (item?.width && item?.height) {
+    aspectRatio = `${item.width}/${item.height}`;
+  } else if (isSquare) {
     aspectRatio = '1/1';
-    containerWidth = '600px';
-    containerHeight = '600px';
   } else if (isVertical) {
-    // Common vertical ratios
-    const ratio = item?.width && item?.height ? item.width / item.height : 0.5625;
-    if (ratio > 0.5) {
-      aspectRatio = '9/16';
-      containerWidth = '500px';
-      containerHeight = '889px';
-    } else if (ratio > 0.4) {
-      aspectRatio = '2/3';
-      containerWidth = '450px';
-      containerHeight = '675px';
-    } else {
-      aspectRatio = item?.width && item?.height ? `${item.width}/${item.height}` : '9/16';
-      containerWidth = '400px';
-      containerHeight = '700px';
-    }
+    aspectRatio = '9/16';
   } else {
-    // Horizontal videos
-    aspectRatio = item?.width && item?.height ? `${item.width}/${item.height}` : '16/9';
-    containerWidth = '900px';
-    containerHeight = '506px';
+    aspectRatio = '16/9';
+  }
+  
+  if (isVertical) {
+    // For vertical images/videos, limit height and calculate width proportionally
+    containerStyle = {
+      maxHeight: availableHeight,
+      maxWidth: availableWidth,
+      height: 'min(60vh, 600px)',
+      width: 'auto',
+      aspectRatio: aspectRatio
+    };
+  } else if (isSquare) {
+    // For square content, use minimum of available dimensions
+    containerStyle = {
+      maxHeight: availableHeight,
+      maxWidth: availableWidth,
+      height: 'min(50vh, 500px)',
+      width: 'min(50vh, 500px)',
+      aspectRatio: aspectRatio
+    };
+  } else {
+    // For horizontal content, limit width and calculate height proportionally
+    containerStyle = {
+      maxHeight: availableHeight,
+      maxWidth: availableWidth,
+      width: 'min(80vw, 800px)',
+      height: 'auto',
+      aspectRatio: aspectRatio
+    };
   }
 
   if (!isOpen) return null;
@@ -381,29 +396,21 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
             <div className="flex-1 overflow-auto">
                {/* Media Display with Fixed Aspect Ratio */}
                <div className="p-4">
-                 {loading ? (
-                   <div 
-                     className="flex items-center justify-center text-muted-foreground bg-muted/20 rounded-lg"
-                     style={{
-                       width: containerWidth,
-                       height: containerHeight,
-                       aspectRatio: aspectRatio
-                     }}
-                   >
-                     <div className="text-center">
-                       <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-                       <p>Loading media...</p>
-                     </div>
-                   </div>
-                 ) : fullUrl ? (
-                   <div 
-                     className="flex items-center justify-center bg-muted/20 rounded-lg overflow-hidden"
-                     style={{
-                       width: containerWidth,
-                       height: containerHeight,
-                       aspectRatio: aspectRatio
-                     }}
-                   >
+                  {loading ? (
+                    <div 
+                      className="flex items-center justify-center text-muted-foreground bg-muted/20 rounded-lg"
+                      style={containerStyle}
+                    >
+                      <div className="text-center">
+                        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                        <p>Loading media...</p>
+                      </div>
+                    </div>
+                  ) : fullUrl ? (
+                    <div 
+                      className="flex items-center justify-center bg-muted/20 rounded-lg overflow-hidden"
+                      style={containerStyle}
+                    >
                       {(item?.media_type === 'image' || 
                         (item?.mime_type && (item.mime_type.startsWith('image/') || 
                          item.mime_type === 'image/heic' || item.mime_type === 'image/heif')) ||
@@ -439,14 +446,10 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                        )}
                     </div>
                   ) : (
-                    <div 
-                      className="flex items-center justify-center text-muted-foreground bg-muted/20 rounded-lg"
-                      style={{
-                        width: containerWidth,
-                        height: containerHeight,
-                        aspectRatio: aspectRatio
-                      }}
-                    >
+                     <div 
+                       className="flex items-center justify-center text-muted-foreground bg-muted/20 rounded-lg"
+                       style={containerStyle}
+                     >
                       <div className="text-center">
                         <Download className="w-12 h-12 mx-auto mb-4" />
                         <p>Media not available</p>
