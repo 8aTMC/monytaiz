@@ -273,7 +273,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
       maxHeight: availableHeight,
       maxWidth: availableWidth,
       height: 'min(60vh, 600px)',
-      width: 'auto',
+      width: '100%',
       aspectRatio: aspectRatio
     };
   } else if (isSquare) {
