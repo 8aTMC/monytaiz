@@ -116,37 +116,52 @@ export const useSimpleMedia = () => {
   }, [getMediaUrl]);
 
   const getFullUrlAsync = useCallback(async (item: SimpleMediaItem) => {
+    console.log('getFullUrlAsync called for item:', {
+      id: item.id,
+      filename: item.original_filename,
+      mime_type: item.mime_type,
+      media_type: item.media_type,
+      processed_path: item.processed_path,
+      original_path: item.original_path
+    });
+    
     // First, try the processed path if available
     if (item.processed_path) {
+      console.log('Trying processed path:', item.processed_path);
       const processedUrl = await getMediaUrl(item.processed_path, false);
-      if (processedUrl) return processedUrl;
+      if (processedUrl) {
+        console.log('✅ Successfully loaded processed URL:', processedUrl);
+        return processedUrl;
+      }
+      console.log('❌ Processed path failed');
     }
     
     // For HEIC files, try the converted WebP path first
     if (item.original_path && /\.(heic|heif)$/i.test(item.original_path)) {
-      console.log('Processing HEIC file path conversion for:', item.original_path);
+      console.log('🔄 Processing HEIC file path conversion for:', item.original_path);
       
       // Try the WebP converted path (replace .heic/.heif with .webp)  
       const webpPath = item.original_path.replace(/\.(heic|heif)$/i, '.webp');
-      console.log('Trying WebP converted path:', webpPath);
+      console.log('🔍 Trying WebP converted path:', webpPath);
       
       const webpUrl = await getMediaUrl(webpPath, false);
       if (webpUrl) {
-        console.log('Successfully loaded WebP converted URL:', webpUrl);
+        console.log('✅ Successfully loaded WebP converted URL:', webpUrl);
         return webpUrl;
       }
       
-      console.log('WebP conversion not found, trying original HEIC path');
+      console.log('⚠️ WebP conversion not found, trying original HEIC path');
     }
     
     // Fall back to original path for other files or if WebP conversion failed
+    console.log('🔄 Trying original path:', item.original_path);
     const originalUrl = await getMediaUrl(item.original_path, false);
     if (originalUrl) {
-      console.log('Successfully loaded original URL:', originalUrl);
+      console.log('✅ Successfully loaded original URL:', originalUrl);
       return originalUrl;
     }
     
-    console.error('Failed to load media URL for item:', item.id, 'paths tried:', {
+    console.error('❌ Failed to load media URL for item:', item.id, 'paths tried:', {
       processed: item.processed_path,
       converted: item.original_path && /\.(heic|heif)$/i.test(item.original_path) ? item.original_path.replace(/\.(heic|heif)$/i, '.webp') : null,
       original: item.original_path

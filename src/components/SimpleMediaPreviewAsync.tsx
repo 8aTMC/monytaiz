@@ -392,11 +392,11 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
               </div>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 overflow-auto">
-               {/* Media Display with Fixed Aspect Ratio */}
-               <div className="p-4">
-                  {loading ? (
+             {/* Content */}
+             <div className="flex-1 overflow-auto">
+                {/* Media Display with Fixed Aspect Ratio */}
+                {loading ? (
+                  <div className="p-4">
                     <div 
                       className="flex items-center justify-center text-muted-foreground bg-muted/20 rounded-lg"
                       style={containerStyle}
@@ -406,7 +406,9 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                         <p>Loading media...</p>
                       </div>
                     </div>
-                  ) : fullUrl ? (
+                  </div>
+                ) : fullUrl ? (
+                  <div className="p-4">
                     <div 
                       className="flex items-center justify-center bg-muted/20 rounded-lg overflow-hidden"
                       style={containerStyle}
@@ -445,18 +447,24 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                         </div>
                        )}
                     </div>
-                  ) : (
-                     <div 
-                       className="flex items-center justify-center text-muted-foreground bg-muted/20 rounded-lg"
-                       style={containerStyle}
-                     >
-                      <div className="text-center">
-                        <Download className="w-12 h-12 mx-auto mb-4" />
-                        <p>Media not available</p>
-                      </div>
+                  </div>
+                ) : (
+                  <div 
+                    className="flex items-center justify-center text-muted-foreground bg-muted/20 rounded-lg h-full m-4"
+                    style={{ minHeight: '60vh' }}
+                  >
+                    <div className="text-center">
+                      <Download className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-lg">Media not available</p>
+                      <p className="text-sm opacity-70 mt-2">
+                        {item?.mime_type === 'image/heic' || item?.mime_type === 'image/heif' ? 
+                          'HEIC conversion may be processing...' : 
+                          'Unable to load media file'
+                        }
+                      </p>
                     </div>
-                   )}
-                </div>
+                  </div>
+                 )}
 
                 {/* Navigation arrows */}
                 {mediaItems.length > 1 && selectedIndex > 0 && onPrevious && (
