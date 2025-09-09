@@ -5,6 +5,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { Navigation, useSidebar } from '@/components/Navigation';
 import { AdvancedFileUpload } from '@/components/AdvancedFileUpload';
 import { FileFormatInfo } from '@/components/FileFormatInfo';
+import { QuickOrphanedDataCleanup } from '@/components/QuickOrphanedDataCleanup';
 import { useTranslation } from '@/hooks/useTranslation';
 
 const Upload = () => {
@@ -72,6 +73,11 @@ const Upload = () => {
         </div>
 
         <AdvancedFileUpload />
+
+        {/* Orphaned Data Cleanup - for debugging duplicate detection issues */}
+        <div className="mt-12">
+          <QuickOrphanedDataCleanup />
+        </div>
       </div>
     </div>
   );
