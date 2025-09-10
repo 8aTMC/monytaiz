@@ -546,11 +546,6 @@ export default function SimpleUpload() {
     if (remainingFiles.length > 0) {
       setReviewMode(true);
     }
-    
-    toast({
-      title: "Duplicates removed",
-      description: `${duplicateIds.length} duplicate file${duplicateIds.length === 1 ? '' : 's'} removed from upload queue`,
-    });
   };
 
   const handleKeepBothDuplicates = () => {
