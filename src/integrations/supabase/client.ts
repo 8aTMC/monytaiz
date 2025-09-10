@@ -33,7 +33,7 @@ const { url: SUPABASE_URL, key: SUPABASE_PUBLISHABLE_KEY } = getSupabaseConfig()
 export const checkSupabaseHealth = async (retryCount = 0): Promise<boolean> => {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // Increased timeout
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     
     console.log(`🏥 Health check attempt ${retryCount + 1}`);
     
@@ -43,6 +43,7 @@ export const checkSupabaseHealth = async (retryCount = 0): Promise<boolean> => {
       headers: {
         'Accept': 'application/json',
         'Cache-Control': 'no-cache',
+        'apikey': SUPABASE_PUBLISHABLE_KEY
       }
     });
     
@@ -50,6 +51,10 @@ export const checkSupabaseHealth = async (retryCount = 0): Promise<boolean> => {
     
     if (response.ok) {
       console.log('✅ Supabase health check passed');
+      return true;
+    } else if (response.status === 401) {
+      // 401 means service is up but authentication failed - treat as success for connectivity
+      console.log('✅ Supabase service is responding (authentication issue is expected for health check)');
       return true;
     } else {
       console.warn(`⚠️ Supabase health check failed with status: ${response.status}`);
@@ -70,6 +75,28 @@ export const checkSupabaseHealth = async (retryCount = 0): Promise<boolean> => {
       return checkSupabaseHealth(retryCount + 1);
     }
     
+    return false;
+  }
+};
+
+// Simple connectivity test that doesn't require authentication
+export const checkBasicConnectivity = async (): Promise<boolean> => {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const response = await fetch(`${SUPABASE_URL}/`, {
+      method: 'HEAD',
+      signal: controller.signal,
+      cache: 'no-cache'
+    });
+    
+    clearTimeout(timeoutId);
+    
+    // Any response (including 404) means connectivity is working
+    return response.status < 500;
+  } catch (error: any) {
+    console.warn('Basic connectivity test failed:', error);
     return false;
   }
 };

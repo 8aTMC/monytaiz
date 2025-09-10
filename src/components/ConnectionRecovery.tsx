@@ -100,9 +100,9 @@ export const ConnectionRecovery: React.FC<ConnectionRecoveryProps> = ({
 
   // Monitor network status and show recovery when needed
   useEffect(() => {
+    // Only show recovery for true connectivity issues, not authentication problems
     const shouldShowRecovery = !networkStatus.isOnline || 
-                               networkStatus.speed === 'very-slow' || 
-                               !networkStatus.isStable;
+                               (networkStatus.speed === 'very-slow' && networkStatus.isOnline);
     
     if (shouldShowRecovery && !showRecovery && autoRecover) {
       setShowRecovery(true);

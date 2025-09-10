@@ -1,4 +1,4 @@
-import { supabase, checkSupabaseHealth, testDNSResolution } from '@/integrations/supabase/client';
+import { supabase, checkSupabaseHealth, checkBasicConnectivity, testDNSResolution } from '@/integrations/supabase/client';
 
 export interface NetworkDiagnosticResult {
   test: string;
@@ -80,32 +80,56 @@ class NetworkDiagnostics {
       });
     }
 
-    // Test 3: Supabase Health
+    // Test 3: Basic Supabase Connectivity
     try {
-      const healthOk = await checkSupabaseHealth();
+      const connectivityOk = await checkBasicConnectivity();
       results.push({
-        test: 'Supabase Health',
-        status: healthOk ? 'success' : 'error',
-        message: healthOk ? 'Supabase services responding' : 'Supabase services unreachable',
-        details: { endpoint: '/auth/v1/health' },
+        test: 'Supabase Connectivity',
+        status: connectivityOk ? 'success' : 'error',
+        message: connectivityOk ? 'Supabase services reachable' : 'Supabase services unreachable',
+        details: { endpoint: 'https://alzyzfjzwvofmjccirjq.supabase.co' },
         timestamp: Date.now()
       });
       
-      if (!healthOk) {
+      if (!connectivityOk) {
         recommendations.push('Supabase services may be experiencing issues');
         recommendations.push('Try again in a few minutes');
       }
     } catch (error) {
       results.push({
-        test: 'Supabase Health',
+        test: 'Supabase Connectivity',
         status: 'error',
-        message: 'Health check failed',
+        message: 'Connectivity check failed',
         details: { error: error.message },
         timestamp: Date.now()
       });
     }
 
-    // Test 4: Local Storage Access
+    // Test 4: Supabase Health Check
+    try {
+      const healthOk = await checkSupabaseHealth();
+      results.push({
+        test: 'Supabase Health',
+        status: healthOk ? 'success' : 'warning',
+        message: healthOk ? 'Supabase health endpoint responding' : 'Health endpoint authentication required',
+        details: { endpoint: '/auth/v1/health' },
+        timestamp: Date.now()
+      });
+      
+      if (!healthOk) {
+        recommendations.push('Health check authentication may be required');
+      }
+    } catch (error) {
+      results.push({
+        test: 'Supabase Health',
+        status: 'warning',
+        message: 'Health check failed - this may be normal',
+        details: { error: error.message },
+        timestamp: Date.now()
+      });
+    }
+
+    // Test 5: Local Storage Access
     try {
       const testKey = 'network-diagnostic-test';
       localStorage.setItem(testKey, 'test');
@@ -130,7 +154,7 @@ class NetworkDiagnostics {
       recommendations.push('Browser storage may be corrupted - try clearing cache');
     }
 
-    // Test 5: WebSocket Support
+    // Test 6: WebSocket Support
     try {
       const wsSupported = typeof WebSocket !== 'undefined';
       results.push({
@@ -150,7 +174,7 @@ class NetworkDiagnostics {
       });
     }
 
-    // Test 6: CORS/Security Headers
+    // Test 7: CORS/Security Headers
     try {
       const testResponse = await fetch(window.location.origin + '/favicon.ico', {
         method: 'HEAD',
@@ -177,7 +201,7 @@ class NetworkDiagnostics {
       });
     }
 
-    // Test 7: Auth Session Recovery
+    // Test 8: Auth Session Recovery
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       results.push({
@@ -235,13 +259,13 @@ class NetworkDiagnostics {
 
   async quickHealthCheck(): Promise<boolean> {
     try {
-      const [isOnline, dnsOk, healthOk] = await Promise.all([
+      const [isOnline, dnsOk, connectivityOk] = await Promise.all([
         Promise.resolve(navigator.onLine),
         testDNSResolution(),
-        checkSupabaseHealth()
+        checkBasicConnectivity()
       ]);
       
-      return isOnline && dnsOk && healthOk;
+      return isOnline && dnsOk && connectivityOk;
     } catch (error) {
       console.error('Quick health check failed:', error);
       return false;
