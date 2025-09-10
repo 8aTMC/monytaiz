@@ -108,12 +108,20 @@ async function detectOrphanedData(includeItems: boolean = false): Promise<Detect
   const results: OrphanedDataResult[] = []
   let totalStorageSaved = 0
 
-  // 1. Media Analytics with no corresponding media (using EXISTS instead of IN)
+  // 1. Media Analytics with no corresponding media
   try {
+    // Get all media IDs that exist in simple_media
+    const { data: existingMediaIds } = await supabase
+      .from('simple_media')
+      .select('id')
+
+    const validIds = existingMediaIds?.map(m => m.id) || []
+
+    // Find analytics records that don't have corresponding media
     const { data: orphanedAnalytics, error } = await supabase
       .from('media_analytics')
-      .select('media_id, count(*)', { count: 'exact' })
-      .not('media_id', 'in', '(SELECT id FROM simple_media)')
+      .select('id, media_id')
+      .not('media_id', 'in', `(${validIds.map(id => `'${id}'`).join(',') || "''"})`)
 
     if (!error && orphanedAnalytics?.length > 0) {
       results.push({
@@ -128,32 +136,6 @@ async function detectOrphanedData(includeItems: boolean = false): Promise<Detect
     }
   } catch (error) {
     console.error('Error checking orphaned analytics:', error)
-    // Use raw SQL as fallback
-    try {
-      const { data: analyticsCount } = await supabase
-        .rpc('sql', { 
-          query: `
-            SELECT COUNT(*) as count
-            FROM media_analytics ma
-            WHERE NOT EXISTS (
-              SELECT 1 FROM simple_media sm WHERE sm.id = ma.media_id
-            )
-          `
-        })
-      
-      if (analyticsCount?.[0]?.count > 0) {
-        results.push({
-          category: 'Database',
-          type: 'orphaned_media_analytics',
-          count: parseInt(analyticsCount[0].count),
-          severity: 'medium',
-          description: 'Media analytics records referencing deleted media files',
-          recommendation: 'Safe to delete - these are just analytics records'
-        })
-      }
-    } catch (sqlError) {
-      console.error('Fallback SQL also failed:', sqlError)
-    }
   }
 
   // 2. Collection items with no corresponding media
@@ -301,27 +283,26 @@ async function detectOrphanedData(includeItems: boolean = false): Promise<Detect
     console.error('Error checking stale typing indicators:', error)
   }
 
-  // 8. Quality metadata without corresponding media (using EXISTS)
+  // 8. Quality metadata without corresponding media
   try {
-    // Use raw SQL for complex NOT EXISTS query
-    const { data: orphanedQuality } = await supabase
-      .rpc('sql', { 
-        query: `
-          SELECT media_id, COUNT(*) as count
-          FROM quality_metadata qm
-          WHERE NOT EXISTS (
-            SELECT 1 FROM simple_media sm WHERE sm.id = qm.media_id
-          )
-          GROUP BY media_id
-        `
-      })
+    // Get all media IDs that exist in simple_media
+    const { data: existingMediaIds } = await supabase
+      .from('simple_media')
+      .select('id')
 
-    if (orphanedQuality?.length > 0) {
-      const totalCount = orphanedQuality.reduce((sum, q) => sum + parseInt(q.count), 0)
+    const validIds = existingMediaIds?.map(m => m.id) || []
+
+    // Find quality metadata records that don't have corresponding media
+    const { data: orphanedQuality, error } = await supabase
+      .from('quality_metadata')
+      .select('id, media_id')
+      .not('media_id', 'in', `(${validIds.map(id => `'${id}'`).join(',') || "''"})`)
+
+    if (!error && orphanedQuality?.length > 0) {
       results.push({
         category: 'Database',
         type: 'orphaned_quality_metadata',
-        count: totalCount,
+        count: orphanedQuality.length,
         severity: 'medium',
         description: 'Quality metadata for deleted media files',
         items: includeItems ? orphanedQuality : undefined,
@@ -330,25 +311,6 @@ async function detectOrphanedData(includeItems: boolean = false): Promise<Detect
     }
   } catch (error) {
     console.error('Error checking orphaned quality metadata:', error)
-    // Fallback to simple query
-    try {
-      const { data: qualityCount } = await supabase
-        .from('quality_metadata')
-        .select('media_id', { count: 'exact' })
-
-      if (qualityCount?.length > 0) {
-        results.push({
-          category: 'Database',
-          type: 'orphaned_quality_metadata',
-          count: qualityCount.length,
-          severity: 'medium',
-          description: 'Quality metadata for deleted media files',
-          recommendation: 'Safe to delete - metadata for non-existent media'
-        })
-      }
-    } catch (fallbackError) {
-      console.error('Quality metadata fallback failed:', fallbackError)
-    }
   }
 
   // 9. Simple Media records with missing storage files (THE KEY ADDITION)
@@ -726,11 +688,18 @@ async function cleanupOrphanedMediaAnalytics(results: CleanupResult, dryRun: boo
   results.audit[category] = { attempted: 0, deleted: 0, skipped: 0, errors: 0 }
   
   try {
+    // Get all media IDs that exist in simple_media
+    const { data: existingMediaIds } = await supabase
+      .from('simple_media')
+      .select('id')
+
+    const validIds = existingMediaIds?.map(m => m.id) || []
+
     // Get orphaned media analytics records
     const { data: orphanedRecords, error: selectError } = await supabase
       .from('media_analytics')
       .select('id, media_id')
-      .not('media_id', 'in', `(SELECT id FROM simple_media)`)
+      .not('media_id', 'in', `(${validIds.map(id => `'${id}'`).join(',') || "''"})`)
     
     if (selectError) {
       throw new Error(`Select failed: ${selectError.message}`)
@@ -781,11 +750,18 @@ async function cleanupOrphanedQualityMetadata(results: CleanupResult, dryRun: bo
   results.audit[category] = { attempted: 0, deleted: 0, skipped: 0, errors: 0 }
   
   try {
+    // Get all media IDs that exist in simple_media
+    const { data: existingMediaIds } = await supabase
+      .from('simple_media')
+      .select('id')
+
+    const validIds = existingMediaIds?.map(m => m.id) || []
+
     // Get orphaned quality metadata records
     const { data: orphanedRecords, error: selectError } = await supabase
       .from('quality_metadata')
       .select('id, media_id')
-      .not('media_id', 'in', `(SELECT id FROM simple_media)`)
+      .not('media_id', 'in', `(${validIds.map(id => `'${id}'`).join(',') || "''"})`)
     
     if (selectError) {
       throw new Error(`Select failed: ${selectError.message}`)
@@ -983,7 +959,7 @@ async function cleanupStaleTemporaryData(results: CleanupResult, dryRun: boolean
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
     
     // First count the records to be deleted
-    const { data: countData, error: countError } = await supabase
+    const { count: recordCount, error: countError } = await supabase
       .from('typing_indicators')
       .select('*', { count: 'exact', head: true })
       .lt('updated_at', oneHourAgo)
@@ -991,8 +967,6 @@ async function cleanupStaleTemporaryData(results: CleanupResult, dryRun: boolean
     if (countError) {
       throw new Error(`Count failed: ${countError.message}`)
     }
-    
-    const recordCount = countData?.length || 0
     results.audit[category].attempted = recordCount
     
     if (recordCount === 0) {
