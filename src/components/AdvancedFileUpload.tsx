@@ -27,6 +27,9 @@ export const AdvancedFileUpload = () => {
   const viewportRef = useRef<HTMLElement | null>(null);
   const { toast } = useToast();
   
+  // Processing state to prevent multiple file selections during processing
+  const [isProcessingFiles, setIsProcessingFiles] = useState(false);
+  
   // Centralized preview state
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -99,6 +102,10 @@ export const AdvancedFileUpload = () => {
 
   // Process files and handle validation using legacy stacked dialogs
   const processFiles = useCallback((files: File[]) => {
+    if (isProcessingFiles) return; // Prevent multiple processing
+    
+    setIsProcessingFiles(true);
+    
     // Check for HEIC files first  
     const heicFileNames = files.filter(isHeicFile).map(f => f.name);
     if (heicFileNames.length > 0) {
@@ -107,7 +114,10 @@ export const AdvancedFileUpload = () => {
     
     // Add files with dialog callbacks for stacked dialogs
     addFiles(files, showDuplicateDialog, showUnsupportedDialog);
-  }, [addFiles, isHeicFile, showDuplicateDialog, showUnsupportedDialog, showHeicWarning]);
+    
+    // Reset processing state after a short delay
+    setTimeout(() => setIsProcessingFiles(false), 100);
+  }, [addFiles, isHeicFile, showDuplicateDialog, showUnsupportedDialog, showHeicWarning, isProcessingFiles]);
 
   // Dialog handlers for legacy stacked dialogs  
   const handleDuplicateConfirm = useCallback((filesToIgnore: string[]) => {
