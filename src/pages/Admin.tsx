@@ -6,7 +6,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { HardDrive, Recycle, LogOut, Shield, Database, Folder, FolderPlus, Trash2, AlertTriangle, CheckCircle } from 'lucide-react';
+import { HardDrive, Recycle, LogOut, Shield, Database, Folder, FolderPlus, Trash2, AlertTriangle, CheckCircle, Video } from 'lucide-react';
 import { useStorageCleanup } from '@/hooks/useStorageCleanup';
 import { useFolderRecreation } from '@/hooks/useFolderRecreation';
 import { useToast } from '@/hooks/use-toast';
@@ -24,6 +24,7 @@ const Admin = () => {
   const [folderCheckLoading, setFolderCheckLoading] = useState(false);
   const [folderCleanupLoading, setFolderCleanupLoading] = useState(false);
   const [folderInconsistencies, setFolderInconsistencies] = useState<any>(null);
+  const [fixingVideos, setFixingVideos] = useState(false);
   const { toast } = useToast();
 
   const { 
@@ -188,6 +189,39 @@ const Admin = () => {
     }
   };
 
+  const handleFixStuckVideos = async () => {
+    setFixingVideos(true);
+    try {
+      const { data, error } = await supabase.rpc('fix_stuck_video_processing');
+      
+      if (error) {
+        console.error('Fix stuck videos error:', error);
+        toast({
+          title: "Fix Failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        console.log('Fix stuck videos result:', data);
+        const result = data as { success: boolean; updated_videos: number; message: string };
+        toast({
+          title: "Videos Fixed",
+          description: result.message || `Fixed ${result.updated_videos} stuck video processing records`,
+          variant: "default"
+        });
+      }
+    } catch (error: any) {
+      console.error('Fix stuck videos failed:', error);
+      toast({
+        title: "Fix Error",
+        description: "Failed to fix stuck video processing records",
+        variant: "destructive"
+      });
+    } finally {
+      setFixingVideos(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -229,7 +263,31 @@ const Admin = () => {
           <OrphanedDataManager />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {/* Video Management */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Video className="h-5 w-5" />
+                Video Management
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-2">
+                Fix stuck video processing status that prevents videos from appearing in library
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button
+                variant="outline"
+                onClick={handleFixStuckVideos}
+                disabled={fixingVideos}
+                className="w-full flex items-center gap-2 bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 dark:bg-blue-950/50 dark:hover:bg-blue-950/70 dark:border-blue-800 dark:text-blue-300"
+              >
+                <Video className="h-4 w-4" />
+                {fixingVideos ? 'Fixing...' : 'Fix Stuck Videos'}
+              </Button>
+            </CardContent>
+          </Card>
+
           {/* Storage Management */}
           <Card>
             <CardHeader>

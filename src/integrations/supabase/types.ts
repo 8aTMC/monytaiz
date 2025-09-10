@@ -1980,6 +1980,10 @@ export type Database = {
           updated_at: string
         }[]
       }
+      fix_stuck_video_processing: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       generate_temp_username: {
         Args: Record<PropertyKey, never>
         Returns: string
