@@ -1,4 +1,5 @@
 import { supabase, checkSupabaseHealth, checkBasicConnectivity, testDNSResolution } from '@/integrations/supabase/client';
+import { logger, logNetwork } from '@/utils/logging';
 
 export interface NetworkDiagnosticResult {
   test: string;
@@ -26,7 +27,18 @@ class NetworkDiagnostics {
   }
 
   async runComprehensiveDiagnostic(): Promise<ComprehensiveDiagnostic> {
-    console.log('🔍 Starting comprehensive network diagnostic...');
+    if (logger.getConfig().enableNetworkDiagnostics) {
+      console.group('🔍 Network Diagnostic');
+      const result = await this.runDiagnosticInternal();
+      console.groupEnd();
+      return result;
+    } else {
+      return await this.runDiagnosticInternal();
+    }
+  }
+  
+  private async runDiagnosticInternal(): Promise<ComprehensiveDiagnostic> {
+    logNetwork('info', 'Starting comprehensive network diagnostic');
     
     const results: NetworkDiagnosticResult[] = [];
     const recommendations: string[] = [];
@@ -253,7 +265,7 @@ class NetworkDiagnostics {
       timestamp: Date.now()
     };
 
-    console.log('🔍 Network diagnostic complete:', diagnostic);
+    logNetwork('info', 'Network diagnostic complete', { overallStatus, errorCount, warningCount });
     return diagnostic;
   }
 
@@ -292,7 +304,7 @@ class NetworkDiagnostics {
       // Clear problematic session storage
       sessionStorage.clear();
 
-      console.log('🧹 Network cache cleared');
+      logNetwork('info', 'Network cache cleared');
     } catch (error) {
       console.error('Failed to clear network cache:', error);
     }

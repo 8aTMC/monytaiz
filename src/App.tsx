@@ -33,6 +33,8 @@ import GeneralSettings from "./pages/GeneralSettings";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ConnectionRecovery } from "./components/ConnectionRecovery";
+import PreviewHealthIndicator from "./components/PreviewHealthIndicator";
+import "@/utils/telemetryErrorHandler"; // Initialize telemetry error handling
 
 
 const queryClient = new QueryClient();
@@ -46,6 +48,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <PWAInstallPrompt />
+          <PreviewHealthIndicator />
           <BrowserRouter>
           <SidebarProvider>
             <Routes>

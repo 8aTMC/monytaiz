@@ -7,6 +7,7 @@ import { AlertTriangle, Wifi, RefreshCw, CheckCircle } from 'lucide-react';
 import { useNetworkMonitor } from '@/hooks/useNetworkMonitor';
 import { networkDiagnostics } from '@/utils/NetworkDiagnostics';
 import { useToast } from '@/components/ui/use-toast';
+import { logger } from '@/utils/logging';
 
 interface ConnectionRecoveryProps {
   onRecoveryComplete?: () => void;
@@ -85,7 +86,7 @@ export const ConnectionRecovery: React.FC<ConnectionRecoveryProps> = ({
       }, 2000);
 
     } catch (error) {
-      console.error('Recovery failed:', error);
+      logger.error('Recovery failed', error);
       setRecoveryStep(`Recovery failed: ${error.message}`);
       
       toast({
@@ -98,13 +99,14 @@ export const ConnectionRecovery: React.FC<ConnectionRecoveryProps> = ({
     }
   };
 
-  // Monitor network status and show recovery when needed
+  // Monitor network status and show recovery when needed (with reduced sensitivity)
   useEffect(() => {
     // Only show recovery for true connectivity issues, not authentication problems
     const shouldShowRecovery = !networkStatus.isOnline || 
                                (networkStatus.speed === 'very-slow' && networkStatus.isOnline);
     
     if (shouldShowRecovery && !showRecovery && autoRecover) {
+      logger.debug('Triggering connection recovery UI');
       setShowRecovery(true);
       // Auto-start recovery after a brief delay
       const timer = setTimeout(() => {
@@ -116,6 +118,7 @@ export const ConnectionRecovery: React.FC<ConnectionRecoveryProps> = ({
       return () => clearTimeout(timer);
     } else if (!shouldShowRecovery && showRecovery) {
       setShowRecovery(false);
+      logger.debug('Connection recovery UI auto-hidden');
     }
   }, [networkStatus, showRecovery, autoRecover, isRecovering]);
 

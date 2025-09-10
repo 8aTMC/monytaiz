@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
+import { logger, logHealth, logNetwork } from '@/utils/logging';
 
 // Runtime environment variable validation
 const getSupabaseConfig = () => {
@@ -19,7 +20,7 @@ const getSupabaseConfig = () => {
     throw new Error('Invalid Supabase key format');
   }
   
-  console.log('Supabase config validated:', { 
+  logger.debug('Supabase config validated', { 
     url: url.replace(/alzyzfjzwvofmjccirjq/, '[PROJECT-ID]'), 
     keyLength: key.length 
   });
@@ -29,13 +30,13 @@ const getSupabaseConfig = () => {
 
 const { url: SUPABASE_URL, key: SUPABASE_PUBLISHABLE_KEY } = getSupabaseConfig();
 
-// Enhanced health check with comprehensive error handling
-export const checkSupabaseHealth = async (retryCount = 0): Promise<boolean> => {
+// Enhanced health check with quiet logging
+export const checkSupabaseHealth = async (retryCount = 0, consecutiveFailures = 0): Promise<boolean> => {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
     
-    console.log(`🏥 Health check attempt ${retryCount + 1}`);
+    logNetwork('debug', `Health check attempt ${retryCount + 1}`);
     
     const response = await fetch(`${SUPABASE_URL}/auth/v1/health`, {
       method: 'GET',
@@ -50,18 +51,18 @@ export const checkSupabaseHealth = async (retryCount = 0): Promise<boolean> => {
     clearTimeout(timeoutId);
     
     if (response.ok) {
-      console.log('✅ Supabase health check passed');
+      logHealth(true, 'Supabase health check passed');
       return true;
     } else if (response.status === 401) {
       // 401 means service is up but authentication failed - treat as success for connectivity
-      console.log('✅ Supabase service is responding (authentication issue is expected for health check)');
+      logHealth(true, 'Supabase service responding (auth required)');
       return true;
     } else {
-      console.warn(`⚠️ Supabase health check failed with status: ${response.status}`);
+      logHealth(false, `Health check failed with status: ${response.status}`, consecutiveFailures);
       return false;
     }
   } catch (error: any) {
-    console.error(`❌ Supabase health check failed (attempt ${retryCount + 1}):`, error);
+    logHealth(false, `Health check failed: ${error.message}`, consecutiveFailures);
     
     // Retry logic for network errors
     if (retryCount < 2 && (
@@ -70,9 +71,9 @@ export const checkSupabaseHealth = async (retryCount = 0): Promise<boolean> => {
       error.message?.includes('fetch') ||
       error.message?.includes('network')
     )) {
-      console.log(`🔄 Retrying health check in ${(retryCount + 1) * 2}s...`);
+      logNetwork('debug', `Retrying health check in ${(retryCount + 1) * 2}s...`);
       await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
-      return checkSupabaseHealth(retryCount + 1);
+      return checkSupabaseHealth(retryCount + 1, consecutiveFailures + 1);
     }
     
     return false;
@@ -95,8 +96,8 @@ export const checkBasicConnectivity = async (): Promise<boolean> => {
     
     // Any response (including 404) means connectivity is working
     return response.status < 500;
-  } catch (error: any) {
-    console.warn('Basic connectivity test failed:', error);
+    } catch (error: any) {
+    logNetwork('debug', 'Basic connectivity test failed', error);
     return false;
   }
 };
@@ -105,7 +106,7 @@ export const checkBasicConnectivity = async (): Promise<boolean> => {
 export const testDNSResolution = async (retryCount = 0): Promise<boolean> => {
   try {
     const hostname = new URL(SUPABASE_URL).hostname;
-    console.log(`🌐 Testing DNS resolution for ${hostname} (attempt ${retryCount + 1})`);
+    logNetwork('debug', `Testing DNS resolution for ${hostname} (attempt ${retryCount + 1})`);
     
     // Test multiple endpoints to verify DNS resolution
     const testEndpoints = [
@@ -127,17 +128,17 @@ export const testDNSResolution = async (retryCount = 0): Promise<boolean> => {
         });
         
         clearTimeout(timeoutId);
-        console.log(`✅ DNS resolution successful for ${endpoint}`);
+        logNetwork('debug', `DNS resolution successful for ${endpoint}`);
         return true;
       } catch (endpointError: any) {
-        console.warn(`⚠️ DNS test failed for ${endpoint}:`, endpointError.message);
+        logNetwork('debug', `DNS test failed for ${endpoint}: ${endpointError.message}`);
         continue;
       }
     }
     
     throw new Error('All DNS test endpoints failed');
   } catch (error: any) {
-    console.error(`❌ DNS resolution test failed (attempt ${retryCount + 1}):`, error);
+    logNetwork('debug', `DNS resolution test failed (attempt ${retryCount + 1}): ${error.message}`);
     
     // Retry logic for DNS failures
     if (retryCount < 2 && (
@@ -146,19 +147,19 @@ export const testDNSResolution = async (retryCount = 0): Promise<boolean> => {
       error.message?.includes('network') ||
       error.message?.includes('ERR_NAME_NOT_RESOLVED')
     )) {
-      console.log(`🔄 Retrying DNS test in ${(retryCount + 1) * 3}s...`);
+      logNetwork('debug', `Retrying DNS test in ${(retryCount + 1) * 3}s...`);
       await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 3000));
       return testDNSResolution(retryCount + 1);
     }
     
     // If DNS truly failed, this indicates a serious connectivity issue
     if (error.message?.includes('Failed to fetch') || error.message?.includes('ERR_NAME_NOT_RESOLVED')) {
-      console.error('🚨 Critical DNS resolution failure detected');
+      logNetwork('error', 'Critical DNS resolution failure detected');
       return false;
     }
     
     // Other errors might be CORS-related but DNS could be working
-    console.log('🤔 DNS test inconclusive, assuming DNS is working');
+    logNetwork('debug', 'DNS test inconclusive, assuming DNS is working');
     return true;
   }
 };
@@ -166,27 +167,31 @@ export const testDNSResolution = async (retryCount = 0): Promise<boolean> => {
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-// Connection monitoring and recovery
+// Connection monitoring with reduced logging
 export const monitorConnection = () => {
   let healthCheckInterval: NodeJS.Timeout;
+  let consecutiveFailures = 0;
   
   const startMonitoring = () => {
     // Check connection health every 30 seconds
     healthCheckInterval = setInterval(async () => {
-      const isHealthy = await checkSupabaseHealth();
+      const isHealthy = await checkSupabaseHealth(0, consecutiveFailures);
       if (!isHealthy) {
-        console.warn('🔥 Connection health check failed - potential network issues');
-        // Trigger diagnostic if multiple failures
-        const failures = parseInt(sessionStorage.getItem('health-failures') || '0') + 1;
-        sessionStorage.setItem('health-failures', failures.toString());
+        consecutiveFailures++;
         
-        if (failures >= 3) {
-          console.error('🚨 Multiple health check failures detected');
-          // Clear session storage to force fresh auth
-          sessionStorage.clear();
+        // Only take action after multiple failures
+        if (consecutiveFailures >= 3) {
+          const failures = parseInt(sessionStorage.getItem('health-failures') || '0') + 1;
+          sessionStorage.setItem('health-failures', failures.toString());
+          
+          if (failures >= 5) {
+            logNetwork('warn', 'Multiple health check failures - clearing session storage');
+            // Clear session storage to force fresh auth
+            sessionStorage.clear();
+          }
         }
       } else {
-        // Reset failure counter on success
+        consecutiveFailures = 0;
         sessionStorage.removeItem('health-failures');
       }
     }, 30000);
