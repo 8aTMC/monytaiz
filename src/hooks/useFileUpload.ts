@@ -334,6 +334,82 @@ export const useFileUpload = () => {
     };
   }, [uploadQueue, validateFile, toast]);
 
+  // Validation-only function that doesn't modify the queue
+  const validateFilesOnly = useCallback((files: File[]) => {
+    const validFiles: FileUploadItem[] = [];
+    const errors: string[] = [];
+    const unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[] = [];
+    const duplicateFiles: { name: string; size: number; type: string; existingFile: File; newFile: File }[] = [];
+    
+    files.forEach((file, index) => {
+      // Check for unsupported formats first
+      if (isUnsupportedFormat(file)) {
+        const unsupportedType = getUnsupportedFileType(file);
+        unsupportedFiles.push({
+          id: `unsupported-${Date.now()}-${index}`,
+          name: file.name,
+          size: file.size,
+          type: unsupportedType,
+          file: file
+        });
+        return;
+      }
+      
+      // Check for duplicates (same name and size)
+      const existingItem = uploadQueue.find(existingItem => 
+        existingItem.file.name === file.name && existingItem.file.size === file.size
+      );
+      
+      if (existingItem) {
+        const fileType = getFileType(file);
+        duplicateFiles.push({
+          name: file.name,
+          size: file.size,
+          type: fileType,
+          existingFile: existingItem.file,
+          newFile: file
+        });
+        return;
+      }
+      
+      const validation = validateFile(file);
+      if (validation.valid) {
+        validFiles.push({
+          file,
+          id: `validation-${Date.now()}-${index}`,
+          progress: 0,
+          status: 'pending',
+          uploadedBytes: 0,
+          totalBytes: file.size,
+          selected: false,
+          needsConversion: validation.needsConversion || false,
+          metadata: {
+            mentions: [],
+            tags: [],
+            folders: [],
+            description: '',
+            suggestedPrice: null,
+          },
+        });
+      } else {
+        errors.push(`${file.name}: ${validation.error}`);
+      }
+    });
+
+    return {
+      duplicateFiles: duplicateFiles.map(df => ({
+        id: `${df.name}-${df.size}-${Date.now()}`,
+        name: df.name,
+        size: df.size,
+        type: df.type,
+        existingFile: df.existingFile,
+        newFile: df.newFile
+      })),
+      unsupportedFiles,
+      errors
+    };
+  }, [uploadQueue, validateFile]);
+
   const removeFile = useCallback((id: string) => {
     const wasUploading = uploadQueue.find(item => item.id === id)?.status === 'uploading';
     
@@ -961,10 +1037,12 @@ export const useFileUpload = () => {
     isUploading,
     currentUploadIndex,
     addFiles,
+    validateFilesOnly,
     removeFile,
     pauseUpload,
     resumeUpload,
     cancelUpload,
+    uploadFile,
     startUpload,
     clearQueue,
     cancelAllUploads,

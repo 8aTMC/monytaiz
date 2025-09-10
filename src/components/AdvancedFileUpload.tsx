@@ -71,6 +71,7 @@ export const AdvancedFileUpload = () => {
     isUploading,
     currentUploadIndex,
     addFiles,
+    validateFilesOnly,
     startUpload,
     removeFile,
     pauseUpload,
@@ -381,8 +382,8 @@ export const AdvancedFileUpload = () => {
 
   // Show next dialog in the sequence after database duplicates
   const showNextDialogInSequence = useCallback((files: File[]) => {
-    // Get validation results for sequencing
-    const validationResults = addFiles(files, showDuplicateDialog, showUnsupportedDialog, true);
+    // Use validation-only function to prevent re-adding files to queue
+    const validationResults = validateFilesOnly(files);
     
     if (validationResults?.duplicateFiles?.length > 0) {
       showDuplicateDialog(validationResults.duplicateFiles);
@@ -395,7 +396,7 @@ export const AdvancedFileUpload = () => {
         showHeicWarning(heicFileNames);
       }
     }
-  }, [addFiles, showDuplicateDialog, showUnsupportedDialog, showHeicWarning, isHeicFile]);
+  }, [validateFilesOnly, showDuplicateDialog, showUnsupportedDialog, showHeicWarning, isHeicFile]);
 
   // Effect to capture viewport element when ScrollArea mounts
   useLayoutEffect(() => {
