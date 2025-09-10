@@ -115,7 +115,7 @@ const LibraryGridComponent = ({
             className={`group cursor-pointer relative overflow-hidden transition-all duration-300 hover:shadow-shadow-hover ${
               selectedItems.has(item.id) 
                 ? 'ring-2 ring-primary border-primary shadow-shadow-glow bg-gradient-selection' 
-                : 'border border-border/50 hover:border-primary bg-gradient-card hover:shadow-shadow-elevated'
+                : 'hover:border-primary bg-gradient-card hover:shadow-shadow-elevated'
             }`}
             onClick={handleItemClick}
           >

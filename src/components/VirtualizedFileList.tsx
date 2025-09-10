@@ -75,7 +75,7 @@ export const VirtualizedFileList = memo(({
     // For small lists, render directly without virtualization
     return (
       <div 
-        className="w-full bg-card rounded-lg border border-border overflow-hidden"
+        className="w-full bg-card rounded-lg overflow-hidden"
         style={{ height: containerHeight }}
       >
         <ScrollArea className="h-full">
@@ -106,7 +106,7 @@ export const VirtualizedFileList = memo(({
 
   return (
     <div 
-      className="w-full bg-background border border-border rounded-lg overflow-hidden"
+      className="w-full bg-background rounded-lg overflow-hidden"
       style={{ height: containerHeight }}
     >
       <List
