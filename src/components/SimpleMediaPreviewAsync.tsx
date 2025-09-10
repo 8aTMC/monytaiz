@@ -52,6 +52,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
   const [fullUrl, setFullUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isUrlLoading, setIsUrlLoading] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   
   // Dialog states
@@ -79,6 +80,13 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
       oldTitle: item?.title, 
       newTitle: propItem?.title 
     });
+    
+    // Set navigation state to prevent interaction
+    if (item?.id !== propItem?.id) {
+      setIsNavigating(true);
+      setTimeout(() => setIsNavigating(false), 300);
+    }
+    
     setItem(propItem);
     // Clear URL immediately to prevent showing wrong content
     setFullUrl(null);
@@ -442,25 +450,26 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
 
              {/* Content */}
              <div className="flex-1 overflow-auto">
-                {/* Media Display with Fixed Aspect Ratio */}
-                {loading ? (
+                 {/* Media Display with Fixed Aspect Ratio */}
+                {loading || isNavigating ? (
                   <div className="p-4">
                     <div 
                       className="flex items-center justify-center text-muted-foreground bg-muted/20 rounded-lg"
                       style={containerStyle}
                     >
-                      <div className="text-center">
-                        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-                        <p>Loading media...</p>
-                      </div>
+                       <div className="text-center">
+                         <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                         <p>{isNavigating ? 'Loading next file...' : 'Loading media...'}</p>
+                       </div>
                     </div>
                   </div>
                 ) : fullUrl ? (
-                  <div className="p-4">
-                    <div 
-                      className="flex items-center justify-center bg-muted/20 rounded-lg overflow-hidden"
-                      style={containerStyle}
-                    >
+                   <div className="p-4">
+                     <div 
+                       key={`${item.id}-${selectedIndex}`}
+                       className="flex items-center justify-center bg-muted/20 rounded-lg overflow-hidden"
+                       style={containerStyle}
+                     >
                        {(item?.media_type === 'image' || 
                          (item?.mime_type && (item.mime_type.startsWith('image/') || 
                           item.mime_type === 'image/heic' || item.mime_type === 'image/heif')) ||

@@ -78,6 +78,7 @@ export const FilePreviewDialog = ({
   const [videoQualityInfo, setVideoQualityInfo] = useState<VideoQualityInfo | null>(null);
   const [videoAspectRatio, setVideoAspectRatio] = useState<string>('16/9');
   const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   
   // Dialog states
@@ -130,16 +131,20 @@ export const FilePreviewDialog = ({
   const hasNext = internalCurrentIndex < fileCount - 1;
   const hasPrevious = internalCurrentIndex > 0;
   
-  // Internal navigation handlers
+  // Internal navigation handlers with loading states
   const handlePrevious = () => {
-    if (hasPrevious) {
+    if (hasPrevious && !isNavigating) {
+      setIsNavigating(true);
       setInternalCurrentIndex(prev => prev - 1);
+      setTimeout(() => setIsNavigating(false), 300);
     }
   };
   
   const handleNext = () => {
-    if (hasNext) {
+    if (hasNext && !isNavigating) {
+      setIsNavigating(true);
       setInternalCurrentIndex(prev => prev + 1);
+      setTimeout(() => setIsNavigating(false), 300);
     }
   };
 
@@ -159,23 +164,62 @@ export const FilePreviewDialog = ({
   }, [open, fileCount, internalCurrentIndex, hasNext, hasPrevious, shouldShowNavigation, safeFiles.length, totalFiles]);
 
   useEffect(() => {
-    if (displayFile) {
-      console.log('FilePreviewDialog: Creating URL for file', { 
-        name: displayFile.name, 
-        index: internalCurrentIndex 
-      });
+    // Cancel any pending operations
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Clear previous states immediately
+    setFileUrl('');
+    setVideoQualityInfo(null);
+    setVideoAspectRatio('16/9');
+    setIsLoadingUrl(false);
+    
+    if (!displayFile || !open) {
+      return;
+    }
+    
+    // Create new abort controller
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    
+    setIsLoadingUrl(true);
+    
+    console.log('FilePreviewDialog: Creating URL for file', { 
+      name: displayFile.name, 
+      index: internalCurrentIndex 
+    });
+    
+    // Use timeout to ensure URL creation happens after state clearing
+    setTimeout(() => {
+      if (abortController.signal.aborted) return;
+      
       const url = URL.createObjectURL(displayFile);
+      
+      if (abortController.signal.aborted) {
+        URL.revokeObjectURL(url);
+        return;
+      }
+      
       setFileUrl(url);
+      setIsLoadingUrl(false);
       
       // Get video quality info and aspect ratio for video files
-      if (getFileType() === 'video') {
+      if (getFileType() === 'video' && !abortController.signal.aborted) {
         getVideoMetadataFromFile(displayFile).then(qualityInfo => {
+          if (abortController.signal.aborted) return;
+          
           setVideoQualityInfo(qualityInfo);
           
           // Create a temporary video element to get dimensions
           const tempVideo = document.createElement('video');
           tempVideo.src = url;
           tempVideo.onloadedmetadata = () => {
+            if (abortController.signal.aborted) {
+              tempVideo.remove();
+              return;
+            }
+            
             const width = tempVideo.videoWidth;
             const height = tempVideo.videoHeight;
             
@@ -191,12 +235,21 @@ export const FilePreviewDialog = ({
             // Clean up
             tempVideo.remove();
           };
+        }).catch(error => {
+          if (!abortController.signal.aborted) {
+            console.error('Error getting video metadata:', error);
+          }
         });
       }
-      
-      return () => URL.revokeObjectURL(url);
-    }
-  }, [displayFile]);
+    }, 50);
+    
+    return () => {
+      abortController.abort();
+      if (fileUrl) {
+        URL.revokeObjectURL(fileUrl);
+      }
+    };
+  }, [displayFile, open, internalCurrentIndex]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -384,6 +437,7 @@ export const FilePreviewDialog = ({
                     size="icon" 
                     className="absolute left-4 top-1/2 transform -translate-y-1/2 z-50 shadow-lg"
                     onClick={handlePrevious}
+                    disabled={isNavigating || isLoadingUrl}
                     aria-label="Previous file"
                   >
                     <ChevronLeft className="h-6 w-6" />
@@ -397,6 +451,7 @@ export const FilePreviewDialog = ({
                     size="icon"
                     className="absolute right-4 top-1/2 transform -translate-y-1/2 z-50 shadow-lg"
                     onClick={handleNext}
+                    disabled={isNavigating || isLoadingUrl}
                     aria-label="Next file"
                   >
                     <ChevronRight className="h-6 w-6" />
@@ -409,7 +464,7 @@ export const FilePreviewDialog = ({
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-semibold truncate">
-                    {title || displayFile.name}
+                    {displayFile.name}
                   </h2>
                   {onTitleChange && (
                     <Button
@@ -486,7 +541,19 @@ export const FilePreviewDialog = ({
 
             {/* Content */}
             <div className="flex-1 overflow-hidden relative flex items-center justify-center">
+              {isLoadingUrl || isNavigating ? (
+                <div className="flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl" style={{
+                  width: containerDimensions.width,
+                  height: containerDimensions.height,
+                }}>
+                  <div className="text-center">
+                    <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                    <p>{isNavigating ? 'Loading next file...' : 'Loading media...'}</p>
+                  </div>
+                </div>
+              ) : (
                 <div 
+                  key={`${displayFile.name}-${internalCurrentIndex}`}
                   className="bg-muted/20 rounded-xl overflow-hidden relative"
                   style={{
                     width: containerDimensions.width,
@@ -531,7 +598,7 @@ export const FilePreviewDialog = ({
                       <div className="text-center">
                         <div className="w-24 h-24 mx-auto mb-4 bg-muted rounded-lg flex items-center justify-center">
                           <span className="text-2xl font-bold text-muted-foreground">
-                            {file.name.split('.').pop()?.toUpperCase()}
+                            {displayFile.name.split('.').pop()?.toUpperCase()}
                           </span>
                         </div>
                         <p>Document preview not available</p>
@@ -540,6 +607,7 @@ export const FilePreviewDialog = ({
                     </div>
                   )}
                 </div>
+              )}
             </div>
 
             {/* Metadata Editing Menu Bar */}
