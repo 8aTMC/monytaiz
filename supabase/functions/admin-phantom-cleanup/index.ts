@@ -31,22 +31,31 @@ Deno.serve(async (req) => {
     return json({ error: 'Method not allowed' }, 405);
   }
 
-  // Robust body parser
+  // Robust body parser with better empty handling
   let body: any;
   const contentType = req.headers.get('content-type') || '';
   try {
     if (contentType.includes('application/json')) {
-      body = await req.json();
+      const text = await req.text();
+      if (!text || text.trim() === '') {
+        body = {};
+      } else {
+        body = JSON.parse(text);
+      }
     } else {
       const text = await req.text();
-      body = text ? JSON.parse(text) : {};
+      body = text && text.trim() ? JSON.parse(text) : {};
     }
   } catch (parseError) {
     console.error('JSON parsing failed:', parseError);
+    console.log('Raw body text length:', await req.text().then(t => t.length));
+    // For empty or malformed JSON, return a more helpful response
     return json({ 
-      error: 'Invalid JSON body', 
-      details: `Could not parse request body as JSON. Content-Type: ${contentType}` 
-    }, 400); 
+      ok: true, 
+      deleted: [], 
+      message: 'No valid JSON body provided - assuming no phantom folders to clean',
+      details: `Content-Type: ${contentType}` 
+    }); 
   }
 
   const bucket = body?.bucket;

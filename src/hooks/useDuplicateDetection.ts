@@ -17,6 +17,8 @@ export interface DatabaseDuplicate {
     mime_type: string;
     created_at: string;
     thumbnail_path?: string;
+    original_path?: string;
+    processed_path?: string;
     processing_status: string;
   };
   sourceType: 'database';
@@ -99,48 +101,108 @@ export const useDuplicateDetection = () => {
         // First check for exact filename + size match
         const { data: exactMatches } = await supabase
           .from('simple_media')
-          .select('id, title, original_filename, original_size_bytes, mime_type, created_at, thumbnail_path, processing_status')
+          .select('id, title, original_filename, original_size_bytes, mime_type, created_at, thumbnail_path, processing_status, original_path, processed_path')
           .eq('creator_id', userData.user.id)
           .eq('original_filename', queueFile.file.name)
           .eq('original_size_bytes', queueFile.file.size);
 
         if (exactMatches && exactMatches.length > 0) {
-          const mostRecent = exactMatches.sort((a, b) => 
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          )[0];
+          // Filter matches to only include records where files actually exist
+          const validMatches = [];
+          
+          for (const match of exactMatches) {
+            let fileExists = false;
+            
+            // Check if any of the file paths exist in storage
+            const pathsToCheck = [match.original_path, match.processed_path, match.thumbnail_path].filter(Boolean);
+            
+            for (const path of pathsToCheck) {
+              try {
+                const { data } = await supabase.storage
+                  .from('content')
+                  .getPublicUrl(path);
+                
+                if (data?.publicUrl) {
+                  // Quick existence check via HEAD request
+                  const response = await fetch(data.publicUrl, { method: 'HEAD' });
+                  if (response.ok) {
+                    fileExists = true;
+                    break;
+                  }
+                }
+              } catch (error) {
+                // File doesn't exist, continue
+              }
+            }
+            
+            if (fileExists) {
+              validMatches.push(match);
+            }
+          }
 
-          console.log('🎯 Found exact database duplicate for:', queueFile.file.name);
+          if (validMatches.length > 0) {
+            const mostRecent = validMatches.sort((a, b) => 
+              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            )[0];
 
-          duplicates.push({
-            queueFile,
-            existingFile: mostRecent,
-            sourceType: 'database',
-            matchType: 'exact'
-          });
+            console.log('🎯 Found exact database duplicate for:', queueFile.file.name);
+
+            duplicates.push({
+              queueFile,
+              existingFile: mostRecent,
+              sourceType: 'database',
+              matchType: 'exact'
+            });
+          }
         } else {
           // If no exact match, check for similar files with same size
           const { data: sizeMatches } = await supabase
             .from('simple_media')
-            .select('id, title, original_filename, original_size_bytes, mime_type, created_at, thumbnail_path, processing_status')
+            .select('id, title, original_filename, original_size_bytes, mime_type, created_at, thumbnail_path, processing_status, original_path, processed_path')
             .eq('creator_id', userData.user.id)
             .eq('original_size_bytes', queueFile.file.size);
 
           if (sizeMatches && sizeMatches.length > 0) {
-            // Check filename similarity for each match
+            // Check filename similarity for each match, but only for files that exist
             for (const match of sizeMatches) {
-              const similarity = calculateSimilarity(queueFile.file.name, match.original_filename);
+              let fileExists = false;
               
-              // Consider files with >85% similarity as potential duplicates
-              if (similarity >= 85) {
-                console.log('🔍 Found similar database file:', queueFile.file.name, 'vs', match.original_filename, `(${similarity}% similar)`);
+              // Verify file exists before checking similarity
+              const pathsToCheck = [match.original_path, match.processed_path, match.thumbnail_path].filter(Boolean);
+              
+              for (const path of pathsToCheck) {
+                try {
+                  const { data } = await supabase.storage
+                    .from('content')
+                    .getPublicUrl(path);
+                  
+                  if (data?.publicUrl) {
+                    const response = await fetch(data.publicUrl, { method: 'HEAD' });
+                    if (response.ok) {
+                      fileExists = true;
+                      break;
+                    }
+                  }
+                } catch (error) {
+                  // File doesn't exist
+                }
+              }
+              
+              if (fileExists) {
+                const similarity = calculateSimilarity(queueFile.file.name, match.original_filename);
                 
-                duplicates.push({
-                  queueFile,
-                  existingFile: match,
-                  sourceType: 'database',
-                  similarity,
-                  matchType: 'similar'
-                });
+                // Consider files with >85% similarity as potential duplicates
+                if (similarity >= 85) {
+                  console.log('🔍 Found similar database file:', queueFile.file.name, 'vs', match.original_filename, `(${similarity}% similar)`);
+                  
+                  duplicates.push({
+                    queueFile,
+                    existingFile: match,
+                    sourceType: 'database',
+                    similarity,
+                    matchType: 'similar'
+                  });
+                }
               }
             }
           }
