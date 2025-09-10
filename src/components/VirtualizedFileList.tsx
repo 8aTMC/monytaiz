@@ -13,7 +13,7 @@ interface VirtualizedFileListProps {
   height?: number;
 }
 
-const ITEM_HEIGHT = 150; // Increased height to prevent content overlap
+const ITEM_HEIGHT = 135; // Optimized height for tighter spacing
 
 interface ListItemProps {
   index: number;
@@ -79,7 +79,7 @@ export const VirtualizedFileList = memo(({
         style={{ height: containerHeight }}
       >
         <ScrollArea className="h-full">
-          <div className="space-y-1 bg-card">
+          <div className="space-y-0 bg-card">
             {files.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 No files to display
