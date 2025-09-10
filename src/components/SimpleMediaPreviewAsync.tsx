@@ -302,21 +302,55 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  // Standard dialog dimensions for consistency (same as FilePreviewDialog)
-  const standardDialogStyle = {
-    width: 'min(1000px, 90vw)',
-    height: 'min(700px, 85vh)',
-    minWidth: '600px',
-    minHeight: '500px'
-  };
-
-  // Standard media container dimensions (dialog minus header and metadata space)
-  const mediaContainerStyle = {
-    width: '100%',
-    height: 'calc(100% - 180px)', // Account for header and metadata
-    maxWidth: '100%',
-    maxHeight: '100%'
-  };
+  // Calculate responsive dimensions based on viewport
+  const isVertical = item?.width && item?.height && item.height > item.width;
+  const isSquare = item?.width && item?.height && Math.abs(item.width - item.height) < 10;
+  
+  // Calculate available space (90vh modal - header ~120px - metadata ~100px)
+  const availableHeight = 'calc(90vh - 220px)';
+  const availableWidth = 'calc(90vw - 100px)';
+  
+  let containerStyle: React.CSSProperties;
+  let aspectRatio: string;
+  
+  if (item?.width && item?.height) {
+    aspectRatio = `${item.width}/${item.height}`;
+  } else if (isSquare) {
+    aspectRatio = '1/1';
+  } else if (isVertical) {
+    aspectRatio = '9/16';
+  } else {
+    aspectRatio = '16/9';
+  }
+  
+  if (isVertical) {
+    // For vertical images/videos, limit height and calculate width proportionally
+    containerStyle = {
+      maxHeight: availableHeight,
+      maxWidth: availableWidth,
+      height: 'min(60vh, 600px)',
+      width: '100%',
+      aspectRatio: aspectRatio
+    };
+  } else if (isSquare) {
+    // For square content, use minimum of available dimensions
+    containerStyle = {
+      maxHeight: availableHeight,
+      maxWidth: availableWidth,
+      height: 'min(50vh, 500px)',
+      width: 'min(50vh, 500px)',
+      aspectRatio: aspectRatio
+    };
+  } else {
+    // For horizontal content, limit width and calculate height proportionally
+    containerStyle = {
+      maxHeight: availableHeight,
+      maxWidth: availableWidth,
+      width: 'min(80vw, 800px)',
+      height: 'auto',
+      aspectRatio: aspectRatio
+    };
+  }
 
   if (!isOpen) return null;
 
@@ -333,7 +367,13 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
           {/* Dialog content positioned above everything */}
           <div 
             className="media-dialog border bg-background shadow-lg rounded-lg overflow-hidden flex flex-col"
-            style={standardDialogStyle}
+            style={{
+              width: 'fit-content',
+              height: 'fit-content',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              minWidth: '700px'
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sr-only" id="media-preview-description">
@@ -411,25 +451,25 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
              {/* Content */}
              <div className="flex-1 overflow-auto">
                  {/* Media Display with Fixed Aspect Ratio */}
-                 {loading || isNavigating ? (
+                {loading || isNavigating ? (
+                  <div className="p-4">
+                    <div 
+                      className="flex items-center justify-center text-muted-foreground bg-muted/20 rounded-lg"
+                      style={containerStyle}
+                    >
+                       <div className="text-center">
+                         <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                         <p>{isNavigating ? 'Loading next file...' : 'Loading media...'}</p>
+                       </div>
+                    </div>
+                  </div>
+                ) : fullUrl ? (
                    <div className="p-4">
                      <div 
-                       className="flex items-center justify-center text-muted-foreground bg-muted/20 rounded-lg"
-                       style={mediaContainerStyle}
+                       key={`${item.id}-${selectedIndex}`}
+                       className="flex items-center justify-center bg-muted/20 rounded-lg overflow-hidden"
+                       style={containerStyle}
                      >
-                        <div className="text-center">
-                          <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-                          <p>{isNavigating ? 'Loading next file...' : 'Loading media...'}</p>
-                        </div>
-                     </div>
-                   </div>
-                 ) : fullUrl ? (
-                    <div className="p-4">
-                      <div 
-                        key={`${item.id}-${selectedIndex}`}
-                        className="flex items-center justify-center bg-muted/20 rounded-lg overflow-hidden"
-                        style={mediaContainerStyle}
-                      >
                        {(item?.media_type === 'image' || 
                          (item?.mime_type && (item.mime_type.startsWith('image/') || 
                           item.mime_type === 'image/heic' || item.mime_type === 'image/heif')) ||
@@ -463,8 +503,9 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                        {item?.media_type === 'video' && (
                          <EnhancedVideoPlayer
                            key={`video-${item.id}-${selectedIndex}-${fullUrl?.substring(0, 10)}`}
-                            src={fullUrl}
-                            className="w-full h-full object-contain"
+                           src={fullUrl}
+                           aspectRatio={aspectRatio}
+                           className="w-full h-full"
                            onError={(e) => {
                              console.error('Failed to load video:', e);
                              setFullUrl(null);
