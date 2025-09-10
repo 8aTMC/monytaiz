@@ -106,7 +106,14 @@ export const FilePreviewDialog = ({
   useEffect(() => {
     if (open && typeof currentIndex === 'number') {
       const clampedIndex = Math.max(0, Math.min(currentIndex, safeFiles.length - 1));
+      console.log('FilePreviewDialog: Index changed', { 
+        oldIndex: internalCurrentIndex, 
+        newIndex: clampedIndex, 
+        fileName: safeFiles[clampedIndex]?.name 
+      });
       setInternalCurrentIndex(clampedIndex);
+      // Clear URL immediately to prevent showing wrong content
+      setFileUrl('');
     }
   }, [open, currentIndex, safeFiles.length]);
   
@@ -151,6 +158,10 @@ export const FilePreviewDialog = ({
 
   useEffect(() => {
     if (displayFile) {
+      console.log('FilePreviewDialog: Creating URL for file', { 
+        name: displayFile.name, 
+        index: internalCurrentIndex 
+      });
       const url = URL.createObjectURL(displayFile);
       setFileUrl(url);
       
@@ -495,6 +506,7 @@ export const FilePreviewDialog = ({
                   
                   {fileType === 'video' && fileUrl && (
                     <EnhancedVideoPlayer
+                      key={`video-${displayFile.name}-${internalCurrentIndex}`}
                       src={fileUrl}
                       aspectRatio={containerDimensions.aspectRatio}
                       className="w-full h-full rounded-xl"
@@ -505,6 +517,7 @@ export const FilePreviewDialog = ({
                   {fileType === 'audio' && fileUrl && (
                     <div className="flex items-center justify-center w-full h-full">
                       <CustomAudioPlayer
+                        key={`audio-${displayFile.name}-${internalCurrentIndex}`}
                         src={fileUrl}
                         title={title || displayFile.name}
                       />

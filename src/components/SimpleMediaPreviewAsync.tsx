@@ -71,7 +71,15 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
   
   // Update local item when prop changes
   useEffect(() => {
+    console.log('SimpleMediaPreviewAsync: Item changed', { 
+      oldId: item?.id, 
+      newId: propItem?.id, 
+      oldTitle: item?.title, 
+      newTitle: propItem?.title 
+    });
     setItem(propItem);
+    // Clear URL immediately to prevent showing wrong content
+    setFullUrl(null);
   }, [propItem]);
 
   useEffect(() => {
@@ -80,6 +88,8 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
       setSelectedFolders([]);
       return;
     }
+
+    console.log('SimpleMediaPreviewAsync: Loading URL for item', { id: item.id, title: item.title });
 
     const loadUrl = async () => {
       if (!getFullUrlAsync || typeof getFullUrlAsync !== 'function') {
@@ -446,28 +456,29 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                            )}
                          </div>
                        )}
-                      {item?.media_type === 'video' && (
-                        <EnhancedVideoPlayer
-                          src={fullUrl}
-                          aspectRatio={aspectRatio}
-                          className="w-full h-full"
-                          onError={(e) => {
-                            console.error('Failed to load video:', e);
-                            setFullUrl(null);
-                          }}
-                        />
-                      )}
-                      {item?.media_type === 'audio' && (
-                        <div className="flex items-center justify-center w-full h-full">
-                          <CustomAudioPlayer
-                            src={fullUrl}
-                            title={item.title || item.original_filename}
-                          />
-                        </div>
+                       {item?.media_type === 'video' && (
+                         <EnhancedVideoPlayer
+                           key={`video-${item.id}-${selectedIndex}`}
+                           src={fullUrl}
+                           aspectRatio={aspectRatio}
+                           className="w-full h-full"
+                           onError={(e) => {
+                             console.error('Failed to load video:', e);
+                             setFullUrl(null);
+                           }}
+                         />
                        )}
-                    </div>
-                  </div>
-                ) : (
+                       {item?.media_type === 'audio' && (
+                         <CustomAudioPlayer
+                           key={`audio-${item.id}-${selectedIndex}`}
+                           src={fullUrl}
+                           title={item?.title || item?.original_filename}
+                           className="w-full h-full"
+                         />
+                        )}
+                     </div>
+                   </div>
+                 ) : (
                   <div 
                     className="flex items-center justify-center text-muted-foreground bg-muted/20 rounded-lg h-full m-4"
                     style={{ minHeight: '60vh' }}
