@@ -708,34 +708,126 @@ async function deleteStorageBatch(bucket: string, filePaths: string[], fileSizes
   return result
 }
 
-// Clean orphaned database records with proper SQL
+// Clean orphaned database records with proper queries
 async function cleanupOrphanedDatabaseRecords(results: CleanupResult, dryRun: boolean) {
   // Clean orphaned media analytics
-  await cleanupDatabaseCategory(
-    results,
-    'orphaned_media_analytics',
-    'media_analytics',
-    `DELETE FROM media_analytics 
-     WHERE NOT EXISTS (
-       SELECT 1 FROM simple_media WHERE id = media_analytics.media_id
-     )`,
-    dryRun
-  )
+  await cleanupOrphanedMediaAnalytics(results, dryRun)
   
-  // Clean orphaned quality metadata
-  await cleanupDatabaseCategory(
-    results,
-    'orphaned_quality_metadata',
-    'quality_metadata',
-    `DELETE FROM quality_metadata 
-     WHERE NOT EXISTS (
-       SELECT 1 FROM simple_media WHERE id = quality_metadata.media_id
-     )`,
-    dryRun
-  )
+  // Clean orphaned quality metadata  
+  await cleanupOrphanedQualityMetadata(results, dryRun)
 
   // Clean orphaned simple media records (THE KEY ADDITION)
   await cleanupOrphanedSimpleMediaRecords(results, dryRun)
+}
+
+// Clean orphaned media analytics records
+async function cleanupOrphanedMediaAnalytics(results: CleanupResult, dryRun: boolean) {
+  const category = 'orphaned_media_analytics'
+  results.audit[category] = { attempted: 0, deleted: 0, skipped: 0, errors: 0 }
+  
+  try {
+    // Get orphaned media analytics records
+    const { data: orphanedRecords, error: selectError } = await supabase
+      .from('media_analytics')
+      .select('id, media_id')
+      .not('media_id', 'in', `(SELECT id FROM simple_media)`)
+    
+    if (selectError) {
+      throw new Error(`Select failed: ${selectError.message}`)
+    }
+    
+    const recordCount = orphanedRecords?.length || 0
+    results.audit[category].attempted = recordCount
+    
+    if (recordCount === 0) {
+      return
+    }
+    
+    if (dryRun) {
+      results.totals.records_cleaned += recordCount
+      return
+    }
+    
+    // Delete the orphaned records
+    const orphanedIds = orphanedRecords.map(r => r.id)
+    const { error: deleteError } = await supabase
+      .from('media_analytics')
+      .delete()
+      .in('id', orphanedIds)
+    
+    if (deleteError) {
+      throw new Error(`Delete failed: ${deleteError.message}`)
+    }
+    
+    results.audit[category].deleted = recordCount
+    results.totals.records_cleaned += recordCount
+    results.cleaned_categories.push(category)
+    
+  } catch (error) {
+    console.error(`${category} cleanup error:`, error)
+    results.errors.push({
+      category: 'Database',
+      type: category,
+      reason: error.message,
+      retriable: true
+    })
+    results.audit[category].errors++
+  }
+}
+
+// Clean orphaned quality metadata records
+async function cleanupOrphanedQualityMetadata(results: CleanupResult, dryRun: boolean) {
+  const category = 'orphaned_quality_metadata'
+  results.audit[category] = { attempted: 0, deleted: 0, skipped: 0, errors: 0 }
+  
+  try {
+    // Get orphaned quality metadata records
+    const { data: orphanedRecords, error: selectError } = await supabase
+      .from('quality_metadata')
+      .select('id, media_id')
+      .not('media_id', 'in', `(SELECT id FROM simple_media)`)
+    
+    if (selectError) {
+      throw new Error(`Select failed: ${selectError.message}`)
+    }
+    
+    const recordCount = orphanedRecords?.length || 0
+    results.audit[category].attempted = recordCount
+    
+    if (recordCount === 0) {
+      return
+    }
+    
+    if (dryRun) {
+      results.totals.records_cleaned += recordCount
+      return
+    }
+    
+    // Delete the orphaned records
+    const orphanedIds = orphanedRecords.map(r => r.id)
+    const { error: deleteError } = await supabase
+      .from('quality_metadata')
+      .delete()
+      .in('id', orphanedIds)
+    
+    if (deleteError) {
+      throw new Error(`Delete failed: ${deleteError.message}`)
+    }
+    
+    results.audit[category].deleted = recordCount
+    results.totals.records_cleaned += recordCount
+    results.cleaned_categories.push(category)
+    
+  } catch (error) {
+    console.error(`${category} cleanup error:`, error)
+    results.errors.push({
+      category: 'Database',
+      type: category,
+      reason: error.message,
+      retriable: true
+    })
+    results.audit[category].errors++
+  }
 }
 
 // Clean simple media records that reference missing storage files
@@ -880,27 +972,27 @@ async function cleanupRelatedDataForMedia(mediaIds: string[]) {
   }
 }
 
-// Generic database cleanup with transaction support
-async function cleanupDatabaseCategory(
-  results: CleanupResult,
-  category: string,
-  tableName: string,
-  deleteQuery: string,
-  dryRun: boolean
-) {
+// Note: cleanupDatabaseCategory function removed - replaced with specific cleanup functions above
+
+// Clean stale temporary data
+async function cleanupStaleTemporaryData(results: CleanupResult, dryRun: boolean) {
+  const category = 'stale_typing_indicators'
   results.audit[category] = { attempted: 0, deleted: 0, skipped: 0, errors: 0 }
   
   try {
-    // First, count what would be deleted
-    const countQuery = deleteQuery.replace('DELETE', 'SELECT COUNT(*)')
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    
+    // First count the records to be deleted
     const { data: countData, error: countError } = await supabase
-      .rpc('sql', { query: countQuery })
+      .from('typing_indicators')
+      .select('*', { count: 'exact', head: true })
+      .lt('updated_at', oneHourAgo)
     
     if (countError) {
       throw new Error(`Count failed: ${countError.message}`)
     }
     
-    const recordCount = parseInt(countData?.[0]?.count || '0')
+    const recordCount = countData?.length || 0
     results.audit[category].attempted = recordCount
     
     if (recordCount === 0) {
@@ -912,9 +1004,11 @@ async function cleanupDatabaseCategory(
       return
     }
     
-    // Execute the deletion
-    const { data: deleteData, error: deleteError } = await supabase
-      .rpc('sql', { query: deleteQuery })
+    // Delete stale typing indicators
+    const { error: deleteError } = await supabase
+      .from('typing_indicators')
+      .delete()
+      .lt('updated_at', oneHourAgo)
     
     if (deleteError) {
       throw new Error(`Delete failed: ${deleteError.message}`)
@@ -934,20 +1028,6 @@ async function cleanupDatabaseCategory(
     })
     results.audit[category].errors++
   }
-}
-
-// Clean stale temporary data
-async function cleanupStaleTemporaryData(results: CleanupResult, dryRun: boolean) {
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
-  
-  // Clean stale typing indicators
-  await cleanupDatabaseCategory(
-    results,
-    'stale_typing_indicators',
-    'typing_indicators',
-    `DELETE FROM typing_indicators WHERE updated_at < '${oneHourAgo}'`,
-    dryRun
-  )
 }
 
 // Run comprehensive cleanup using existing RPC
