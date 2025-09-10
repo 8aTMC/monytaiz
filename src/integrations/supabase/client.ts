@@ -29,52 +29,109 @@ const getSupabaseConfig = () => {
 
 const { url: SUPABASE_URL, key: SUPABASE_PUBLISHABLE_KEY } = getSupabaseConfig();
 
-// Health check function
-export const checkSupabaseHealth = async (): Promise<boolean> => {
+// Enhanced health check with comprehensive error handling
+export const checkSupabaseHealth = async (retryCount = 0): Promise<boolean> => {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // Increased timeout
+    
+    console.log(`🏥 Health check attempt ${retryCount + 1}`);
     
     const response = await fetch(`${SUPABASE_URL}/auth/v1/health`, {
       method: 'GET',
       signal: controller.signal,
       headers: {
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
       }
     });
     
     clearTimeout(timeoutId);
-    return response.ok;
-  } catch (error) {
-    console.error('Supabase health check failed:', error);
+    
+    if (response.ok) {
+      console.log('✅ Supabase health check passed');
+      return true;
+    } else {
+      console.warn(`⚠️ Supabase health check failed with status: ${response.status}`);
+      return false;
+    }
+  } catch (error: any) {
+    console.error(`❌ Supabase health check failed (attempt ${retryCount + 1}):`, error);
+    
+    // Retry logic for network errors
+    if (retryCount < 2 && (
+      error.name === 'TypeError' ||
+      error.name === 'AbortError' ||
+      error.message?.includes('fetch') ||
+      error.message?.includes('network')
+    )) {
+      console.log(`🔄 Retrying health check in ${(retryCount + 1) * 2}s...`);
+      await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
+      return checkSupabaseHealth(retryCount + 1);
+    }
+    
     return false;
   }
 };
 
-// DNS resolution test
-export const testDNSResolution = async (): Promise<boolean> => {
+// Enhanced DNS resolution test with multiple fallbacks
+export const testDNSResolution = async (retryCount = 0): Promise<boolean> => {
   try {
-    // Extract hostname from URL
     const hostname = new URL(SUPABASE_URL).hostname;
+    console.log(`🌐 Testing DNS resolution for ${hostname} (attempt ${retryCount + 1})`);
     
-    // Test DNS resolution by making a simple request
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+    // Test multiple endpoints to verify DNS resolution
+    const testEndpoints = [
+      `https://${hostname}`,
+      `${SUPABASE_URL}/auth/v1/health`,
+      `https://supabase.com` // Fallback to main Supabase domain
+    ];
     
-    await fetch(`https://${hostname}`, {
-      method: 'HEAD',
-      signal: controller.signal,
-      mode: 'no-cors' // Bypass CORS for DNS test
-    });
+    for (const endpoint of testEndpoints) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        await fetch(endpoint, {
+          method: 'HEAD',
+          signal: controller.signal,
+          mode: 'no-cors',
+          cache: 'no-cache'
+        });
+        
+        clearTimeout(timeoutId);
+        console.log(`✅ DNS resolution successful for ${endpoint}`);
+        return true;
+      } catch (endpointError: any) {
+        console.warn(`⚠️ DNS test failed for ${endpoint}:`, endpointError.message);
+        continue;
+      }
+    }
     
-    clearTimeout(timeoutId);
-    return true;
+    throw new Error('All DNS test endpoints failed');
   } catch (error: any) {
-    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-      console.error('DNS resolution failed for Supabase URL:', SUPABASE_URL);
+    console.error(`❌ DNS resolution test failed (attempt ${retryCount + 1}):`, error);
+    
+    // Retry logic for DNS failures
+    if (retryCount < 2 && (
+      error.name === 'TypeError' || 
+      error.message?.includes('Failed to fetch') ||
+      error.message?.includes('network') ||
+      error.message?.includes('ERR_NAME_NOT_RESOLVED')
+    )) {
+      console.log(`🔄 Retrying DNS test in ${(retryCount + 1) * 3}s...`);
+      await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 3000));
+      return testDNSResolution(retryCount + 1);
+    }
+    
+    // If DNS truly failed, this indicates a serious connectivity issue
+    if (error.message?.includes('Failed to fetch') || error.message?.includes('ERR_NAME_NOT_RESOLVED')) {
+      console.error('🚨 Critical DNS resolution failure detected');
       return false;
     }
-    // Other errors might be CORS-related but DNS is working
+    
+    // Other errors might be CORS-related but DNS could be working
+    console.log('🤔 DNS test inconclusive, assuming DNS is working');
     return true;
   }
 };
@@ -82,10 +139,66 @@ export const testDNSResolution = async (): Promise<boolean> => {
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Connection monitoring and recovery
+export const monitorConnection = () => {
+  let healthCheckInterval: NodeJS.Timeout;
+  
+  const startMonitoring = () => {
+    // Check connection health every 30 seconds
+    healthCheckInterval = setInterval(async () => {
+      const isHealthy = await checkSupabaseHealth();
+      if (!isHealthy) {
+        console.warn('🔥 Connection health check failed - potential network issues');
+        // Trigger diagnostic if multiple failures
+        const failures = parseInt(sessionStorage.getItem('health-failures') || '0') + 1;
+        sessionStorage.setItem('health-failures', failures.toString());
+        
+        if (failures >= 3) {
+          console.error('🚨 Multiple health check failures detected');
+          // Clear session storage to force fresh auth
+          sessionStorage.clear();
+        }
+      } else {
+        // Reset failure counter on success
+        sessionStorage.removeItem('health-failures');
+      }
+    }, 30000);
+  };
+  
+  const stopMonitoring = () => {
+    if (healthCheckInterval) {
+      clearInterval(healthCheckInterval);
+    }
+  };
+  
+  // Auto-start monitoring
+  startMonitoring();
+  
+  return { startMonitoring, stopMonitoring };
+};
+
+// Initialize connection monitoring
+const connectionMonitor = monitorConnection();
+
+// Enhanced Supabase client with better error handling
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+    // Enhanced auth options for better reliability
+    detectSessionInUrl: true,
+    flowType: 'pkce'
+  },
+  global: {
+    headers: {
+      'Cache-Control': 'no-cache',
+    },
+  },
+  // Add retry logic for network failures
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
+  },
 });

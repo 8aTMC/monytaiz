@@ -32,6 +32,7 @@ import NotFound from "./pages/NotFound";
 import GeneralSettings from "./pages/GeneralSettings";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { ConnectionRecovery } from "./components/ConnectionRecovery";
 
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
+          <ConnectionRecovery />
           <Toaster />
           <Sonner />
           <PWAInstallPrompt />

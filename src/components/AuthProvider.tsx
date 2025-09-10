@@ -72,12 +72,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          // Network error - retry with exponential backoff
-          if (error.message?.includes('fetch') && retryCount < 3) {
-            console.warn(`Session fetch failed (attempt ${retryCount + 1}), retrying...`);
-            setTimeout(() => initializeAuth(retryCount + 1), Math.pow(2, retryCount) * 1000);
-            return;
-          }
+        // Network error - retry with exponential backoff
+        if ((error.message?.includes('fetch') || error.message?.includes('ERR_NAME_NOT_RESOLVED')) && retryCount < 3) {
+          console.warn(`Session fetch failed (attempt ${retryCount + 1}), retrying...`);
+          setTimeout(() => initializeAuth(retryCount + 1), Math.pow(2, retryCount) * 1000);
+          return;
+        }
           
           console.warn('Session error on init:', error);
           setSession(null);
@@ -95,7 +95,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         console.error('Auth initialization error:', error);
         
         // Network error - retry if attempts remain
-        if (retryCount < 3) {
+        if (retryCount < 3 && (error.message?.includes('fetch') || error.message?.includes('ERR_NAME_NOT_RESOLVED'))) {
           console.log(`Init failed (attempt ${retryCount + 1}), retrying...`);
           setTimeout(() => initializeAuth(retryCount + 1), Math.pow(2, retryCount) * 1000);
           return;
