@@ -36,83 +36,54 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener - MUST be synchronous to prevent circular calls
+    console.log('🚀 AuthProvider initializing...');
+    
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('Auth state change:', event, session?.user?.id);
-        
-        // Simple synchronous state updates only
+        console.log('🔄 Auth state change:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
       }
     );
 
-    // Initialize auth with retry logic for network issues
-    const initializeAuth = async (retryCount = 0) => {
+    // Simple initialization with timeout
+    const initializeAuth = async () => {
       try {
-        // Clear corrupted auth data more comprehensively
-        const authKeys = [
-          'supabase.auth.token',
-          'sb-alzyzfjzwvofmjccirjq-auth-token',
-          'supabase.auth.refresh_token',
-          'sb-alzyzfjzwvofmjccirjq-auth-token-code-verifier'
-        ];
-        
-        authKeys.forEach(key => {
-          const value = localStorage.getItem(key);
-          if (value === 'undefined' || value === 'null') {
-            localStorage.removeItem(key);
-          }
-        });
-        
-        // Clear session storage completely
-        sessionStorage.clear();
-        
+        console.log('🔍 Getting initial session...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-        // Network error - retry with exponential backoff
-        if ((error.message?.includes('fetch') || error.message?.includes('ERR_NAME_NOT_RESOLVED')) && retryCount < 3) {
-          console.warn(`Session fetch failed (attempt ${retryCount + 1}), retrying...`);
-          setTimeout(() => initializeAuth(retryCount + 1), Math.pow(2, retryCount) * 1000);
-          return;
-        }
-          
-          console.warn('Session error on init:', error);
+          console.warn('Session error:', error);
           setSession(null);
           setUser(null);
-          setLoading(false);
-          return;
+        } else {
+          console.log('✅ Got session:', !!session);
+          setSession(session);
+          setUser(session?.user ?? null);
         }
-        
-        // Trust Supabase's session management - no additional validation
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-        
       } catch (error) {
-        console.error('Auth initialization error:', error);
-        
-        // Network error - retry if attempts remain
-        if (retryCount < 3 && (error.message?.includes('fetch') || error.message?.includes('ERR_NAME_NOT_RESOLVED'))) {
-          console.log(`Init failed (attempt ${retryCount + 1}), retrying...`);
-          setTimeout(() => initializeAuth(retryCount + 1), Math.pow(2, retryCount) * 1000);
-          return;
-        }
-        
-        // Final fallback - clear everything
+        console.error('Auth init error:', error);
         setSession(null);
         setUser(null);
-        localStorage.clear();
-        sessionStorage.clear();
+      } finally {
         setLoading(false);
       }
     };
 
     initializeAuth();
 
-    return () => subscription.unsubscribe();
+    // Loading timeout failsafe
+    const timeout = setTimeout(() => {
+      console.warn('⚠️ Auth loading timeout - forcing completion');
+      setLoading(false);
+    }, 5000);
+
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {

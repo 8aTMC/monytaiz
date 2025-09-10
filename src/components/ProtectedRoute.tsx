@@ -16,54 +16,54 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const location = useLocation();
 
   useEffect(() => {
+    console.log('🛡️ ProtectedRoute initializing...');
+    
+    const checkProfile = async (userId: string) => {
+      setCheckingProfile(true);
+      try {
+        console.log('🔍 Checking profile for user:', userId);
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('signup_completed, username, display_name, temp_username, deletion_status, deleted_at')
+          .eq('id', userId)
+          .maybeSingle();
+        
+        if (error) {
+          console.error('Profile check error:', error);
+          setCheckingProfile(false);
+          return;
+        }
+        
+        if (!profile || profile.deletion_status !== 'active' || profile.deleted_at) {
+          console.log('❌ Profile deleted or not found, signing out...');
+          await supabase.auth.signOut();
+          return;
+        }
+        
+        const needsCompletion = !profile.signup_completed || 
+                              !profile.username || 
+                              !profile.display_name || 
+                              profile.temp_username;
+        
+        console.log('✅ Profile check complete:', { needsCompletion });
+        setNeedsOnboarding(needsCompletion);
+      } catch (error) {
+        console.error('Profile check failed:', error);
+      } finally {
+        setCheckingProfile(false);
+      }
+    };
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('🔄 ProtectedRoute auth change:', event, !!session);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // Check if user needs onboarding when session changes
         if (session?.user) {
-          setTimeout(async () => {
-            try {
-              const { data: profile, error } = await supabase
-                .from('profiles')
-                .select('signup_completed, username, display_name, temp_username, deletion_status, deleted_at')
-                .eq('id', session.user.id)
-                .single();
-              
-              // If profile doesn't exist or user has been deleted, sign out
-              if (error || !profile || profile.deletion_status !== 'active' || profile.deleted_at) {
-                console.log('User profile deleted or not found, signing out...');
-                await supabase.auth.signOut();
-                return;
-              }
-              
-              const needsProfileCompletion = profile && (
-                !profile.signup_completed || 
-                !profile.username || 
-                !profile.display_name ||
-                profile.temp_username
-              );
-              
-              console.log('🔍 Profile completion check:', {
-                signup_completed: profile.signup_completed,
-                username: profile.username,
-                display_name: profile.display_name,
-                temp_username: profile.temp_username,
-                needsProfileCompletion
-              });
-              
-              setNeedsOnboarding(!!needsProfileCompletion);
-              setCheckingProfile(false);
-            } catch (error) {
-              console.error('Error checking profile completion:', error);
-              // If there's an error accessing the profile, sign out to be safe
-              await supabase.auth.signOut();
-              setCheckingProfile(false);
-            }
-          }, 0);
+          checkProfile(session.user.id);
         } else {
           setCheckingProfile(false);
           setNeedsOnboarding(false);
@@ -72,55 +72,30 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('🔍 Initial session check:', !!session);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
       
       if (session?.user) {
-        try {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('signup_completed, username, display_name, temp_username, deletion_status, deleted_at')
-            .eq('id', session.user.id)
-            .single();
-          
-          // If profile doesn't exist or user has been deleted, sign out
-          if (error || !profile || profile.deletion_status !== 'active' || profile.deleted_at) {
-            console.log('User profile deleted or not found, signing out...');
-            await supabase.auth.signOut();
-            return;
-          }
-          
-          const needsProfileCompletion = profile && (
-            !profile.signup_completed || 
-            !profile.username || 
-            !profile.display_name ||
-            profile.temp_username
-          );
-          
-          console.log('🔍 Profile completion check (session check):', {
-            signup_completed: profile.signup_completed,
-            username: profile.username,
-            display_name: profile.display_name,
-            temp_username: profile.temp_username,
-            needsProfileCompletion
-          });
-          
-          setNeedsOnboarding(!!needsProfileCompletion);
-          setCheckingProfile(false);
-        } catch (error) {
-          console.error('Error checking profile completion:', error);
-          // If there's an error accessing the profile, sign out to be safe
-          await supabase.auth.signOut();
-          setCheckingProfile(false);
-        }
+        checkProfile(session.user.id);
       } else {
         setCheckingProfile(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Failsafe timeout
+    const timeout = setTimeout(() => {
+      console.warn('⚠️ ProtectedRoute loading timeout');
+      setLoading(false);
+      setCheckingProfile(false);
+    }, 10000);
+
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Show loading while checking authentication or profile
