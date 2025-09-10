@@ -29,6 +29,7 @@ export const AdvancedFileUpload = () => {
   
   // Processing state to prevent multiple file selections during processing
   const [isProcessingFiles, setIsProcessingFiles] = useState(false);
+  const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
   
   // Centralized preview state
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
@@ -101,23 +102,70 @@ export const AdvancedFileUpload = () => {
   }, []);
 
   // Process files and handle validation using legacy stacked dialogs
-  const processFiles = useCallback((files: File[]) => {
-    if (isProcessingFiles) return; // Prevent multiple processing
+  const processFiles = useCallback(async (files: File[]) => {
+    if (isProcessingFiles || isCheckingDuplicates) return; // Prevent multiple processing
     
     setIsProcessingFiles(true);
+    setIsCheckingDuplicates(true);
     
-    // Check for HEIC files first  
-    const heicFileNames = files.filter(isHeicFile).map(f => f.name);
-    if (heicFileNames.length > 0) {
-      showHeicWarning(heicFileNames);
+    try {
+      // First add files to check formats and basic validation
+      addFiles(files, showDuplicateDialog, showUnsupportedDialog);
+      
+      // Wait a moment for files to be added to queue
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Check for database duplicates
+      const currentQueue = uploadQueue.concat(
+        files.filter(file => {
+          try {
+            const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+            const allowedVideoExts = ['.mp4', '.mov', '.webm', '.mkv'];
+            const allowedImageExts = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif'];
+            const allowedAudioExts = ['.mp3', '.wav', '.aac', '.ogg', '.opus'];
+            return allowedVideoExts.includes(extension) || allowedImageExts.includes(extension) || allowedAudioExts.includes(extension);
+          } catch {
+            return false;
+          }
+        }).map((file, index) => ({
+          file,
+          id: `temp-${Date.now()}-${index}`,
+          progress: 0,
+          status: 'pending' as const,
+          uploadedBytes: 0,
+          totalBytes: file.size,
+          selected: false,
+          needsConversion: false,
+          metadata: {
+            mentions: [],
+            tags: [],
+            folders: [],
+            description: '',
+            suggestedPrice: null,
+          },
+        }))
+      );
+      
+      if (currentQueue.length > 0) {
+        const duplicates = await checkAllDuplicates(currentQueue);
+        if (duplicates.length > 0) {
+          setAllDuplicates(duplicates);
+          setPreUploadDuplicateDialogOpen(true);
+        }
+      }
+      
+      // Check for HEIC files
+      const heicFileNames = files.filter(isHeicFile).map(f => f.name);
+      if (heicFileNames.length > 0) {
+        showHeicWarning(heicFileNames);
+      }
+    } catch (error) {
+      console.error('Error during file processing:', error);
+    } finally {
+      setIsCheckingDuplicates(false);
+      setIsProcessingFiles(false);
     }
-    
-    // Add files with dialog callbacks for stacked dialogs
-    addFiles(files, showDuplicateDialog, showUnsupportedDialog);
-    
-    // Reset processing state after a short delay
-    setTimeout(() => setIsProcessingFiles(false), 100);
-  }, [addFiles, isHeicFile, showDuplicateDialog, showUnsupportedDialog, showHeicWarning, isProcessingFiles]);
+  }, [addFiles, isHeicFile, showDuplicateDialog, showUnsupportedDialog, showHeicWarning, isProcessingFiles, isCheckingDuplicates, uploadQueue, checkAllDuplicates]);
 
   // Dialog handlers for legacy stacked dialogs  
   const handleDuplicateConfirm = useCallback((filesToIgnore: string[]) => {
@@ -262,36 +310,10 @@ export const AdvancedFileUpload = () => {
     }
   };
 
-  // Handle start upload with duplicate detection
-  const handleStartUpload = async () => {
+  // Handle start upload - duplicates already checked during file processing
+  const handleStartUpload = () => {
     if (uploadQueue.length === 0) return;
-
-    try {
-      setDuplicateCheckLoading(true);
-      
-      // Check for both queue and database duplicates
-      const duplicates = await checkAllDuplicates(uploadQueue);
-      
-      if (duplicates.length > 0) {
-        console.log('🎯 Showing duplicate dialog with', duplicates.length, 'duplicates');
-        setAllDuplicates(duplicates);
-        setPreUploadDuplicateDialogOpen(true);
-      } else {
-        console.log('✅ No duplicates found, proceeding with upload');
-        // No duplicates found, proceed with upload
-        startUpload(true); // Skip duplicate check since we already did it
-      }
-    } catch (error) {
-      console.error('Error checking for duplicates:', error);
-      toast({
-        title: "Duplicate Check Failed",
-        description: "Proceeding with upload anyway.",
-        variant: "destructive",
-      });
-      startUpload(true);
-    } finally {
-      setDuplicateCheckLoading(false);
-    }
+    startUpload(true); // Skip duplicate check since we already did it during file processing
   };
 
   // Handle purging selected duplicates from queue
@@ -465,6 +487,18 @@ export const AdvancedFileUpload = () => {
               value={uploadQueue.length > 0 ? (Math.min(currentUploadIndex + 1, uploadQueue.length) / uploadQueue.length) * 100 : 0} 
               className="h-2"
             />
+          </div>
+        )}
+
+        {/* Loading overlay for duplicate checking */}
+        {isCheckingDuplicates && (
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="bg-card border rounded-lg p-6 shadow-lg">
+              <div className="flex items-center space-x-3">
+                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm font-medium">Checking for duplicates...</span>
+              </div>
+            </div>
           </div>
         )}
 
