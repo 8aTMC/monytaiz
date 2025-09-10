@@ -192,17 +192,7 @@ export const useSimpleUpload = () => {
             console.log('✅ Thumbnail uploaded:', thumbnailPath);
           }
 
-          // Try to get video dimensions using processFiles as fallback
-          try {
-            const processedFiles = await processFiles([fileToUpload]);
-            if (processedFiles.length > 0) {
-              const result = processedFiles[0];
-              width = result.metadata.width;
-              height = result.metadata.height;
-            }
-          } catch (error) {
-            console.warn('Video analysis failed:', error);
-          }
+          // Skip video dimension analysis to avoid processing errors
         } catch (error) {
           console.warn('Client-side thumbnail generation failed:', error);
           // Continue without thumbnail - video upload will proceed normally
@@ -248,7 +238,7 @@ export const useSimpleUpload = () => {
           processed_path: uploadPath,
           thumbnail_path: thumbnailPath,
           media_type: mediaType,
-          processing_status: mediaType === 'video' ? 'processing' : 'processed',
+          processing_status: 'processed',
           width: width,
           height: height,
           tags: []
@@ -260,37 +250,7 @@ export const useSimpleUpload = () => {
         throw new Error(`Database error: ${dbError.message}`);
       }
 
-      // For videos, trigger background quality processing
-      if (mediaType === 'video') {
-        setUploadProgress({
-          phase: 'processing',
-          progress: 90,
-          message: 'Starting video quality processing...',
-          originalSize,
-          processedSize,
-          compressionRatio
-        });
-
-        try {
-          // Trigger video processing in background
-          const { error: processingError } = await supabase.functions.invoke('video-processor-v2', {
-            body: {
-              bucket: 'content',
-              path: uploadPath,
-              fileName: file.name,
-              mediaId: mediaRecord.id,
-              targetQualities: ['480p', '720p', '1080p']
-            }
-          });
-
-          if (processingError) {
-            console.warn('Video processing failed:', processingError);
-            // Don't throw error - video is still uploaded, just no quality variants
-          }
-        } catch (error) {
-          console.warn('Failed to trigger video processing:', error);
-        }
-      }
+      // Skip video processing - upload raw videos directly as requested
 
       setUploadProgress({
         phase: 'complete',
@@ -298,7 +258,7 @@ export const useSimpleUpload = () => {
         message: shouldProcessImage && compressionRatio > 0 
           ? `Upload complete! Image converted to WebP (${compressionRatio}% smaller)` 
           : mediaType === 'video' 
-            ? 'Upload complete! Quality processing started in background.' 
+            ? 'Upload complete! Raw video uploaded without processing.' 
             : 'Upload complete!',
         originalSize,
         processedSize,
@@ -317,7 +277,9 @@ export const useSimpleUpload = () => {
         title: "Upload successful",
         description: shouldProcessImage && compressionRatio > 0
           ? `${file.name} converted to WebP and uploaded (${compressionRatio}% smaller).`
-          : `${file.name} uploaded successfully.`,
+          : mediaType === 'video'
+            ? `${file.name} uploaded as raw video without processing.`
+            : `${file.name} uploaded successfully.`,
         variant: "default"
       });
 
