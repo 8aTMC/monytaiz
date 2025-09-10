@@ -77,6 +77,8 @@ export const FilePreviewDialog = ({
   const [fileUrl, setFileUrl] = useState<string>('');
   const [videoQualityInfo, setVideoQualityInfo] = useState<VideoQualityInfo | null>(null);
   const [videoAspectRatio, setVideoAspectRatio] = useState<string>('16/9');
+  const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   
   // Dialog states
   const [mentionsDialogOpen, setMentionsDialogOpen] = useState(false);
@@ -506,7 +508,7 @@ export const FilePreviewDialog = ({
                   
                   {fileType === 'video' && fileUrl && (
                     <EnhancedVideoPlayer
-                      key={`video-${displayFile.name}-${internalCurrentIndex}`}
+                      key={`video-${displayFile.name}-${internalCurrentIndex}-${fileUrl.substring(0, 10)}`}
                       src={fileUrl}
                       aspectRatio={containerDimensions.aspectRatio}
                       className="w-full h-full rounded-xl"
@@ -517,7 +519,7 @@ export const FilePreviewDialog = ({
                   {fileType === 'audio' && fileUrl && (
                     <div className="flex items-center justify-center w-full h-full">
                       <CustomAudioPlayer
-                        key={`audio-${displayFile.name}-${internalCurrentIndex}`}
+                        key={`audio-${displayFile.name}-${internalCurrentIndex}-${fileUrl.substring(0, 10)}`}
                         src={fileUrl}
                         title={title || displayFile.name}
                       />

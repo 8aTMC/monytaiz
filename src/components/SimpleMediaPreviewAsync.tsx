@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -51,6 +51,8 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
   const [item, setItem] = useState<SimpleMediaItem | null>(propItem);
   const [fullUrl, setFullUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isUrlLoading, setIsUrlLoading] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   
   // Dialog states
   const [mentionsDialogOpen, setMentionsDialogOpen] = useState(false);
@@ -83,40 +85,73 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
   }, [propItem]);
 
   useEffect(() => {
+    // Cancel any pending operations
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Clear states immediately
+    setFullUrl(null);
+    setSelectedFolders([]);
+    setIsUrlLoading(false);
+    setLoading(false);
+    
     if (!item || !isOpen) {
-      setFullUrl(null);
-      setSelectedFolders([]);
       return;
     }
 
     console.log('SimpleMediaPreviewAsync: Loading URL for item', { id: item.id, title: item.title });
 
+    // Create new abort controller
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     const loadUrl = async () => {
       if (!getFullUrlAsync || typeof getFullUrlAsync !== 'function') {
         console.error('getFullUrlAsync is not a function:', typeof getFullUrlAsync);
-        setFullUrl(null);
         return;
       }
 
+      setIsUrlLoading(true);
       setLoading(true);
+      
       try {
+        // Check if aborted before proceeding
+        if (abortController.signal.aborted) return;
+        
         const url = await getFullUrlAsync(item);
+        
+        // Check if aborted after async operation
+        if (abortController.signal.aborted) return;
+        
         setFullUrl(url);
         
         // Load current folder assignments when opening
         if (item.id) {
           const folders = await getMediaFolders(item.id);
-          setSelectedFolders(folders);
+          if (!abortController.signal.aborted) {
+            setSelectedFolders(folders);
+          }
         }
       } catch (error) {
-        console.error('Failed to load media URL:', error);
-        setFullUrl(null);
+        if (!abortController.signal.aborted) {
+          console.error('Failed to load media URL:', error);
+          setFullUrl(null);
+        }
       } finally {
-        setLoading(false);
+        if (!abortController.signal.aborted) {
+          setIsUrlLoading(false);
+          setLoading(false);
+        }
       }
     };
 
     loadUrl();
+    
+    // Cleanup function
+    return () => {
+      abortController.abort();
+    };
   }, [item, isOpen, getFullUrlAsync, getMediaFolders]);
 
   // Metadata update handlers
@@ -458,7 +493,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                        )}
                        {item?.media_type === 'video' && (
                          <EnhancedVideoPlayer
-                           key={`video-${item.id}-${selectedIndex}`}
+                           key={`video-${item.id}-${selectedIndex}-${fullUrl?.substring(0, 10)}`}
                            src={fullUrl}
                            aspectRatio={aspectRatio}
                            className="w-full h-full"
@@ -470,7 +505,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                        )}
                        {item?.media_type === 'audio' && (
                          <CustomAudioPlayer
-                           key={`audio-${item.id}-${selectedIndex}`}
+                           key={`audio-${item.id}-${selectedIndex}-${fullUrl?.substring(0, 10)}`}
                            src={fullUrl}
                            title={item?.title || item?.original_filename}
                            className="w-full h-full"
