@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { X, Download, AtSign, Hash, FolderOpen, FileText, DollarSign, ChevronLeft, ChevronRight, Edit } from 'lucide-react';
+import { X, Download, AtSign, Hash, FolderOpen, FileText, DollarSign, ChevronLeft, ChevronRight, Edit, Maximize } from 'lucide-react';
+import { FullscreenImageViewer } from './FullscreenImageViewer';
 import { SimpleMediaItem, useSimpleMedia } from '@/hooks/useSimpleMedia';
 import { MentionsDialog } from './MentionsDialog';
 import { TagsDialog } from './TagsDialog';
@@ -59,6 +60,8 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
   const [editTitleDialogOpen, setEditTitleDialogOpen] = useState(false);
   const [revenueAnalyticsDialogOpen, setRevenueAnalyticsDialogOpen] = useState(false);
+  const [fullscreenOpen, setFullscreenOpen] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
   
   // Folder selection state
   const [selectedFolders, setSelectedFolders] = useState<string[]>([]);
@@ -413,20 +416,36 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                       className="flex items-center justify-center bg-muted/20 rounded-lg overflow-hidden"
                       style={containerStyle}
                     >
-                      {(item?.media_type === 'image' || 
-                        (item?.mime_type && (item.mime_type.startsWith('image/') || 
-                         item.mime_type === 'image/heic' || item.mime_type === 'image/heif')) ||
-                        (item?.original_filename && /\.(heic|heif|jpg|jpeg|png|gif|webp)$/i.test(item.original_filename))) && (
-                        <img
-                          src={fullUrl}
-                          alt={item.title || item.original_filename}
-                          className="w-full h-full object-contain object-center"
-                          onError={(e) => {
-                            console.error('Failed to load image:', e);
-                            setFullUrl(null);
-                          }}
-                        />
-                      )}
+                       {(item?.media_type === 'image' || 
+                         (item?.mime_type && (item.mime_type.startsWith('image/') || 
+                          item.mime_type === 'image/heic' || item.mime_type === 'image/heif')) ||
+                         (item?.original_filename && /\.(heic|heif|jpg|jpeg|png|gif|webp)$/i.test(item.original_filename))) && (
+                         <div 
+                           className="relative w-full h-full"
+                           onMouseEnter={() => setIsHovering(true)}
+                           onMouseLeave={() => setIsHovering(false)}
+                         >
+                           <img
+                             src={fullUrl}
+                             alt={item.title || item.original_filename}
+                             className="w-full h-full object-contain object-center"
+                             onError={(e) => {
+                               console.error('Failed to load image:', e);
+                               setFullUrl(null);
+                             }}
+                           />
+                           {isHovering && (
+                             <Button
+                               variant="secondary"
+                               size="sm"
+                               onClick={() => setFullscreenOpen(true)}
+                               className="absolute bottom-3 right-3 bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 border-none shadow-lg z-10"
+                             >
+                               <Maximize className="w-4 h-4" />
+                             </Button>
+                           )}
+                         </div>
+                       )}
                       {item?.media_type === 'video' && (
                         <EnhancedVideoPlayer
                           src={fullUrl}
@@ -629,6 +648,13 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
             onOpenChange={setRevenueAnalyticsDialogOpen}
             mediaId={item.id}
             mediaTitle={item.title || 'Untitled Media'}
+          />
+          
+          <FullscreenImageViewer
+            isOpen={fullscreenOpen}
+            onClose={() => setFullscreenOpen(false)}
+            imageUrl={fullUrl || ''}
+            title={item.title || item.original_filename || 'Media preview'}
           />
         </>
       )}

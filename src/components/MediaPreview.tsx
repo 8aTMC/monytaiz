@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Maximize } from 'lucide-react';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
 import { VideoQualityBadge } from './VideoQualityBadge';
 import { OptimizedVideoPlayer } from './OptimizedVideoPlayer';
+import { FullscreenImageViewer } from './FullscreenImageViewer';
 import { detectVideoQuality, VideoQualityInfo } from '@/lib/videoQuality';
 
 interface MediaPreviewProps {
@@ -32,6 +35,8 @@ export const MediaPreview = ({
 }: MediaPreviewProps) => {
   const [currentUrl, setCurrentUrl] = useState<string | null>(null);
   const [videoQualityInfo, setVideoQualityInfo] = useState<VideoQualityInfo | null>(null);
+  const [fullscreenOpen, setFullscreenOpen] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
   
   useEffect(() => {
     if (item.processed_path) {
@@ -87,12 +92,28 @@ export const MediaPreview = ({
           {/* Media Display */}
           <div className="relative bg-muted rounded-lg overflow-hidden">
             {item.media_type === 'image' && currentUrl && (
-              <img
-                src={currentUrl}
-                alt={item.title || 'Media preview'}
-                className="w-full h-auto max-h-[60vh] object-contain"
-                loading="lazy"
-              />
+              <div 
+                className="relative"
+                onMouseEnter={() => setIsHovering(true)}
+                onMouseLeave={() => setIsHovering(false)}
+              >
+                <img
+                  src={currentUrl}
+                  alt={item.title || 'Media preview'}
+                  className="w-full h-auto max-h-[60vh] object-contain"
+                  loading="lazy"
+                />
+                {isHovering && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setFullscreenOpen(true)}
+                    className="absolute bottom-3 right-3 bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 border-none shadow-lg"
+                  >
+                    <Maximize className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
             )}
 
             {item.media_type === 'video' && currentUrl && (
@@ -148,6 +169,13 @@ export const MediaPreview = ({
 
         </div>
       </DialogContent>
+      
+      <FullscreenImageViewer
+        isOpen={fullscreenOpen}
+        onClose={() => setFullscreenOpen(false)}
+        imageUrl={currentUrl || ''}
+        title={item.title || 'Media preview'}
+      />
     </Dialog>
   );
 };
