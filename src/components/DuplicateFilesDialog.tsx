@@ -102,36 +102,61 @@ export const DuplicateFilesDialog = ({
     return <FileIcon className="w-8 h-8 text-muted-foreground" />;
   };
 
-  const FileThumbnail = ({ file }: { file: DuplicateFile }) => {
+  const QueueFileThumbnail = ({ file, label }: { file: File; label: string }) => {
     const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
     const extension = file.name.split('.').pop()?.toLowerCase() || '';
     const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(extension);
     
     useEffect(() => {
-      if (isImage && file.newFile) {
-        const url = URL.createObjectURL(file.newFile);
+      if (isImage && file) {
+        const url = URL.createObjectURL(file);
         setThumbnailUrl(url);
         
         return () => {
           URL.revokeObjectURL(url);
         };
       }
-    }, [file.newFile, isImage]);
+    }, [file, isImage]);
     
-    if (isImage && thumbnailUrl) {
-      return (
-        <div className="w-8 h-8 rounded overflow-hidden bg-muted flex-shrink-0">
-          <img 
-            src={thumbnailUrl} 
-            alt={file.name}
-            className="w-full h-full object-cover"
-            onError={() => setThumbnailUrl(null)}
-          />
+    const getFileIconForFile = (fileName: string) => {
+      const ext = fileName.split('.').pop()?.toLowerCase() || '';
+      
+      if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) {
+        return <Image className="w-6 h-6 text-blue-500" />;
+      }
+      if (['mp4', 'mov', 'webm', 'avi', 'mkv'].includes(ext)) {
+        return <Video className="w-6 h-6 text-purple-500" />;
+      }
+      if (['mp3', 'wav', 'aac', 'ogg', 'flac', 'opus'].includes(ext)) {
+        return <Music className="w-6 h-6 text-green-500" />;
+      }
+      if (['pdf', 'doc', 'docx', 'txt', 'rtf'].includes(ext)) {
+        return <FileText className="w-6 h-6 text-orange-500" />;
+      }
+      return <FileIcon className="w-6 h-6 text-muted-foreground" />;
+    };
+    
+    return (
+      <div className="flex flex-col items-center gap-2 p-3 bg-muted/30 rounded-lg border-2 border-dashed border-muted-foreground/20">
+        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</div>
+        <div className="w-12 h-12 rounded overflow-hidden bg-background border flex-shrink-0 flex items-center justify-center">
+          {isImage && thumbnailUrl ? (
+            <img 
+              src={thumbnailUrl} 
+              alt={file.name}
+              className="w-full h-full object-cover"
+              onError={() => setThumbnailUrl(null)}
+            />
+          ) : (
+            getFileIconForFile(file.name)
+          )}
         </div>
-      );
-    }
-    
-    return getFileIcon(file);
+        <div className="text-xs text-center">
+          <div className="font-medium truncate max-w-20" title={file.name}>{file.name}</div>
+          <div className="text-muted-foreground">{formatFileSize(file.size)}</div>
+        </div>
+      </div>
+    );
   };
 
   const formatFileSize = (bytes: number) => {
@@ -179,23 +204,30 @@ export const DuplicateFilesDialog = ({
                   {duplicateFiles.filter(d => !d.similarity).map((file) => (
                     <div 
                       key={file.id} 
-                      className="flex items-center gap-3 p-3 rounded-lg border bg-muted/20 hover:bg-muted/30 transition-colors"
+                      className="flex items-start gap-4 p-4 rounded-lg border bg-muted/20 hover:bg-muted/30 transition-colors"
                     >
-                      <div className="flex-shrink-0">
-                        <FileThumbnail file={file} />
+                      {/* Thumbnails comparison */}
+                      <div className="flex gap-3 flex-shrink-0">
+                        <QueueFileThumbnail file={file.existingFile} label="Existing in Queue" />
+                        <QueueFileThumbnail file={file.newFile} label="New File" />
                       </div>
+                      
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{file.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
+                        <p className="text-sm font-medium truncate mb-1">{file.name}</p>
+                        <div className="flex items-center gap-2">
                           <Badge variant="secondary" className="text-xs">
                             {formatFileSize(file.size)}
                           </Badge>
                           <Badge variant="outline" className="text-xs">
                             {file.type}
                           </Badge>
+                          <Badge variant="destructive" className="text-xs">
+                            Exact Match
+                          </Badge>
                         </div>
                       </div>
-                      <div className="flex-shrink-0">
+                      
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         <Button
                           variant="outline"
                           size="sm"
@@ -203,10 +235,8 @@ export const DuplicateFilesDialog = ({
                           className="text-xs gap-1"
                         >
                           <Eye className="w-3 h-3" />
-                          See Comparison
+                          Compare
                         </Button>
-                      </div>
-                      <div className="flex-shrink-0">
                         <Checkbox
                           checked={selectedFiles.has(file.id)}
                           onCheckedChange={() => handleFileToggle(file.id)}
@@ -229,14 +259,17 @@ export const DuplicateFilesDialog = ({
                   {duplicateFiles.filter(d => d.similarity).map((file) => (
                     <div 
                       key={file.id} 
-                      className="flex items-center gap-3 p-3 rounded-lg border bg-orange-50/50 hover:bg-orange-50/70 transition-colors"
+                      className="flex items-start gap-4 p-4 rounded-lg border bg-orange-50/50 hover:bg-orange-50/70 transition-colors"
                     >
-                      <div className="flex-shrink-0">
-                        <FileThumbnail file={file} />
+                      {/* Thumbnails comparison */}
+                      <div className="flex gap-3 flex-shrink-0">
+                        <QueueFileThumbnail file={file.existingFile} label="Existing in Queue" />
+                        <QueueFileThumbnail file={file.newFile} label="New File" />
                       </div>
+                      
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{file.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
+                        <p className="text-sm font-medium truncate mb-1">{file.name}</p>
+                        <div className="flex items-center gap-2">
                           <Badge variant="secondary" className="text-xs">
                             {formatFileSize(file.size)}
                           </Badge>
@@ -248,7 +281,8 @@ export const DuplicateFilesDialog = ({
                           </Badge>
                         </div>
                       </div>
-                      <div className="flex-shrink-0">
+                      
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         <Button
                           variant="outline"
                           size="sm"
@@ -256,10 +290,8 @@ export const DuplicateFilesDialog = ({
                           className="text-xs gap-1"
                         >
                           <Eye className="w-3 h-3" />
-                          See Comparison
+                          Compare
                         </Button>
-                      </div>
-                      <div className="flex-shrink-0">
                         <Checkbox
                           checked={selectedFiles.has(file.id)}
                           onCheckedChange={() => handleFileToggle(file.id)}
