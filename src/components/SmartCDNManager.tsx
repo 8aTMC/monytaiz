@@ -5,8 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useNetworkMonitor } from '@/hooks/useNetworkMonitor';
-import { useBandwidthDetector } from '@/hooks/useBandwidthDetector';
 import { Server, Globe, Zap, AlertTriangle, CheckCircle, RefreshCw, MapPin } from 'lucide-react';
 
 interface CDNEndpoint {
@@ -45,8 +43,6 @@ export const SmartCDNManager: React.FC = () => {
     performanceGain: 0
   });
 
-  const { networkStatus } = useNetworkMonitor();
-  const { stats: bandwidthStats, measurements } = useBandwidthDetector();
 
   // Initialize mock CDN endpoints
   useEffect(() => {
@@ -100,7 +96,7 @@ export const SmartCDNManager: React.FC = () => {
         bandwidth: 6 + Math.random() * 4,
         load: 50 + Math.random() * 25,
         score: 0,
-        status: measurements.length > 0 && measurements[measurements.length - 1].latencyMs > 150 ? 'degraded' : 'active',
+        status: 'active',
         lastTested: new Date()
       }
     ];
@@ -140,20 +136,13 @@ export const SmartCDNManager: React.FC = () => {
     const loadScore = Math.max(0, 15 - (endpoint.load / 100 * 15));
     score += loadScore;
 
-    // Network conditions adjustment
-    if (networkStatus.speed === 'slow' || networkStatus.speed === 'very-slow') {
-      // Prefer endpoints with lower latency when network is slow
-      score += (200 - endpoint.latency) / 10;
-    }
-
-    // Geographic preference (simulated based on user's connection)
-    const userLatency = measurements.length > 0 ? measurements[measurements.length - 1].latencyMs : 100;
-    if (userLatency < 100 && endpoint.latency < 100) {
+    // Simplified geographic preference
+    if (endpoint.latency < 100) {
       score += 10; // Prefer nearby endpoints
     }
 
     return Math.max(0, Math.min(200, score));
-  }, [networkStatus, measurements]);
+  }, []);
 
   // Test endpoint performance
   const testEndpointPerformance = useCallback(async (endpoint: CDNEndpoint): Promise<number> => {

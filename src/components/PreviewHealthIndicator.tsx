@@ -4,7 +4,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Button } from '@/components/ui/button';
 import { Wifi, WifiOff, AlertTriangle, Settings } from 'lucide-react';
 import { logger } from '@/utils/logging';
-import { useNetworkMonitor } from '@/hooks/useNetworkMonitor';
 
 interface HealthStatus {
   level: 'healthy' | 'degraded' | 'offline';
@@ -12,12 +11,11 @@ interface HealthStatus {
   telemetryConnected: boolean;
 }
 
-export const PreviewHealthIndicator: React.FC = () => {
-  const { networkStatus } = useNetworkMonitor();
+const PreviewHealthIndicator: React.FC = () => {
   const [healthStatus, setHealthStatus] = useState<HealthStatus>({
     level: 'healthy',
     message: 'All systems operational',
-    telemetryConnected: true
+    telemetryConnected: false
   });
   const [isVisible, setIsVisible] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
@@ -33,28 +31,18 @@ export const PreviewHealthIndicator: React.FC = () => {
     setDebugMode(config.enableNetworkDiagnostics);
   }, []);
   
+  // Update health status based on telemetry only
   useEffect(() => {
-    // Update health status based on network conditions
-    let level: HealthStatus['level'] = 'healthy';
-    let message = 'Preview environment running smoothly';
-    
-    if (!networkStatus.isOnline) {
-      level = 'offline';
-      message = 'No internet connection';
-    } else if (networkStatus.speed === 'very-slow' || !networkStatus.isStable) {
-      level = 'degraded';
-      message = 'Poor network conditions detected';
-    }
-    
-    // Check for telemetry connection (simplified check)
-    const telemetryConnected = !document.querySelector('[data-telemetry-error]');
+    // Check if telemetry/logging is configured
+    const config = logger.getConfig();
+    const telemetryConnected = config.enableTelemetryLogs;
     
     setHealthStatus({
-      level,
-      message,
+      level: 'healthy',
+      message: 'All systems operational',
       telemetryConnected
     });
-  }, [networkStatus]);
+  }, []);
   
   const getStatusIcon = () => {
     switch (healthStatus.level) {

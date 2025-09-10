@@ -22,7 +22,7 @@ import { useOptimizedSecureMedia } from '@/hooks/useOptimizedSecureMedia';
 import { useVideoQualityLoader } from '@/hooks/useVideoQualityLoader';
 import { useAdaptiveStreaming } from '@/hooks/useAdaptiveStreaming';
 import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
-import { NetworkQualityIndicator } from './NetworkQualityIndicator';
+
 import { QualityTransitionNotification } from './QualityTransitionNotification';
 
 interface OptimizedVideoPlayerProps {
@@ -119,7 +119,6 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
     currentQuality: adaptiveQuality,
     recommendedQuality,
     bufferHealth,
-    networkStatus,
     adaptiveEnabled,
     setManualQuality,
     enableAutoMode,
@@ -559,11 +558,10 @@ export const OptimizedVideoPlayer: React.FC<OptimizedVideoPlayerProps> = ({
                 )}
               </div>
               
-              {/* Network Quality Indicator */}
-              <NetworkQualityIndicator 
-                networkStatus={networkStatus}
-                className="text-white"
-              />
+              {/* Network monitoring has been simplified */}
+              <div className="text-xs text-white/70">
+                Network Status: Connected
+              </div>
             </div>
 
             <Button

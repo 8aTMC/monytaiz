@@ -1,6 +1,6 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { usePersistentMediaCache } from './usePersistentMediaCache';
-import { useNetworkMonitor } from './useNetworkMonitor';
+
 
 interface CacheEntry {
   id: string;
@@ -29,7 +29,6 @@ interface CacheMetrics {
 
 export const usePredictiveCache = (maxCacheSize: number = 50 * 1024 * 1024) => { // 50MB default
   const { getSecureMediaUrl, getCachedMediaUrl, clearCache } = usePersistentMediaCache();
-  const { networkStatus } = useNetworkMonitor();
   
   const cacheEntriesRef = useRef<Map<string, CacheEntry>>(new Map());
   const predictionModelRef = useRef<PredictionModel>({
@@ -147,17 +146,15 @@ export const usePredictiveCache = (maxCacheSize: number = 50 * 1024 * 1024) => {
     const sizeMB = entry.size / (1024 * 1024);
     priority -= sizeMB * 2;
     
-    // Network-aware adjustments
-    if (networkStatus.speed === 'slow' || networkStatus.speed === 'very-slow') {
-      priority += 20; // Keep more items cached on slow networks
-    }
+    // Default priority boost for better retention
+    priority += 10;
     
     // Type-based priority (images > videos > audio for quick access)
     const typePriority = { image: 10, video: 5, audio: 3 };
     priority += typePriority[entry.type] || 0;
     
     return priority;
-  }, [networkStatus]);
+  }, []);
 
   // Intelligent cache eviction
   const evictLeastValuable = useCallback((targetSize: number): string[] => {

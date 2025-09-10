@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useUserBehaviorTracker } from './useUserBehaviorTracker';
 import { usePerformanceAnalytics } from './usePerformanceAnalytics';
-import { useBandwidthDetector } from './useBandwidthDetector';
+
 
 interface PredictiveModel {
   performanceThresholds: {
@@ -62,7 +62,6 @@ export const usePredictiveOptimizer = () => {
 
   const { getBehaviorInsights, behaviorPattern } = useUserBehaviorTracker();
   const { getPerformanceScore, analyticsData } = usePerformanceAnalytics();
-  const { stats: bandwidthStats, measurements } = useBandwidthDetector();
 
   const trainingDataRef = useRef<Array<{
     userBehavior: any;
@@ -230,12 +229,11 @@ export const usePredictiveOptimizer = () => {
       const behaviorInsights = getBehaviorInsights();
       const performanceScore = getPerformanceScore();
       
-      // Add training sample
-      const latency = measurements.length > 0 ? measurements[measurements.length - 1].latencyMs : 100;
+      // Add training sample with default network values
       trainingDataRef.current.push({
         userBehavior: behaviorInsights,
         performanceMetrics: { score: performanceScore },
-        networkConditions: { bandwidth: bandwidthStats.current, latency },
+        networkConditions: { bandwidth: 5, latency: 100 }, // Default values
         timestamp: new Date(),
         outcome
       });
@@ -276,15 +274,14 @@ export const usePredictiveOptimizer = () => {
     } finally {
       setIsTraining(false);
     }
-  }, [analyticsData, getBehaviorInsights, getPerformanceScore, bandwidthStats, measurements]);
+  }, [analyticsData, getBehaviorInsights, getPerformanceScore]);
 
   // Generate insights and recommendations
   const generateInsights = useCallback(() => {
     const behaviorInsights = getBehaviorInsights();
     const userSegmentation = segmentUser(behaviorInsights);
-    const latency = measurements.length > 0 ? measurements[measurements.length - 1].latencyMs : 100;
-    const performancePrediction = predictPerformance({ bandwidth: bandwidthStats.current, latency }, userSegmentation.segment);
-    const recommendations = generateRecommendations(userSegmentation.segment, performancePrediction, { bandwidth: bandwidthStats.current, latency });
+    const performancePrediction = predictPerformance({ bandwidth: 5, latency: 100 }, userSegmentation.segment);
+    const recommendations = generateRecommendations(userSegmentation.segment, performancePrediction, { bandwidth: 5, latency: 100 });
 
     const newInsights: MLInsights = {
       userSegmentation,
@@ -302,7 +299,7 @@ export const usePredictiveOptimizer = () => {
     }));
 
     return newInsights;
-  }, [getBehaviorInsights, segmentUser, predictPerformance, generateRecommendations, bandwidthStats, measurements]);
+  }, [getBehaviorInsights, segmentUser, predictPerformance, generateRecommendations]);
 
   // Auto-generate insights periodically
   useEffect(() => {

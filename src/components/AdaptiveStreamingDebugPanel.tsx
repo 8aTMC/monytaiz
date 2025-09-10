@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { Separator } from './ui/separator';
-import { NetworkQualityIndicator } from './NetworkQualityIndicator';
+
 import { 
   Monitor, 
   Gauge, 
@@ -134,12 +134,8 @@ export const AdaptiveStreamingDebugPanel: React.FC<AdaptiveStreamingDebugPanelPr
             Network Status
           </div>
           
-          <div className="flex items-center justify-between">
-            <NetworkQualityIndicator 
-              networkStatus={networkStatus} 
-              showDetails={true}
-              className="flex-1"
-            />
+          <div className="text-sm text-muted-foreground">
+            Network debugging functionality has been simplified
           </div>
         </div>
 

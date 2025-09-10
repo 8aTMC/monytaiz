@@ -3,7 +3,7 @@ import { useMediaPreloader } from './useMediaPreloader';
 import { useIntersectionPreloader } from './useIntersectionPreloader';
 import { useAdvancedPreloader } from './useAdvancedPreloader';
 import { usePersistentMediaCache } from './usePersistentMediaCache';
-import { useNetworkMonitor } from './useNetworkMonitor';
+
 
 interface MediaItem {
   id: string;
@@ -46,7 +46,6 @@ export const useSmartPreloader = (
   config: Partial<SmartPreloadConfig> = {}
 ) => {
   const fullConfig = { ...DEFAULT_CONFIG, ...config };
-  const { networkStatus } = useNetworkMonitor();
   const { getSecureMediaUrl } = usePersistentMediaCache();
   const { preloadMultiResolution } = useAdvancedPreloader();
   
@@ -107,17 +106,8 @@ export const useSmartPreloader = (
     // Distance-based priority (closer = higher)
     priority += Math.max(0, 100 - index * 2);
     
-    // Network-aware adjustments
-    if (fullConfig.networkAwarePreloading) {
-      const speed = networkStatus.speed;
-      const multiplier = {
-        'fast': 1.5,
-        'medium': 1.0,
-        'slow': 0.7,
-        'very-slow': 0.3
-      }[speed];
-      priority *= multiplier;
-    }
+    // Simple priority without network awareness
+    priority *= 1.0; // Default multiplier
     
     // Behavior-based adjustments
     if (fullConfig.behaviorBasedPreloading && item.viewCount) {
@@ -130,14 +120,14 @@ export const useSmartPreloader = (
       priority += Math.max(0, 30 - daysSinceViewed * 3);
     }
     
-    // File size penalty for large files on slow connections
-    if (item.size && networkStatus.speed === 'slow') {
+    // File size penalty for large files
+    if (item.size) {
       const sizeMB = item.size / (1024 * 1024);
-      priority -= sizeMB * 5;
+      priority -= sizeMB * 2; // Reduced penalty
     }
     
     return Math.max(0, priority);
-  }, [fullConfig, networkStatus, behaviorPattern]);
+  }, [fullConfig, behaviorPattern]);
 
   // Predict next likely items based on sequences
   const predictNextItems = useCallback((currentItemId: string): string[] => {

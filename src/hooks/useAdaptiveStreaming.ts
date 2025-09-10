@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNetworkMonitor, NetworkStatus } from './useNetworkMonitor';
+
 import { QualityLevel } from './useSmartQuality';
 
 interface AdaptiveConfig {
@@ -48,7 +48,6 @@ export const useAdaptiveStreaming = (
   config: Partial<AdaptiveConfig> = {}
 ) => {
   const fullConfig = { ...DEFAULT_CONFIG, ...config };
-  const { networkStatus, measureBandwidth } = useNetworkMonitor();
   
   const [currentQuality, setCurrentQuality] = useState<QualityLevel>('720p');
   const [bufferHealth, setBufferHealth] = useState<BufferHealth>({
@@ -99,9 +98,8 @@ export const useAdaptiveStreaming = (
     }
   }, [videoElement]);
   
-  // Get optimal quality based on network and buffer conditions
+  // Get optimal quality based on buffer conditions
   const getOptimalQuality = useCallback((
-    networkStatus: NetworkStatus,
     bufferHealth: BufferHealth,
     currentQuality: QualityLevel
   ): QualityDecision => {
@@ -118,8 +116,8 @@ export const useAdaptiveStreaming = (
       return QUALITY_BANDWIDTH_MAP[a] - QUALITY_BANDWIDTH_MAP[b];
     });
     
-    const currentBandwidth = networkStatus.quality.downlink || 1;
-    const isStable = networkStatus.isStable;
+    const currentBandwidth = 5; // Default moderate bandwidth assumption
+    const isStable = true; // Default to stable
     const timeSinceLastChange = Date.now() - lastQualityChange.getTime();
     
     // Buffer-based decisions (urgent)
@@ -204,13 +202,13 @@ export const useAdaptiveStreaming = (
   useEffect(() => {
     if (!videoElement || !adaptiveEnabled) return;
     
-    const decision = getOptimalQuality(networkStatus, bufferHealth, currentQuality);
+    const decision = getOptimalQuality(bufferHealth, currentQuality);
     lastDecisionRef.current = decision;
     
     if (decision.shouldSwitch) {
       switchQuality(decision.recommendedQuality, decision.reason);
     }
-  }, [networkStatus, bufferHealth, currentQuality, getOptimalQuality, switchQuality, videoElement, adaptiveEnabled]);
+  }, [adaptiveEnabled, getOptimalQuality, switchQuality, videoElement]);
   
   // Monitor buffer health
   useEffect(() => {
@@ -248,19 +246,17 @@ export const useAdaptiveStreaming = (
   // Get current stats for debugging
   const getStats = useCallback(() => ({
     currentQuality,
-    networkStatus,
     bufferHealth,
     lastDecision: lastDecisionRef.current,
     qualityHistory: qualityHistory.slice(-5),
     adaptiveEnabled,
     timeSinceLastChange: Date.now() - lastQualityChange.getTime()
-  }), [currentQuality, networkStatus, bufferHealth, qualityHistory, adaptiveEnabled, lastQualityChange]);
+  }), [currentQuality, bufferHealth, qualityHistory, adaptiveEnabled, lastQualityChange]);
   
   return {
     currentQuality,
     recommendedQuality: lastDecisionRef.current?.recommendedQuality || currentQuality,
     bufferHealth,
-    networkStatus,
     adaptiveEnabled,
     qualityHistory,
     setManualQuality,

@@ -32,7 +32,6 @@ import NotFound from "./pages/NotFound";
 import GeneralSettings from "./pages/GeneralSettings";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { ConnectionRecovery } from "./components/ConnectionRecovery";
 import PreviewHealthIndicator from "./components/PreviewHealthIndicator";
 import "@/utils/telemetryErrorHandler"; // Initialize telemetry error handling
 
@@ -44,7 +43,6 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
-          <ConnectionRecovery />
           <Toaster />
           <Sonner />
           <PWAInstallPrompt />
