@@ -38,12 +38,10 @@ export const useSimpleMedia = () => {
   const { getSecureMediaUrl } = usePersistentMediaCache();
 
   const fetchMedia = useCallback(async () => {
-    console.log('🎬 useSimpleMedia: Starting media fetch...');
     setLoading(true);
     setError(null);
     
     try {
-      console.log('🔍 useSimpleMedia: Querying simple_media table...');
       const { data, error } = await supabase
         .from('simple_media')
         .select('*')
@@ -51,11 +49,8 @@ export const useSimpleMedia = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ useSimpleMedia: Query error:', error);
         throw error;
       }
-      
-      console.log('✅ useSimpleMedia: Query successful, found', data?.length || 0, 'items');
       
       // Type cast and validate fields
       const validatedMedia = (data || []).map(item => ({
@@ -68,16 +63,6 @@ export const useSimpleMedia = () => {
           ? item.processing_status as 'pending' | 'processing' | 'processed' | 'failed'
           : 'processed' as const
       }));
-      
-      console.log('✅ useSimpleMedia: Validated media items:', validatedMedia.length);
-      console.log('🎯 useSimpleMedia: Sample items:', validatedMedia.slice(0, 3).map(item => ({
-        id: item.id,
-        title: item.title,
-        processing_status: item.processing_status,
-        media_type: item.media_type,
-        processed_path: item.processed_path,
-        original_path: item.original_path
-      })));
       
       setMedia(validatedMedia);
     } catch (err) {
@@ -133,56 +118,30 @@ export const useSimpleMedia = () => {
   }, [getMediaUrl]);
 
   const getFullUrlAsync = useCallback(async (item: SimpleMediaItem) => {
-    console.log('getFullUrlAsync called for item:', {
-      id: item.id,
-      filename: item.original_filename,
-      mime_type: item.mime_type,
-      media_type: item.media_type,
-      processed_path: item.processed_path,
-      original_path: item.original_path
-    });
-    
     // First, try the processed path if available
     if (item.processed_path) {
-      console.log('Trying processed path:', item.processed_path);
       const processedUrl = await getMediaUrl(item.processed_path, false);
       if (processedUrl) {
-        console.log('✅ Successfully loaded processed URL:', processedUrl);
         return processedUrl;
       }
-      console.log('❌ Processed path failed');
     }
     
     // For HEIC files, try the converted WebP path first
     if (item.original_path && /\.(heic|heif)$/i.test(item.original_path)) {
-      console.log('🔄 Processing HEIC file path conversion for:', item.original_path);
-      
       // Try the WebP converted path (replace .heic/.heif with .webp)  
       const webpPath = item.original_path.replace(/\.(heic|heif)$/i, '.webp');
-      console.log('🔍 Trying WebP converted path:', webpPath);
       
       const webpUrl = await getMediaUrl(webpPath, false);
       if (webpUrl) {
-        console.log('✅ Successfully loaded WebP converted URL:', webpUrl);
         return webpUrl;
       }
-      
-      console.log('⚠️ WebP conversion not found, trying original HEIC path');
     }
     
     // Fall back to original path for other files or if WebP conversion failed
-    console.log('🔄 Trying original path:', item.original_path);
     const originalUrl = await getMediaUrl(item.original_path, false);
     if (originalUrl) {
-      console.log('✅ Successfully loaded original URL:', originalUrl);
       return originalUrl;
     }
-    
-    console.error('❌ Failed to load media URL for item:', item.id, 'paths tried:', {
-      processed: item.processed_path,
-      converted: item.original_path && /\.(heic|heif)$/i.test(item.original_path) ? item.original_path.replace(/\.(heic|heif)$/i, '.webp') : null,
-      original: item.original_path
-    });
     
     return null;
   }, [getMediaUrl]);
