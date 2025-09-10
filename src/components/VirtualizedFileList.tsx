@@ -13,7 +13,7 @@ interface VirtualizedFileListProps {
   height?: number;
 }
 
-const ITEM_HEIGHT = 135; // Optimized height for tighter spacing
+const ITEM_HEIGHT = 133; // Optimized height for tighter spacing
 
 interface ListItemProps {
   index: number;
