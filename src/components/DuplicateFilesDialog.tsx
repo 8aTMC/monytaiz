@@ -6,6 +6,7 @@ import { FileText, Image, Video, Music, FileIcon, Eye, Search, AlertTriangle } f
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
 import { FileComparisonDialog } from './FileComparisonDialog';
+import { useOptimizedThumbnail } from '@/hooks/useOptimizedThumbnail';
 
 interface DuplicateFile {
   id: string;
@@ -103,29 +104,21 @@ export const DuplicateFilesDialog = ({
   };
 
   const FileThumbnail = ({ file }: { file: DuplicateFile }) => {
-    const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-    const extension = file.name.split('.').pop()?.toLowerCase() || '';
-    const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(extension);
+    const { thumbnail, isLoading } = useOptimizedThumbnail(file.newFile);
     
-    useEffect(() => {
-      if (isImage && file.newFile) {
-        const url = URL.createObjectURL(file.newFile);
-        setThumbnailUrl(url);
-        
-        return () => {
-          URL.revokeObjectURL(url);
-        };
-      }
-    }, [file.newFile, isImage]);
+    if (isLoading) {
+      return (
+        <div className="w-8 h-8 rounded overflow-hidden bg-muted flex-shrink-0 animate-pulse" />
+      );
+    }
     
-    if (isImage && thumbnailUrl) {
+    if (thumbnail) {
       return (
         <div className="w-8 h-8 rounded overflow-hidden bg-muted flex-shrink-0">
           <img 
-            src={thumbnailUrl} 
+            src={thumbnail} 
             alt={file.name}
             className="w-full h-full object-cover"
-            onError={() => setThumbnailUrl(null)}
           />
         </div>
       );
