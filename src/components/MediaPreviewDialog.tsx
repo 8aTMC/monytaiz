@@ -68,7 +68,8 @@ export const MediaPreviewDialog = ({
     getCurrentUrl, 
     currentQuality,
     loadingQuality,
-    isLoading 
+    isLoading,
+    usingFallback
   } = useProgressiveMediaLoading();
   const { preloadForNavigation } = useIntersectionPreloader(allItems);
   
@@ -117,18 +118,17 @@ export const MediaPreviewDialog = ({
 
   const getStoragePath = (path: string | any): string | null => {
     if (typeof path === 'string' && path.trim()) {
-      // Database paths are like "processed/uuid.webp", edge function expects "content/processed/uuid.webp"
-      const cleanPath = path.startsWith('content/') ? path : `content/${path}`;
-      console.log('Storage path processed:', path, '->', cleanPath);
+      // Remove content/ prefix if present - edge function expects clean paths
+      const cleanPath = path.replace(/^content\//, '');
+      console.log('📁 Storage path processed:', path, '->', cleanPath);
       return cleanPath;
     }
     if (typeof path === 'object' && path?.value && typeof path.value === 'string') {
-      const pathStr = path.value;
-      const cleanPath = pathStr.startsWith('content/') ? pathStr : `content/${pathStr}`;
-      console.log('Storage path processed (object):', pathStr, '->', cleanPath);
-      return cleanPath;
+      const pathStr = path.value.replace(/^content\//, '');
+      console.log('📁 Storage path processed (object):', path.value, '->', pathStr);
+      return pathStr;
     }
-    console.warn('Invalid storage path:', path);
+    console.warn('❌ Invalid storage path:', path);
     return null;
   };
 
@@ -160,10 +160,10 @@ export const MediaPreviewDialog = ({
     if (!open || !item) return;
     
     const storagePath = getItemStoragePath(item);
-    console.log('Loading media for item:', item.id, 'storagePath:', storagePath);
+    console.log('🎬 Loading media for item:', item.id, 'storagePath:', storagePath);
     
     if (!storagePath) {
-      console.error('No storage path available for item:', item.id);
+      console.error('❌ No storage path available for item:', item.id);
       return;
     }
 
@@ -171,12 +171,12 @@ export const MediaPreviewDialog = ({
     
     const loadMedia = async () => {
       try {
-        console.log('Starting progressive media load for path:', storagePath);
+        console.log('🚀 Starting progressive media load for path:', storagePath);
         if (isMounted) {
           await loadProgressiveMedia(storagePath, item.tiny_placeholder);
         }
       } catch (error) {
-        console.error('Failed to load media for item:', item.id, 'path:', storagePath, 'error:', error);
+        console.error('❌ Failed to load media for item:', item.id, 'path:', storagePath, 'error:', error);
       }
     };
 
@@ -344,6 +344,7 @@ export const MediaPreviewDialog = ({
                               currentQuality === 'low' ? 'bg-orange-400' : 'bg-red-400'
                             }`} />
                             {currentQuality.toUpperCase()}
+                            {usingFallback && <span className="text-xs opacity-75">(DIRECT)</span>}
                             {loadingQuality && (
                               <div className="animate-spin w-3 h-3 border border-white/30 border-t-white rounded-full ml-1" />
                             )}

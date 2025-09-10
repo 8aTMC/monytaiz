@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useDirectMedia } from './useDirectMedia';
 
 interface ProgressiveMedia {
   tiny?: string;
@@ -45,15 +46,20 @@ export const useProgressiveMediaLoading = () => {
   const [currentQuality, setCurrentQuality] = useState<'tiny' | 'low' | 'medium' | 'high'>('tiny');
   const [loadingQuality, setLoadingQuality] = useState<string | null>(null);
   const [urls, setUrls] = useState<ProgressiveMedia>({});
+  const [fallbackUrls, setFallbackUrls] = useState<ProgressiveMedia>({});
+  const [usingFallback, setUsingFallback] = useState(false);
   const loadingRef = useRef<{ [key: string]: Promise<string | null> }>({});
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { getDirectUrl } = useDirectMedia();
 
   const getSecureUrl = async (path: string, quality: number): Promise<string | null> => {
     try {
+      console.log('🔗 Attempting to get secure URL for path:', path, 'quality:', quality);
       const params = new URLSearchParams({ path, quality: quality.toString() });
       const session = await supabase.auth.getSession();
       
       if (!session.data.session?.access_token) {
+        console.error('❌ No auth session available');
         throw new Error('No auth session');
       }
 
@@ -67,12 +73,25 @@ export const useProgressiveMediaLoading = () => {
         }
       );
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      console.log('📡 Edge function response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Edge function error:', response.status, errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
       
       const result = await response.json();
-      return result.error ? null : result.url;
+      console.log('✅ Edge function result:', result);
+      
+      if (result.error) {
+        console.error('❌ Edge function returned error:', result.error);
+        return null;
+      }
+      
+      return result.url;
     } catch (error) {
-      console.error('Failed to get secure URL:', error);
+      console.error('❌ Failed to get secure URL:', error);
       return null;
     }
   };
@@ -81,14 +100,31 @@ export const useProgressiveMediaLoading = () => {
     storagePath: string,
     tinyPlaceholder?: string
   ) => {
-    if (!storagePath) return;
+    if (!storagePath) {
+      console.error('❌ No storage path provided');
+      return;
+    }
 
+    console.log('🚀 Starting progressive media load for path:', storagePath);
     const cacheKey = storagePath;
     
     // Reset state
     setUrls({});
+    setFallbackUrls({});
     setCurrentQuality('tiny');
     setLoadingQuality(null);
+    setUsingFallback(false);
+
+    // Generate fallback direct URLs immediately
+    const cleanPath = storagePath.replace(/^content\//, '');
+    const fallbacks: ProgressiveMedia = {
+      tiny: getDirectUrl(cleanPath, { quality: 30 }),
+      low: getDirectUrl(cleanPath, { quality: 45 }),  
+      medium: getDirectUrl(cleanPath, { quality: 65 }),
+      high: getDirectUrl(cleanPath, { quality: 85 })
+    };
+    setFallbackUrls(fallbacks);
+    console.log('🔄 Generated fallback URLs:', fallbacks);
 
     // Check cache first
     const cached = memoryCache[cacheKey];
@@ -152,14 +188,29 @@ export const useProgressiveMediaLoading = () => {
       return null;
     };
 
-    // Load low quality immediately (should be very fast)
-    loadQuality('low', 45);
-    
-    // Load medium quality after short delay
-    setTimeout(() => loadQuality('medium', 65), 200);
-    
-    // Load high quality after longer delay
-    setTimeout(() => loadQuality('high', 85), 800);
+    // Try progressive loading, fallback to direct URLs if it fails
+    try {
+      // Load low quality immediately (should be very fast)
+      const lowUrl = await loadQuality('low', 45);
+      if (!lowUrl) {
+        console.log('🔄 Progressive loading failed, switching to fallback URLs');
+        setUsingFallback(true);
+        setUrls(fallbacks);
+        setCurrentQuality('low');
+      } else {
+        // Load medium quality after short delay
+        setTimeout(() => loadQuality('medium', 65), 200);
+        
+        // Load high quality after longer delay
+        setTimeout(() => loadQuality('high', 85), 800);
+      }
+    } catch (error) {
+      console.error('❌ Progressive loading completely failed:', error);
+      console.log('🔄 Using fallback URLs');
+      setUsingFallback(true);
+      setUrls(fallbacks);
+      setCurrentQuality('low');
+    }
     
   }, []);
 
@@ -187,14 +238,27 @@ export const useProgressiveMediaLoading = () => {
   }, []);
 
   const getCurrentUrl = useCallback(() => {
+    const activeUrls = usingFallback ? fallbackUrls : urls;
+    let url: string | undefined;
+    
     switch (currentQuality) {
-      case 'high': return urls.high || urls.medium || urls.low || urls.tiny;
-      case 'medium': return urls.medium || urls.low || urls.tiny;
-      case 'low': return urls.low || urls.tiny;
-      case 'tiny': return urls.tiny;
-      default: return urls.tiny;
+      case 'high': url = activeUrls.high || activeUrls.medium || activeUrls.low || activeUrls.tiny; break;
+      case 'medium': url = activeUrls.medium || activeUrls.low || activeUrls.tiny; break; 
+      case 'low': url = activeUrls.low || activeUrls.tiny; break;
+      case 'tiny': url = activeUrls.tiny; break;
+      default: url = activeUrls.tiny; break;
     }
-  }, [currentQuality, urls]);
+    
+    // Additional fallback if progressive failed and we don't have fallback URLs
+    if (!url && !usingFallback && fallbackUrls.low) {
+      console.log('🔄 No progressive URL available, using fallback');
+      setUsingFallback(true);
+      url = fallbackUrls.low;
+    }
+    
+    console.log('🎯 getCurrentUrl returning:', url, 'quality:', currentQuality, 'usingFallback:', usingFallback);
+    return url || null;
+  }, [currentQuality, urls, fallbackUrls, usingFallback]);
 
   return {
     loadProgressiveMedia,
@@ -202,6 +266,7 @@ export const useProgressiveMediaLoading = () => {
     getCurrentUrl,
     currentQuality,
     loadingQuality,
-    isLoading: loadingQuality !== null
+    isLoading: loadingQuality !== null,
+    usingFallback
   };
 };
