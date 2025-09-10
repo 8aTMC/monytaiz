@@ -307,58 +307,21 @@ export const FilePreviewDialog = ({
     }
   };
 
-  // Determine container size based on video aspect ratio
-  const getContainerDimensions = () => {
-    if (fileType === 'video' && videoAspectRatio) {
-      const [width, height] = videoAspectRatio.split('/').map(Number);
-      const aspectValue = width / height;
-      
-      // Calculate available space based on modal size minus header and minimal padding
-      const headerHeight = 100; // Approximate header height
-      const modalMaxHeight = window.innerHeight * 0.95;
-      const availableHeight = modalMaxHeight - headerHeight - 4; // 4px for minimal spacing
-      
-      // For vertical videos (aspect < 1), maximize available height
-      if (aspectValue < 1) {
-        const maxWidth = Math.min(window.innerWidth * 0.6, 700); // More width for vertical videos
-        const calculatedHeight = maxWidth / aspectValue;
-        const finalHeight = Math.min(calculatedHeight, availableHeight);
-        const finalWidth = finalHeight * aspectValue;
-        
-        return {
-          width: `${Math.min(finalWidth, maxWidth)}px`,
-          height: `${finalHeight}px`,
-          aspectRatio: videoAspectRatio
-        };
-      } 
-      // For horizontal videos (aspect >= 1), use most of available space
-      else {
-        const maxWidth = Math.min(window.innerWidth * 0.9, 1300); // Use more width
-        const calculatedHeight = maxWidth / aspectValue;
-        const finalHeight = Math.min(calculatedHeight, availableHeight);
-        const finalWidth = finalHeight * aspectValue;
-        
-        return {
-          width: `${finalWidth}px`,
-          height: `${finalHeight}px`,
-          aspectRatio: videoAspectRatio
-        };
-      }
-    }
-    
-    // Default for non-video content - use available space efficiently
-    const headerHeight = 120;
-    const modalMaxHeight = window.innerHeight * 0.95;
-    const availableHeight = modalMaxHeight - headerHeight - 4;
-    
-    return {
-      width: `${Math.min(window.innerWidth * 0.8, 1200)}px`,
-      height: `${Math.min(availableHeight, 800)}px`, 
-      aspectRatio: '16/9'
-    };
+  // Standard dialog dimensions for consistency
+  const standardDialogStyle = {
+    width: 'min(1000px, 90vw)',
+    height: 'min(700px, 85vh)',
+    minWidth: '600px',
+    minHeight: '500px'
   };
 
-  const containerDimensions = getContainerDimensions();
+  // Standard media container dimensions (dialog minus header and metadata space)
+  const mediaContainerStyle = {
+    width: '100%',
+    height: 'calc(100% - 180px)', // Account for header and metadata
+    maxWidth: '100%',
+    maxHeight: '100%'
+  };
 
   
 
@@ -417,13 +380,7 @@ export const FilePreviewDialog = ({
           {/* Dialog content */}
           <div 
             className="media-dialog border bg-background shadow-lg rounded-lg overflow-hidden flex flex-col relative"
-            style={{
-              width: 'fit-content',
-              height: 'fit-content',
-              maxWidth: '90vw',
-              maxHeight: '95vh',
-              minWidth: '400px'
-            }}
+            style={standardDialogStyle}
             onClick={(e) => e.stopPropagation()}
           >
 
@@ -542,46 +499,41 @@ export const FilePreviewDialog = ({
             {/* Content */}
             <div className="flex-1 overflow-hidden relative flex items-center justify-center">
               {isLoadingUrl || isNavigating ? (
-                <div className="flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl" style={{
-                  width: containerDimensions.width,
-                  height: containerDimensions.height,
-                }}>
+                 <div className="flex items-center justify-center text-muted-foreground bg-muted/20 rounded-xl" style={mediaContainerStyle}>
                   <div className="text-center">
                     <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
                     <p>{isNavigating ? 'Loading next file...' : 'Loading media...'}</p>
                   </div>
                 </div>
               ) : (
-                <div 
-                  key={`${displayFile.name}-${internalCurrentIndex}`}
-                  className="bg-muted/20 rounded-xl overflow-hidden relative"
-                  style={{
-                    width: containerDimensions.width,
-                    height: containerDimensions.height,
-                    aspectRatio: containerDimensions.aspectRatio,
-                    pointerEvents: 'auto'
-                  }}
-                >
+                 <div 
+                   key={`${displayFile.name}-${internalCurrentIndex}`}
+                   className="bg-muted/20 rounded-xl overflow-hidden relative w-full h-full flex items-center justify-center"
+                   style={mediaContainerStyle}
+                 >
 
-                  {fileType === 'image' && fileUrl && (
-                    <div
-                      className="w-full h-full rounded-xl bg-contain bg-no-repeat bg-center"
-                      style={{
-                        backgroundImage: `url("${fileUrl}")`,
-                        backgroundSize: 'contain'
-                      }}
-                    />
-                  )}
-                  
-                  {fileType === 'video' && fileUrl && (
-                    <EnhancedVideoPlayer
-                      key={`video-${displayFile.name}-${internalCurrentIndex}-${fileUrl.substring(0, 10)}`}
-                      src={fileUrl}
-                      aspectRatio={containerDimensions.aspectRatio}
-                      className="w-full h-full rounded-xl"
-                      onError={(error) => console.error('Video playback error:', error)}
-                    />
-                  )}
+                   {fileType === 'image' && fileUrl && (
+                     <img
+                       src={fileUrl}
+                       alt={displayFile.name}
+                       className="w-full h-full object-contain rounded"
+                       onLoad={(e) => {
+                         console.log('Image loaded:', displayFile.name);
+                       }}
+                       onError={(e) => {
+                         console.error('Image failed to load:', displayFile.name);
+                       }}
+                     />
+                   )}
+                   
+                   {fileType === 'video' && fileUrl && (
+                     <EnhancedVideoPlayer
+                       key={`video-${displayFile.name}-${internalCurrentIndex}-${fileUrl.substring(0, 10)}`}
+                       src={fileUrl}
+                       className="w-full h-full object-contain rounded"
+                       onError={(error) => console.error('Video playback error:', error)}
+                     />
+                   )}
                   
                   {fileType === 'audio' && fileUrl && (
                     <div className="flex items-center justify-center w-full h-full">
