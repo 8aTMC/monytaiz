@@ -157,7 +157,7 @@ export const useFileUpload = () => {
     }
   }, []);
 
-  const addFiles = useCallback((files: File[], showDuplicateDialog?: (duplicates: { id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]) => void, showUnsupportedDialog?: (unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]) => void) => {
+  const addFiles = useCallback((files: File[], showDuplicateDialog?: (duplicates: { id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]) => void, showUnsupportedDialog?: (unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]) => void, suppressDialogs?: boolean) => {
     if (uploadQueue.length + files.length > 100) {
       toast({
         title: "Too many files",
@@ -277,45 +277,61 @@ export const useFileUpload = () => {
       }, 0);
     }
 
-    // Defer all dialogs to prevent interrupting queue updates
-    setTimeout(() => {
-      // Show dialog for duplicate files if callback provided
-      if (duplicateFiles.length > 0 && showDuplicateDialog) {
-        showDuplicateDialog(duplicateFiles.map(df => ({
-          id: `${df.name}-${df.size}-${Date.now()}`,
-          name: df.name,
-          size: df.size,
-          type: df.type,
-          existingFile: df.existingFile,
-          newFile: df.newFile
-        })));
-      }
+    // Defer all dialogs to prevent interrupting queue updates (unless suppressed)
+    if (!suppressDialogs) {
+      setTimeout(() => {
+        // Show dialog for duplicate files if callback provided
+        if (duplicateFiles.length > 0 && showDuplicateDialog) {
+          showDuplicateDialog(duplicateFiles.map(df => ({
+            id: `${df.name}-${df.size}-${Date.now()}`,
+            name: df.name,
+            size: df.size,
+            type: df.type,
+            existingFile: df.existingFile,
+            newFile: df.newFile
+          })));
+        }
 
-      // Show dialog for unsupported files if callback provided
-      if (unsupportedFiles.length > 0 && showUnsupportedDialog) {
-        console.log(`Showing unsupported files dialog for ${unsupportedFiles.length} files`);
-        showUnsupportedDialog(unsupportedFiles);
-      }
+        // Show dialog for unsupported files if callback provided
+        if (unsupportedFiles.length > 0 && showUnsupportedDialog) {
+          console.log(`Showing unsupported files dialog for ${unsupportedFiles.length} files`);
+          showUnsupportedDialog(unsupportedFiles);
+        }
 
-      // Show error messages for other rejected files
-      if (errors.length > 0) {
-        toast({
-          title: "Some files were rejected",
-          description: errors.slice(0, 3).join(', ') + (errors.length > 3 ? '...' : ''),
-          variant: "destructive",
-        });
-      }
+        // Show error messages for other rejected files
+        if (errors.length > 0) {
+          toast({
+            title: "Some files were rejected",
+            description: errors.slice(0, 3).join(', ') + (errors.length > 3 ? '...' : ''),
+            variant: "destructive",
+          });
+        }
 
-      // Show warning if upload limit was reached
-      if (filesAdded < totalFiles - errors.length - duplicateFiles.length) {
-        const skippedCount = totalFiles - errors.length - filesAdded - duplicateFiles.length;
-        toast({
-          title: "Upload size limit reached",
-          description: `Only ${filesAdded} of ${totalFiles} files have been set for upload due to the maximum upload size (10GB) being reached. ${skippedCount} files were excluded.`,
-          variant: "destructive",
-        });
-      }
-    }, 0);
+        // Show warning if upload limit was reached
+        if (filesAdded < totalFiles - errors.length - duplicateFiles.length) {
+          const skippedCount = totalFiles - errors.length - filesAdded - duplicateFiles.length;
+          toast({
+            title: "Upload size limit reached",
+            description: `Only ${filesAdded} of ${totalFiles} files have been set for upload due to the maximum upload size (10GB) being reached. ${skippedCount} files were excluded.`,
+            variant: "destructive",
+          });
+        }
+      }, 0);
+    }
+
+    // Return results for manual handling when dialogs are suppressed
+    return {
+      duplicateFiles: duplicateFiles.map(df => ({
+        id: `${df.name}-${df.size}-${Date.now()}`,
+        name: df.name,
+        size: df.size,
+        type: df.type,
+        existingFile: df.existingFile,
+        newFile: df.newFile
+      })),
+      unsupportedFiles,
+      errors
+    };
   }, [uploadQueue, validateFile, toast]);
 
   const removeFile = useCallback((id: string) => {

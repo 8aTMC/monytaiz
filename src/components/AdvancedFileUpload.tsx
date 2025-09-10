@@ -101,7 +101,7 @@ export const AdvancedFileUpload = () => {
            file.type === 'image/heif';
   }, []);
 
-  // Process files and handle validation using legacy stacked dialogs
+  // Process files and handle validation using proper dialog sequencing
   const processFiles = useCallback(async (files: File[]) => {
     if (isProcessingFiles || isCheckingDuplicates) return; // Prevent multiple processing
     
@@ -109,8 +109,8 @@ export const AdvancedFileUpload = () => {
     setIsCheckingDuplicates(true);
     
     try {
-      // First add files to check formats and basic validation
-      addFiles(files, showDuplicateDialog, showUnsupportedDialog);
+      // Add files with dialogs suppressed to get validation results
+      const validationResults = addFiles(files, showDuplicateDialog, showUnsupportedDialog, true);
       
       // Wait a moment for files to be added to queue
       await new Promise(resolve => setTimeout(resolve, 50));
@@ -146,22 +146,31 @@ export const AdvancedFileUpload = () => {
         }))
       );
       
-      if (currentQueue.length > 0) {
-        const duplicates = await checkAllDuplicates(currentQueue);
-        if (duplicates.length > 0) {
-          setAllDuplicates(duplicates);
-          setPreUploadDuplicateDialogOpen(true);
+      // Check for database duplicates
+      const databaseDuplicates = currentQueue.length > 0 ? await checkAllDuplicates(currentQueue) : [];
+      
+      // Clear loading state before showing any dialogs
+      setIsCheckingDuplicates(false);
+      setIsProcessingFiles(false);
+      
+      // Now show all dialogs in proper sequence: Database → Queue → Unsupported → HEIC
+      if (databaseDuplicates.length > 0) {
+        setAllDuplicates(databaseDuplicates);
+        setPreUploadDuplicateDialogOpen(true);
+      } else if (validationResults?.duplicateFiles?.length > 0) {
+        showDuplicateDialog(validationResults.duplicateFiles);
+      } else if (validationResults?.unsupportedFiles?.length > 0) {
+        showUnsupportedDialog(validationResults.unsupportedFiles);
+      } else {
+        // Check for HEIC files as final step
+        const heicFileNames = files.filter(isHeicFile).map(f => f.name);
+        if (heicFileNames.length > 0) {
+          showHeicWarning(heicFileNames);
         }
       }
       
-      // Check for HEIC files
-      const heicFileNames = files.filter(isHeicFile).map(f => f.name);
-      if (heicFileNames.length > 0) {
-        showHeicWarning(heicFileNames);
-      }
     } catch (error) {
       console.error('Error during file processing:', error);
-    } finally {
       setIsCheckingDuplicates(false);
       setIsProcessingFiles(false);
     }
@@ -316,17 +325,22 @@ export const AdvancedFileUpload = () => {
     startUpload(true); // Skip duplicate check since we already did it during file processing
   };
 
-  // Handle purging selected duplicates from queue
+  // Handle purging selected duplicates from queue and continue with next dialogs
   const handlePurgeSelected = (duplicateIds: string[]) => {
     duplicateIds.forEach(id => removeFile(id));
     setPreUploadDuplicateDialogOpen(false);
+    
+    // Continue with the next dialog in sequence after database duplicates are handled
+    const currentFiles = Array.from(new Set([...uploadQueue.map(item => item.file), ...allDuplicates.map(d => d.queueFile.file)]));
+    showNextDialogInSequence(currentFiles);
+    
     setAllDuplicates([]);
     
     // Start upload with remaining files
     setTimeout(() => startUpload(true), 100);
   };
 
-  // Handle keeping both versions (upload with duplicate tags)
+  // Handle keeping both versions (upload with duplicate tags) and continue with next dialogs
   const handleKeepBoth = () => {
     // Add duplicate tags to queue files
     allDuplicates.forEach((duplicate, index) => {
@@ -343,17 +357,45 @@ export const AdvancedFileUpload = () => {
     });
     
     setPreUploadDuplicateDialogOpen(false);
+    
+    // Continue with the next dialog in sequence after database duplicates are handled
+    const currentFiles = Array.from(new Set([...uploadQueue.map(item => item.file), ...allDuplicates.map(d => d.queueFile.file)]));
+    showNextDialogInSequence(currentFiles);
+    
     setAllDuplicates([]);
     
     // Start upload with duplicate tags
     setTimeout(() => startUpload(true), 100);
   };
 
-  // Handle canceling upload
+  // Handle canceling upload and continue with next dialogs
   const handleCancelUpload = () => {
     setPreUploadDuplicateDialogOpen(false);
+    
+    // Continue with the next dialog in sequence after database duplicates are handled
+    const currentFiles = Array.from(new Set([...uploadQueue.map(item => item.file), ...allDuplicates.map(d => d.queueFile.file)]));
+    showNextDialogInSequence(currentFiles);
+    
     setAllDuplicates([]);
   };
+
+  // Show next dialog in the sequence after database duplicates
+  const showNextDialogInSequence = useCallback((files: File[]) => {
+    // Get validation results for sequencing
+    const validationResults = addFiles(files, showDuplicateDialog, showUnsupportedDialog, true);
+    
+    if (validationResults?.duplicateFiles?.length > 0) {
+      showDuplicateDialog(validationResults.duplicateFiles);
+    } else if (validationResults?.unsupportedFiles?.length > 0) {
+      showUnsupportedDialog(validationResults.unsupportedFiles);
+    } else {
+      // Check for HEIC files as final step
+      const heicFileNames = files.filter(isHeicFile).map(f => f.name);
+      if (heicFileNames.length > 0) {
+        showHeicWarning(heicFileNames);
+      }
+    }
+  }, [addFiles, showDuplicateDialog, showUnsupportedDialog, showHeicWarning, isHeicFile]);
 
   // Effect to capture viewport element when ScrollArea mounts
   useLayoutEffect(() => {
