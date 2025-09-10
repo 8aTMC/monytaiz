@@ -238,13 +238,66 @@ export const MediaPreviewDialog = ({
   const typeValue = getItemType(item);
   const itemSize = getItemSize(item);
 
-  // Dynamic sizing based on sidebar state
-  const getModalSize = () => {
-    if (sidebar.isCollapsed) {
-      return "max-w-5xl"; // Larger when sidebar is collapsed
+  // Calculate optimal container dimensions based on media type and aspect ratio
+  const getContainerDimensions = () => {
+    const typeValue = getItemType(item);
+    
+    if (typeValue === 'video' && item.width && item.height) {
+      const aspectValue = item.width / item.height;
+      
+      // Calculate available space based on modal size minus header and minimal padding
+      const headerHeight = 120; // Header + metadata bar height
+      const modalMaxHeight = window.innerHeight * 0.95;
+      const availableHeight = modalMaxHeight - headerHeight - 40; // Extra padding for controls
+      
+      // For vertical videos (aspect < 1), maximize available height
+      if (aspectValue < 1) {
+        const maxWidth = Math.min(window.innerWidth * 0.7, 800); // More width for vertical videos
+        const calculatedHeight = maxWidth / aspectValue;
+        const finalHeight = Math.min(calculatedHeight, availableHeight);
+        const finalWidth = finalHeight * aspectValue;
+        
+        return {
+          width: `${Math.min(finalWidth, maxWidth)}px`,
+          height: 'fit-content',
+          maxWidth: `${Math.min(finalWidth, maxWidth)}px`,
+          maxHeight: `${finalHeight + headerHeight}px`
+        };
+      } 
+      // For horizontal videos (aspect >= 1), use most of available space
+      else {
+        const maxWidth = Math.min(window.innerWidth * 0.9, sidebar.isCollapsed ? 1400 : 1200);
+        const calculatedHeight = maxWidth / aspectValue;
+        const finalHeight = Math.min(calculatedHeight, availableHeight);
+        const finalWidth = finalHeight * aspectValue;
+        
+        return {
+          width: `${finalWidth}px`,
+          height: 'fit-content', 
+          maxWidth: `${finalWidth}px`,
+          maxHeight: `${finalHeight + headerHeight}px`
+        };
+      }
     }
-    return "max-w-3xl"; // Smaller when sidebar is expanded
+    
+    // Default sizing for non-video content based on sidebar state
+    if (sidebar.isCollapsed) {
+      return {
+        width: 'fit-content',
+        height: 'fit-content',
+        maxWidth: '80vw',
+        maxHeight: '90vh'
+      };
+    }
+    return {
+      width: 'fit-content', 
+      height: 'fit-content',
+      maxWidth: '70vw',
+      maxHeight: '90vh'
+    };
   };
+
+  const containerDimensions = getContainerDimensions();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -256,7 +309,8 @@ export const MediaPreviewDialog = ({
         />
         <div 
           ref={modalRef}
-          className={`fixed left-[50%] top-[50%] z-[110] grid w-full ${getModalSize()} max-h-[90vh] translate-x-[-50%] translate-y-[-50%] gap-2 border-0 bg-background/95 backdrop-blur-sm p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg ${needsScroll ? 'overflow-y-auto' : 'overflow-hidden'}`}
+          className={`fixed left-[50%] top-[50%] z-[110] grid translate-x-[-50%] translate-y-[-50%] gap-2 border-0 bg-background/95 backdrop-blur-sm p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg ${needsScroll ? 'overflow-y-auto' : 'overflow-hidden'}`}
+          style={containerDimensions}
         >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -359,7 +413,7 @@ export const MediaPreviewDialog = ({
                     <EnhancedVideoPlayer
                       src={getCurrentUrl()}
                       aspectRatio={item.width && item.height ? `${item.width}/${item.height}` : '16/9'}
-                      className="max-h-[85vh]"
+                      className="w-full h-auto"
                       onError={(e) => {
                         console.error('Failed to load secure video:', e);
                       }}
