@@ -38,17 +38,24 @@ export const useSimpleMedia = () => {
   const { getSecureMediaUrl } = usePersistentMediaCache();
 
   const fetchMedia = useCallback(async () => {
+    console.log('🎬 useSimpleMedia: Starting media fetch...');
     setLoading(true);
     setError(null);
     
     try {
+      console.log('🔍 useSimpleMedia: Querying simple_media table...');
       const { data, error } = await supabase
         .from('simple_media')
         .select('*')
         .or('processing_status.eq.processed,and(processing_status.eq.pending,created_at.lt.' + new Date(Date.now() - 5 * 60 * 1000).toISOString() + ')')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ useSimpleMedia: Query error:', error);
+        throw error;
+      }
+      
+      console.log('✅ useSimpleMedia: Query successful, found', data?.length || 0, 'items');
       
       // Type cast and validate fields
       const validatedMedia = (data || []).map(item => ({
@@ -61,6 +68,16 @@ export const useSimpleMedia = () => {
           ? item.processing_status as 'pending' | 'processing' | 'processed' | 'failed'
           : 'processed' as const
       }));
+      
+      console.log('✅ useSimpleMedia: Validated media items:', validatedMedia.length);
+      console.log('🎯 useSimpleMedia: Sample items:', validatedMedia.slice(0, 3).map(item => ({
+        id: item.id,
+        title: item.title,
+        processing_status: item.processing_status,
+        media_type: item.media_type,
+        processed_path: item.processed_path,
+        original_path: item.original_path
+      })));
       
       setMedia(validatedMedia);
     } catch (err) {

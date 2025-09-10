@@ -74,11 +74,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     initializeAuth();
 
-    // Loading timeout failsafe
+    // Loading timeout failsafe - increased to 10 seconds to prevent premature timeout
     const timeout = setTimeout(() => {
       console.warn('⚠️ Auth loading timeout - forcing completion');
       setLoading(false);
-    }, 5000);
+    }, 10000);
 
     return () => {
       clearTimeout(timeout);

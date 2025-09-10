@@ -84,8 +84,8 @@ export const useLibraryData = ({
           .from('simple_media')
           .select('id, original_path, processed_path, thumbnail_path, mime_type, media_type, original_size_bytes, title, description, tags, mentions, suggested_price_cents, revenue_generated_cents, creator_id, created_at, updated_at, width, height, processing_status')
           .eq('processing_status', 'processed')
-            .order('created_at', { ascending: false })
-            .abortSignal(abortControllerRef.current.signal)
+          .order('created_at', { ascending: false })
+          .abortSignal(abortControllerRef.current.signal)
         ]);
 
         if (mediaResults.data) {
@@ -121,6 +121,7 @@ export const useLibraryData = ({
         }
 
         if (simpleMediaResults.data) {
+          console.log('✅ Simple media results found:', simpleMediaResults.data.length, 'items');
           const convertedSimpleMedia = simpleMediaResults.data.map(item => ({
             id: item.id,
             title: item.title || 'Untitled',
@@ -146,6 +147,11 @@ export const useLibraryData = ({
           }));
 
           combinedData = [...combinedData, ...convertedSimpleMedia];
+          console.log('✅ Combined data now has:', combinedData.length, 'items');
+        } else if (simpleMediaResults.error) {
+          console.error('❌ Simple media query error:', simpleMediaResults.error);
+        } else {
+          console.log('⚠️ No simple media results found');
         }
       } else if (category === 'messages') {
         const { data: mediaResults } = await supabase
