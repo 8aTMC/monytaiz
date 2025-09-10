@@ -167,109 +167,111 @@ export const DuplicateFilesDialog = ({
             </Button>
           </div>
           
-          <ScrollArea className="max-h-[400px] pr-4">
-            {/* Exact Duplicates */}
-            {duplicateFiles.filter(d => !d.similarity).length > 0 && (
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-destructive" />
-                  Exact Duplicates ({duplicateFiles.filter(d => !d.similarity).length})
-                </h4>
-                <div className="space-y-2">
-                  {duplicateFiles.filter(d => !d.similarity).map((file) => (
-                    <div 
-                      key={file.id} 
-                      className="flex items-center gap-3 p-3 rounded-lg border bg-muted/20 hover:bg-muted/30 transition-colors"
-                    >
-                      <div className="flex-shrink-0">
-                        <FileThumbnail file={file} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{file.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="secondary" className="text-xs">
-                            {formatFileSize(file.size)}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {file.type}
-                          </Badge>
+          <ScrollArea className="h-[400px] w-full">
+            <div className="pr-4 space-y-6">
+              {/* Exact Duplicates */}
+              {duplicateFiles.filter(d => !d.similarity).length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                    Exact Duplicates ({duplicateFiles.filter(d => !d.similarity).length})
+                  </h4>
+                  <div className="space-y-2">
+                    {duplicateFiles.filter(d => !d.similarity).map((file) => (
+                      <div 
+                        key={file.id} 
+                        className="flex items-center gap-3 p-3 rounded-lg border bg-muted/20 hover:bg-muted/30 transition-colors"
+                      >
+                        <div className="flex-shrink-0">
+                          <FileThumbnail file={file} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{file.name}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="secondary" className="text-xs">
+                              {formatFileSize(file.size)}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {file.type}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => handleComparisonClick(file, e)}
+                            className="text-xs gap-1"
+                          >
+                            <Eye className="w-3 h-3" />
+                            See Comparison
+                          </Button>
+                        </div>
+                        <div className="flex-shrink-0">
+                          <Checkbox
+                            checked={selectedFiles.has(file.id)}
+                            onCheckedChange={() => handleFileToggle(file.id)}
+                          />
                         </div>
                       </div>
-                      <div className="flex-shrink-0">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => handleComparisonClick(file, e)}
-                          className="text-xs gap-1"
-                        >
-                          <Eye className="w-3 h-3" />
-                          See Comparison
-                        </Button>
-                      </div>
-                      <div className="flex-shrink-0">
-                        <Checkbox
-                          checked={selectedFiles.has(file.id)}
-                          onCheckedChange={() => handleFileToggle(file.id)}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Similar Files */}          
-            {duplicateFiles.filter(d => d.similarity).length > 0 && (
-              <div>
-                <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                  <Search className="h-4 w-4 text-orange-500" />
-                  Similar Files ({duplicateFiles.filter(d => d.similarity).length})
-                </h4>
-                <div className="space-y-2">
-                  {duplicateFiles.filter(d => d.similarity).map((file) => (
-                    <div 
-                      key={file.id} 
-                      className="flex items-center gap-3 p-3 rounded-lg border bg-orange-50/50 hover:bg-orange-50/70 transition-colors"
-                    >
-                      <div className="flex-shrink-0">
-                        <FileThumbnail file={file} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{file.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="secondary" className="text-xs">
-                            {formatFileSize(file.size)}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {file.type}
-                          </Badge>
-                          <Badge className="text-xs bg-orange-100 text-orange-800 border-orange-200">
-                            {file.similarity}% similar
-                          </Badge>
+              {/* Similar Files */}          
+              {duplicateFiles.filter(d => d.similarity).length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <Search className="h-4 w-4 text-orange-500" />
+                    Similar Files ({duplicateFiles.filter(d => d.similarity).length})
+                  </h4>
+                  <div className="space-y-2">
+                    {duplicateFiles.filter(d => d.similarity).map((file) => (
+                      <div 
+                        key={file.id} 
+                        className="flex items-center gap-3 p-3 rounded-lg border bg-orange-50/50 hover:bg-orange-50/70 transition-colors"
+                      >
+                        <div className="flex-shrink-0">
+                          <FileThumbnail file={file} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{file.name}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="secondary" className="text-xs">
+                              {formatFileSize(file.size)}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {file.type}
+                            </Badge>
+                            <Badge className="text-xs bg-orange-100 text-orange-800 border-orange-200">
+                              {file.similarity}% similar
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => handleComparisonClick(file, e)}
+                            className="text-xs gap-1"
+                          >
+                            <Eye className="w-3 h-3" />
+                            See Comparison
+                          </Button>
+                        </div>
+                        <div className="flex-shrink-0">
+                          <Checkbox
+                            checked={selectedFiles.has(file.id)}
+                            onCheckedChange={() => handleFileToggle(file.id)}
+                          />
                         </div>
                       </div>
-                      <div className="flex-shrink-0">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => handleComparisonClick(file, e)}
-                          className="text-xs gap-1"
-                        >
-                          <Eye className="w-3 h-3" />
-                          See Comparison
-                        </Button>
-                      </div>
-                      <div className="flex-shrink-0">
-                        <Checkbox
-                          checked={selectedFiles.has(file.id)}
-                          onCheckedChange={() => handleFileToggle(file.id)}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </ScrollArea>
         </div>
 
