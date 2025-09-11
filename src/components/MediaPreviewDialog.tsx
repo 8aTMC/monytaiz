@@ -2,12 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogPortal } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Image, Video, FileAudio, FileText, X, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { Image, Video, FileAudio, FileText, X, ChevronLeft, ChevronRight, Check, Maximize } from 'lucide-react';
 import { useSidebar } from '@/components/Navigation';
 import { useProgressiveMediaLoading } from '@/hooks/useProgressiveMediaLoading';
 import { useIntersectionPreloader } from '@/hooks/useIntersectionPreloader';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
 import { EnhancedVideoPlayer } from '@/components/EnhancedVideoPlayer';
+import { FullscreenImageViewer } from '@/components/FullscreenImageViewer';
 
 // Use the MediaItem interface from ContentLibrary
 interface MediaItem {
@@ -62,6 +63,8 @@ export const MediaPreviewDialog = ({
   const sidebar = useSidebar();
   const modalRef = useRef<HTMLDivElement>(null);
   const [needsScroll, setNeedsScroll] = useState(false);
+  const [fullscreenOpen, setFullscreenOpen] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
   const { 
     loadProgressiveMedia, 
     enhanceQuality, 
@@ -331,7 +334,12 @@ export const MediaPreviewDialog = ({
                       )}
 
                       {typeValue === 'image' && (
-                        <div className="relative w-full" onClick={enhanceQuality}>
+                        <div 
+                          className="relative w-full" 
+                          onClick={enhanceQuality}
+                          onMouseEnter={() => setIsHovering(true)}
+                          onMouseLeave={() => setIsHovering(false)}
+                        >
                           {/* Progressive image loading */}
                           {getCurrentUrl() ? (
                             <img 
@@ -349,6 +357,21 @@ export const MediaPreviewDialog = ({
                             <div className="flex items-center justify-center h-64 bg-muted/20 rounded">
                               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/60"></div>
                             </div>
+                          )}
+                          
+                          {/* Fullscreen button */}
+                          {isHovering && getCurrentUrl() && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setFullscreenOpen(true);
+                              }}
+                              className="absolute bottom-3 right-3 bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 border-none shadow-lg"
+                            >
+                              <Maximize className="w-4 h-4" />
+                            </Button>
                           )}
                           
                           {/* Quality indicator */}
@@ -496,6 +519,13 @@ export const MediaPreviewDialog = ({
           </button>
         </div>
       </DialogPortal>
+      
+      <FullscreenImageViewer
+        isOpen={fullscreenOpen}
+        onClose={() => setFullscreenOpen(false)}
+        imageUrl={getCurrentUrl() || ''}
+        title={item.title || 'Media preview'}
+      />
     </Dialog>
   );
 };
