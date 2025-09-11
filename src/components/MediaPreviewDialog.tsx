@@ -118,21 +118,16 @@ export const MediaPreviewDialog = ({
 
   const getStoragePath = (path: string | any): string | null => {
     if (typeof path === 'string' && path.trim()) {
-      // Ensure path has content/ prefix for edge function
-      let processedPath = path;
-      if (!processedPath.startsWith('content/')) {
-        processedPath = `content/${processedPath}`;
-      }
-      console.log('📁 Storage path processed:', path, '->', processedPath);
-      return processedPath;
+      // Return clean storage path without adding content/ prefix
+      // The progressive loading hook will handle path formatting
+      const cleanPath = path.trim();
+      console.log('📁 Storage path (clean):', cleanPath);
+      return cleanPath;
     }
     if (typeof path === 'object' && path?.value && typeof path.value === 'string') {
-      let processedPath = path.value;
-      if (!processedPath.startsWith('content/')) {
-        processedPath = `content/${processedPath}`;
-      }
-      console.log('📁 Storage path processed (object):', path.value, '->', processedPath);
-      return processedPath;
+      const cleanPath = path.value.trim();
+      console.log('📁 Storage path (clean, from object):', cleanPath);
+      return cleanPath;
     }
     console.warn('❌ Invalid storage path:', path);
     return null;
