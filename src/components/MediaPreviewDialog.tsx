@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogPortal } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,7 @@ import { useIntersectionPreloader } from '@/hooks/useIntersectionPreloader';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
 import { EnhancedVideoPlayer } from '@/components/EnhancedVideoPlayer';
 import { FullscreenImageViewer } from '@/components/FullscreenImageViewer';
+import { MediaLoadDebugger } from '@/components/MediaLoadDebugger';
 
 // Use the MediaItem interface from ContentLibrary
 interface MediaItem {
@@ -65,10 +66,12 @@ export const MediaPreviewDialog = ({
   const [needsScroll, setNeedsScroll] = useState(false);
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const { 
     loadProgressiveMedia, 
     enhanceQuality, 
-    getCurrentUrl, 
+    getCurrentUrl,
     currentQuality,
     loadingQuality,
     isLoading,
@@ -146,9 +149,62 @@ export const MediaPreviewDialog = ({
     return item.type || 'unknown';
   };
 
+  const validateAndCleanPath = (path: string | undefined): { isValid: boolean; cleanPath: string; error?: string } => {
+    if (!path) {
+      return { isValid: false, cleanPath: '', error: 'No file path provided' };
+    }
+    
+    // Clean up path - remove content/ prefix and normalize
+    let cleanPath = path.replace(/^content\/+/, '').replace(/\/+/g, '/');
+    
+    // Check for invalid characters or malformed paths
+    if (cleanPath.includes('..') || cleanPath.startsWith('/') || cleanPath.length === 0) {
+      return { isValid: false, cleanPath: '', error: 'Invalid file path format' };
+    }
+    
+    // Check for supported file extensions
+    const supportedExts = /\.(jpg|jpeg|png|webp|gif|mp4|webm|mov|avi|mp3|wav|m4a|pdf)$/i;
+    if (!supportedExts.test(cleanPath)) {
+      return { isValid: false, cleanPath: '', error: 'Unsupported file type' };
+    }
+    
+    return { isValid: true, cleanPath };
+  };
+
   const getItemStoragePath = (item: MediaItem): string | null => {
     return getStoragePath(item.storage_path);
   };
+
+  const attemptMediaLoad = useCallback(async (retryAttempt = 0) => {
+    if (!item || !open) return;
+    
+    setMediaError(null);
+    setRetryCount(retryAttempt);
+    
+    const storagePath = getItemStoragePath(item);
+    const pathValidation = validateAndCleanPath(storagePath || undefined);
+    
+    if (!pathValidation.isValid) {
+      setMediaError(pathValidation.error || 'Invalid file path');
+      return;
+    }
+    
+    try {
+      const tinyPlaceholder = item.tiny_placeholder || undefined;
+      const mediaType = getItemType(item);
+      await loadProgressiveMedia(storagePath!, tinyPlaceholder, mediaType);
+      
+      // If no URL after loading, set appropriate error
+      setTimeout(() => {
+        if (!getCurrentUrl()) {
+          setMediaError('File could not be loaded - it may be missing or corrupted');
+        }
+      }, 3000);
+    } catch (error) {
+      console.error('Media load error:', error);
+      setMediaError(error instanceof Error ? error.message : 'Failed to load media');
+    }
+  }, [item, open, loadProgressiveMedia, getCurrentUrl]);
 
   const getItemSize = (item: MediaItem): number => {
     return item.size_bytes || 0;
@@ -164,37 +220,12 @@ export const MediaPreviewDialog = ({
     }
   };
 
-  // Stable media loading - prevent infinite loops
+  // Stable media loading with enhanced error handling
   useEffect(() => {
     if (!open || !item) return;
     
-    const storagePath = getItemStoragePath(item);
-    console.log('🎬 Loading media for item:', item.id, 'storagePath:', storagePath);
-    
-    if (!storagePath) {
-      console.error('❌ No storage path available for item:', item.id);
-      return;
-    }
-
-    let isMounted = true;
-    
-    const loadMedia = async () => {
-      try {
-        console.log('🚀 Starting progressive media load for path:', storagePath);
-        if (isMounted) {
-          await loadProgressiveMedia(storagePath, item.tiny_placeholder, item.type);
-        }
-      } catch (error) {
-        console.error('❌ Failed to load media for item:', item.id, 'path:', storagePath, 'error:', error);
-      }
-    };
-
-    loadMedia();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [open, item?.id, item?.storage_path]); // Only depend on stable values
+    attemptMediaLoad(0);
+  }, [attemptMediaLoad]);
 
   // Dynamic overflow detection - only show scroll when content truly overflows
   useEffect(() => {
@@ -310,14 +341,29 @@ export const MediaPreviewDialog = ({
               
               return (
                 <div className={containerClass}>
-                  {/* Error handling */}
-                  {!getItemStoragePath(item) && (
-                    <div className="flex flex-col items-center justify-center h-64 text-center">
-                      <X className="h-12 w-12 text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground mb-2">No storage path available</p>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        This media item may have corrupted data or the file may be missing.
+                  {/* Enhanced Error handling */}
+                  {(mediaError || !getItemStoragePath(item)) && (
+                    <div className="flex flex-col items-center justify-center h-64 text-center p-6">
+                      <X className="h-12 w-12 text-destructive mb-4" />
+                      <p className="text-foreground font-medium mb-2">
+                        {mediaError || 'No storage path available'}
                       </p>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {mediaError ? 
+                          'This could be a temporary issue. Try refreshing or check if the file exists.' :
+                          'This media item may have corrupted data or the file may be missing.'
+                        }
+                      </p>
+                      {mediaError && retryCount < 3 && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => attemptMediaLoad(retryCount + 1)}
+                          className="mt-2"
+                        >
+                          Retry Loading ({retryCount + 1}/3)
+                        </Button>
+                      )}
                     </div>
                   )}
 
@@ -373,6 +419,17 @@ export const MediaPreviewDialog = ({
                               <Maximize className="w-4 h-4" />
                             </Button>
                           )}
+                          
+                          {/* Debug Information for development */}
+                          <MediaLoadDebugger
+                            storagePath={getItemStoragePath(item)}
+                            currentUrl={getCurrentUrl()}
+                            isLoading={isLoading}
+                            mediaError={mediaError}
+                            currentQuality={currentQuality}
+                            usingFallback={usingFallback}
+                            retryCount={retryCount}
+                          />
                           
                           {/* Quality indicator */}
                           {getCurrentUrl() && (

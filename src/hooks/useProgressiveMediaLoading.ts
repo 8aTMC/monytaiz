@@ -52,8 +52,29 @@ export const useProgressiveMediaLoading = () => {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { getDirectUrl } = useDirectMedia();
 
+  const validatePath = (path: string): { isValid: boolean; error?: string } => {
+    if (!path || path.trim().length === 0) {
+      return { isValid: false, error: 'Empty path' };
+    }
+    
+    // Clean and validate path format
+    const cleanPath = path.replace(/^content\/+/, '').replace(/\/+/g, '/');
+    if (cleanPath.includes('..') || cleanPath.startsWith('/')) {
+      return { isValid: false, error: 'Invalid path format' };
+    }
+    
+    return { isValid: true };
+  };
+
   const getSecureUrl = async (path: string, quality: number): Promise<string | null> => {
     try {
+      // Validate path first
+      const pathCheck = validatePath(path);
+      if (!pathCheck.isValid) {
+        console.warn('❌ Invalid path:', pathCheck.error, path);
+        return null;
+      }
+
       console.log('🔗 Attempting to get secure URL for path:', path, 'quality:', quality);
       const params = new URLSearchParams({ path, quality: quality.toString() });
       const session = await supabase.auth.getSession();
@@ -94,8 +115,15 @@ export const useProgressiveMediaLoading = () => {
         if (error instanceof Error && error.name === 'AbortError') {
           return null;
         }
-        // Only log as error if it's not an expected video/image transformation failure
-        console.warn('Secure URL generation failed, will use fallback:', error);
+        
+        // Enhanced error logging with context
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.warn(`Secure URL generation failed for path: ${path}, quality: ${quality}`, {
+          error: errorMsg,
+          path,
+          quality,
+          timestamp: new Date().toISOString()
+        });
         return null;
     }
   };
@@ -155,6 +183,15 @@ export const useProgressiveMediaLoading = () => {
     // For images, use the progressive loading strategy
     const generateFallbacks = async () => {
       try {
+        // Check if file exists first
+        const fileCheckResult = await supabase.storage
+          .from('content')
+          .list('', { search: cleanPath.split('/').pop() });
+          
+        if (fileCheckResult.error || !fileCheckResult.data?.length) {
+          console.warn('⚠️ File may not exist in storage:', cleanPath);
+        }
+
         const fallbacks: ProgressiveMedia = {
           tiny: await getDirectUrl(cleanPath, { quality: 30 }),
           low: await getDirectUrl(cleanPath, { quality: 45 }),  
@@ -162,10 +199,13 @@ export const useProgressiveMediaLoading = () => {
           high: await getDirectUrl(cleanPath, { quality: 85 })
         };
         setFallbackUrls(fallbacks);
-        console.log('🔄 Generated image fallback URLs');
+        console.log('🔄 Generated image fallback URLs', { 
+          hasUrls: Object.values(fallbacks).filter(Boolean).length,
+          cleanPath 
+        });
         return fallbacks;
       } catch (error) {
-        console.error('❌ Failed to generate fallback URLs:', error);
+        console.error('❌ Failed to generate fallback URLs:', error, { cleanPath });
         return {};
       }
     };
