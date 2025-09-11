@@ -388,6 +388,7 @@ export const MediaPreviewDialog = ({
                             src={getCurrentUrl()}
                             className={containerClass}
                             aspectRatio={videoAspectRatio}
+                            isVertical={isVertical}
                             onError={(e) => {
                               console.error('Failed to load secure video:', e);
                             }}
