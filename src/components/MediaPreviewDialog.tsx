@@ -364,8 +364,7 @@ export const MediaPreviewDialog = ({
                     getCurrentUrl() ? (
                       <EnhancedVideoPlayer
                         src={getCurrentUrl()}
-                        aspectRatio={item.width && item.height ? `${item.width}/${item.height}` : '16/9'}
-                        className="w-full h-auto max-h-[80vh]"
+                        className="w-full"
                         onError={(e) => {
                           console.error('Failed to load secure video:', e);
                         }}
