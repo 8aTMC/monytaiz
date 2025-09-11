@@ -120,32 +120,37 @@ export const useProgressiveMediaLoading = () => {
     setLoadingQuality(null);
     setUsingFallback(false);
 
-    // Check if this is a video - if so, skip progressive loading and use direct URLs
+    // Check if this is a video or GIF - if so, skip progressive loading and use direct URLs
     const isVideo = mediaType === 'video' || 
                    storagePath.includes('.mp4') || 
                    storagePath.includes('.webm') || 
                    storagePath.includes('.mov') ||
                    storagePath.includes('.avi');
 
+    const isGIF = mediaType === 'gif' || 
+                  storagePath.toLowerCase().includes('.gif') ||
+                  (mediaType === 'image' && storagePath.toLowerCase().includes('.gif'));
+
     const cleanPath = storagePath.replace(/^content\//, '');
     
-    // For videos, go directly to signed URLs without progressive loading attempts
-    if (isVideo) {
-      console.log('📹 Video detected, using direct signed URL path');
+    // For videos and GIFs, go directly to signed URLs without progressive loading attempts
+    if (isVideo || isGIF) {
+      const mediaTypeLabel = isGIF ? 'GIF' : 'Video';
+      console.log(`📹 ${mediaTypeLabel} detected, using direct signed URL path`);
       setLoadingQuality('high');
       
       try {
         const directUrl = await getDirectUrl(cleanPath);
         if (directUrl) {
-          const videoUrls = { high: directUrl };
-          setUrls(videoUrls);
+          const mediaUrls = { high: directUrl };
+          setUrls(mediaUrls);
           setCurrentQuality('high');
-          console.log('✅ Video URL loaded successfully');
+          console.log(`✅ ${mediaTypeLabel} URL loaded successfully`);
         } else {
-          console.warn('⚠️ Failed to get direct video URL');
+          console.warn(`⚠️ Failed to get direct ${mediaTypeLabel} URL`);
         }
       } catch (error) {
-        console.error('❌ Failed to load video:', error);
+        console.error(`❌ Failed to load ${mediaTypeLabel}:`, error);
       } finally {
         setLoadingQuality(null);
       }
