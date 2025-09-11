@@ -140,6 +140,12 @@ export const MediaPreviewDialog = ({
 
   // Helper functions to handle data
   const getItemType = (item: MediaItem): string => {
+    // Check if this is a GIF based on MIME type or storage path
+    if (item.mime === 'image/gif' || 
+        item.storage_path?.toLowerCase().includes('.gif') ||
+        (item.type === 'image' && item.storage_path?.toLowerCase().includes('.gif'))) {
+      return 'gif';
+    }
     return item.type || 'unknown';
   };
 
@@ -154,6 +160,7 @@ export const MediaPreviewDialog = ({
   const getContentTypeIcon = (type: string) => {
     switch (type) {
       case 'image': return <Image className="h-8 w-8" />;
+      case 'gif': return <Image className="h-8 w-8" />;
       case 'video': return <Video className="h-8 w-8" />;
       case 'audio': return <FileAudio className="h-8 w-8" />;
       
@@ -360,6 +367,40 @@ export const MediaPreviewDialog = ({
                     </div>
                   )}
 
+                  {typeValue === 'gif' && (
+                    <div className="relative w-full">
+                      {/* Direct GIF loading without progressive optimization */}
+                      {getCurrentUrl() ? (
+                        <img 
+                          src={getCurrentUrl()}
+                          alt={item.title || 'GIF Preview'} 
+                          className="w-full h-auto object-contain rounded transition-all duration-300 max-h-[85vh]"
+                          style={{
+                            aspectRatio: item.width && item.height ? `${item.width}/${item.height}` : 'auto'
+                          }}
+                          onError={(e) => {
+                            console.error('Failed to load GIF:', e);
+                          }}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-64 bg-muted/20 rounded">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/60"></div>
+                        </div>
+                      )}
+                      
+                      {/* GIF indicator */}
+                      {getCurrentUrl() && (
+                        <div className="absolute top-2 left-2 z-10">
+                          <div className="flex items-center gap-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
+                            <div className="w-2 h-2 rounded-full bg-purple-400" />
+                            GIF
+                            <span className="text-xs opacity-75">(ANIMATED)</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {typeValue === 'video' && (
                     getCurrentUrl() ? (
                       <EnhancedVideoPlayer
@@ -389,7 +430,7 @@ export const MediaPreviewDialog = ({
                     </div>
                   )}
 
-                  {typeValue !== 'image' && typeValue !== 'video' && typeValue !== 'audio' && (
+                  {typeValue !== 'image' && typeValue !== 'gif' && typeValue !== 'video' && typeValue !== 'audio' && (
                     <div className="flex flex-col items-center justify-center h-64 text-center">
                       {getContentTypeIcon(typeValue)}
                       <p className="text-muted-foreground mt-4 mb-2">No preview available</p>

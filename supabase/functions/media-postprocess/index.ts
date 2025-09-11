@@ -140,12 +140,14 @@ Deno.serve(async (req) => {
     if (mime) {
       if (mime.startsWith('video/')) type = 'video';
       else if (mime.startsWith('audio/')) type = 'audio';
+      else if (mime === 'image/gif') type = 'gif';
       else if (mime.startsWith('image/')) type = 'image';
     } else {
       // Fallback to file extension
       const ext = path.toLowerCase().split('.').pop();
       if (ext && ['mp4', 'mov', 'avi', 'webm', 'mkv'].includes(ext)) type = 'video';
       else if (ext && ['mp3', 'wav', 'aac', 'ogg'].includes(ext)) type = 'audio';
+      else if (ext === 'gif') type = 'gif';
     }
 
     // 3) Get dimensions and placeholder based on file type
@@ -155,7 +157,33 @@ Deno.serve(async (req) => {
     
     console.log(`Processing ${type} file: ${path}`);
     
-    if (type === 'image') {
+    if (type === 'gif') {
+      // For GIFs, preserve animation by avoiding transformations
+      try {
+        const dimensions = await getImageDimensions(originalUrl);
+        width = dimensions.width;
+        height = dimensions.height;
+        
+        // Use a simple placeholder for GIFs without transformations
+        tinyDataUrl = 'data:image/svg+xml;base64,' + btoa(`
+          <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="gifGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+              </linearGradient>
+            </defs>
+            <rect width="400" height="300" fill="url(#gifGrad)"/>
+            <text x="200" y="160" text-anchor="middle" fill="#ffffff" font-family="Arial" font-size="16" font-weight="bold">GIF</text>
+            <text x="200" y="180" text-anchor="middle" fill="#ffffff" font-family="Arial" font-size="12" opacity="0.8">Animated</text>
+          </svg>
+        `);
+        
+        console.log('GIF processing completed - animation preserved');
+      } catch (error) {
+        console.warn('Failed to process GIF:', error);
+      }
+    } else if (type === 'image') {
       try {
         const dimensions = await getImageDimensions(originalUrl);
         width = dimensions.width;
