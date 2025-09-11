@@ -115,16 +115,26 @@ export const useProgressiveMediaLoading = () => {
     setLoadingQuality(null);
     setUsingFallback(false);
 
-    // Generate fallback direct URLs immediately
+    // Generate fallback direct URLs immediately (async)
     const cleanPath = storagePath.replace(/^content\//, '');
-    const fallbacks: ProgressiveMedia = {
-      tiny: getDirectUrl(cleanPath, { quality: 30 }),
-      low: getDirectUrl(cleanPath, { quality: 45 }),  
-      medium: getDirectUrl(cleanPath, { quality: 65 }),
-      high: getDirectUrl(cleanPath, { quality: 85 })
+    const generateFallbacks = async () => {
+      try {
+        const fallbacks: ProgressiveMedia = {
+          tiny: await getDirectUrl(cleanPath, { quality: 30 }),
+          low: await getDirectUrl(cleanPath, { quality: 45 }),  
+          medium: await getDirectUrl(cleanPath, { quality: 65 }),
+          high: await getDirectUrl(cleanPath, { quality: 85 })
+        };
+        setFallbackUrls(fallbacks);
+        console.log('🔄 Generated fallback URLs:', fallbacks);
+        return fallbacks;
+      } catch (error) {
+        console.error('❌ Failed to generate fallback URLs:', error);
+        return {};
+      }
     };
-    setFallbackUrls(fallbacks);
-    console.log('🔄 Generated fallback URLs:', fallbacks);
+    
+    const fallbackPromise = generateFallbacks();
 
     // Check cache first
     const cached = memoryCache[cacheKey];
@@ -193,7 +203,8 @@ export const useProgressiveMediaLoading = () => {
       // Load low quality immediately (should be very fast)
       const lowUrl = await loadQuality('low', 45);
       if (!lowUrl) {
-        console.log('🔄 Progressive loading failed, switching to fallback URLs');
+        console.log('🔄 Progressive loading failed, waiting for fallback URLs...');
+        const fallbacks = await fallbackPromise;
         setUsingFallback(true);
         setUrls(fallbacks);
         setCurrentQuality('low');
@@ -206,7 +217,8 @@ export const useProgressiveMediaLoading = () => {
       }
     } catch (error) {
       console.error('❌ Progressive loading completely failed:', error);
-      console.log('🔄 Using fallback URLs');
+      console.log('🔄 Waiting for fallback URLs...');
+      const fallbacks = await fallbackPromise;
       setUsingFallback(true);
       setUrls(fallbacks);
       setCurrentQuality('low');

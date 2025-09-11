@@ -118,15 +118,21 @@ export const MediaPreviewDialog = ({
 
   const getStoragePath = (path: string | any): string | null => {
     if (typeof path === 'string' && path.trim()) {
-      // Remove content/ prefix if present - edge function expects clean paths
-      const cleanPath = path.replace(/^content\//, '');
-      console.log('📁 Storage path processed:', path, '->', cleanPath);
-      return cleanPath;
+      // Ensure path has content/ prefix for edge function
+      let processedPath = path;
+      if (!processedPath.startsWith('content/')) {
+        processedPath = `content/${processedPath}`;
+      }
+      console.log('📁 Storage path processed:', path, '->', processedPath);
+      return processedPath;
     }
     if (typeof path === 'object' && path?.value && typeof path.value === 'string') {
-      const pathStr = path.value.replace(/^content\//, '');
-      console.log('📁 Storage path processed (object):', path.value, '->', pathStr);
-      return pathStr;
+      let processedPath = path.value;
+      if (!processedPath.startsWith('content/')) {
+        processedPath = `content/${processedPath}`;
+      }
+      console.log('📁 Storage path processed (object):', path.value, '->', processedPath);
+      return processedPath;
     }
     console.warn('❌ Invalid storage path:', path);
     return null;
