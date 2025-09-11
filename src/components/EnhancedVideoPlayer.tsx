@@ -21,7 +21,6 @@ interface EnhancedVideoPlayerProps {
   src: string;
   aspectRatio?: string;
   className?: string;
-  isVertical?: boolean;
   onError?: (error: any) => void;
 }
 
@@ -29,7 +28,6 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
   src,
   aspectRatio: propAspectRatio,
   className = '',
-  isVertical = false,
   onError
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -282,12 +280,11 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
       ref={containerRef}
       className={`relative group rounded-xl overflow-hidden bg-black ${className}`}
       tabIndex={0}
-      style={propAspectRatio ? { aspectRatio: propAspectRatio } : undefined}
     >
       <video 
         ref={videoRef}
         src={src}
-        className={`${isVertical ? 'w-auto h-full object-contain' : 'w-full h-full object-contain'}`}
+        className="w-full h-full object-contain"
         preload="metadata"
         onDoubleClick={toggleFullscreen}
         onClick={togglePlayPause}
