@@ -295,138 +295,151 @@ export const MediaPreviewDialog = ({
           </div>
 
           <div className="flex-1 flex items-center">
-            <div className="flex items-center justify-center w-full bg-muted/20 rounded-lg overflow-hidden">
-              {/* Error handling */}
-              {!getItemStoragePath(item) && (
-                <div className="flex flex-col items-center justify-center h-64 text-center">
-                  <X className="h-12 w-12 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground mb-2">No storage path available</p>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    This media item may have corrupted data or the file may be missing.
-                  </p>
-                </div>
-              )}
-
-              {getItemStoragePath(item) && (
-                <>
-                  {/* Show loading overlay only if no media available yet */}
-                  {(isLoading && !getCurrentUrl()) && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-muted/10 rounded z-10">
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/60"></div>
-                        <p className="text-sm text-muted-foreground">Loading...</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {typeValue === 'image' && (
-                    <div className="relative w-full" onClick={enhanceQuality}>
-                      {/* Progressive image loading */}
-                      {getCurrentUrl() ? (
-                        <img 
-                          src={getCurrentUrl()}
-                          alt={item.title || 'Preview'} 
-                          className="w-full h-auto object-contain rounded transition-all duration-300 max-h-[85vh]"
-                          style={{
-                            aspectRatio: item.width && item.height ? `${item.width}/${item.height}` : 'auto'
-                          }}
-                          onError={(e) => {
-                            console.error('Failed to load image:', e);
-                          }}
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center h-64 bg-muted/20 rounded">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/60"></div>
-                        </div>
-                      )}
-                      
-                      {/* Quality indicator */}
-                      {getCurrentUrl() && (
-                        <div className="absolute top-2 left-2 z-10">
-                          <div className="flex items-center gap-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
-                            <div className={`w-2 h-2 rounded-full ${
-                              currentQuality === 'high' ? 'bg-green-400' :
-                              currentQuality === 'medium' ? 'bg-yellow-400' :
-                              currentQuality === 'low' ? 'bg-orange-400' : 'bg-red-400'
-                            }`} />
-                            {currentQuality.toUpperCase()}
-                            {usingFallback && <span className="text-xs opacity-75">(DIRECT)</span>}
-                            {loadingQuality && (
-                              <div className="animate-spin w-3 h-3 border border-white/30 border-t-white rounded-full ml-1" />
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {typeValue === 'video' && (
-                    getCurrentUrl() ? (
-                      (() => {
-                        // Calculate video orientation for dynamic sizing
-                        const isVertical = item.height && item.width && item.height > item.width;
-                        const aspectRatio = item.width / item.height;
-                        
-                        let containerClass = "w-full";
-                        let videoAspectRatio = undefined;
-                        
-                        if (isVertical) {
-                          // For vertical videos, constrain width and let height adapt naturally
-                          if (aspectRatio < 0.6) {
-                            containerClass = "max-w-xs mx-auto"; // Very vertical (like 9:16)
-                          } else {
-                            containerClass = "max-w-sm mx-auto"; // Moderately vertical
-                          }
-                          // Don't pass aspectRatio for vertical videos to avoid forced dimensions
-                        } else {
-                          // For horizontal videos, keep aspect ratio
-                          videoAspectRatio = `${item.width}/${item.height}`;
-                        }
-                        
-                        return (
-                          <EnhancedVideoPlayer
-                            src={getCurrentUrl()}
-                            className={containerClass}
-                            aspectRatio={videoAspectRatio}
-                            isVertical={isVertical}
-                            onError={(e) => {
-                              console.error('Failed to load secure video:', e);
-                            }}
-                          />
-                        );
-                      })()
-                    ) : (
-                      <div className="flex items-center justify-center h-64 bg-muted/20 rounded">
-                        <div className="flex flex-col items-center gap-2">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/60"></div>
-                          <p className="text-sm text-muted-foreground">Loading video...</p>
-                        </div>
-                      </div>
-                    )
-                  )}
-
-                  {typeValue === 'audio' && getCurrentUrl() && (
-                    <div className="flex flex-col items-center gap-4 p-8">
-                      <FileAudio className="h-16 w-16 text-muted-foreground" />
-                      <CustomAudioPlayer
-                        src={getCurrentUrl()}
-                        title={item.title || 'Audio File'}
-                      />
-                    </div>
-                  )}
-
-                  {typeValue !== 'image' && typeValue !== 'video' && typeValue !== 'audio' && (
+            {(() => {
+              // For video content, check orientation to apply proper container styling
+              const isVideo = typeValue === 'video';
+              const isVertical = isVideo && item.height && item.width && item.height > item.width;
+              
+              // Use different container classes based on video orientation
+              const containerClass = isVideo && isVertical 
+                ? "flex items-center justify-center bg-muted/20 rounded-lg overflow-hidden"
+                : "flex items-center justify-center w-full bg-muted/20 rounded-lg overflow-hidden";
+              
+              return (
+                <div className={containerClass}>
+                  {/* Error handling */}
+                  {!getItemStoragePath(item) && (
                     <div className="flex flex-col items-center justify-center h-64 text-center">
-                      {getContentTypeIcon(typeValue)}
-                      <p className="text-muted-foreground mt-4 mb-2">No preview available</p>
-                      <p className="text-sm text-muted-foreground">
-                        This file type cannot be previewed directly.
+                      <X className="h-12 w-12 text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground mb-2">No storage path available</p>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        This media item may have corrupted data or the file may be missing.
                       </p>
                     </div>
                   )}
-                </>
-              )}
-            </div>
+
+                  {getItemStoragePath(item) && (
+                    <>
+                      {/* Show loading overlay only if no media available yet */}
+                      {(isLoading && !getCurrentUrl()) && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-muted/10 rounded z-10">
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/60"></div>
+                            <p className="text-sm text-muted-foreground">Loading...</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {typeValue === 'image' && (
+                        <div className="relative w-full" onClick={enhanceQuality}>
+                          {/* Progressive image loading */}
+                          {getCurrentUrl() ? (
+                            <img 
+                              src={getCurrentUrl()}
+                              alt={item.title || 'Preview'} 
+                              className="w-full h-auto object-contain rounded transition-all duration-300 max-h-[85vh]"
+                              style={{
+                                aspectRatio: item.width && item.height ? `${item.width}/${item.height}` : 'auto'
+                              }}
+                              onError={(e) => {
+                                console.error('Failed to load image:', e);
+                              }}
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center h-64 bg-muted/20 rounded">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/60"></div>
+                            </div>
+                          )}
+                          
+                          {/* Quality indicator */}
+                          {getCurrentUrl() && (
+                            <div className="absolute top-2 left-2 z-10">
+                              <div className="flex items-center gap-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
+                                <div className={`w-2 h-2 rounded-full ${
+                                  currentQuality === 'high' ? 'bg-green-400' :
+                                  currentQuality === 'medium' ? 'bg-yellow-400' :
+                                  currentQuality === 'low' ? 'bg-orange-400' : 'bg-red-400'
+                                }`} />
+                                {currentQuality.toUpperCase()}
+                                {usingFallback && <span className="text-xs opacity-75">(DIRECT)</span>}
+                                {loadingQuality && (
+                                  <div className="animate-spin w-3 h-3 border border-white/30 border-t-white rounded-full ml-1" />
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {typeValue === 'video' && (
+                        getCurrentUrl() ? (
+                          (() => {
+                            // Calculate video orientation for dynamic sizing
+                            const isVertical = item.height && item.width && item.height > item.width;
+                            const aspectRatio = item.width / item.height;
+                            
+                            let containerClass = "w-full";
+                            let videoAspectRatio = undefined;
+                            
+                            if (isVertical) {
+                              // For vertical videos, constrain width and let height adapt naturally
+                              if (aspectRatio < 0.6) {
+                                containerClass = "max-w-xs mx-auto"; // Very vertical (like 9:16)
+                              } else {
+                                containerClass = "max-w-sm mx-auto"; // Moderately vertical
+                              }
+                              // Don't pass aspectRatio for vertical videos to avoid forced dimensions
+                            } else {
+                              // For horizontal videos, keep aspect ratio
+                              videoAspectRatio = `${item.width}/${item.height}`;
+                            }
+                            
+                            return (
+                              <EnhancedVideoPlayer
+                                src={getCurrentUrl()}
+                                className={containerClass}
+                                aspectRatio={videoAspectRatio}
+                                isVertical={isVertical}
+                                onError={(e) => {
+                                  console.error('Failed to load secure video:', e);
+                                }}
+                              />
+                            );
+                          })()
+                        ) : (
+                          <div className="flex items-center justify-center h-64 bg-muted/20 rounded">
+                            <div className="flex flex-col items-center gap-2">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/60"></div>
+                              <p className="text-sm text-muted-foreground">Loading video...</p>
+                            </div>
+                          </div>
+                        )
+                      )}
+
+                      {typeValue === 'audio' && getCurrentUrl() && (
+                        <div className="flex flex-col items-center gap-4 p-8">
+                          <FileAudio className="h-16 w-16 text-muted-foreground" />
+                          <CustomAudioPlayer
+                            src={getCurrentUrl()}
+                            title={item.title || 'Audio File'}
+                          />
+                        </div>
+                      )}
+
+                      {typeValue !== 'image' && typeValue !== 'video' && typeValue !== 'audio' && (
+                        <div className="flex flex-col items-center justify-center h-64 text-center">
+                          {getContentTypeIcon(typeValue)}
+                          <p className="text-muted-foreground mt-4 mb-2">No preview available</p>
+                          <p className="text-sm text-muted-foreground">
+                            This file type cannot be previewed directly.
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Selection checkbox - positioned to avoid overlap with close button */}
