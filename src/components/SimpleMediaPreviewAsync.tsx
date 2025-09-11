@@ -15,6 +15,7 @@ import { RevenueAnalyticsDialog } from './RevenueAnalyticsDialog';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
 import { EnhancedVideoPlayer } from '@/components/EnhancedVideoPlayer';
 import { formatRevenue } from '@/lib/formatRevenue';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SimpleMediaPreviewAsyncProps {
   item: SimpleMediaItem | null;
@@ -500,18 +501,44 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                            )}
                          </div>
                        )}
-                       {item?.media_type === 'video' && (
-                         <EnhancedVideoPlayer
-                           key={`video-${item.id}-${selectedIndex}-${fullUrl?.substring(0, 10)}`}
-                           src={fullUrl}
-                           aspectRatio={aspectRatio}
-                           className="w-full h-full"
-                           onError={(e) => {
-                             console.error('Failed to load video:', e);
-                             setFullUrl(null);
-                           }}
-                         />
-                       )}
+                        {item?.media_type === 'video' && (
+                          <EnhancedVideoPlayer
+                            key={`video-${item.id}-${selectedIndex}-${fullUrl?.substring(0, 10)}`}
+                            src={fullUrl}
+                            aspectRatio={aspectRatio}
+                            className="w-full h-full"
+                            onError={async (e) => {
+                              console.error('Failed to load video:', e, 'URL:', fullUrl);
+                              console.log('Attempting fallback URL generation for video:', item);
+                              
+                              // Try direct fallback for videos
+                              if (item?.processed_path || item?.original_path) {
+                                try {
+                                  const fallbackPath = item.processed_path || item.original_path;
+                                  console.log('Generating fallback URL for path:', fallbackPath);
+                                  
+                                  // Generate direct signed URL as fallback
+                                  const { data, error } = await supabase.storage
+                                    .from('content')
+                                    .createSignedUrl(fallbackPath.replace(/^content\//, ''), 3600);
+                                  
+                                  if (data?.signedUrl && !error) {
+                                    console.log('✅ Generated fallback video URL:', data.signedUrl);
+                                    setFullUrl(data.signedUrl);
+                                    return;
+                                  } else {
+                                    console.error('❌ Fallback URL generation failed:', error);
+                                  }
+                                } catch (fallbackError) {
+                                  console.error('❌ Exception in fallback URL generation:', fallbackError);
+                                }
+                              }
+                              
+                              // If all fails, set to null
+                              setFullUrl(null);
+                            }}
+                          />
+                        )}
                        {item?.media_type === 'audio' && (
                          <CustomAudioPlayer
                            key={`audio-${item.id}-${selectedIndex}-${fullUrl?.substring(0, 10)}`}
