@@ -365,14 +365,29 @@ export const MediaPreviewDialog = ({
                       (() => {
                         // Calculate video orientation for dynamic sizing
                         const isVertical = item.height && item.width && item.height > item.width;
-                        const containerClass = isVertical ? "max-w-md mx-auto" : "w-full";
-                        const aspectRatio = item.width && item.height ? `${item.width}/${item.height}` : undefined;
+                        const aspectRatio = item.width / item.height;
+                        
+                        let containerClass = "w-full";
+                        let videoAspectRatio = undefined;
+                        
+                        if (isVertical) {
+                          // For vertical videos, constrain width and let height adapt naturally
+                          if (aspectRatio < 0.6) {
+                            containerClass = "max-w-xs mx-auto"; // Very vertical (like 9:16)
+                          } else {
+                            containerClass = "max-w-sm mx-auto"; // Moderately vertical
+                          }
+                          // Don't pass aspectRatio for vertical videos to avoid forced dimensions
+                        } else {
+                          // For horizontal videos, keep aspect ratio
+                          videoAspectRatio = `${item.width}/${item.height}`;
+                        }
                         
                         return (
                           <EnhancedVideoPlayer
                             src={getCurrentUrl()}
                             className={containerClass}
-                            aspectRatio={aspectRatio}
+                            aspectRatio={videoAspectRatio}
                             onError={(e) => {
                               console.error('Failed to load secure video:', e);
                             }}
