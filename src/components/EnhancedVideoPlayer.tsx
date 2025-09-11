@@ -280,6 +280,9 @@ export const EnhancedVideoPlayer: React.FC<EnhancedVideoPlayerProps> = ({
       ref={containerRef}
       className={`relative group rounded-xl overflow-hidden bg-black ${className}`}
       tabIndex={0}
+      style={{
+        aspectRatio: propAspectRatio || videoAspectRatio
+      }}
     >
       <video 
         ref={videoRef}

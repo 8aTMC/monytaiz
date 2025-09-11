@@ -362,13 +362,23 @@ export const MediaPreviewDialog = ({
 
                   {typeValue === 'video' && (
                     getCurrentUrl() ? (
-                      <EnhancedVideoPlayer
-                        src={getCurrentUrl()}
-                        className="w-full"
-                        onError={(e) => {
-                          console.error('Failed to load secure video:', e);
-                        }}
-                      />
+                      (() => {
+                        // Calculate video orientation for dynamic sizing
+                        const isVertical = item.height && item.width && item.height > item.width;
+                        const containerClass = isVertical ? "max-w-md mx-auto" : "w-full";
+                        const aspectRatio = item.width && item.height ? `${item.width}/${item.height}` : undefined;
+                        
+                        return (
+                          <EnhancedVideoPlayer
+                            src={getCurrentUrl()}
+                            className={containerClass}
+                            aspectRatio={aspectRatio}
+                            onError={(e) => {
+                              console.error('Failed to load secure video:', e);
+                            }}
+                          />
+                        );
+                      })()
                     ) : (
                       <div className="flex items-center justify-center h-64 bg-muted/20 rounded">
                         <div className="flex flex-col items-center gap-2">
