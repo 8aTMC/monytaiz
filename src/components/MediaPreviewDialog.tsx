@@ -149,26 +149,9 @@ export const MediaPreviewDialog = ({
     return item.type || 'unknown';
   };
 
-  const validateAndCleanPath = (path: string | undefined): { isValid: boolean; cleanPath: string; error?: string } => {
-    if (!path) {
-      return { isValid: false, cleanPath: '', error: 'No file path provided' };
-    }
-    
-    // Clean up path - remove content/ prefix and normalize
-    let cleanPath = path.replace(/^content\/+/, '').replace(/\/+/g, '/');
-    
-    // Check for invalid characters or malformed paths
-    if (cleanPath.includes('..') || cleanPath.startsWith('/') || cleanPath.length === 0) {
-      return { isValid: false, cleanPath: '', error: 'Invalid file path format' };
-    }
-    
-    // Check for supported file extensions
-    const supportedExts = /\.(jpg|jpeg|png|webp|gif|mp4|webm|mov|avi|mp3|wav|m4a|pdf)$/i;
-    if (!supportedExts.test(cleanPath)) {
-      return { isValid: false, cleanPath: '', error: 'Unsupported file type' };
-    }
-    
-    return { isValid: true, cleanPath };
+  // Simplified path validation - let progressive loading handle the rest
+  const hasValidStoragePath = (path: string | null): boolean => {
+    return !!(path && typeof path === 'string' && path.trim().length > 0);
   };
 
   const getItemStoragePath = (item: MediaItem): string | null => {
@@ -182,10 +165,9 @@ export const MediaPreviewDialog = ({
     setRetryCount(retryAttempt);
     
     const storagePath = getItemStoragePath(item);
-    const pathValidation = validateAndCleanPath(storagePath || undefined);
     
-    if (!pathValidation.isValid) {
-      setMediaError(pathValidation.error || 'Invalid file path');
+    if (!hasValidStoragePath(storagePath)) {
+      setMediaError('No valid file path available');
       return;
     }
     
@@ -193,18 +175,11 @@ export const MediaPreviewDialog = ({
       const tinyPlaceholder = item.tiny_placeholder || undefined;
       const mediaType = getItemType(item);
       await loadProgressiveMedia(storagePath!, tinyPlaceholder, mediaType);
-      
-      // If no URL after loading, set appropriate error
-      setTimeout(() => {
-        if (!getCurrentUrl()) {
-          setMediaError('File could not be loaded - it may be missing or corrupted');
-        }
-      }, 3000);
     } catch (error) {
       console.error('Media load error:', error);
       setMediaError(error instanceof Error ? error.message : 'Failed to load media');
     }
-  }, [item, open, loadProgressiveMedia, getCurrentUrl]);
+  }, [item, open, loadProgressiveMedia]);
 
   const getItemSize = (item: MediaItem): number => {
     return item.size_bytes || 0;
@@ -341,20 +316,17 @@ export const MediaPreviewDialog = ({
               
               return (
                 <div className={containerClass}>
-                  {/* Enhanced Error handling */}
-                  {(mediaError || !getItemStoragePath(item)) && (
+                  {/* Only show error if there's a genuine error, not during loading */}
+                  {mediaError && (
                     <div className="flex flex-col items-center justify-center h-64 text-center p-6">
                       <X className="h-12 w-12 text-destructive mb-4" />
                       <p className="text-foreground font-medium mb-2">
-                        {mediaError || 'No storage path available'}
+                        {mediaError}
                       </p>
                       <p className="text-sm text-muted-foreground mb-4">
-                        {mediaError ? 
-                          'This could be a temporary issue. Try refreshing or check if the file exists.' :
-                          'This media item may have corrupted data or the file may be missing.'
-                        }
+                        This could be a temporary issue. Try refreshing or check if the file exists.
                       </p>
-                      {mediaError && retryCount < 3 && (
+                      {retryCount < 3 && (
                         <Button 
                           variant="outline" 
                           size="sm" 
@@ -367,7 +339,7 @@ export const MediaPreviewDialog = ({
                     </div>
                   )}
 
-                  {getItemStoragePath(item) && (
+                  {hasValidStoragePath(getItemStoragePath(item)) && !mediaError && (
                     <>
                       {/* Show loading overlay only if no media available yet */}
                       {(isLoading && !getCurrentUrl()) && (
