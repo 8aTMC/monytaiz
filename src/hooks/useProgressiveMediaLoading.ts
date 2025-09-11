@@ -90,22 +90,27 @@ export const useProgressiveMediaLoading = () => {
       }
       
       return result.url;
-    } catch (error) {
-      console.error('❌ Failed to get secure URL:', error);
-      return null;
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          return null;
+        }
+        // Only log as error if it's not an expected video/image transformation failure
+        console.warn('Secure URL generation failed, will use fallback:', error);
+        return null;
     }
   };
 
   const loadProgressiveMedia = useCallback(async (
     storagePath: string,
-    tinyPlaceholder?: string
+    tinyPlaceholder?: string,
+    mediaType?: string
   ) => {
     if (!storagePath) {
       console.error('❌ No storage path provided');
       return;
     }
 
-    console.log('🚀 Starting progressive media load for path:', storagePath);
+    console.log('🚀 Starting progressive media load for path:', storagePath, 'type:', mediaType);
     const cacheKey = storagePath;
     
     // Reset state
@@ -115,8 +120,39 @@ export const useProgressiveMediaLoading = () => {
     setLoadingQuality(null);
     setUsingFallback(false);
 
-    // Generate fallback direct URLs immediately (async)
+    // Check if this is a video - if so, skip progressive loading and use direct URLs
+    const isVideo = mediaType === 'video' || 
+                   storagePath.includes('.mp4') || 
+                   storagePath.includes('.webm') || 
+                   storagePath.includes('.mov') ||
+                   storagePath.includes('.avi');
+
     const cleanPath = storagePath.replace(/^content\//, '');
+    
+    // For videos, go directly to signed URLs without progressive loading attempts
+    if (isVideo) {
+      console.log('📹 Video detected, using direct signed URL path');
+      setLoadingQuality('high');
+      
+      try {
+        const directUrl = await getDirectUrl(cleanPath);
+        if (directUrl) {
+          const videoUrls = { high: directUrl };
+          setUrls(videoUrls);
+          setCurrentQuality('high');
+          console.log('✅ Video URL loaded successfully');
+        } else {
+          console.warn('⚠️ Failed to get direct video URL');
+        }
+      } catch (error) {
+        console.error('❌ Failed to load video:', error);
+      } finally {
+        setLoadingQuality(null);
+      }
+      return;
+    }
+
+    // For images, use the progressive loading strategy
     const generateFallbacks = async () => {
       try {
         const fallbacks: ProgressiveMedia = {
@@ -126,7 +162,7 @@ export const useProgressiveMediaLoading = () => {
           high: await getDirectUrl(cleanPath, { quality: 85 })
         };
         setFallbackUrls(fallbacks);
-        console.log('🔄 Generated fallback URLs:', fallbacks);
+        console.log('🔄 Generated image fallback URLs');
         return fallbacks;
       } catch (error) {
         console.error('❌ Failed to generate fallback URLs:', error);
@@ -198,12 +234,12 @@ export const useProgressiveMediaLoading = () => {
       return null;
     };
 
-    // Try progressive loading, fallback to direct URLs if it fails
+    // Try progressive loading, fallback to direct URLs if transformation fails
     try {
       // Load low quality immediately (should be very fast)
       const lowUrl = await loadQuality('low', 45);
       if (!lowUrl) {
-        console.log('🔄 Progressive loading failed, waiting for fallback URLs...');
+        console.log('🔄 Image transformation unavailable, using direct URLs...');
         const fallbacks = await fallbackPromise;
         setUsingFallback(true);
         setUrls(fallbacks);
@@ -216,8 +252,7 @@ export const useProgressiveMediaLoading = () => {
         setTimeout(() => loadQuality('high', 85), 800);
       }
     } catch (error) {
-      console.error('❌ Progressive loading completely failed:', error);
-      console.log('🔄 Waiting for fallback URLs...');
+      console.warn('⚠️ Progressive image loading unavailable, using direct URLs');
       const fallbacks = await fallbackPromise;
       setUsingFallback(true);
       setUrls(fallbacks);

@@ -179,7 +179,7 @@ export const MediaPreviewDialog = ({
       try {
         console.log('🚀 Starting progressive media load for path:', storagePath);
         if (isMounted) {
-          await loadProgressiveMedia(storagePath, item.tiny_placeholder);
+          await loadProgressiveMedia(storagePath, item.tiny_placeholder, item.type);
         }
       } catch (error) {
         console.error('❌ Failed to load media for item:', item.id, 'path:', storagePath, 'error:', error);
