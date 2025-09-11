@@ -118,32 +118,6 @@ export const useSimpleMedia = () => {
   }, [getMediaUrl]);
 
   const getFullUrlAsync = useCallback(async (item: SimpleMediaItem) => {
-    // Check if this is a video - if so, use direct Supabase signed URLs to avoid transformation errors
-    const isVideo = item.media_type === 'video' || 
-                   item.original_path.includes('.mp4') || 
-                   item.original_path.includes('.webm') || 
-                   item.original_path.includes('.mov') ||
-                   item.original_path.includes('.avi');
-    
-    if (isVideo) {
-      // For videos, go directly to Supabase signed URLs without trying transformations
-      const cleanPath = item.processed_path || item.original_path;
-      if (!cleanPath) return null;
-      
-      try {
-        const { data } = await supabase.storage
-          .from('content')
-          .createSignedUrl(cleanPath.replace(/^content\//, ''), 3600); // 1 hour expiry
-        
-        return data?.signedUrl || null;
-      } catch (error) {
-        console.warn('Failed to get direct video URL, trying fallback:', error);
-        // If direct approach fails, try the regular media URL as fallback
-        return await getMediaUrl(cleanPath, false);
-      }
-    }
-    
-    // For non-video media, use the existing logic
     // First, try the processed path if available
     if (item.processed_path) {
       const processedUrl = await getMediaUrl(item.processed_path, false);

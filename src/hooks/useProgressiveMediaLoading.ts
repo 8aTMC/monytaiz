@@ -54,24 +54,14 @@ export const useProgressiveMediaLoading = () => {
 
   const getSecureUrl = async (path: string, quality: number): Promise<string | null> => {
     try {
-      // Clean the path - remove any existing content/ prefix to avoid duplication
-      const cleanPath = path.replace(/^content\//, '');
-      console.log('🔗 Attempting to get secure URL for clean path:', cleanPath, 'quality:', quality);
-      
-      const params = new URLSearchParams({ 
-        path: cleanPath,
-        quality: quality.toString()
-      });
-      
+      console.log('🔗 Attempting to get secure URL for path:', path, 'quality:', quality);
+      const params = new URLSearchParams({ path, quality: quality.toString() });
       const session = await supabase.auth.getSession();
+      
       if (!session.data.session?.access_token) {
         console.error('❌ No auth session available');
         throw new Error('No auth session');
       }
-
-      // Add timeout protection for edge function calls
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
       const response = await fetch(
         `https://alzyzfjzwvofmjccirjq.supabase.co/functions/v1/fast-secure-media?${params.toString()}`,
@@ -79,12 +69,10 @@ export const useProgressiveMediaLoading = () => {
           headers: {
             'Authorization': `Bearer ${session.data.session.access_token}`,
             'Content-Type': 'application/json'
-          },
-          signal: controller.signal
+          }
         }
       );
 
-      clearTimeout(timeoutId);
       console.log('📡 Edge function response status:', response.status);
       
       if (!response.ok) {
@@ -94,7 +82,7 @@ export const useProgressiveMediaLoading = () => {
       }
       
       const result = await response.json();
-      console.log('✅ Edge function result for quality', quality, ':', !!result.url);
+      console.log('✅ Edge function result:', result);
       
       if (result.error) {
         console.error('❌ Edge function returned error:', result.error);
@@ -102,13 +90,13 @@ export const useProgressiveMediaLoading = () => {
       }
       
       return result.url;
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.warn('⏰ Secure URL request timed out for path:', path);
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          return null;
+        }
+        // Only log as error if it's not an expected video/image transformation failure
+        console.warn('Secure URL generation failed, will use fallback:', error);
         return null;
-      }
-      console.warn('⚠️ Secure URL generation failed, will use fallback:', error);
-      return null;
     }
   };
 
@@ -139,9 +127,7 @@ export const useProgressiveMediaLoading = () => {
                    storagePath.includes('.mov') ||
                    storagePath.includes('.avi');
 
-    // Clean the path - ensure consistent format without content/ prefix
     const cleanPath = storagePath.replace(/^content\//, '');
-    console.log('🧹 Clean storage path:', cleanPath, 'from original:', storagePath);
     
     // For videos, go directly to signed URLs without progressive loading attempts
     if (isVideo) {
@@ -214,7 +200,7 @@ export const useProgressiveMediaLoading = () => {
 
       setLoadingQuality(qualityName);
       
-      const promise = getSecureUrl(cleanPath, qualityValue);
+      const promise = getSecureUrl(storagePath, qualityValue);
       loadingRef.current[loadKey] = promise;
       
       try {

@@ -2,8 +2,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Image, Video, Headphones, FileImage } from 'lucide-react';
 import { useOptimizedMediaDisplay } from '@/hooks/useOptimizedMediaDisplay';
-import { useOptimizedThumbnail } from '@/hooks/useOptimizedThumbnail';
-import { useSimpleLibraryMedia } from '@/hooks/useSimpleLibraryMedia';
 import { useThumbnailUrl } from '@/hooks/useThumbnailUrl';
 import { WaveformIcon } from '@/components/icons/WaveformIcon';
 import { MediaDebugPanel } from '@/components/MediaDebugPanel';
@@ -18,8 +16,6 @@ interface MediaThumbnailProps {
     title: string | null;
     tiny_placeholder?: string;
     thumbnail_path?: string;
-    processed_path?: string;
-    original_path?: string;
     width?: number;
     height?: number;
     renditions?: {
@@ -27,28 +23,18 @@ interface MediaThumbnailProps {
       video_720?: string;
     };
   };
-  file?: File; // For review queue items
   className?: string;
   isPublic?: boolean;
   debug?: boolean;
   forceSquare?: boolean;
 }
 
-export const MediaThumbnail = ({ item, file, className = "", isPublic = false, debug = false, forceSquare = false }: MediaThumbnailProps) => {
-  // Detect if this is a File object (review queue) or stored media (library)
-  const isFileObject = !!file;
-  
-  // For File objects (review queue), use optimized thumbnail generation
-  const { thumbnail: fileThumbnail, isLoading: fileLoading } = useOptimizedThumbnail(file || new File([], ''));
-  
-  // For stored media (library), use simple library media hook
-  const { getThumbnailUrl: getLibraryThumbnail, thumbnailUrl: libraryThumbnailUrl, isLoading: libraryLoading, error: libraryError, resetMedia } = useSimpleLibraryMedia();
-  
-  // Fallback for existing useThumbnailUrl (legacy)
-  const { thumbnailUrl: legacyThumbnailUrl, loading: legacyLoading } = useThumbnailUrl(item.thumbnail_path);
-  
+export const MediaThumbnail = ({ item, className = "", isPublic = false, debug = false, forceSquare = false }: MediaThumbnailProps) => {
+  const { loadOptimizedMedia, currentUrl, isLoading, error, clearMedia } = useOptimizedMediaDisplay();
   const [imageLoadError, setImageLoadError] = useState(false);
-  const [libraryThumbnailLoaded, setLibraryThumbnailLoaded] = useState(false);
+  
+  // Use the exact thumbnail_path from database - don't reconstruct it
+  const { thumbnailUrl, loading: thumbnailLoading } = useThumbnailUrl(item.thumbnail_path);
 
   // HEIC detection utility
   const isHEICFile = (path?: string) => {
@@ -65,7 +51,7 @@ export const MediaThumbnail = ({ item, file, className = "", isPublic = false, d
   // Reset image load error when item changes
   useEffect(() => {
     setImageLoadError(false);
-  }, [item.id, libraryThumbnailUrl]);
+  }, [item.id, currentUrl]);
 
   // Create stable media item object to prevent infinite re-renders
   const stableMediaItem = useMemo(() => ({
@@ -98,22 +84,21 @@ export const MediaThumbnail = ({ item, file, className = "", isPublic = false, d
     }
   };
 
-  // Load library media for stored items (not File objects)
+  // Load optimized media on mount with stable dependencies, but skip for videos with thumbnails
   useEffect(() => {
-    if (!isFileObject && stableMediaItem.id && stableMediaItem.type && !libraryThumbnailLoaded) {
-      getLibraryThumbnail(stableMediaItem as any).then(() => {
-        setLibraryThumbnailLoaded(true);
-      });
+    // Skip loading optimized media for videos that have thumbnail_path - prioritize actual thumbnails
+    const shouldSkipOptimizedLoading = (stableMediaItem.type === 'video' && stableMediaItem.thumbnail_path);
+    
+    if (stableMediaItem.type && (stableMediaItem.storage_path || stableMediaItem.path) && !shouldSkipOptimizedLoading) {
+      // Always treat content as private since content bucket is private
+      loadOptimizedMedia(stableMediaItem, false);
     }
 
-    // Reset when item changes
-    if (!isFileObject) {
-      return () => {
-        resetMedia();
-        setLibraryThumbnailLoaded(false);
-      };
-    }
-  }, [isFileObject, stableMediaItem.id, stableMediaItem.type, libraryThumbnailLoaded, getLibraryThumbnail, resetMedia]);
+    // Cleanup function
+    return () => {
+      clearMedia();
+    };
+  }, [stableMediaItem.id, stableMediaItem.type, stableMediaItem.storage_path, stableMediaItem.path, stableMediaItem.thumbnail_path, isCurrentHEIC]);
 
   // Calculate aspect ratio respecting video proportions
   const calculateAspectRatio = () => {
@@ -147,11 +132,7 @@ export const MediaThumbnail = ({ item, file, className = "", isPublic = false, d
       {debug && (
         <MediaDebugPanel 
           item={item} 
-          mediaState={{ 
-            currentUrl: libraryThumbnailUrl || legacyThumbnailUrl || fileThumbnail, 
-            isLoading: libraryLoading || legacyLoading || fileLoading, 
-            error: libraryError || imageLoadError 
-          }} 
+          mediaState={{ currentUrl, isLoading, error }} 
         />
       )}
       {renderThumbnail()}
@@ -159,60 +140,26 @@ export const MediaThumbnail = ({ item, file, className = "", isPublic = false, d
   );
 
   function renderThumbnail() {
-    // Determine which thumbnail to use based on context
-    let thumbnailSrc: string | null = null;
-    let isLoading = false;
-    let hasError = false;
+    // For non-image types, show thumbnail if available, otherwise show icon with natural aspect ratio
+  if (item.type !== 'image') {
+    // Check for thumbnail from simple_media first, then tiny_placeholder
+    const thumbnailSrc = thumbnailUrl || 
+      (item.tiny_placeholder && item.tiny_placeholder !== 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==' ? item.tiny_placeholder : null);
     
-    if (isFileObject) {
-      // For File objects (review queue), use file thumbnail
-      thumbnailSrc = fileThumbnail;
-      isLoading = fileLoading;
-    } else {
-      // For stored media (library), use library thumbnail, fallback to legacy
-      thumbnailSrc = libraryThumbnailUrl || legacyThumbnailUrl;
-      isLoading = libraryLoading || legacyLoading;
-      hasError = libraryError;
-    }
-    
-    // For non-image types, show thumbnail if available, otherwise show icon
-    if (item.type !== 'image') {
-      // Also check tiny_placeholder for fallback
-      const finalThumbnailSrc = thumbnailSrc || 
-        (item.tiny_placeholder && item.tiny_placeholder !== 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==' ? item.tiny_placeholder : null);
-      
-      if (finalThumbnailSrc && !isLoading) {
-        return (
-          <div 
-            className={`bg-muted rounded-xl relative overflow-hidden group ${className}`}
-            style={{ aspectRatio }}
-          >
-            <img
-              src={finalThumbnailSrc}
-              alt={item.title || `${item.type} thumbnail`}
-              className={`w-full h-full ${forceSquare || item.type !== 'video' ? 'object-cover' : 'object-contain'} block media`}
-              loading="lazy"
-              decoding="async"
-            />
-            {/* Media type icon */}
-            <div className="absolute bottom-3 right-2 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
-              {item.type === 'video' && <Video className="w-3.5 h-3.5 text-white" />}
-              {item.type === 'audio' && <Headphones className="w-3.5 h-3.5 text-white" />}
-            </div>
-          </div>
-        );
-      }
-      
-      // Fallback to icon if no thumbnail
+    if (thumbnailSrc && !thumbnailLoading) {
       return (
         <div 
-          className={`bg-muted rounded-xl flex items-center justify-center relative overflow-hidden ${className}`}
+          className={`bg-muted rounded-xl relative overflow-hidden group ${className}`}
           style={{ aspectRatio }}
         >
-          <div className="flex flex-col items-center gap-2">
-            {getContentTypeIcon(item.type)}
-          </div>
-          {/* Media type icon for non-image fallback */}
+          <img
+            src={thumbnailSrc}
+            alt={item.title || `${item.type} thumbnail`}
+            className={`w-full h-full ${forceSquare || item.type !== 'video' ? 'object-cover' : 'object-contain'} block media`}
+            loading="lazy"
+            decoding="async"
+          />
+          {/* Media type icon */}
           <div className="absolute bottom-3 right-2 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
             {item.type === 'video' && <Video className="w-3.5 h-3.5 text-white" />}
             {item.type === 'audio' && <Headphones className="w-3.5 h-3.5 text-white" />}
@@ -220,9 +167,27 @@ export const MediaThumbnail = ({ item, file, className = "", isPublic = false, d
         </div>
       );
     }
+    
+    // Fallback to icon if no thumbnail
+    return (
+      <div 
+        className={`bg-muted rounded-xl flex items-center justify-center relative overflow-hidden ${className}`}
+        style={{ aspectRatio }}
+      >
+        <div className="flex flex-col items-center gap-2">
+          {getContentTypeIcon(item.type)}
+        </div>
+        {/* Media type icon for non-image fallback */}
+        <div className="absolute bottom-3 right-2 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
+          {item.type === 'video' && <Video className="w-3.5 h-3.5 text-white" />}
+          {item.type === 'audio' && <Headphones className="w-3.5 h-3.5 text-white" />}
+        </div>
+      </div>
+    );
+  }
 
-    // Show loading state
-    if (isLoading && !thumbnailSrc) {
+  // Show loading state with natural aspect ratio
+  if (isLoading && !currentUrl) {
     return (
       <div 
         className={`bg-muted rounded-xl flex items-center justify-center relative overflow-hidden ${className}`}
@@ -232,57 +197,72 @@ export const MediaThumbnail = ({ item, file, className = "", isPublic = false, d
           <Image className="h-8 w-8 text-muted-foreground" />
         </div>
       </div>
-      );
-    }
-
-    // For images, show thumbnail or error state
-    if (thumbnailSrc) {
-      return (
-        <div 
-          className={`bg-muted rounded-xl relative overflow-hidden ${className}`}
-          style={{ aspectRatio }}
-        >
-          <img
-            src={thumbnailSrc}
-            alt={item.title || 'Media thumbnail'}
-            className="w-full h-full object-cover transition-opacity duration-200 block media"
-            loading="lazy"
-            decoding="async"
-            onError={() => setImageLoadError(true)}
-          />
-          {/* Media type icon */}
-          <div className="absolute bottom-3 right-2 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
-            <Image className="w-3.5 h-3.5 text-white" />
-          </div>
-        </div>
-      );
-    }
-
-    // Error state or no thumbnail available
-    if (hasError || imageLoadError) {
-      return (
-        <div 
-          className={`bg-muted rounded-xl relative overflow-hidden flex items-center justify-center ${className}`}
-          style={{ aspectRatio }}
-        >
-          <div className="flex flex-col items-center gap-2">
-            {getContentTypeIcon(item.type)}
-            <span className="text-xs text-muted-foreground">Failed to load</span>
-          </div>
-        </div>
-      );
-    }
-
-    // Default fallback
-    return (
-      <div 
-        className={`bg-muted rounded-xl flex items-center justify-center relative overflow-hidden ${className}`}
-        style={{ aspectRatio }}
-      >
-        <div className="flex flex-col items-center gap-2">
-          {getContentTypeIcon(item.type)}
-        </div>
-      </div>
     );
+  }
+
+  // Calculate display dimensions
+  const aspectWidth = item.width ? Math.min(item.width, 256) : 256;
+  const aspectHeight = item.height ? Math.round((aspectWidth / (item.width ?? 1)) * (item.height ?? 256)) : 256;
+
+  return (
+    <div 
+      className={`bg-muted rounded-xl relative overflow-hidden ${className}`}
+      style={{ aspectRatio }}
+    >
+      {/* Show HEIC fallback for HEIC files that fail to load or have no URL */}
+      {(isCurrentHEIC && (imageLoadError || (!currentUrl && !isLoading))) ? (
+        <div className="w-full h-full flex items-center justify-center">
+          <div className="flex flex-col items-center gap-2">
+            <FileImage className="h-8 w-8 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground font-medium">HEIC</span>
+          </div>
+          {/* HEIC format badge */}
+          <div className="absolute bottom-3 right-2 px-2 py-1 bg-orange-500/90 rounded text-white text-xs font-medium">
+            HEIC
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Show current URL if available */}
+          {currentUrl && !error && (
+            <>
+              <img
+                src={currentUrl}
+                alt={item.title || 'Media thumbnail'}
+                className="w-full h-full object-cover transition-opacity duration-200 block media"
+                loading="lazy"
+                decoding="async"
+                width={aspectWidth}
+                height={aspectHeight}
+                onError={() => {
+                  setImageLoadError(true);
+                }}
+              />
+              {/* Media type icon or HEIC badge */}
+              {isCurrentHEIC ? (
+                <div className="absolute bottom-3 right-2 px-2 py-1 bg-orange-500/90 rounded text-white text-xs font-medium">
+                  HEIC
+                </div>
+              ) : (
+                <div className="absolute bottom-3 right-2 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
+                  <Image className="w-3.5 h-3.5 text-white" />
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Error state for non-HEIC files */}
+          {error && !isCurrentHEIC && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-2">
+                {getContentTypeIcon('image')}
+                <span className="text-xs text-muted-foreground">Failed to load</span>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
   }
 };

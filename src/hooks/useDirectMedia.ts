@@ -30,11 +30,10 @@ export const useDirectMedia = () => {
     }
 
     try {
-      // Clean path - ensure no content/ prefix for signed URL generation
+      // Ensure path doesn't have content/ prefix for signed URL generation
       const cleanPath = path.replace(/^content\//, '');
-      console.log('🧹 Using clean path for signed URL:', cleanPath);
       
-      // Generate signed URL with transforms and timeout protection
+      // Generate signed URL with transforms
       let signedUrlOptions: any = { expiresIn: 3600 };
       
       // Add transforms for images if specified
@@ -47,16 +46,9 @@ export const useDirectMedia = () => {
         };
       }
 
-      // Add timeout to prevent hanging requests
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Signed URL timeout')), 8000)
-      );
-
-      const urlPromise = supabase.storage
+      const { data, error } = await supabase.storage
         .from('content')
         .createSignedUrl(cleanPath, 3600, signedUrlOptions);
-
-      const { data, error } = await Promise.race([urlPromise, timeoutPromise]);
 
       if (error) {
         console.error('❌ Failed to generate signed URL:', error);
