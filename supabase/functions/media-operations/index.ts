@@ -9,6 +9,7 @@ declare const EdgeRuntime: {
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 }
 
 interface CopyToCollectionRequest {
@@ -86,14 +87,14 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Check user role - must be management role
+    // Check user role - must be management role (but chatter cannot delete)
     const { data: userRoles } = await supabaseClient
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
       .single()
 
-    if (!userRoles || !['owner', 'superadmin', 'admin', 'manager', 'chatter'].includes(userRoles.role)) {
+    if (!userRoles || !['owner', 'superadmin', 'admin', 'manager'].includes(userRoles.role)) {
       console.error('Insufficient permissions:', userRoles)
       return new Response(
         JSON.stringify({ error: 'Insufficient permissions' }),
@@ -466,22 +467,52 @@ async function removeFromFolder(supabaseClient: any, userId: string, folderId: s
 
 async function deleteMediaHard(supabaseClient: any, userId: string, mediaIds: string[]) {
   try {
-    // Get media details for storage cleanup - check all three tables
+    console.log(`[DELETION] Starting hard delete for user ${userId}, media IDs: ${mediaIds.join(', ')}`);
+
+    // Get user role to determine permissions
+    const { data: userRoles } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .single()
+
+    const isAdmin = userRoles && ['owner', 'superadmin', 'admin'].includes(userRoles.role)
+    console.log(`[DELETION] User role: ${userRoles?.role}, isAdmin: ${isAdmin}`);
+
+    // Get media details for ownership validation and storage cleanup
     const [simpleMediaResults, mediaResults, contentResults] = await Promise.all([
       supabaseClient
         .from('simple_media')
-        .select('id, processed_path, original_path, thumbnail_path')
+        .select('id, creator_id, processed_path, original_path, thumbnail_path')
         .in('id', mediaIds),
       supabaseClient
         .from('media')
-        .select('id, storage_path')
+        .select('id, creator_id, storage_path')
         .in('id', mediaIds),
       supabaseClient
         .from('content_files')
-        .select('id, file_path')
+        .select('id, creator_id, file_path')
         .in('id', mediaIds)
         .eq('is_active', true)
     ])
+
+    // Check ownership - users can only delete their own content unless they're admins
+    const allMediaWithOwnership = [
+      ...(simpleMediaResults.data || []),
+      ...(mediaResults.data || []),
+      ...(contentResults.data || [])
+    ]
+
+    if (!isAdmin) {
+      const unauthorizedItems = allMediaWithOwnership.filter((item: any) => item.creator_id !== userId)
+      if (unauthorizedItems.length > 0) {
+        console.error(`[DELETION] Unauthorized deletion attempt by ${userId} for items: ${unauthorizedItems.map(i => i.id).join(', ')}`);
+        return new Response(
+          JSON.stringify({ error: 'Cannot delete media not owned by you' }),
+          { status: 403, headers: corsHeaders }
+        )
+      }
+    }
 
     // Combine results from all three tables, normalizing file paths
     const allMedia = [
@@ -500,31 +531,54 @@ async function deleteMediaHard(supabaseClient: any, userId: string, mediaIds: st
     ]
 
     if (allMedia.length === 0) {
+      console.log(`[DELETION] No media found to delete for IDs: ${mediaIds.join(', ')}`);
       return new Response(
         JSON.stringify({ error: 'No media found to delete' }),
         { status: 404, headers: corsHeaders }
       )
     }
 
-    // Delete from storage first
-    const storagePromises = allMedia.flatMap((item: any) => 
-      item.file_paths.map(async (file_path: string) => {
-        if (file_path) {
-          const { error } = await supabaseClient.storage
-            .from('content')
-            .remove([file_path])
-          
-          if (error) {
-            console.error(`Failed to delete storage file ${file_path}:`, error)
-          }
-        }
-      })
+    // Create service role client for reliable storage operations
+    const serviceClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    await Promise.all(storagePromises)
+    // Delete from storage first using service role for better reliability
+    console.log(`[DELETION] Deleting ${allMedia.length} media items from storage`);
+    const filesToDelete = allMedia.flatMap((item: any) => item.file_paths).filter(Boolean)
+    console.log(`[DELETION] Files to delete: ${filesToDelete.join(', ')}`);
+
+    let storageDeletesSucceeded = 0;
+    let storageDeletesFailed = 0;
+
+    if (filesToDelete.length > 0) {
+      // Delete files in batches to avoid timeouts
+      const batchSize = 10;
+      for (let i = 0; i < filesToDelete.length; i += batchSize) {
+        const batch = filesToDelete.slice(i, i + batchSize);
+        
+        try {
+          const { data, error } = await serviceClient.storage
+            .from('content')
+            .remove(batch)
+          
+          if (error) {
+            console.error(`[DELETION] Failed to delete storage batch ${i}:`, error);
+            storageDeletesFailed += batch.length;
+          } else {
+            console.log(`[DELETION] Successfully deleted ${batch.length} files from storage`);
+            storageDeletesSucceeded += batch.length;
+          }
+        } catch (batchError) {
+          console.error(`[DELETION] Storage batch error:`, batchError);
+          storageDeletesFailed += batch.length;
+        }
+      }
+    }
 
     // Delete related records first to avoid foreign key constraints
-    console.log('Cleaning up related records for media IDs:', mediaIds)
+    console.log(`[DELETION] Cleaning up related records for media IDs: ${mediaIds.join(', ')}`);
     
     const cleanupResults = await Promise.allSettled([
       // Delete collection items
@@ -581,15 +635,21 @@ async function deleteMediaHard(supabaseClient: any, userId: string, mediaIds: st
       'user_behavior_analytics', 'negotiations', 'purchases'
     ]
     
+    let cleanupSucceeded = 0;
+    let cleanupFailed = 0;
+    
     cleanupResults.forEach((result, index) => {
       if (result.status === 'rejected') {
-        console.error(`Failed to cleanup ${cleanupLabels[index]}:`, result.reason)
+        console.error(`[DELETION] Failed to cleanup ${cleanupLabels[index]}:`, result.reason)
+        cleanupFailed++;
       } else {
-        console.log(`Successfully cleaned up ${cleanupLabels[index]}`)
+        console.log(`[DELETION] Successfully cleaned up ${cleanupLabels[index]}`)
+        cleanupSucceeded++;
       }
     })
 
     // Delete from all three database tables
+    console.log(`[DELETION] Deleting media records from database tables`);
     const [simpleDeleteResult, mediaDeleteResult, contentDeleteResult] = await Promise.all([
       supabaseClient
         .from('simple_media')
@@ -605,22 +665,46 @@ async function deleteMediaHard(supabaseClient: any, userId: string, mediaIds: st
         .in('id', mediaIds)
     ])
 
-    console.log('Delete results:', {
-      simple: simpleDeleteResult,
-      media: mediaDeleteResult,
-      content: contentDeleteResult
+    console.log('[DELETION] Delete results:', {
+      simple: simpleDeleteResult.error ? `Error: ${simpleDeleteResult.error.message}` : 'Success',
+      media: mediaDeleteResult.error ? `Error: ${mediaDeleteResult.error.message}` : 'Success',
+      content: contentDeleteResult.error ? `Error: ${contentDeleteResult.error.message}` : 'Success',
+      storageSucceeded: storageDeletesSucceeded,
+      storageFailed: storageDeletesFailed,
+      cleanupSucceeded: cleanupSucceeded,
+      cleanupFailed: cleanupFailed
     })
+
+    // Check if any critical operations failed
+    const dbErrors = [simpleDeleteResult.error, mediaDeleteResult.error, contentDeleteResult.error].filter(Boolean)
+    
+    if (dbErrors.length > 0) {
+      console.error(`[DELETION] Database deletion errors:`, dbErrors);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to delete some media records from database',
+          details: dbErrors.map(e => e.message)
+        }),
+        { status: 500, headers: corsHeaders }
+      )
+    }
+
+    const message = storageDeletesFailed > 0 
+      ? `Deleted ${mediaIds.length} media records (${storageDeletesFailed} storage files failed to delete)`
+      : `Successfully deleted ${mediaIds.length} media files`
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Permanently deleted ${mediaIds.length} media files`,
-        deleted_count: mediaIds.length 
+        message,
+        deleted_count: mediaIds.length,
+        storage_files_deleted: storageDeletesSucceeded,
+        storage_files_failed: storageDeletesFailed
       }),
       { headers: corsHeaders }
     )
   } catch (error) {
-    console.error('Delete media hard error:', error)
+    console.error('[DELETION] Delete media hard error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: corsHeaders }
