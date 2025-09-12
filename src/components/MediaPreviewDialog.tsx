@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogPortal } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Image, Video, FileAudio, FileText, X, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { Image, Video, FileAudio, FileText, X, ChevronLeft, ChevronRight, Check, Play, Pause } from 'lucide-react';
 import { useSidebar } from '@/components/Navigation';
 import { useProgressiveMediaLoading } from '@/hooks/useProgressiveMediaLoading';
 import { useIntersectionPreloader } from '@/hooks/useIntersectionPreloader';
@@ -62,6 +62,8 @@ export const MediaPreviewDialog = ({
   const sidebar = useSidebar();
   const modalRef = useRef<HTMLDivElement>(null);
   const [needsScroll, setNeedsScroll] = useState(false);
+  const [gifPlaying, setGifPlaying] = useState(true);
+  const [gifNonce, setGifNonce] = useState(0);
   const { 
     loadProgressiveMedia, 
     enhanceQuality, 
@@ -370,27 +372,69 @@ export const MediaPreviewDialog = ({
 
                   {typeValue === 'gif' && (
                     <div className="relative w-full">
-                      {/* Direct GIF loading without progressive optimization */}
-                      {getCurrentUrl() ? (
-                        <img 
-                          src={getCurrentUrl()}
-                          alt={item.title || 'GIF Preview'} 
-                          className="w-full h-auto object-contain rounded transition-all duration-300 max-h-[85vh]"
-                          style={{
-                            aspectRatio: item.width && item.height ? `${item.width}/${item.height}` : 'auto'
-                          }}
-                          loading="eager"
-                          decoding="async"
-                          onError={(e) => {
-                            console.error('Failed to load GIF:', e);
-                          }}
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center h-64 bg-muted/20 rounded">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/60"></div>
-                        </div>
-                      )}
-                      
+                      {/* Direct GIF loading without progressive optimization + play/pause overlay */}
+                      {(() => {
+                        const gifUrl = getCurrentUrl();
+                        const cacheBust = gifUrl ? (gifUrl.includes('?') ? `&t=${gifNonce}` : `?t=${gifNonce}`) : '';
+                        const effectiveSrc = gifPlaying
+                          ? (gifUrl ? `${gifUrl}${cacheBust}` : null)
+                          : (item.tiny_placeholder || gifUrl);
+                        return (
+                          <>
+                            {effectiveSrc ? (
+                              <img
+                                src={effectiveSrc}
+                                alt={item.title || 'GIF Preview'}
+                                className="w-full h-auto object-contain rounded transition-all duration-300 max-h-[85vh]"
+                                style={{
+                                  aspectRatio: item.width && item.height ? `${item.width}/${item.height}` : 'auto'
+                                }}
+                                loading="eager"
+                                decoding="async"
+                                draggable={false}
+                                onError={(e) => {
+                                  console.error('Failed to load GIF:', e);
+                                }}
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center h-64 bg-muted/20 rounded">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/60"></div>
+                              </div>
+                            )}
+
+                            {/* Play/Pause control */}
+                            {gifUrl && (
+                              <div className="absolute bottom-4 left-4 z-20">
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setGifPlaying((p) => !p);
+                                    setGifNonce((n) => n + 1); // restart animation when toggling play
+                                  }}
+                                  aria-pressed={gifPlaying}
+                                  aria-label={gifPlaying ? 'Pause GIF' : 'Play GIF'}
+                                  className="bg-background/80 backdrop-blur-sm"
+                                >
+                                  {gifPlaying ? (
+                                    <div className="flex items-center gap-2">
+                                      <Pause className="h-4 w-4" />
+                                      Pause
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2">
+                                      <Play className="h-4 w-4" />
+                                      Play
+                                    </div>
+                                  )}
+                                </Button>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+
                       {/* GIF indicator */}
                       {getCurrentUrl() && (
                         <div className="absolute top-2 left-2 z-10">
