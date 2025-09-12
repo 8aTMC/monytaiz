@@ -73,12 +73,14 @@ Deno.serve(async (req) => {
     console.log(`Generating signed URL for user ${user.id}, path: ${path}`)
     console.log(`Request params - width: ${width}, height: ${height}, quality: ${quality}, format: ${format}`)
 
-    // Check if this is a HEIC file EARLY
+    // Check if this is a HEIC file or GIF EARLY
     const isHEICFile = path.toLowerCase().includes('.heic') || 
                        path.toLowerCase().includes('.heif') || 
                        path.toLowerCase().includes('.heix')
     
-    console.log(`HEIC Detection - path: ${path}, isHEICFile: ${isHEICFile}`)
+    const isGIFFile = path.toLowerCase().includes('.gif')
+    
+    console.log(`Special File Detection - path: ${path}, isHEICFile: ${isHEICFile}, isGIFFile: ${isGIFFile}`)
 
     // Generate optimized signed URL
     const supabaseService = createClient(
@@ -141,7 +143,62 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`NON-HEIC FILE - Proceeding with normal processing: ${path}`)
+    // IMMEDIATE GIF CHECK - Exit early for GIF files to preserve animation
+    if (isGIFFile) {
+      console.log(`GIF FILE DETECTED - Processing without transforms to preserve animation: ${path}`)
+      
+      try {
+        const { data: urlData, error: urlError } = await supabaseService.storage
+          .from('content')
+          .createSignedUrl(path, 7200) // No transforms for GIF files
+
+        if (urlError) {
+          console.error('GIF STORAGE ERROR:', {
+            path,
+            errorMessage: urlError.message,
+            errorName: urlError.name,
+            errorStack: urlError.stack
+          })
+          return new Response(
+            JSON.stringify({ 
+              error: 'Failed to generate secure URL for GIF file', 
+              details: urlError.message,
+              path: path
+            }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        console.log('GIF SUCCESS - Generated signed URL without transforms:', path)
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            url: urlData.signedUrl,
+            expires_at: new Date(Date.now() + 7200 * 1000).toISOString(),
+            fileType: 'GIF'
+          }),
+          { 
+            headers: { 
+              ...corsHeaders, 
+              'Content-Type': 'application/json',
+              'Cache-Control': 'public, max-age=3600'
+            }
+          }
+        )
+      } catch (gifError) {
+        console.error('GIF EXCEPTION:', gifError)
+        return new Response(
+          JSON.stringify({ 
+            error: 'Exception processing GIF file', 
+            details: gifError.message,
+            path: path
+          }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
+    console.log(`REGULAR FILE - Proceeding with normal processing: ${path}`)
     if (path.includes('.mp4') || path.includes('.webm') || path.includes('.mov')) {
       // Try to find processed quality variant matching the request
       let targetPath = path
@@ -196,12 +253,23 @@ Deno.serve(async (req) => {
       expiresIn: 7200, // 2 hours
     }
 
-    // SAFETY CHECK - Should never reach here for HEIC files
+    // SAFETY CHECK - Should never reach here for HEIC or GIF files
     if (isHEICFile) {
       console.error('CRITICAL ERROR - HEIC file reached transform section!', path)
       return new Response(
         JSON.stringify({ 
           error: 'HEIC file incorrectly reached transform section', 
+          path: path 
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (isGIFFile) {
+      console.error('CRITICAL ERROR - GIF file reached transform section!', path)
+      return new Response(
+        JSON.stringify({ 
+          error: 'GIF file incorrectly reached transform section', 
           path: path 
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

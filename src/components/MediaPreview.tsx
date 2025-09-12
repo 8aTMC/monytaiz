@@ -15,7 +15,7 @@ interface MediaPreviewProps {
   item: {
     id: string;
     title: string | null;
-    media_type: 'image' | 'video' | 'audio';
+    media_type: 'image' | 'video' | 'audio' | 'gif';
     processed_path?: string;
     thumbnail_path?: string;
     original_size_bytes: number;

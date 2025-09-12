@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast'
 export interface MediaItem {
   id: string
   title?: string
-  type: 'image' | 'video' | 'audio' | 'document'
+  type: 'image' | 'video' | 'audio' | 'gif' | 'document'
   storage_path: string
   created_at: string
 }

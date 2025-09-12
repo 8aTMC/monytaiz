@@ -39,7 +39,7 @@ export const AdvancedFileUpload = () => {
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
   const [duplicateFiles, setDuplicateFiles] = useState<{ id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]>([]);
   const [unsupportedDialogOpen, setUnsupportedDialogOpen] = useState(false);
-  const [unsupportedFiles, setUnsupportedFiles] = useState<{ id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]>([]);
+  const [unsupportedFiles, setUnsupportedFiles] = useState<{ id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'gif' | 'unknown'; file: File }[]>([]);
   const [heicWarningOpen, setHeicWarningOpen] = useState(false);
   const [heicFiles, setHeicFiles] = useState<string[]>([]);
   
@@ -56,7 +56,7 @@ export const AdvancedFileUpload = () => {
     setDuplicateDialogOpen(true);
   }, []);
   
-  const showUnsupportedDialog = useCallback((unsupported: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]) => {
+  const showUnsupportedDialog = useCallback((unsupported: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'gif' | 'unknown'; file: File }[]) => {
     setUnsupportedFiles(unsupported);
     setUnsupportedDialogOpen(true);
   }, []);

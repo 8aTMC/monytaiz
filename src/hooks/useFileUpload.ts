@@ -54,7 +54,7 @@ const getFileType = (file: File): keyof typeof FILE_LIMITS => {
   throw new Error(`Unsupported file type: ${extension}`);
 };
 
-const getUnsupportedFileType = (file: File): 'image' | 'video' | 'audio' | 'unknown' => {
+const getUnsupportedFileType = (file: File): 'image' | 'video' | 'audio' | 'gif' | 'unknown' => {
   const extension = '.' + file.name.split('.').pop()?.toLowerCase();
   const mimeType = file.type.toLowerCase();
   
@@ -157,7 +157,7 @@ export const useFileUpload = () => {
     }
   }, []);
 
-  const addFiles = useCallback((files: File[], showDuplicateDialog?: (duplicates: { id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]) => void, showUnsupportedDialog?: (unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]) => void, suppressDialogs?: boolean) => {
+  const addFiles = useCallback((files: File[], showDuplicateDialog?: (duplicates: { id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]) => void, showUnsupportedDialog?: (unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'gif' | 'unknown'; file: File }[]) => void, suppressDialogs?: boolean) => {
     if (uploadQueue.length + files.length > 100) {
       toast({
         title: "Too many files",
@@ -169,7 +169,7 @@ export const useFileUpload = () => {
 
     const validFiles: FileUploadItem[] = [];
     const errors: string[] = [];
-    const unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[] = [];
+    const unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'gif' | 'unknown'; file: File }[] = [];
     const duplicateFiles: { name: string; size: number; type: string; existingFile: File; newFile: File }[] = [];
     
     // Calculate current upload size from existing queue
@@ -338,7 +338,7 @@ export const useFileUpload = () => {
   const validateFilesOnly = useCallback((files: File[]) => {
     const validFiles: FileUploadItem[] = [];
     const errors: string[] = [];
-    const unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[] = [];
+    const unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'gif' | 'unknown'; file: File }[] = [];
     const duplicateFiles: { name: string; size: number; type: string; existingFile: File; newFile: File }[] = [];
     
     files.forEach((file, index) => {

@@ -8,7 +8,7 @@ interface FileUploadThumbnailProps {
 
 export const FileUploadThumbnail = ({ file, className = "w-12 h-12" }: FileUploadThumbnailProps) => {
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-  const [fileType, setFileType] = useState<'image' | 'video' | 'audio' | 'unknown'>('unknown');
+  const [fileType, setFileType] = useState<'image' | 'video' | 'audio' | 'gif' | 'unknown'>('unknown');
 
   useEffect(() => {
     const extension = '.' + file.name.split('.').pop()?.toLowerCase();

@@ -16,7 +16,7 @@ interface MediaItem {
   origin: 'upload' | 'story' | 'livestream' | 'message';
   storage_path: string;
   mime: string;
-  type: 'image' | 'video' | 'audio';
+  type: 'image' | 'video' | 'audio' | 'gif';
   size_bytes: number;
   tags: string[];
   suggested_price_cents: number;

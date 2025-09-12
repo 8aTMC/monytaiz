@@ -4,7 +4,7 @@ import { useAdvancedPreloader } from './useAdvancedPreloader';
 interface MediaItem {
   id: string;
   storage_path: string;
-  type: 'image' | 'video' | 'audio';
+  type: 'image' | 'video' | 'audio' | 'gif';
 }
 
 interface PreloaderOptions {

@@ -9,7 +9,7 @@ import { MediaDebugPanel } from '@/components/MediaDebugPanel';
 interface MediaThumbnailProps {
   item: {
     id?: string;
-    type: 'image' | 'video' | 'audio';
+    type: 'image' | 'video' | 'audio' | 'gif';
     storage_path?: string;
     file_path?: string;
     path?: string;

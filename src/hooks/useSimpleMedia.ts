@@ -17,7 +17,7 @@ export interface SimpleMediaItem {
   processed_path?: string;
   thumbnail_path?: string;
   mime_type: string;
-  media_type: 'image' | 'video' | 'audio';
+  media_type: 'image' | 'video' | 'audio' | 'gif';
   processing_status: 'pending' | 'processing' | 'processed' | 'failed';
   processing_error?: string;
   processed_at?: string;
@@ -55,8 +55,8 @@ export const useSimpleMedia = () => {
       // Type cast and validate fields
       const validatedMedia = (data || []).map(item => ({
         ...item,
-        media_type: (item.media_type === 'image' || item.media_type === 'video' || item.media_type === 'audio') 
-          ? item.media_type as 'image' | 'video' | 'audio'
+        media_type: (item.media_type === 'image' || item.media_type === 'video' || item.media_type === 'audio' || item.media_type === 'gif') 
+          ? item.media_type as 'image' | 'video' | 'audio' | 'gif'
           : 'image' as const,
         processing_status: (item.processing_status === 'pending' || item.processing_status === 'processing' || 
                            item.processing_status === 'processed' || item.processing_status === 'failed')

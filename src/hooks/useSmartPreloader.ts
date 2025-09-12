@@ -8,7 +8,7 @@ import { usePersistentMediaCache } from './usePersistentMediaCache';
 interface MediaItem {
   id: string;
   storage_path: string;
-  type: 'image' | 'video' | 'audio';
+  type: 'image' | 'video' | 'audio' | 'gif';
   size?: number;
   priority?: 'high' | 'medium' | 'low';
   lastViewed?: Date;

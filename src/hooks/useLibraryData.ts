@@ -8,7 +8,7 @@ interface MediaItem {
   origin: 'upload' | 'story' | 'livestream' | 'message';
   storage_path: string;
   mime: string;
-  type: 'image' | 'video' | 'audio';
+  type: 'image' | 'video' | 'audio' | 'gif';
   size_bytes: number;
   tags: string[];
   suggested_price_cents: number;
@@ -121,29 +121,38 @@ export const useLibraryData = ({
         }
 
         if (simpleMediaResults.data) {
-          const convertedSimpleMedia = simpleMediaResults.data.map(item => ({
-            id: item.id,
-            title: item.title || 'Untitled',
-            type: item.media_type,
-            bucket: 'content',
-            path: item.processed_path || item.original_path,
-            storage_path: item.processed_path || item.original_path,
-            mime: item.mime_type || '',
-            size_bytes: item.original_size_bytes || 0,
-            suggested_price_cents: item.suggested_price_cents || 0,
-            revenue_generated_cents: item.revenue_generated_cents || 0,
-            tags: item.tags || [],
-            mentions: item.mentions || [],
-            notes: item.description || null,
-            creator_id: item.creator_id,
-            created_at: item.created_at,
-            updated_at: item.updated_at,
-            origin: 'upload',
-            tiny_placeholder: undefined,
-            thumbnail_path: item.thumbnail_path,
-            width: item.width,
-            height: item.height
-          }));
+          const convertedSimpleMedia = simpleMediaResults.data.map(item => {
+            // For GIFs, prioritize original path to preserve animation
+            const isGif = item.mime_type === 'image/gif' || item.original_path?.toLowerCase().includes('.gif');
+            const storagePath = isGif ? (item.original_path || item.processed_path) : (item.processed_path || item.original_path);
+            const mediaType = isGif ? 'gif' : item.media_type;
+            
+            console.log('📊 SimpleMedia conversion:', item.id, 'mime:', item.mime_type, 'isGif:', isGif, 'type:', mediaType, 'path:', storagePath);
+            
+            return {
+              id: item.id,
+              title: item.title || 'Untitled',
+              type: mediaType,
+              bucket: 'content',
+              path: storagePath,
+              storage_path: storagePath,
+              mime: item.mime_type || '',
+              size_bytes: item.original_size_bytes || 0,
+              suggested_price_cents: item.suggested_price_cents || 0,
+              revenue_generated_cents: item.revenue_generated_cents || 0,
+              tags: item.tags || [],
+              mentions: item.mentions || [],
+              notes: item.description || null,
+              creator_id: item.creator_id,
+              created_at: item.created_at,
+              updated_at: item.updated_at,
+              origin: 'upload',
+              tiny_placeholder: undefined,
+              thumbnail_path: item.thumbnail_path,
+              width: item.width,
+              height: item.height
+            };
+          });
 
           combinedData = [...combinedData, ...convertedSimpleMedia];
         }
@@ -279,7 +288,7 @@ export const useLibraryData = ({
         .map(item => ({
           id: item.id,
           title: item.title || 'Untitled',
-          type: item.type as 'image' | 'video' | 'audio',
+          type: item.type as 'image' | 'video' | 'audio' | 'gif',
           origin: item.origin || 'upload' as const,
           storage_path: item.path || item.storage_path,
           created_at: item.created_at,

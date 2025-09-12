@@ -33,7 +33,7 @@ export const useOptimizedUpload = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Get file type for storage organization
-  const getFileType = useCallback((file: File): 'image' | 'video' | 'audio' | 'document' => {
+  const getFileType = useCallback((file: File): 'image' | 'video' | 'audio' | 'gif' | 'document' => {
     // Check MIME type first
     if (file.type.startsWith('image/')) return 'image';
     if (file.type.startsWith('video/')) return 'video';

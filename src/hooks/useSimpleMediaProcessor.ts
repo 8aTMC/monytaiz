@@ -6,7 +6,7 @@ export const useSimpleMediaProcessor = () => {
   const [processing, setProcessing] = useState(false);
   const { toast } = useToast();
 
-  const processSimpleMedia = async (mediaId: string, originalPath: string, mimeType: string, mediaType: 'image' | 'video' | 'audio') => {
+  const processSimpleMedia = async (mediaId: string, originalPath: string, mimeType: string, mediaType: 'image' | 'video' | 'audio' | 'gif') => {
     setProcessing(true);
     try {
       console.log(`Processing simple media: ${mediaId} (${mediaType})`);

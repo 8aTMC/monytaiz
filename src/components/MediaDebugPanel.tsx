@@ -8,7 +8,7 @@ import { Bug, ChevronDown, ChevronUp } from 'lucide-react';
 interface MediaDebugPanelProps {
   item: {
     id?: string;
-    type: 'image' | 'video' | 'audio';
+    type: 'image' | 'video' | 'audio' | 'gif';
     storage_path?: string;
     file_path?: string;
     path?: string;

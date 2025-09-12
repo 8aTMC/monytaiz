@@ -9,7 +9,7 @@ interface UnsupportedFile {
   id: string;
   name: string;
   size: number;
-  type: 'image' | 'video' | 'audio' | 'unknown';
+  type: 'image' | 'video' | 'audio' | 'gif' | 'unknown';
   file: File;
 }
 
@@ -21,7 +21,7 @@ interface UnsupportedFilesDialogProps {
   stepInfo?: { current: number; total: number } | null;
 }
 
-const getConversionUrl = (type: 'image' | 'video' | 'audio' | 'unknown'): string => {
+const getConversionUrl = (type: 'image' | 'video' | 'audio' | 'gif' | 'unknown'): string => {
   switch (type) {
     case 'image':
       return 'https://www.freeconvert.com/image-converter';
@@ -103,11 +103,12 @@ export const UnsupportedFilesDialog = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const getTypeLabel = (type: 'image' | 'video' | 'audio' | 'unknown') => {
+  const getTypeLabel = (type: 'image' | 'video' | 'audio' | 'gif' | 'unknown') => {
     switch (type) {
       case 'image': return 'Image';
       case 'video': return 'Video';
       case 'audio': return 'Audio';
+      case 'gif': return 'GIF';
       default: return 'Unknown';
     }
   };

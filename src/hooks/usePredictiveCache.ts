@@ -9,7 +9,7 @@ interface CacheEntry {
   accessCount: number;
   size: number;
   priority: number;
-  type: 'image' | 'video' | 'audio';
+  type: 'image' | 'video' | 'audio' | 'gif';
 }
 
 interface PredictionModel {
@@ -227,7 +227,7 @@ export const usePredictiveCache = (maxCacheSize: number = 50 * 1024 * 1024) => {
   }, [predictNextItems, getCachedMediaUrl, getSecureMediaUrl, evictLeastValuable, maxCacheSize]);
 
   // Track item access for metrics and model updates
-  const trackAccess = useCallback((itemId: string, path: string, previousItemId?: string, itemType: 'image' | 'video' | 'audio' = 'image', size: number = 1024) => {
+  const trackAccess = useCallback((itemId: string, path: string, previousItemId?: string, itemType: 'image' | 'video' | 'audio' | 'gif' = 'image', size: number = 1024) => {
     // Update prediction model
     updatePredictionModel(itemId, previousItemId);
     

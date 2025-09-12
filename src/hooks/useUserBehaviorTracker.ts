@@ -26,7 +26,7 @@ interface BehaviorPattern {
   };
   interactionPreferences: Record<string, number>;
   contentPreferences: {
-    preferredTypes: Array<'image' | 'video' | 'audio'>;
+    preferredTypes: Array<'image' | 'video' | 'audio' | 'gif'>;
     qualityPreference: 'low' | 'medium' | 'high';
     avgFileSize: number;
   };

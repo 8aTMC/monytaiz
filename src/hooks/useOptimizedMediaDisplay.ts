@@ -9,7 +9,7 @@ interface OptimizedMediaState {
 
 interface MediaItem {
   id: string;
-  type: 'image' | 'video' | 'audio';
+  type: 'image' | 'video' | 'audio' | 'gif';
   storage_path?: string;
   path?: string;
   tiny_placeholder?: string;
