@@ -47,6 +47,8 @@ export const AdvancedFileUpload = () => {
   const [preUploadDuplicateDialogOpen, setPreUploadDuplicateDialogOpen] = useState(false);
   const [allDuplicates, setAllDuplicates] = useState<DuplicateMatch[]>([]);
   const [duplicateCheckLoading, setDuplicateCheckLoading] = useState(false);
+  const [isPurgingDuplicates, setIsPurgingDuplicates] = useState(false);
+  const [pendingDialogFiles, setPendingDialogFiles] = useState<File[]>([]);
   
   const { checkAllDuplicates, addDuplicateTag } = useDuplicateDetection();
   
@@ -328,17 +330,16 @@ export const AdvancedFileUpload = () => {
 
   // Handle purging selected duplicates from queue and continue with next dialogs
   const handlePurgeSelected = (duplicateIds: string[]) => {
+    setIsPurgingDuplicates(true);
+    
+    // Store files for next dialog sequence before removing duplicates
+    const currentFiles = Array.from(new Set([...uploadQueue.map(item => item.file), ...allDuplicates.map(d => d.queueFile.file)]));
+    setPendingDialogFiles(currentFiles);
+    
+    // Remove duplicate files
     duplicateIds.forEach(id => removeFile(id));
     setPreUploadDuplicateDialogOpen(false);
-    
-    // Continue with the next dialog in sequence after database duplicates are handled
-    const currentFiles = Array.from(new Set([...uploadQueue.map(item => item.file), ...allDuplicates.map(d => d.queueFile.file)]));
-    showNextDialogInSequence(currentFiles);
-    
     setAllDuplicates([]);
-    
-    // Start upload with remaining files
-    setTimeout(() => startUpload(true), 100);
   };
 
   // Handle keeping both versions (upload with duplicate tags) and continue with next dialogs
@@ -397,6 +398,21 @@ export const AdvancedFileUpload = () => {
       }
     }
   }, [validateFilesOnly, showDuplicateDialog, showUnsupportedDialog, showHeicWarning, isHeicFile]);
+
+  // Effect to handle post-purge actions when upload queue updates
+  useEffect(() => {
+    if (isPurgingDuplicates && pendingDialogFiles.length > 0) {
+      // Queue has been updated, now we can safely proceed
+      setIsPurgingDuplicates(false);
+      
+      // Show next dialog in sequence
+      showNextDialogInSequence(pendingDialogFiles);
+      setPendingDialogFiles([]);
+      
+      // Start upload with remaining files
+      setTimeout(() => startUpload(true), 100);
+    }
+  }, [uploadQueue, isPurgingDuplicates, pendingDialogFiles, showNextDialogInSequence, startUpload]);
 
   // Effect to capture viewport element when ScrollArea mounts
   useLayoutEffect(() => {
