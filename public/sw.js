@@ -53,7 +53,7 @@ self.addEventListener('activate', (event) => {
           })
         );
       })
-      .then(() => self.clients.claim())
+      .then(() => undefined)
   );
 });
 
@@ -73,21 +73,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle navigation requests (HTML pages) - be less aggressive to prevent tab switch issues
+  // Handle navigation requests (HTML pages) - network first with offline fallback
   if (request.mode === 'navigate') {
-    // Only handle actual page navigations, not tab switches or focus changes
-    const isFromUserAction = request.headers.get('sec-fetch-site') === 'same-origin' ||
-                            request.headers.get('sec-fetch-mode') === 'navigate';
-    
-    if (isFromUserAction) {
-      event.respondWith(
-        fetch(request)
-          .catch(() => {
-            // If network fails, serve offline page
-            return caches.match(OFFLINE_URL);
-          })
-      );
-    }
+    event.respondWith(
+      fetch(request).catch(() => caches.match(OFFLINE_URL))
+    );
     return;
   }
 

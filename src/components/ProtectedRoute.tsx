@@ -1,23 +1,21 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
+import { useAuth } from './AuthProvider';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, session, loading } = useAuth();
   const [checkingProfile, setCheckingProfile] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
-    console.log('🛡️ ProtectedRoute initializing...');
-    
+    let cancelled = false;
+
     const checkProfile = async (userId: string) => {
       setCheckingProfile(true);
       try {
@@ -30,7 +28,6 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         
         if (error) {
           console.error('Profile check error:', error);
-          setCheckingProfile(false);
           return;
         }
         
@@ -41,62 +38,28 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         }
         
         const needsCompletion = !profile.signup_completed || 
-                              !profile.username || 
-                              !profile.display_name || 
-                              profile.temp_username;
+          !profile.username || 
+          !profile.display_name || 
+          profile.temp_username;
         
         console.log('✅ Profile check complete:', { needsCompletion });
-        setNeedsOnboarding(needsCompletion);
+        if (!cancelled) setNeedsOnboarding(needsCompletion);
       } catch (error) {
         console.error('Profile check failed:', error);
       } finally {
-        setCheckingProfile(false);
+        if (!cancelled) setCheckingProfile(false);
       }
     };
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('🔄 ProtectedRoute auth change:', event, !!session);
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-        
-        if (session?.user) {
-          checkProfile(session.user.id);
-        } else {
-          setCheckingProfile(false);
-          setNeedsOnboarding(false);
-        }
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('🔍 Initial session check:', !!session);
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-      
-      if (session?.user) {
-        checkProfile(session.user.id);
-      } else {
-        setCheckingProfile(false);
-      }
-    });
-
-    // Failsafe timeout
-    const timeout = setTimeout(() => {
-      console.warn('⚠️ ProtectedRoute loading timeout');
-      setLoading(false);
+    if (user) {
+      checkProfile(user.id);
+    } else {
       setCheckingProfile(false);
-    }, 10000);
+      setNeedsOnboarding(false);
+    }
 
-    return () => {
-      clearTimeout(timeout);
-      subscription.unsubscribe();
-    };
-  }, []);
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   // Show loading while checking authentication or profile
   if (loading || checkingProfile) {

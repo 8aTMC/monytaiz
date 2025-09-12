@@ -59,15 +59,24 @@ if (typeof window !== 'undefined') {
 
 createRoot(document.getElementById("root")!).render(<App />);
 
-// Register service worker for PWA
+// Register service worker for PWA (only in production and outside iframes)
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then((registration) => {
+  const isInIframe = window.self !== window.top;
+  const shouldRegisterSW = import.meta.env.PROD && !isInIframe;
+
+  window.addEventListener('load', async () => {
+    if (shouldRegisterSW) {
+      try {
+        const registration = await navigator.serviceWorker.register('/sw.js');
         console.log('SW registered: ', registration);
-      })
-      .catch((registrationError) => {
+      } catch (registrationError) {
         console.log('SW registration failed: ', registrationError);
-      });
+      }
+    } else {
+      // Unregister any existing service workers to avoid dev/preview interference
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(r => r.unregister()));
+      console.log('SW unregistered in dev/preview');
+    }
   });
 }
