@@ -40,7 +40,7 @@ const ALLOWED_TYPES = {
 // Formats that require conversion but we can handle
 const CONVERSION_FORMATS = {
   audio: ['.mp3', '.wav', '.aac', '.ogg', '.opus'], // Convert to WebM/Opus
-  image: ['.jpg', '.jpeg', '.png', '.gif', '.heic', '.heif'], // Convert to WebP
+  image: ['.jpg', '.jpeg', '.png', '.heic', '.heif'], // Convert to WebP (excluding .gif to preserve animation)
   video: ['.mp4', '.mov', '.webm', '.mkv'] // Keep as-is, backend processing
 };
 

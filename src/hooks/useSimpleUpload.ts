@@ -74,8 +74,12 @@ export const useSimpleUpload = () => {
       // Generate unique file ID and paths
       const fileId = crypto.randomUUID();
       
+      // Detect GIF early to preserve animation
+      const isGif = file.type === 'image/gif' || /\.gif$/i.test(file.name);
+
       // Determine media type
-      const mediaType = file.type.startsWith('image/') ? 'image' : 
+      const mediaType = isGif ? 'gif' : 
+                       file.type.startsWith('image/') ? 'image' : 
                        file.type.startsWith('video/') ? 'video' : 
                        file.type.startsWith('audio/') ? 'audio' : 'image';
 
@@ -86,7 +90,8 @@ export const useSimpleUpload = () => {
                file.type === 'image/heif';
       };
 
-      const shouldProcessImage = mediaType === 'image'; // Process ALL images including HEIC
+      // Process images but NOT GIFs (to preserve animation)
+      const shouldProcessImage = mediaType === 'image' && !isGif;
       
       let fileToUpload = file;
       let uploadFileName = file.name;
@@ -95,7 +100,7 @@ export const useSimpleUpload = () => {
       let width: number | undefined;
       let height: number | undefined;
 
-      // Process all images to WebP (including HEIC conversion)
+      // Process images to WebP (excluding GIFs to preserve animation)
       if (shouldProcessImage) {
         setUploadProgress({
           phase: 'processing',
@@ -144,7 +149,8 @@ export const useSimpleUpload = () => {
         }
       }
 
-      const uploadPath = `processed/${fileId}-${uploadFileName}`;
+      // For GIFs, use uploads folder to preserve original format and animation
+      const uploadPath = isGif ? `uploads/${fileId}-${file.name}` : `processed/${fileId}-${uploadFileName}`;
 
       // For videos, generate thumbnail client-side
       if (mediaType === 'video') {
@@ -208,8 +214,8 @@ export const useSimpleUpload = () => {
         compressionRatio
       });
 
-      // Upload processed file (WebP for images, original for others) to processed folder
-      console.log('Uploading file to processed folder:', uploadFileName);
+      // Upload file: GIFs to uploads folder (preserve animation), processed images to processed folder
+      console.log(`Uploading ${isGif ? 'GIF' : 'processed'} file:`, uploadFileName);
       const originalUpload = await supabase.storage.from('content').upload(uploadPath, fileToUpload, { upsert: false });
       if (originalUpload.error) throw new Error(`Upload failed: ${originalUpload.error.message}`);
 
@@ -231,7 +237,7 @@ export const useSimpleUpload = () => {
           creator_id: user.id,
           original_filename: file.name,
           title: file.name.split('.')[0],
-          mime_type: fileToUpload.type,
+          mime_type: isGif ? 'image/gif' : fileToUpload.type,
           original_size_bytes: originalSize,
           optimized_size_bytes: processedSize,
           original_path: uploadPath,

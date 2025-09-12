@@ -314,6 +314,13 @@ export const useClientMediaProcessor = () => {
   // Process image using Canvas  
   const processImage = useCallback(async (file: File): Promise<ProcessedMedia | null> => {
     try {
+      // Early bailout for GIF files to preserve animation
+      const isGif = file.type === 'image/gif' || /\.gif$/i.test(file.name);
+      if (isGif) {
+        console.log(`Skipping processing for GIF file to preserve animation: ${file.name}`);
+        return null;
+      }
+
       // Convert HEIC files to WebP first
       let processedFile = file;
       if (isHeicFile(file)) {

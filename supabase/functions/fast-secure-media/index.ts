@@ -287,7 +287,7 @@ Deno.serve(async (req) => {
       const transform: any = {
         width: width ? Math.min(parseInt(width), 1920) : undefined,
         height: height ? Math.min(parseInt(height), 1920) : undefined,
-        quality: Math.min(parseInt(quality), 95),
+        quality: quality ? Math.min(parseInt(quality), 95) : undefined, // Only apply quality if explicitly requested
         resize: 'cover'
       }
       
