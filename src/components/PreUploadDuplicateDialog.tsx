@@ -107,10 +107,7 @@ export const PreUploadDuplicateDialog = ({
   };
 
   const getBadgeText = (duplicate: DuplicateMatch) => {
-    if (duplicate.sourceType === 'database' && 'matchType' in duplicate) {
-      return duplicate.matchType === 'exact' ? 'Exact Database Match' : 'Similar Database Match';
-    }
-    return duplicate.sourceType === 'queue' ? 'Queue Duplicate' : 'Database Duplicate';
+    return duplicate.sourceType === 'queue' ? 'Queue Duplicate' : 'Exact Database Match';
   };
   
   const FileThumbnail = ({ duplicate }: { duplicate: DuplicateMatch }) => {
@@ -169,15 +166,15 @@ export const PreUploadDuplicateDialog = ({
             {/* Duplicate files list */}
             <ScrollArea className="h-[400px]">
               <div className="space-y-4 pr-4">
-                {/* Exact Duplicates */}
-                {duplicates.filter(d => d.sourceType === 'queue' || (d.sourceType === 'database' && (!('matchType' in d) || d.matchType === 'exact'))).length > 0 && (
+                {/* All Duplicates */}
+                {duplicates.length > 0 && (
                   <div>
                     <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 text-destructive" />
-                      Exact Duplicates ({duplicates.filter(d => d.sourceType === 'queue' || (d.sourceType === 'database' && (!('matchType' in d) || d.matchType === 'exact'))).length})
+                      Exact Duplicates ({duplicates.length})
                     </h4>
                     <div className="space-y-3">
-                      {duplicates.filter(d => d.sourceType === 'queue' || (d.sourceType === 'database' && (!('matchType' in d) || d.matchType === 'exact'))).map((duplicate) => (
+                      {duplicates.map((duplicate) => (
                         <div 
                           key={duplicate.queueFile.id}
                           className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -269,90 +266,6 @@ export const PreUploadDuplicateDialog = ({
                   </div>
                 )}
 
-                {/* Similar Files */}
-                {duplicates.filter(d => d.sourceType === 'database' && 'matchType' in d && d.matchType === 'similar').length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                      <Search className="h-4 w-4 text-orange-500" />
-                      Similar Files ({duplicates.filter(d => d.sourceType === 'database' && 'matchType' in d && d.matchType === 'similar').length})
-                    </h4>
-                    <div className="space-y-3">
-                      {duplicates.filter(d => d.sourceType === 'database' && 'matchType' in d && d.matchType === 'similar').map((duplicate) => (
-                        <div 
-                          key={duplicate.queueFile.id}
-                          className="flex items-center gap-4 p-4 border rounded-lg bg-orange-50/50 hover:bg-orange-50/70 transition-colors"
-                        >
-                          <Checkbox
-                            checked={selectedFiles.has(duplicate.queueFile.id)}
-                            onCheckedChange={() => handleFileToggle(duplicate.queueFile.id)}
-                          />
-                          
-                          <FileThumbnail duplicate={duplicate} />
-                          
-                          <div className="flex-1 min-w-0">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {/* Queue file (new) */}
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <Badge variant="outline">Queue File (New)</Badge>
-                                  <Badge className="bg-orange-100 text-orange-800 border-orange-200">
-                                    {getBadgeText(duplicate)}
-                                  </Badge>
-                                  {'similarity' in duplicate && duplicate.similarity && (
-                                    <Badge className="bg-orange-100 text-orange-800 border-orange-200">
-                                      {duplicate.similarity}% similar
-                                    </Badge>
-                                  )}
-                                </div>
-                                <p className="font-medium text-sm truncate" title={duplicate.queueFile.file.name}>
-                                  {duplicate.queueFile.file.name}
-                                </p>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  {getFileIcon(duplicate.queueFile.file.type)}
-                                  <span>{formatFileSize(duplicate.queueFile.file.size)}</span>
-                                  <span>•</span>
-                                  <span>Ready to upload</span>
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  Match: Similar filename, same size | Source: {duplicate.sourceType}
-                                </div>
-                              </div>
-                              
-                              {/* Duplicate source */}
-                              <div className="space-y-1">
-                                <Badge variant="secondary" className="mb-1 flex items-center gap-1">
-                                  <Database className="w-3 h-3" />
-                                  Similar in Library
-                                </Badge>
-                                <p className="font-medium text-sm truncate" title={'existingFile' in duplicate ? duplicate.existingFile.original_filename : ''}>
-                                  {'existingFile' in duplicate ? (duplicate.existingFile.title || duplicate.existingFile.original_filename) : ''}
-                                </p>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <Calendar className="w-3 h-3" />
-                                  <span>{'existingFile' in duplicate ? formatDate(duplicate.existingFile.created_at) : ''}</span>
-                                  <span>•</span>
-                                  <Badge variant="outline">
-                                    {'existingFile' in duplicate ? duplicate.existingFile.processing_status : ''}
-                                  </Badge>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleComparisonClick(duplicate)}
-                            className="flex items-center gap-1 shrink-0"
-                          >
-                            <Eye className="w-3 h-3" />
-                            Compare
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </ScrollArea>
           </div>

@@ -22,46 +22,10 @@ export interface DatabaseDuplicate {
     processing_status: string;
   };
   sourceType: 'database';
-  similarity?: number; // 0-100 percentage for fuzzy matches
-  matchType: 'exact' | 'similar';
 }
 
 export type DuplicateMatch = QueueDuplicate | DatabaseDuplicate;
 
-// Levenshtein distance calculation for filename similarity
-const calculateSimilarity = (str1: string, str2: string): number => {
-  const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
-  
-  for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
-  for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
-  
-  for (let j = 1; j <= str2.length; j++) {
-    for (let i = 1; i <= str1.length; i++) {
-      const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
-      matrix[j][i] = Math.min(
-        matrix[j][i - 1] + 1,
-        matrix[j - 1][i] + 1,
-        matrix[j - 1][i - 1] + indicator
-      );
-    }
-  }
-  
-  const distance = matrix[str2.length][str1.length];
-  const maxLength = Math.max(str1.length, str2.length);
-  return Math.round(((maxLength - distance) / maxLength) * 100);
-};
-
-// Helper function to get base filename without extension
-const getBaseFilename = (filename: string): string => {
-  return filename.substring(0, filename.lastIndexOf('.')) || filename;
-};
-
-// Calculate similarity between base filenames (ignoring extensions)
-const calculateBasenameSimilarity = (filename1: string, filename2: string): number => {
-  const base1 = getBaseFilename(filename1);
-  const base2 = getBaseFilename(filename2);
-  return calculateSimilarity(base1, base2);
-};
 
 export const useDuplicateDetection = () => {
   // Check for duplicates within the upload queue (simple filename + size)
@@ -110,7 +74,7 @@ export const useDuplicateDetection = () => {
       const processFiles = uploadQueue.filter(f => f.status === 'pending');
 
       for (const queueFile of processFiles) {
-        // Check for exact filename match (ignoring size for converted files)
+        // Check for exact filename match only
         const { data: exactMatches } = await supabase
           .from('simple_media')
           .select('id, title, original_filename, original_size_bytes, optimized_size_bytes, mime_type, created_at, thumbnail_path, processing_status, original_path, processed_path')
@@ -127,53 +91,8 @@ export const useDuplicateDetection = () => {
           duplicates.push({
             queueFile,
             existingFile: mostRecent,
-            sourceType: 'database',
-            matchType: 'exact'
+            sourceType: 'database'
           });
-        } else {
-          // Check for similar files using base filename matching
-          const { data: allFiles } = await supabase
-            .from('simple_media')
-            .select('id, title, original_filename, original_size_bytes, optimized_size_bytes, mime_type, created_at, thumbnail_path, processing_status, original_path, processed_path')
-            .eq('creator_id', userData.user.id);
-
-          if (allFiles && allFiles.length > 0) {
-            // Check base filename similarity for each file
-            for (const match of allFiles) {
-              // First check exact base filename match
-              const queueBasename = getBaseFilename(queueFile.file.name);
-              const existingBasename = getBaseFilename(match.original_filename);
-              
-              if (queueBasename === existingBasename && queueBasename.length > 0) {
-                console.log('🎯 Found exact base filename match:', queueFile.file.name, 'vs', match.original_filename);
-                
-                duplicates.push({
-                  queueFile,
-                  existingFile: match,
-                  sourceType: 'database',
-                  similarity: 100,
-                  matchType: 'similar'
-                });
-                break; // Take first exact basename match
-              } else {
-                // Check for high similarity in base filenames
-                const basenameSimilarity = calculateBasenameSimilarity(queueFile.file.name, match.original_filename);
-                
-                if (basenameSimilarity >= 90) {
-                  console.log('🔍 Found similar base filename:', queueFile.file.name, 'vs', match.original_filename, `(${basenameSimilarity}% similar)`);
-                  
-                  duplicates.push({
-                    queueFile,
-                    existingFile: match,
-                    sourceType: 'database',
-                    similarity: basenameSimilarity,
-                    matchType: 'similar'
-                  });
-                  break; // Take first high-similarity match
-                }
-              }
-            }
-          }
         }
       }
 

@@ -22,46 +22,10 @@ export interface DatabaseDuplicate {
     processing_status: string;
   };
   sourceType: 'database';
-  similarity?: number;
-  matchType: 'exact' | 'similar';
 }
 
 export type DuplicateMatch = QueueDuplicate | DatabaseDuplicate;
 
-// Levenshtein distance calculation for filename similarity
-const calculateSimilarity = (str1: string, str2: string): number => {
-  const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
-  
-  for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
-  for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
-  
-  for (let j = 1; j <= str2.length; j++) {
-    for (let i = 1; i <= str1.length; i++) {
-      const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
-      matrix[j][i] = Math.min(
-        matrix[j][i - 1] + 1,
-        matrix[j - 1][i] + 1,
-        matrix[j - 1][i - 1] + indicator
-      );
-    }
-  }
-  
-  const distance = matrix[str2.length][str1.length];
-  const maxLength = Math.max(str1.length, str2.length);
-  return Math.round(((maxLength - distance) / maxLength) * 100);
-};
-
-// Helper function to get base filename without extension
-const getBaseFilename = (filename: string): string => {
-  return filename.substring(0, filename.lastIndexOf('.')) || filename;
-};
-
-// Calculate similarity between base filenames (ignoring extensions)
-const calculateBasenameSimilarity = (filename1: string, filename2: string): number => {
-  const base1 = getBaseFilename(filename1);
-  const base2 = getBaseFilename(filename2);
-  return calculateSimilarity(base1, base2);
-};
 
 // Simple cache for duplicate results (5 minute TTL)
 interface CacheEntry {
@@ -107,7 +71,7 @@ export const useBatchDuplicateDetection = () => {
     return duplicates;
   };
 
-  // OPTIMIZED: Batch database duplicate detection
+  // OPTIMIZED: Batch database duplicate detection  
   const checkDatabaseDuplicates = async (
     uploadQueue: FileUploadItem[], 
     onProgress?: (current: number, total: number) => void
@@ -123,9 +87,9 @@ export const useBatchDuplicateDetection = () => {
       
       if (processFiles.length === 0) return duplicates;
 
-      onProgress?.(0, 3); // 3 steps: exact matches, size matches, similarity check
+      onProgress?.(0, 1);
 
-      // BATCH QUERY 1: Get all exact filename matches (ignoring size for converted files)
+      // Get all exact filename matches only
       const filenames = processFiles.map(f => f.file.name);
       
       const { data: exactMatches } = await supabase
@@ -133,8 +97,6 @@ export const useBatchDuplicateDetection = () => {
         .select('id, title, original_filename, original_size_bytes, optimized_size_bytes, mime_type, created_at, thumbnail_path, processed_path, processing_status')
         .eq('creator_id', userData.user.id)
         .in('original_filename', filenames);
-
-      onProgress?.(1, 3);
 
       // Process exact filename matches
       if (exactMatches) {
@@ -147,65 +109,13 @@ export const useBatchDuplicateDetection = () => {
             duplicates.push({
               queueFile,
               existingFile: exactMatch,
-              sourceType: 'database',
-              matchType: 'exact'
+              sourceType: 'database'
             });
           }
         }
       }
 
-      onProgress?.(2, 3);
-
-      // BATCH QUERY 2: Get all remaining files for base filename similarity matching
-      // Only check files that didn't have exact matches
-      const filesNeedingFuzzyCheck = processFiles.filter(queueFile => 
-        !duplicates.some(dup => dup.queueFile.id === queueFile.id)
-      );
-
-      if (filesNeedingFuzzyCheck.length > 0) {
-        const { data: allFiles } = await supabase
-          .from('simple_media')
-          .select('id, title, original_filename, original_size_bytes, optimized_size_bytes, mime_type, created_at, thumbnail_path, processed_path, processing_status')
-          .eq('creator_id', userData.user.id);
-
-        // Process base filename similarity matches
-        if (allFiles) {
-          for (const queueFile of filesNeedingFuzzyCheck) {
-            for (const match of allFiles) {
-              // Check exact base filename match first
-              const queueBasename = getBaseFilename(queueFile.file.name);
-              const existingBasename = getBaseFilename(match.original_filename);
-              
-              if (queueBasename === existingBasename && queueBasename.length > 0) {
-                duplicates.push({
-                  queueFile,
-                  existingFile: match,
-                  sourceType: 'database',
-                  similarity: 100,
-                  matchType: 'similar'
-                });
-                break; // Take first exact basename match
-              } else {
-                // Check for high similarity in base filenames
-                const basenameSimilarity = calculateBasenameSimilarity(queueFile.file.name, match.original_filename);
-                
-                if (basenameSimilarity >= 90) {
-                  duplicates.push({
-                    queueFile,
-                    existingFile: match,
-                    sourceType: 'database',
-                    similarity: basenameSimilarity,
-                    matchType: 'similar'
-                  });
-                  break; // Take first high-similarity match
-                }
-              }
-            }
-          }
-        }
-      }
-
-      onProgress?.(3, 3);
+      onProgress?.(1, 1);
 
       return duplicates;
     } catch (error) {
@@ -239,7 +149,7 @@ export const useBatchDuplicateDetection = () => {
     const databaseDuplicates = await checkDatabaseDuplicates(uploadQueue, (current, total) => {
       // Map database progress to overall progress
       const dbProgress = current / total;
-      onProgress?.(1 + dbProgress * 0.9, 2, `Checking database (${current}/${total})`);
+      onProgress?.(1 + dbProgress, 2, `Checking database`);
     });
 
     const allDuplicates: DuplicateMatch[] = [
