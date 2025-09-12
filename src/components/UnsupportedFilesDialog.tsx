@@ -48,9 +48,26 @@ export const UnsupportedFilesDialog = ({
   };
 
   const handleConvertClick = (file: UnsupportedFile, event: React.MouseEvent) => {
+    event.preventDefault();
     event.stopPropagation();
+    
     const url = getConversionUrl(file.type);
-    window.open(url, '_blank', 'noopener,noreferrer');
+    
+    // Primary method: window.open
+    const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+    
+    // Fallback if window.open is blocked
+    if (!newWindow || newWindow.closed) {
+      // Create temporary anchor element as fallback
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.target = '_blank';
+      anchor.rel = 'noopener noreferrer';
+      anchor.style.display = 'none';
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+    }
   };
   
   const getFileIcon = (file: UnsupportedFile) => {
