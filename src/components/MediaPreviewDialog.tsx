@@ -182,11 +182,12 @@ export const MediaPreviewDialog = ({
 
     let isMounted = true;
     
+    const derivedType = getItemType(item);
     const loadMedia = async () => {
       try {
-        console.log('🚀 Starting progressive media load for path:', storagePath);
+        console.log('🚀 Starting progressive media load for path:', storagePath, 'derivedType:', derivedType);
         if (isMounted) {
-          await loadProgressiveMedia(storagePath, item.tiny_placeholder, item.type);
+          await loadProgressiveMedia(storagePath, item.tiny_placeholder, derivedType);
         }
       } catch (error) {
         console.error('❌ Failed to load media for item:', item.id, 'path:', storagePath, 'error:', error);
@@ -378,6 +379,8 @@ export const MediaPreviewDialog = ({
                           style={{
                             aspectRatio: item.width && item.height ? `${item.width}/${item.height}` : 'auto'
                           }}
+                          loading="eager"
+                          decoding="async"
                           onError={(e) => {
                             console.error('Failed to load GIF:', e);
                           }}
