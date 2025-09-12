@@ -138,8 +138,8 @@ export const PreUploadDuplicateDialog = ({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[80vh]">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <Database className="w-5 h-5" />
               Duplicate Files Found ({duplicates.length})
@@ -149,9 +149,9 @@ export const PreUploadDuplicateDialog = ({
             </p>
           </DialogHeader>
           
-          <div className="space-y-4">
+          <div className="flex flex-col flex-1 min-h-0 space-y-4">
             {/* Selection header */}
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg flex-shrink-0">
               <div className="flex items-center gap-2">
                 <Checkbox
                   checked={selectedFiles.size === duplicates.length && duplicates.length > 0}
@@ -167,8 +167,8 @@ export const PreUploadDuplicateDialog = ({
             </div>
             
             {/* Duplicate files list */}
-            <ScrollArea className="max-h-96">
-              <div className="space-y-4">
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="space-y-4 pr-4">
                 {/* Exact Duplicates */}
                 {duplicates.filter(d => d.sourceType === 'queue' || (d.sourceType === 'database' && (!('matchType' in d) || d.matchType === 'exact'))).length > 0 && (
                   <div>
@@ -357,7 +357,7 @@ export const PreUploadDuplicateDialog = ({
             </ScrollArea>
           </div>
           
-          <DialogFooter className="flex gap-2 sm:gap-2">
+          <DialogFooter className="flex gap-2 sm:gap-2 flex-shrink-0">
             <Button variant="outline" onClick={handleCancel}>
               Cancel Upload
             </Button>

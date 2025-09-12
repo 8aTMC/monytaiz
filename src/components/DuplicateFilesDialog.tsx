@@ -137,16 +137,16 @@ export const DuplicateFilesDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <FileIcon className="w-5 h-5 text-orange-500" />
             Duplicate Files Found in the Queue
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-6">
-          <div className="flex items-center justify-between mt-2">
+        <div className="flex flex-col flex-1 min-h-0 space-y-4">
+          <div className="flex items-center justify-between flex-shrink-0">
             <p className="text-sm text-muted-foreground">
               Found {duplicateFiles.length} duplicate file{duplicateFiles.length > 1 ? 's' : ''}. Selected files will be ignored, unselected files will be added to the queue:
             </p>
@@ -160,7 +160,7 @@ export const DuplicateFilesDialog = ({
             </Button>
           </div>
           
-          <ScrollArea className="h-[400px] w-full">
+          <ScrollArea className="flex-1 min-h-0">
             <div className="pr-4 space-y-6">
               {/* Exact Duplicates */}
               {duplicateFiles.filter(d => !d.similarity).length > 0 && (
@@ -268,7 +268,7 @@ export const DuplicateFilesDialog = ({
           </ScrollArea>
         </div>
 
-        <DialogFooter className="flex-col gap-2 sm:flex-row">
+        <DialogFooter className="flex-col gap-2 sm:flex-row flex-shrink-0">
           <Button variant="outline" onClick={() => { setIsConfirmedClose(true); onOpenChange(false); }} className="flex-1">
             Cancel
           </Button>
