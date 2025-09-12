@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
+import { usePageVisibility } from '@/hooks/usePageVisibility';
 
 interface AuthContextType {
   user: User | null;
@@ -34,8 +35,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const { isVisible } = usePageVisibility();
+  const lastVisibilityChange = useRef<number>(Date.now());
+  const authInitialized = useRef(false);
 
   useEffect(() => {
+    if (authInitialized.current) return;
+    
     console.log('🚀 AuthProvider initializing...');
     
     // Set up auth state listener
@@ -73,6 +79,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
 
     initializeAuth();
+    authInitialized.current = true;
 
     // Loading timeout failsafe - increased to 10 seconds to prevent premature timeout
     const timeout = setTimeout(() => {
@@ -85,6 +92,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Handle page visibility changes without triggering auth refresh
+  useEffect(() => {
+    if (isVisible) {
+      lastVisibilityChange.current = Date.now();
+      // Don't trigger auth refresh on tab switch - just log
+      console.log('📱 Tab became visible, auth state preserved');
+    }
+  }, [isVisible]);
 
   const signOut = async () => {
     try {

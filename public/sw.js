@@ -73,15 +73,21 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle navigation requests (HTML pages)
+  // Handle navigation requests (HTML pages) - be less aggressive to prevent tab switch issues
   if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .catch(() => {
-          // If network fails, serve offline page
-          return caches.match(OFFLINE_URL);
-        })
-    );
+    // Only handle actual page navigations, not tab switches or focus changes
+    const isFromUserAction = request.headers.get('sec-fetch-site') === 'same-origin' ||
+                            request.headers.get('sec-fetch-mode') === 'navigate';
+    
+    if (isFromUserAction) {
+      event.respondWith(
+        fetch(request)
+          .catch(() => {
+            // If network fails, serve offline page
+            return caches.match(OFFLINE_URL);
+          })
+      );
+    }
     return;
   }
 

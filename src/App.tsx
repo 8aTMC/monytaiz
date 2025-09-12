@@ -32,6 +32,7 @@ import NotFound from "./pages/NotFound";
 import GeneralSettings from "./pages/GeneralSettings";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { NavigationGuard } from "./components/NavigationGuard";
 
 import "@/utils/telemetryErrorHandler"; // Initialize telemetry error handling
 
@@ -48,6 +49,7 @@ const App = () => (
           <PWAInstallPrompt />
           
           <BrowserRouter>
+            <NavigationGuard />
           <SidebarProvider>
             <Routes>
               {/* Public routes - no layout */}
