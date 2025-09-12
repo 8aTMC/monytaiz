@@ -5,49 +5,31 @@ export const NavigationGuard = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // Prevent default browser navigation behavior that might cause refreshes
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // Only show warning for actual page unload, not tab switches
-      if (performance.navigation?.type === 1) { // TYPE_NAVIGATE
-        e.preventDefault();
-        return '';
-      }
-    };
-
-    // Handle popstate to prevent full page reloads
+    // Prevent full page reloads on back/forward navigation
     const handlePopState = (e: PopStateEvent) => {
-      e.preventDefault();
       console.log('🔄 Navigation intercepted, using React Router');
     };
 
-    // Override window.location assignments that might cause refreshes
-    const originalAssign = window.location.assign;
-    const originalReplace = window.location.replace;
-    
-    window.location.assign = function(url: string) {
-      console.log('🚫 Prevented location.assign, use React Router instead:', url);
-      // Only allow external URLs
-      if (url.startsWith('http') && !url.includes(window.location.origin)) {
-        originalAssign.call(this, url);
-      }
-    };
-    
-    window.location.replace = function(url: string) {
-      console.log('🚫 Prevented location.replace, use React Router instead:', url);
-      // Only allow external URLs
-      if (url.startsWith('http') && !url.includes(window.location.origin)) {
-        originalReplace.call(this, url);
+    // Intercept link clicks that might cause full page reloads
+    const handleLinkClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const link = target.closest('a');
+      
+      if (link && link.href) {
+        const url = new URL(link.href);
+        // Only intercept same-origin links
+        if (url.origin === window.location.origin) {
+          console.log('🔗 Intercepted same-origin link click:', url.pathname);
+        }
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
     window.addEventListener('popstate', handlePopState);
+    document.addEventListener('click', handleLinkClick);
 
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('popstate', handlePopState);
-      window.location.assign = originalAssign;
-      window.location.replace = originalReplace;
+      document.removeEventListener('click', handleLinkClick);
     };
   }, []);
 
