@@ -23,6 +23,8 @@ interface UnsupportedFilesDialogProps {
 
 const getConversionUrl = (type: 'image' | 'video' | 'audio' | 'gif' | 'unknown'): string => {
   switch (type) {
+    case 'gif':
+      return 'https://www.freeconvert.com/convert/gif-to-mp4';
     case 'image':
       return 'https://www.freeconvert.com/image-converter';
     case 'video':
@@ -170,7 +172,7 @@ export const UnsupportedFilesDialog = ({
           <div className="bg-muted/50 p-3 rounded-lg">
             <p className="text-xs text-muted-foreground">
               <strong>Supported file types:</strong>
-              <br />• Images: JPG, JPEG, PNG, WebP, GIF, HEIC, HEIF
+              <br />• Images: JPG, JPEG, PNG, WebP, HEIC, HEIF
               <br />• Videos: MP4, MOV, WebM, MKV  
               <br />• Audio: MP3, WAV, AAC, OGG, Opus
               <br /><br />

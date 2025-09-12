@@ -142,6 +142,9 @@
         "image": "Images are converted to WebP format at 80% quality for faster loading while maintaining visual quality.",
         "video": "Videos are uploaded in their original format with backend processing for multiple quality levels."
       },
+      "unsupportedReasons": {
+        "gif": "Large file sizes, convert to MP4 for better performance"
+      },
       "messages": {
         "unsupportedIgnored": "Unsupported files ignored",
         "unsupportedDescription": "{count} unsupported file{plural} were ignored. Only supported types have been added.",

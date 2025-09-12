@@ -33,7 +33,7 @@ const MAX_UPLOAD_SIZE = 10 * 1024 * 1024 * 1024; // 10GB total per upload sessio
 
 const ALLOWED_TYPES = {
   video: ['.mp4', '.mov', '.webm', '.mkv'],
-  image: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif'],
+  image: ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif'],
   audio: ['.mp3', '.wav', '.aac', '.ogg', '.opus'],
 };
 
@@ -58,8 +58,11 @@ const getUnsupportedFileType = (file: File): 'image' | 'video' | 'audio' | 'gif'
   const extension = '.' + file.name.split('.').pop()?.toLowerCase();
   const mimeType = file.type.toLowerCase();
   
+  // Check for GIF specifically first
+  if (extension === '.gif') return 'gif';
+  
   // Check by extension first
-  if (['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.tiff', '.tif', '.avif', '.svg', '.ico'].includes(extension)) return 'image';
+  if (['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.tiff', '.tif', '.avif', '.svg', '.ico'].includes(extension)) return 'image';
   if (['.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.wmv', '.m4v', '.3gp'].includes(extension)) return 'video';
   if (['.mp3', '.wav', '.aac', '.flac', '.opus', '.m4a', '.wma'].includes(extension)) return 'audio';
   

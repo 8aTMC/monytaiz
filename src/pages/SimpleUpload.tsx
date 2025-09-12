@@ -42,7 +42,7 @@ export default function SimpleUpload() {
   const [exceedsLimitDialogOpen, setExceedsLimitDialogOpen] = useState(false);
   const [filesAnalysis, setFilesAnalysis] = useState<FileWithStatus[]>([]);
   const [unsupportedDialogOpen, setUnsupportedDialogOpen] = useState(false);
-  const [unsupportedFiles, setUnsupportedFiles] = useState<{ id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[]>([]);
+  const [unsupportedFiles, setUnsupportedFiles] = useState<{ id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'gif' | 'unknown'; file: File }[]>([]);
   const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
   const [duplicateProgress, setDuplicateProgress] = useState({ current: 0, total: 1, step: '' });
   const addMoreFileInputRef = useRef<HTMLInputElement>(null);
@@ -111,14 +111,14 @@ export default function SimpleUpload() {
     
     // Separate supported and unsupported files
     const supportedFiles: File[] = [];
-    const unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[] = [];
+    const unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'gif' | 'unknown'; file: File }[] = [];
     
     acceptedFiles.forEach((file, index) => {
       console.log(`📁 Processing file: ${file.name} (type: ${file.type})`);
       
       // Check file extension
       const extension = '.' + file.name.split('.').pop()?.toLowerCase();
-      const supportedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif', '.mp4', '.mov', '.webm', '.mkv', '.mp3', '.wav', '.aac', '.ogg', '.opus'];
+      const supportedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.mp4', '.mov', '.webm', '.mkv', '.mp3', '.wav', '.aac', '.ogg', '.opus'];
       
       console.log(`🔍 File extension: ${extension}, supported: ${supportedExtensions.includes(extension)}`);
       
@@ -126,8 +126,10 @@ export default function SimpleUpload() {
         supportedFiles.push(file);
       } else {
         // Determine file type for conversion suggestions
-        let fileType: 'image' | 'video' | 'audio' | 'unknown' = 'unknown';
-        if (file.type.startsWith('image/') || ['.avif', '.tiff', '.tif', '.bmp', '.svg', '.ico'].includes(extension)) {
+        let fileType: 'image' | 'video' | 'audio' | 'gif' | 'unknown' = 'unknown';
+        if (extension === '.gif') {
+          fileType = 'gif';
+        } else if (file.type.startsWith('image/') || ['.avif', '.tiff', '.tif', '.bmp', '.svg', '.ico'].includes(extension)) {
           fileType = 'image';
         } else if (file.type.startsWith('video/') || ['.avi', '.wmv', '.flv', '.3gp', '.m4v'].includes(extension)) {
           fileType = 'video';
@@ -214,14 +216,14 @@ export default function SimpleUpload() {
     
     // Separate supported and unsupported files first
     const supportedFiles: File[] = [];
-    const unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'unknown'; file: File }[] = [];
+    const unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'gif' | 'unknown'; file: File }[] = [];
     
     acceptedFiles.forEach((file, index) => {
       console.log(`📁 Processing file: ${file.name} (type: ${file.type})`);
       
       // Check file extension
       const extension = '.' + file.name.split('.').pop()?.toLowerCase();
-      const supportedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif', '.mp4', '.mov', '.webm', '.mkv', '.mp3', '.wav', '.aac', '.ogg', '.opus'];
+      const supportedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.mp4', '.mov', '.webm', '.mkv', '.mp3', '.wav', '.aac', '.ogg', '.opus'];
       
       console.log(`🔍 File extension: ${extension}, supported: ${supportedExtensions.includes(extension)}`);
       
@@ -229,8 +231,10 @@ export default function SimpleUpload() {
         supportedFiles.push(file);
       } else {
         // Determine file type for conversion suggestions
-        let fileType: 'image' | 'video' | 'audio' | 'unknown' = 'unknown';
-        if (file.type.startsWith('image/') || ['.avif', '.tiff', '.tif', '.bmp', '.svg', '.ico'].includes(extension)) {
+        let fileType: 'image' | 'video' | 'audio' | 'gif' | 'unknown' = 'unknown';
+        if (extension === '.gif') {
+          fileType = 'gif';
+        } else if (file.type.startsWith('image/') || ['.avif', '.tiff', '.tif', '.bmp', '.svg', '.ico'].includes(extension)) {
           fileType = 'image';
         } else if (file.type.startsWith('video/') || ['.avi', '.wmv', '.flv', '.3gp', '.m4v'].includes(extension)) {
           fileType = 'video';
