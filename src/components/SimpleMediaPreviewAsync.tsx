@@ -128,7 +128,23 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
         // Check if aborted before proceeding
         if (abortController.signal.aborted) return;
         
-        const url = await getFullUrlAsync(item);
+        let url = await getFullUrlAsync(item);
+        
+        // If no URL and it's a GIF, try direct signed URL as fallback
+        if (!url && (item.media_type === 'gif' || item.mime_type === 'image/gif')) {
+          console.log('🔄 GIF fallback: trying direct signed URL for', item.original_path);
+          try {
+            const { data } = await supabase.storage
+              .from('content')
+              .createSignedUrl(item.original_path.replace(/^content\//, ''), 3600);
+            if (data?.signedUrl) {
+              url = data.signedUrl;
+              console.log('✅ GIF fallback successful');
+            }
+          } catch (error) {
+            console.warn('⚠️ GIF fallback failed:', error);
+          }
+        }
         
         // Check if aborted after async operation
         if (abortController.signal.aborted) return;

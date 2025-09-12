@@ -72,7 +72,9 @@ export const usePersistentMediaCache = () => {
   ): Promise<string | null> => {
     if (!path) return null;
 
-    const cacheKey = `${path}_${JSON.stringify(transforms || {})}`;
+    // Normalize path to avoid double content/ prefixing
+    const normalizedPath = path.replace(/^content\//, '');
+    const cacheKey = `${normalizedPath}_${JSON.stringify(transforms || {})}`;
     
     // Check memory cache first for instant access
     const cached = memoryCache[cacheKey];
@@ -103,7 +105,7 @@ export const usePersistentMediaCache = () => {
     const loadingPromise = (async () => {
       setLoading(true);
       try {
-        const params = new URLSearchParams({ path });
+        const params = new URLSearchParams({ path: normalizedPath });
         if (transforms?.width) params.append('width', transforms.width.toString());
         if (transforms?.height) params.append('height', transforms.height.toString());
         if (transforms?.quality) params.append('quality', transforms.quality.toString());

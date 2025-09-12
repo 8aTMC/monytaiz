@@ -70,17 +70,23 @@ Deno.serve(async (req) => {
       )
     }
 
-    console.log(`Generating signed URL for user ${user.id}, path: ${path}`)
+    // Normalize path - ensure it has content/ prefix for storage operations
+    let normalizedPath = path;
+    if (!normalizedPath.startsWith('content/')) {
+      normalizedPath = `content/${normalizedPath}`;
+    }
+
+    console.log(`Generating signed URL for user ${user.id}, original path: ${path}, normalized: ${normalizedPath}`)
     console.log(`Request params - width: ${width}, height: ${height}, quality: ${quality}, format: ${format}`)
 
-    // Check if this is a HEIC file or GIF EARLY
-    const isHEICFile = path.toLowerCase().includes('.heic') || 
-                       path.toLowerCase().includes('.heif') || 
-                       path.toLowerCase().includes('.heix')
+    // Check if this is a HEIC file or GIF EARLY using normalized path
+    const isHEICFile = normalizedPath.toLowerCase().includes('.heic') || 
+                       normalizedPath.toLowerCase().includes('.heif') || 
+                       normalizedPath.toLowerCase().includes('.heix')
     
-    const isGIFFile = path.toLowerCase().includes('.gif')
+    const isGIFFile = normalizedPath.toLowerCase().includes('.gif')
     
-    console.log(`Special File Detection - path: ${path}, isHEICFile: ${isHEICFile}, isGIFFile: ${isGIFFile}`)
+    console.log(`Special File Detection - path: ${normalizedPath}, isHEICFile: ${isHEICFile}, isGIFFile: ${isGIFFile}`)
 
     // Generate optimized signed URL
     const supabaseService = createClient(
@@ -95,7 +101,7 @@ Deno.serve(async (req) => {
       try {
         const { data: urlData, error: urlError } = await supabaseService.storage
           .from('content')
-          .createSignedUrl(path, 7200) // No transforms for HEIC files
+          .createSignedUrl(normalizedPath.replace(/^content\//, ''), 7200) // No transforms for HEIC files
 
         if (urlError) {
           console.error('HEIC STORAGE ERROR:', {
@@ -150,7 +156,7 @@ Deno.serve(async (req) => {
       try {
         const { data: urlData, error: urlError } = await supabaseService.storage
           .from('content')
-          .createSignedUrl(path, 7200) // No transforms for GIF files
+          .createSignedUrl(normalizedPath.replace(/^content\//, ''), 7200) // No transforms for GIF files
 
         if (urlError) {
           console.error('GIF STORAGE ERROR:', {
@@ -198,8 +204,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`REGULAR FILE - Proceeding with normal processing: ${path}`)
-    if (path.includes('.mp4') || path.includes('.webm') || path.includes('.mov')) {
+    console.log(`REGULAR FILE - Proceeding with normal processing: ${normalizedPath}`)
+    if (normalizedPath.includes('.mp4') || normalizedPath.includes('.webm') || normalizedPath.includes('.mov')) {
       // Try to find processed quality variant matching the request
       let targetPath = path
       
@@ -208,7 +214,7 @@ Deno.serve(async (req) => {
         const { data: qualityData } = await supabaseService
           .from('quality_metadata')
           .select('storage_path, height')
-          .like('storage_path', `%${path.split('/').pop()?.split('.')[0]}%`)
+          .like('storage_path', `%${normalizedPath.split('/').pop()?.split('.')[0]}%`)
           .order('height', { ascending: false })
           .limit(5)
 
@@ -227,7 +233,7 @@ Deno.serve(async (req) => {
       // Generate signed URL for processed video (no transforms needed)
       const { data: urlData, error: urlError } = await supabaseService.storage
         .from('content')
-        .createSignedUrl(targetPath, 7200)
+        .createSignedUrl(targetPath.replace(/^content\//, ''), 7200)
 
       if (!urlError && urlData) {
         return new Response(
@@ -235,7 +241,7 @@ Deno.serve(async (req) => {
             success: true, 
             url: urlData.signedUrl,
             expires_at: new Date(Date.now() + 7200 * 1000).toISOString(),
-            processed: targetPath !== path
+            processed: targetPath !== normalizedPath
           }),
           { 
             headers: { 
@@ -255,22 +261,22 @@ Deno.serve(async (req) => {
 
     // SAFETY CHECK - Should never reach here for HEIC or GIF files
     if (isHEICFile) {
-      console.error('CRITICAL ERROR - HEIC file reached transform section!', path)
+      console.error('CRITICAL ERROR - HEIC file reached transform section!', normalizedPath)
       return new Response(
         JSON.stringify({ 
           error: 'HEIC file incorrectly reached transform section', 
-          path: path 
+          path: normalizedPath 
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     if (isGIFFile) {
-      console.error('CRITICAL ERROR - GIF file reached transform section!', path)
+      console.error('CRITICAL ERROR - GIF file reached transform section!', normalizedPath)
       return new Response(
         JSON.stringify({ 
           error: 'GIF file incorrectly reached transform section', 
-          path: path 
+          path: normalizedPath 
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
@@ -298,17 +304,17 @@ Deno.serve(async (req) => {
 
     const { data: urlData, error: urlError } = await supabaseService.storage
       .from('content')
-      .createSignedUrl(path, 7200, transformOptions)
+      .createSignedUrl(normalizedPath.replace(/^content\//, ''), 7200, transformOptions)
 
     if (urlError) {
-      console.error('Signed URL error for path:', path, 'Error:', urlError)
+      console.error('Signed URL error for path:', normalizedPath, 'Error:', urlError)
       return new Response(
         JSON.stringify({ error: 'Failed to generate secure URL', details: urlError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log('Successfully generated signed URL for:', path)
+    console.log('Successfully generated signed URL for:', normalizedPath)
 
     return new Response(
       JSON.stringify({ 
