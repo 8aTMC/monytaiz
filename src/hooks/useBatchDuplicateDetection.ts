@@ -51,6 +51,18 @@ const calculateSimilarity = (str1: string, str2: string): number => {
   return Math.round(((maxLength - distance) / maxLength) * 100);
 };
 
+// Helper function to get base filename without extension
+const getBaseFilename = (filename: string): string => {
+  return filename.substring(0, filename.lastIndexOf('.')) || filename;
+};
+
+// Calculate similarity between base filenames (ignoring extensions)
+const calculateBasenameSimilarity = (filename1: string, filename2: string): number => {
+  const base1 = getBaseFilename(filename1);
+  const base2 = getBaseFilename(filename2);
+  return calculateSimilarity(base1, base2);
+};
+
 // Simple cache for duplicate results (5 minute TTL)
 interface CacheEntry {
   result: DuplicateMatch[];
@@ -113,25 +125,22 @@ export const useBatchDuplicateDetection = () => {
 
       onProgress?.(0, 3); // 3 steps: exact matches, size matches, similarity check
 
-      // BATCH QUERY 1: Get all exact matches in one query
+      // BATCH QUERY 1: Get all exact filename matches (ignoring size for converted files)
       const filenames = processFiles.map(f => f.file.name);
-      const fileSizes = processFiles.map(f => f.file.size);
       
       const { data: exactMatches } = await supabase
         .from('simple_media')
         .select('id, title, original_filename, original_size_bytes, optimized_size_bytes, mime_type, created_at, thumbnail_path, processed_path, processing_status')
         .eq('creator_id', userData.user.id)
-        .in('original_filename', filenames)
-        .in('original_size_bytes', fileSizes);
+        .in('original_filename', filenames);
 
       onProgress?.(1, 3);
 
-      // Process exact matches
+      // Process exact filename matches
       if (exactMatches) {
         for (const queueFile of processFiles) {
           const exactMatch = exactMatches.find(
-            match => match.original_filename === queueFile.file.name && 
-                    match.original_size_bytes === queueFile.file.size
+            match => match.original_filename === queueFile.file.name
           );
 
           if (exactMatch) {
@@ -147,40 +156,49 @@ export const useBatchDuplicateDetection = () => {
 
       onProgress?.(2, 3);
 
-      // BATCH QUERY 2: Get all files with matching sizes for fuzzy matching
+      // BATCH QUERY 2: Get all remaining files for base filename similarity matching
       // Only check files that didn't have exact matches
       const filesNeedingFuzzyCheck = processFiles.filter(queueFile => 
         !duplicates.some(dup => dup.queueFile.id === queueFile.id)
       );
 
       if (filesNeedingFuzzyCheck.length > 0) {
-        const uniqueSizes = [...new Set(filesNeedingFuzzyCheck.map(f => f.file.size))];
-        
-        const { data: sizeMatches } = await supabase
+        const { data: allFiles } = await supabase
           .from('simple_media')
           .select('id, title, original_filename, original_size_bytes, optimized_size_bytes, mime_type, created_at, thumbnail_path, processed_path, processing_status')
-          .eq('creator_id', userData.user.id)
-          .in('original_size_bytes', uniqueSizes);
+          .eq('creator_id', userData.user.id);
 
-        // Process similarity matches in batches to avoid blocking UI
-        if (sizeMatches) {
+        // Process base filename similarity matches
+        if (allFiles) {
           for (const queueFile of filesNeedingFuzzyCheck) {
-            const candidateMatches = sizeMatches.filter(
-              match => match.original_size_bytes === queueFile.file.size
-            );
-
-            for (const match of candidateMatches) {
-              const similarity = calculateSimilarity(queueFile.file.name, match.original_filename);
+            for (const match of allFiles) {
+              // Check exact base filename match first
+              const queueBasename = getBaseFilename(queueFile.file.name);
+              const existingBasename = getBaseFilename(match.original_filename);
               
-              if (similarity >= 85) {
+              if (queueBasename === existingBasename && queueBasename.length > 0) {
                 duplicates.push({
                   queueFile,
                   existingFile: match,
                   sourceType: 'database',
-                  similarity,
+                  similarity: 100,
                   matchType: 'similar'
                 });
-                break; // Only take the first high-similarity match per file
+                break; // Take first exact basename match
+              } else {
+                // Check for high similarity in base filenames
+                const basenameSimilarity = calculateBasenameSimilarity(queueFile.file.name, match.original_filename);
+                
+                if (basenameSimilarity >= 90) {
+                  duplicates.push({
+                    queueFile,
+                    existingFile: match,
+                    sourceType: 'database',
+                    similarity: basenameSimilarity,
+                    matchType: 'similar'
+                  });
+                  break; // Take first high-similarity match
+                }
               }
             }
           }

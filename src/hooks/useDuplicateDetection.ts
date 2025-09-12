@@ -51,6 +51,18 @@ const calculateSimilarity = (str1: string, str2: string): number => {
   return Math.round(((maxLength - distance) / maxLength) * 100);
 };
 
+// Helper function to get base filename without extension
+const getBaseFilename = (filename: string): string => {
+  return filename.substring(0, filename.lastIndexOf('.')) || filename;
+};
+
+// Calculate similarity between base filenames (ignoring extensions)
+const calculateBasenameSimilarity = (filename1: string, filename2: string): number => {
+  const base1 = getBaseFilename(filename1);
+  const base2 = getBaseFilename(filename2);
+  return calculateSimilarity(base1, base2);
+};
+
 export const useDuplicateDetection = () => {
   // Check for duplicates within the upload queue (simple filename + size)
   const checkQueueDuplicates = async (uploadQueue: FileUploadItem[]): Promise<QueueDuplicate[]> => {
@@ -98,110 +110,66 @@ export const useDuplicateDetection = () => {
       const processFiles = uploadQueue.filter(f => f.status === 'pending');
 
       for (const queueFile of processFiles) {
-        // First check for exact filename + size match
+        // Check for exact filename match (ignoring size for converted files)
         const { data: exactMatches } = await supabase
           .from('simple_media')
-          .select('id, title, original_filename, original_size_bytes, mime_type, created_at, thumbnail_path, processing_status, original_path, processed_path')
+          .select('id, title, original_filename, original_size_bytes, optimized_size_bytes, mime_type, created_at, thumbnail_path, processing_status, original_path, processed_path')
           .eq('creator_id', userData.user.id)
-          .eq('original_filename', queueFile.file.name)
-          .eq('original_size_bytes', queueFile.file.size);
+          .eq('original_filename', queueFile.file.name);
 
         if (exactMatches && exactMatches.length > 0) {
-          // Filter matches to only include records where files actually exist
-          const validMatches = [];
+          console.log('🎯 Found exact filename match for:', queueFile.file.name);
           
-          for (const match of exactMatches) {
-            let fileExists = false;
-            
-            // Check if any of the file paths exist in storage
-            const pathsToCheck = [match.original_path, match.processed_path, match.thumbnail_path].filter(Boolean);
-            
-            for (const path of pathsToCheck) {
-              try {
-                const { data } = await supabase.storage
-                  .from('content')
-                  .getPublicUrl(path);
-                
-                if (data?.publicUrl) {
-                  // Quick existence check via HEAD request
-                  const response = await fetch(data.publicUrl, { method: 'HEAD' });
-                  if (response.ok) {
-                    fileExists = true;
-                    break;
-                  }
-                }
-              } catch (error) {
-                // File doesn't exist, continue
-              }
-            }
-            
-            if (fileExists) {
-              validMatches.push(match);
-            }
-          }
+          const mostRecent = exactMatches.sort((a, b) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          )[0];
 
-          if (validMatches.length > 0) {
-            const mostRecent = validMatches.sort((a, b) => 
-              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            )[0];
-
-            console.log('🎯 Found exact database duplicate for:', queueFile.file.name);
-
-            duplicates.push({
-              queueFile,
-              existingFile: mostRecent,
-              sourceType: 'database',
-              matchType: 'exact'
-            });
-          }
+          duplicates.push({
+            queueFile,
+            existingFile: mostRecent,
+            sourceType: 'database',
+            matchType: 'exact'
+          });
         } else {
-          // If no exact match, check for similar files with same size
-          const { data: sizeMatches } = await supabase
+          // Check for similar files using base filename matching
+          const { data: allFiles } = await supabase
             .from('simple_media')
-            .select('id, title, original_filename, original_size_bytes, mime_type, created_at, thumbnail_path, processing_status, original_path, processed_path')
-            .eq('creator_id', userData.user.id)
-            .eq('original_size_bytes', queueFile.file.size);
+            .select('id, title, original_filename, original_size_bytes, optimized_size_bytes, mime_type, created_at, thumbnail_path, processing_status, original_path, processed_path')
+            .eq('creator_id', userData.user.id);
 
-          if (sizeMatches && sizeMatches.length > 0) {
-            // Check filename similarity for each match, but only for files that exist
-            for (const match of sizeMatches) {
-              let fileExists = false;
+          if (allFiles && allFiles.length > 0) {
+            // Check base filename similarity for each file
+            for (const match of allFiles) {
+              // First check exact base filename match
+              const queueBasename = getBaseFilename(queueFile.file.name);
+              const existingBasename = getBaseFilename(match.original_filename);
               
-              // Verify file exists before checking similarity
-              const pathsToCheck = [match.original_path, match.processed_path, match.thumbnail_path].filter(Boolean);
-              
-              for (const path of pathsToCheck) {
-                try {
-                  const { data } = await supabase.storage
-                    .from('content')
-                    .getPublicUrl(path);
-                  
-                  if (data?.publicUrl) {
-                    const response = await fetch(data.publicUrl, { method: 'HEAD' });
-                    if (response.ok) {
-                      fileExists = true;
-                      break;
-                    }
-                  }
-                } catch (error) {
-                  // File doesn't exist
-                }
-              }
-              
-              if (fileExists) {
-                const similarity = calculateSimilarity(queueFile.file.name, match.original_filename);
+              if (queueBasename === existingBasename && queueBasename.length > 0) {
+                console.log('🎯 Found exact base filename match:', queueFile.file.name, 'vs', match.original_filename);
                 
-                // Consider files with >85% similarity as potential duplicates
-                if (similarity >= 85) {
-                  console.log('🔍 Found similar database file:', queueFile.file.name, 'vs', match.original_filename, `(${similarity}% similar)`);
+                duplicates.push({
+                  queueFile,
+                  existingFile: match,
+                  sourceType: 'database',
+                  similarity: 100,
+                  matchType: 'similar'
+                });
+                break; // Take first exact basename match
+              } else {
+                // Check for high similarity in base filenames
+                const basenameSimilarity = calculateBasenameSimilarity(queueFile.file.name, match.original_filename);
+                
+                if (basenameSimilarity >= 90) {
+                  console.log('🔍 Found similar base filename:', queueFile.file.name, 'vs', match.original_filename, `(${basenameSimilarity}% similar)`);
                   
                   duplicates.push({
                     queueFile,
                     existingFile: match,
                     sourceType: 'database',
-                    similarity,
+                    similarity: basenameSimilarity,
                     matchType: 'similar'
                   });
+                  break; // Take first high-similarity match
                 }
               }
             }
