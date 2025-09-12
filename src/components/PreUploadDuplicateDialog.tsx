@@ -167,7 +167,7 @@ export const PreUploadDuplicateDialog = ({
             </div>
             
             {/* Duplicate files list */}
-            <ScrollArea className="flex-1 min-h-0">
+            <ScrollArea className="h-[400px]">
               <div className="space-y-4 pr-4">
                 {/* Exact Duplicates */}
                 {duplicates.filter(d => d.sourceType === 'queue' || (d.sourceType === 'database' && (!('matchType' in d) || d.matchType === 'exact'))).length > 0 && (

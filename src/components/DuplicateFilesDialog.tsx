@@ -160,7 +160,7 @@ export const DuplicateFilesDialog = ({
             </Button>
           </div>
           
-          <ScrollArea className="flex-1 min-h-0">
+          <ScrollArea className="h-[400px]">
             <div className="pr-4 space-y-6">
               {/* Exact Duplicates */}
               {duplicateFiles.filter(d => !d.similarity).length > 0 && (
