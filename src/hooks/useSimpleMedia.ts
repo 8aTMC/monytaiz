@@ -118,6 +118,22 @@ export const useSimpleMedia = () => {
   }, [getMediaUrl]);
 
   const getFullUrlAsync = useCallback(async (item: SimpleMediaItem) => {
+    // Special handling for GIFs: prefer original path to preserve animation
+    const isGif =
+      item.media_type === 'gif' ||
+      item.mime_type === 'image/gif' ||
+      (item.original_path && /\.gif$/i.test(item.original_path));
+
+    if (isGif && item.original_path) {
+      const originalGifUrl = await getMediaUrl(item.original_path, false);
+      if (originalGifUrl) return originalGifUrl;
+      // Fallback to processed if original not available (may be static)
+      if (item.processed_path) {
+        const processedGifUrl = await getMediaUrl(item.processed_path, false);
+        if (processedGifUrl) return processedGifUrl;
+      }
+    }
+
     // First, try the processed path if available
     if (item.processed_path) {
       const processedUrl = await getMediaUrl(item.processed_path, false);

@@ -436,9 +436,9 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
               <div className="flex gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <span className="font-medium">Type:</span>
-                  <span className="capitalize bg-muted px-2 py-1 rounded text-xs">
-                    {item.media_type || 'Unknown'}
-                  </span>
+                   <span className="capitalize bg-muted px-2 py-1 rounded text-xs">
+                     {item.media_type === 'gif' ? 'GIF' : (item.media_type || 'Unknown')}
+                   </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="font-medium">Size:</span>
@@ -481,14 +481,43 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                            onMouseLeave={() => setIsHovering(false)}
                          >
                            <img
-                             src={fullUrl}
-                             alt={item.title || item.original_filename}
-                             className="w-full h-full object-contain object-center"
-                             onError={(e) => {
-                               console.error('Failed to load image:', e);
-                               setFullUrl(null);
-                             }}
-                           />
+                              src={fullUrl}
+                              alt={item.title || item.original_filename}
+                              className="w-full h-full object-contain object-center"
+                              onError={async (e) => {
+                                console.error('Failed to load image:', e, 'URL:', fullUrl, 'item:', item);
+                                try {
+                                  const isGif =
+                                    item?.media_type === 'gif' ||
+                                    item?.mime_type === 'image/gif' ||
+                                    (item?.original_path && /\.gif$/i.test(item.original_path));
+                                  const candidates: string[] = [];
+                                  if (isGif && item?.original_path) candidates.push(item.original_path);
+                                  if (item?.processed_path && !isGif) candidates.push(item.processed_path);
+                                  if (item?.thumbnail_path) candidates.push(item.thumbnail_path);
+                                  if (item?.original_path && !candidates.includes(item.original_path)) candidates.push(item.original_path);
+
+                                  for (const p of candidates) {
+                                    try {
+                                      const cleanPath = p.replace(/^content\//, '');
+                                      const { data, error } = await supabase.storage
+                                        .from('content')
+                                        .createSignedUrl(cleanPath, 3600);
+                                      if (data?.signedUrl && !error) {
+                                        console.log('✅ Fallback image URL generated:', data.signedUrl);
+                                        setFullUrl(data.signedUrl);
+                                        return;
+                                      }
+                                    } catch (innerErr) {
+                                      console.warn('Fallback attempt failed for path:', p, innerErr);
+                                    }
+                                  }
+                                } catch (fallbackError) {
+                                  console.error('❌ Exception in fallback image URL generation:', fallbackError);
+                                }
+                                setFullUrl(null);
+                              }}
+                            />
                            {isHovering && (
                              <Button
                                variant="secondary"
