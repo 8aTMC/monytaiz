@@ -154,7 +154,12 @@ export const AdvancedFileUpload = () => {
 
       console.log(`Staged ${stagedItems.length} files for duplicate detection`);
 
-      // Check for queue duplicates: staged items vs existing queue
+      // Check for database duplicates FIRST
+      const databaseDuplicates = await checkDatabaseDuplicates(stagedItems, (current, total) => {
+        logger.debug(`DB duplicate check progress: ${current}/${total}`);
+      });
+      
+      // Then check for queue duplicates: staged items vs existing queue
       const queueDuplicates: QueueDuplicate[] = [];
       for (const stagedItem of stagedItems) {
         for (const existingItem of uploadQueue.filter(q => ['pending', 'error', 'cancelled', 'completed', 'uploading', 'paused'].includes(q.status))) {
@@ -169,11 +174,6 @@ export const AdvancedFileUpload = () => {
           }
         }
       }
-
-      // Check for database duplicates
-      const databaseDuplicates = await checkDatabaseDuplicates(stagedItems, (current, total) => {
-        logger.debug(`DB duplicate check progress: ${current}/${total}`);
-      });
       
       logger.group('🔎 Duplicate detection summary', () => {
         logger.debug('Queue duplicates', queueDuplicates.map(d => ({

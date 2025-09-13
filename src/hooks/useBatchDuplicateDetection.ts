@@ -90,22 +90,49 @@ export const useBatchDuplicateDetection = () => {
       let current = 0;
       for (const queueFile of processFiles) {
         try {
-          // First try simple_media by filename
-          const { data: smRows, error: smErr } = await supabase
-            .from('simple_media')
-            .select('id, title, original_filename, original_size_bytes, optimized_size_bytes, mime_type, created_at, thumbnail_path, processed_path, processing_status')
+          // First try content_files (primary library table)
+          const { data: cfRows, error: cfErr } = await supabase
+            .from('content_files')
+            .select('id, title, original_filename, file_size, mime_type, created_at, thumbnail_url, file_path, is_active')
             .eq('original_filename', queueFile.file.name)
             .limit(20);
 
           let match: any | null = null;
 
-          if (smErr) {
-            logger.warn('🌐⚠️ simple_media lookup failed, will try files fallback', { name: queueFile.file.name, error: smErr });
-          } else if (smRows && smRows.length > 0) {
-            match = smRows.find(r => typeof r.original_size_bytes === 'number' && r.original_size_bytes === queueFile.file.size) || smRows[0] || null;
+          if (cfErr) {
+            logger.warn('🌐⚠️ content_files lookup failed, will try fallbacks', { name: queueFile.file.name, error: cfErr });
+          } else if (cfRows && cfRows.length > 0) {
+            const mappedCf = cfRows.map((r: any) => ({
+              id: r.id,
+              title: r.title,
+              original_filename: r.original_filename,
+              original_size_bytes: r.file_size,
+              optimized_size_bytes: undefined,
+              mime_type: r.mime_type,
+              created_at: r.created_at,
+              thumbnail_path: r.thumbnail_url,
+              processed_path: r.file_path,
+              processing_status: r.is_active ? 'processed' : 'inactive',
+            }));
+            match = mappedCf.find((m: any) => typeof m.original_size_bytes === 'number' && m.original_size_bytes === queueFile.file.size) || mappedCf[0] || null;
           }
 
-          // Fallback to legacy files table if needed
+          // Fallback 1: simple_media by filename
+          if (!match) {
+            const { data: smRows, error: smErr } = await supabase
+              .from('simple_media')
+              .select('id, title, original_filename, original_size_bytes, optimized_size_bytes, mime_type, created_at, thumbnail_path, processed_path, processing_status')
+              .eq('original_filename', queueFile.file.name)
+              .limit(20);
+
+            if (smErr) {
+              logger.warn('🌐⚠️ simple_media lookup failed, will try files fallback', { name: queueFile.file.name, error: smErr });
+            } else if (smRows && smRows.length > 0) {
+              match = smRows.find(r => typeof r.original_size_bytes === 'number' && r.original_size_bytes === queueFile.file.size) || smRows[0] || null;
+            }
+          }
+
+          // Fallback 2: legacy files table if needed
           if (!match) {
             const { data: filesRows, error: filesErr } = await supabase
               .from('files')
