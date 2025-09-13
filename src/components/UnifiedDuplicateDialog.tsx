@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FileText, Image, Video, Music, FileIcon, Eye, Calendar, Database, List, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { DuplicateMatch, QueueDuplicate, DatabaseDuplicate } from '@/hooks/useBatchDuplicateDetection';
 import { FileComparisonDialog } from './FileComparisonDialog';
 import { useOptimizedThumbnail } from '@/hooks/useOptimizedThumbnail';
@@ -33,6 +33,8 @@ export const UnifiedDuplicateDialog = ({
   // Separate duplicates by type
   const libraryDuplicates = duplicates.filter(d => d.sourceType === 'database') as DatabaseDuplicate[];
   const queueDuplicates = duplicates.filter(d => d.sourceType === 'queue') as QueueDuplicate[];
+  // Unique staged file ids (a file can appear in both sections)
+  const uniqueIds = useMemo(() => Array.from(new Set(duplicates.map(d => d.queueFile.id))), [duplicates]);
   
   // Initialize with all files selected by default
   useEffect(() => {
@@ -42,10 +44,11 @@ export const UnifiedDuplicateDialog = ({
   }, [duplicates]);
   
   const handleSelectAll = () => {
-    if (selectedFiles.size === duplicates.length) {
+    const total = uniqueIds.length;
+    if (selectedFiles.size === total) {
       setSelectedFiles(new Set());
     } else {
-      setSelectedFiles(new Set(duplicates.map(d => d.queueFile.id)));
+      setSelectedFiles(new Set(uniqueIds));
     }
   };
   
@@ -140,7 +143,6 @@ export const UnifiedDuplicateDialog = ({
 
   const DuplicateRow = ({ duplicate }: { duplicate: DuplicateMatch }) => (
     <div 
-      key={duplicate.queueFile.id}
       className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
     >
       <Checkbox
@@ -244,11 +246,11 @@ export const UnifiedDuplicateDialog = ({
             <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg flex-shrink-0">
               <div className="flex items-center gap-2">
                 <Checkbox
-                  checked={selectedFiles.size === duplicates.length && duplicates.length > 0}
+                  checked={selectedFiles.size === uniqueIds.length && uniqueIds.length > 0}
                   onCheckedChange={handleSelectAll}
                 />
                 <span className="text-sm font-medium">
-                  Select All ({selectedFiles.size}/{duplicates.length})
+                  Select All ({selectedFiles.size}/{uniqueIds.length})
                 </span>
               </div>
               <Badge variant="secondary">
@@ -268,7 +270,7 @@ export const UnifiedDuplicateDialog = ({
                     </h4>
                     <div className="space-y-3">
                       {libraryDuplicates.map((duplicate) => (
-                        <DuplicateRow key={duplicate.queueFile.id} duplicate={duplicate} />
+                        <DuplicateRow key={`${duplicate.queueFile.id}-database`} duplicate={duplicate} />
                       ))}
                     </div>
                   </div>
@@ -283,7 +285,7 @@ export const UnifiedDuplicateDialog = ({
                     </h4>
                     <div className="space-y-3">
                       {queueDuplicates.map((duplicate) => (
-                        <DuplicateRow key={duplicate.queueFile.id} duplicate={duplicate} />
+                        <DuplicateRow key={`${duplicate.queueFile.id}-queue`} duplicate={duplicate} />
                       ))}
                     </div>
                   </div>

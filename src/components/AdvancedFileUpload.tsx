@@ -176,29 +176,13 @@ export const AdvancedFileUpload = () => {
       
       console.log(`Found ${queueDuplicates.length} queue duplicates, ${databaseDuplicates.length} database duplicates`);
       
-      // Merge duplicates (library first, then queue)
-      const mergedDuplicates: DuplicateMatch[] = [];
-      const seenKeys = new Set<string>();
-      
-      // Add database duplicates first (higher priority)
-      for (const duplicate of databaseDuplicates) {
-        const key = `${duplicate.queueFile.file.name}:${duplicate.queueFile.file.size}`;
-        if (!seenKeys.has(key)) {
-          mergedDuplicates.push(duplicate);
-          seenKeys.add(key);
-        }
-      }
-      
-      // Add queue duplicates if not already seen
-      for (const duplicate of queueDuplicates) {
-        const key = `${duplicate.queueFile.file.name}:${duplicate.queueFile.file.size}`;
-        if (!seenKeys.has(key)) {
-          mergedDuplicates.push(duplicate);
-          seenKeys.add(key);
-        }
-      }
+      // Merge duplicates without collapsing types — show both DB and Queue duplicates for the same file
+      const mergedDuplicates: DuplicateMatch[] = [
+        ...databaseDuplicates,
+        ...queueDuplicates,
+      ];
 
-      console.log(`Total merged duplicates: ${mergedDuplicates.length}`);
+      console.log(`Total duplicates — db: ${databaseDuplicates.length}, queue: ${queueDuplicates.length}, combined: ${mergedDuplicates.length}`);
 
       // Clear loading state
       setIsCheckingDuplicates(false);
