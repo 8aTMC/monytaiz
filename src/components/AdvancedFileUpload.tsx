@@ -49,7 +49,7 @@ export const AdvancedFileUpload = () => {
   const [isPurgingDuplicates, setIsPurgingDuplicates] = useState(false);
   const [pendingDialogFiles, setPendingDialogFiles] = useState<File[]>([]);
   
-  const { checkAllDuplicates, addDuplicateTag } = useBatchDuplicateDetection();
+  const { checkAllDuplicates, checkDatabaseDuplicates, addDuplicateTag } = useBatchDuplicateDetection();
   
   // Dialog callbacks for legacy stacked dialog system
   const showDuplicateDialog = useCallback((duplicates: { id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]) => {
@@ -117,9 +117,9 @@ export const AdvancedFileUpload = () => {
       // Wait a moment for files to be added to queue
       await new Promise(resolve => setTimeout(resolve, 50));
       
-      // Check for database duplicates
-      const currentQueue = uploadQueue.concat(
-        files.filter(file => {
+      // Build temp items from incoming files to ensure we check both queue and DB
+      const newItems = files
+        .filter(file => {
           try {
             const extension = '.' + file.name.split('.').pop()?.toLowerCase();
             const allowedVideoExts = ['.mp4', '.mov', '.webm', '.mkv'];
@@ -129,7 +129,8 @@ export const AdvancedFileUpload = () => {
           } catch {
             return false;
           }
-        }).map((file, index) => ({
+        })
+        .map((file, index) => ({
           file,
           id: `temp-${Date.now()}-${index}`,
           progress: 0,
@@ -145,20 +146,53 @@ export const AdvancedFileUpload = () => {
             description: '',
             suggestedPrice: null,
           },
-        }))
-      );
-      
-      // Check for database duplicates
-      const databaseDuplicates = currentQueue.length > 0 ? await checkAllDuplicates(currentQueue) : [];
-      
+        }));
+
+      const currentQueue = uploadQueue.concat(newItems);
+
+      // Run unified duplicate detection (queue + database)
+      const allFound = currentQueue.length > 0 
+        ? await checkAllDuplicates(currentQueue, (current, total, step) => {
+            // Helpful debug for sequencing issues
+            console.log(`[DuplicateCheck] ${current}/${total} - ${step}`);
+          })
+        : [];
+
+      // Fallback: if no library duplicates were returned, explicitly check DB for just-new files
+      let mergedDuplicates: DuplicateMatch[] = allFound;
+      const hasLibrary = mergedDuplicates.some(d => d.sourceType === 'database');
+      if (!hasLibrary && newItems.length > 0) {
+        const dbFromNew = await checkDatabaseDuplicates(newItems);
+        if (dbFromNew.length > 0) {
+          const seen = new Set<string>();
+          mergedDuplicates = [...mergedDuplicates, ...dbFromNew].filter(d => {
+            const key = `${d.sourceType}-${d.queueFile.id}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+        }
+      }
+
       // Clear loading state before showing any dialogs
       setIsCheckingDuplicates(false);
       setIsProcessingFiles(false);
       
-      // Now show all dialogs in proper sequence: Database → Queue → Unsupported → HEIC
-      if (databaseDuplicates.length > 0) {
-        setAllDuplicates(databaseDuplicates);
+      // Now show all dialogs in proper sequence: Unified duplicates (Library + Queue) → Unsupported → HEIC
+      if (mergedDuplicates.length > 0) {
+        setAllDuplicates(mergedDuplicates);
         setUnifiedDuplicateDialogOpen(true);
+      } else if (validationResults?.duplicateFiles?.length > 0) {
+        showDuplicateDialog(validationResults.duplicateFiles);
+      } else if (validationResults?.unsupportedFiles?.length > 0) {
+        showUnsupportedDialog(validationResults.unsupportedFiles);
+      } else {
+        // Check for HEIC files as final step
+        const heicFileNames = files.filter(isHeicFile).map(f => f.name);
+        if (heicFileNames.length > 0) {
+          showHeicWarning(heicFileNames);
+        }
+      }
       } else if (validationResults?.duplicateFiles?.length > 0) {
         showDuplicateDialog(validationResults.duplicateFiles);
       } else if (validationResults?.unsupportedFiles?.length > 0) {
