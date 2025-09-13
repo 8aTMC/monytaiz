@@ -584,14 +584,46 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                             }}
                           />
                         )}
-                       {item?.media_type === 'audio' && (
-                         <CustomAudioPlayer
-                           key={`audio-${item.id}-${selectedIndex}-${fullUrl?.substring(0, 10)}`}
-                           src={fullUrl}
-                           title={item?.title || item?.original_filename}
-                           className="w-full h-full"
-                         />
-                        )}
+                        {item?.media_type === 'audio' && (
+                          <div className="flex items-center justify-center h-full">
+                            <CustomAudioPlayer
+                              key={`audio-${item.id}-${selectedIndex}-${fullUrl?.substring(0, 10)}`}
+                              src={fullUrl}
+                              title={item?.title || item?.original_filename}
+                              className="w-full max-w-md"
+                              onError={async (e) => {
+                                console.error('Failed to load audio:', e, 'URL:', fullUrl);
+                                console.log('Attempting fallback URL generation for audio:', item);
+                                
+                                // Try direct fallback for audio
+                                if (item?.original_path || item?.processed_path) {
+                                  try {
+                                    const fallbackPath = item.original_path || item.processed_path;
+                                    console.log('Generating fallback URL for audio path:', fallbackPath);
+                                    
+                                    // Generate direct signed URL as fallback
+                                    const { data, error } = await supabase.storage
+                                      .from('content')
+                                      .createSignedUrl(fallbackPath.replace(/^content\//, ''), 3600);
+                                    
+                                    if (data?.signedUrl && !error) {
+                                      console.log('✅ Generated fallback audio URL:', data.signedUrl);
+                                      setFullUrl(data.signedUrl);
+                                      return;
+                                    } else {
+                                      console.error('❌ Audio fallback URL generation failed:', error);
+                                    }
+                                  } catch (fallbackError) {
+                                    console.error('❌ Exception in audio fallback URL generation:', fallbackError);
+                                  }
+                                }
+                                
+                                // If all fails, set to null
+                                setFullUrl(null);
+                              }}
+                            />
+                          </div>
+                         )}
                      </div>
                    </div>
                  ) : (

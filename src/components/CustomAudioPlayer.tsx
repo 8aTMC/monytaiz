@@ -14,12 +14,14 @@ interface CustomAudioPlayerProps {
   src: string;
   className?: string;
   title?: string;
+  onError?: (error: any) => void;
 }
 
 export const CustomAudioPlayer: React.FC<CustomAudioPlayerProps> = ({
   src,
   className,
-  title
+  title,
+  onError
 }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -50,9 +52,10 @@ export const CustomAudioPlayer: React.FC<CustomAudioPlayerProps> = ({
       setCurrentTime(0);
     };
 
-    const handleError = () => {
+    const handleError = (e: Event) => {
       setIsLoading(false);
-      console.error('Audio loading failed');
+      console.error('Audio loading failed:', e, 'URL:', src);
+      onError?.(e);
     };
 
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
