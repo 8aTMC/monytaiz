@@ -193,17 +193,6 @@ export const AdvancedFileUpload = () => {
           showHeicWarning(heicFileNames);
         }
       }
-      } else if (validationResults?.duplicateFiles?.length > 0) {
-        showDuplicateDialog(validationResults.duplicateFiles);
-      } else if (validationResults?.unsupportedFiles?.length > 0) {
-        showUnsupportedDialog(validationResults.unsupportedFiles);
-      } else {
-        // Check for HEIC files as final step
-        const heicFileNames = files.filter(isHeicFile).map(f => f.name);
-        if (heicFileNames.length > 0) {
-          showHeicWarning(heicFileNames);
-        }
-      }
       
     } catch (error) {
       console.error('Error during file processing:', error);
