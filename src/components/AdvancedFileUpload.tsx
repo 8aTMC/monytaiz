@@ -396,7 +396,6 @@ export const AdvancedFileUpload = () => {
     console.log('Purging selected duplicates:', duplicateIds);
     
     // Filter staged files to remove ones being purged
-    // duplicateIds contains the IDs of queueFiles (staged items) to be removed
     const duplicateFileIds = new Set(duplicateIds);
     const duplicateFileMap = new Map<string, File>();
     
@@ -417,14 +416,72 @@ export const AdvancedFileUpload = () => {
     
     console.log(`Keeping ${keptFiles.length} out of ${stagedFiles.length} staged files after purging ${duplicateIds.length} duplicates`);
     
+    // Always re-scan kept files for BOTH library and queue duplicates before proceeding
+    if (keptFiles.length > 0) {
+      (async () => {
+        // Rebuild staged items for detection
+        const keptStagedItems = keptFiles.map((file, index) => ({
+          file,
+          id: `kept-staged-${Date.now()}-${index}`,
+          progress: 0,
+          status: 'pending' as const,
+          uploadedBytes: 0,
+          totalBytes: file.size,
+          selected: false,
+          needsConversion: false,
+          metadata: {
+            mentions: [],
+            tags: [],
+            folders: [],
+            description: '',
+            suggestedPrice: null,
+          },
+        }));
+
+        // Queue duplicates: kept staged vs existing queue
+        const recheckQueueDuplicates: QueueDuplicate[] = [];
+        for (const stagedItem of keptStagedItems) {
+          for (const existingItem of uploadQueue.filter(q => ['pending', 'error', 'cancelled', 'completed', 'uploading', 'paused'].includes(q.status))) {
+            if (stagedItem.file.name === existingItem.file.name && 
+                stagedItem.file.size === existingItem.file.size) {
+              recheckQueueDuplicates.push({
+                queueFile: stagedItem,
+                duplicateFile: existingItem,
+                sourceType: 'queue'
+              });
+              break;
+            }
+          }
+        }
+
+        // Database duplicates: force check every time
+        const recheckDbDuplicates = await checkDatabaseDuplicates(keptStagedItems, (current, total) => {
+          logger.debug(`DB recheck progress (post-purge): ${current}/${total}`);
+        });
+
+        if (recheckDbDuplicates.length > 0 || recheckQueueDuplicates.length > 0) {
+          setAllDuplicates([
+            ...recheckDbDuplicates,
+            ...recheckQueueDuplicates,
+          ]);
+          // Reopen dialog to handle remaining duplicates
+          setUnifiedDuplicateDialogOpen(true);
+          return;
+        }
+
+        // No remaining duplicates; close dialog and continue
+        setUnifiedDuplicateDialogOpen(false);
+        setAllDuplicates([]);
+
+        showNextDialogInSequence(keptFiles, { skipDuplicateDialog: true });
+        setStagedFiles([]);
+      })();
+      return;
+    }
+
+    // No kept files; just close dialog
     setUnifiedDuplicateDialogOpen(false);
     setAllDuplicates([]);
-    
-    // Continue with remaining files
-    if (keptFiles.length > 0) {
-      showNextDialogInSequence(keptFiles, { skipDuplicateDialog: true });
-    }
-    
     setStagedFiles([]);
   };
 
