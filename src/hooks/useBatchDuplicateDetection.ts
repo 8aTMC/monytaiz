@@ -96,22 +96,34 @@ export const useBatchDuplicateDetection = () => {
       // Get all exact filename matches only
       const filenames = processFiles.map(f => f.file.name);
       
+      // Deduplicate filenames to keep query efficient
+      const uniqueFilenames = Array.from(new Set(filenames));
       const { data: exactMatches } = await supabase
         .from('simple_media')
         .select('id, title, original_filename, original_size_bytes, optimized_size_bytes, mime_type, created_at, thumbnail_path, processed_path, processing_status')
-        .in('original_filename', filenames);
+        .in('original_filename', uniqueFilenames);
 
-      // Process exact filename matches
+      // Index matches by filename for fast lookup
+      const matchesByName = new Map<string, any[]>();
       if (exactMatches) {
-        for (const queueFile of processFiles) {
-          const exactMatch = exactMatches.find(
-            match => match.original_filename === queueFile.file.name
-          );
+        for (const m of exactMatches) {
+          const list = matchesByName.get(m.original_filename) || [];
+          list.push(m);
+          matchesByName.set(m.original_filename, list);
+        }
+      }
 
-          if (exactMatch) {
+      // Process exact filename matches with size check per staged file
+      if (processFiles.length > 0) {
+        for (const queueFile of processFiles) {
+          const candidates = matchesByName.get(queueFile.file.name) || [];
+          const sizeMatch = candidates.find(c => typeof c.original_size_bytes === 'number' && c.original_size_bytes === queueFile.file.size);
+          const match = sizeMatch || candidates[0];
+
+          if (match) {
             duplicates.push({
               queueFile,
-              existingFile: exactMatch,
+              existingFile: match,
               sourceType: 'database'
             });
           }
