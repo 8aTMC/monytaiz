@@ -152,7 +152,7 @@ export const CustomAudioPlayer: React.FC<CustomAudioPlayerProps> = ({
   }
 
   return (
-    <div className={cn("w-full max-w-3xl mx-auto bg-card border rounded-lg p-4 space-y-4", className)}>
+    <div className={cn("w-full max-w-5xl mx-auto bg-card border rounded-lg p-6 space-y-4", className)}>
       <audio ref={audioRef} src={src} preload="metadata" />
       
       {/* Title */}
@@ -232,7 +232,7 @@ export const CustomAudioPlayer: React.FC<CustomAudioPlayerProps> = ({
             )}
           </Button>
           
-          <div className="w-24">
+          <div className="w-32">
             <Slider
               value={[isMuted ? 0 : volume]}
               onValueChange={handleVolumeChange}
