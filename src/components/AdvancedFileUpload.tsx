@@ -34,6 +34,9 @@ export const AdvancedFileUpload = () => {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   
+  // Staged files state - files waiting for duplicate resolution
+  const [stagedFiles, setStagedFiles] = useState<File[]>([]);
+  
   // Individual dialog states for stacked dialogs
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
   const [duplicateFiles, setDuplicateFiles] = useState<{ id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]>([]);
@@ -49,7 +52,7 @@ export const AdvancedFileUpload = () => {
   const [isPurgingDuplicates, setIsPurgingDuplicates] = useState(false);
   const [pendingDialogFiles, setPendingDialogFiles] = useState<File[]>([]);
   
-  const { checkAllDuplicates, checkDatabaseDuplicates, addDuplicateTag } = useBatchDuplicateDetection();
+  const { checkAllDuplicates, checkDatabaseDuplicates, checkQueueDuplicates, addDuplicateTag } = useBatchDuplicateDetection();
   
   // Dialog callbacks for legacy stacked dialog system
   const showDuplicateDialog = useCallback((duplicates: { id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]) => {
@@ -103,103 +106,142 @@ export const AdvancedFileUpload = () => {
            file.type === 'image/heif';
   }, []);
 
-  // Process files and handle validation using proper dialog sequencing
+  // Process files and handle validation using staged files approach
   const processFiles = useCallback(async (files: File[]) => {
-    if (isProcessingFiles || isCheckingDuplicates) return; // Prevent multiple processing
+    if (isProcessingFiles || isCheckingDuplicates) return;
     
     setIsProcessingFiles(true);
     setIsCheckingDuplicates(true);
     
     try {
-      // Add files with dialogs suppressed to get validation results
-      const validationResults = addFiles(files, showDuplicateDialog, showUnsupportedDialog, true);
+      console.log(`Processing ${files.length} new files`);
       
-      // Wait a moment for files to be added to queue
-      await new Promise(resolve => setTimeout(resolve, 50));
+      // Filter supported files first
+      const supportedFiles = files.filter(file => {
+        try {
+          const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+          const allowedVideoExts = ['.mp4', '.mov', '.webm', '.mkv'];
+          const allowedImageExts = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif'];
+          const allowedAudioExts = ['.mp3', '.wav', '.aac', '.ogg', '.opus'];
+          return allowedVideoExts.includes(extension) || allowedImageExts.includes(extension) || allowedAudioExts.includes(extension);
+        } catch {
+          return false;
+        }
+      });
+
+      // Stage the files (don't add to queue yet)
+      setStagedFiles(supportedFiles);
       
-      // Build temp items from incoming files to ensure we check both queue and DB
-      const newItems = files
-        .filter(file => {
-          try {
-            const extension = '.' + file.name.split('.').pop()?.toLowerCase();
-            const allowedVideoExts = ['.mp4', '.mov', '.webm', '.mkv'];
-            const allowedImageExts = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif'];
-            const allowedAudioExts = ['.mp3', '.wav', '.aac', '.ogg', '.opus'];
-            return allowedVideoExts.includes(extension) || allowedImageExts.includes(extension) || allowedAudioExts.includes(extension);
-          } catch {
-            return false;
+      // Build staged items for duplicate detection only
+      const stagedItems = supportedFiles.map((file, index) => ({
+        file,
+        id: `staged-${Date.now()}-${index}`,
+        progress: 0,
+        status: 'pending' as const,
+        uploadedBytes: 0,
+        totalBytes: file.size,
+        selected: false,
+        needsConversion: false,
+        metadata: {
+          mentions: [],
+          tags: [],
+          folders: [],
+          description: '',
+          suggestedPrice: null,
+        },
+      }));
+
+      console.log(`Staged ${stagedItems.length} files for duplicate detection`);
+
+      // Check for queue duplicates: staged items vs existing queue
+      const queueDuplicates: DuplicateMatch[] = [];
+      for (const stagedItem of stagedItems) {
+        for (const existingItem of uploadQueue.filter(q => ['pending', 'error', 'cancelled'].includes(q.status))) {
+          if (stagedItem.file.name === existingItem.file.name && 
+              stagedItem.file.size === existingItem.file.size) {
+            queueDuplicates.push({
+              queueFile: stagedItem, // The new file being added
+              duplicateFile: existingItem, // The existing queue item
+              sourceType: 'queue'
+            });
+            break; // Only need one match per staged file
           }
-        })
-        .map((file, index) => ({
-          file,
-          id: `temp-${Date.now()}-${index}`,
-          progress: 0,
-          status: 'pending' as const,
-          uploadedBytes: 0,
-          totalBytes: file.size,
-          selected: false,
-          needsConversion: false,
-          metadata: {
-            mentions: [],
-            tags: [],
-            folders: [],
-            description: '',
-            suggestedPrice: null,
-          },
-        }));
-
-      const currentQueue = uploadQueue.concat(newItems);
-
-      // Run unified duplicate detection (queue + database)
-      const allFound = currentQueue.length > 0 
-        ? await checkAllDuplicates(currentQueue, (current, total, step) => {
-            // Helpful debug for sequencing issues
-            console.log(`[DuplicateCheck] ${current}/${total} - ${step}`);
-          })
-        : [];
-
-      // Fallback: if no library duplicates were returned, explicitly check DB for just-new files
-      let mergedDuplicates: DuplicateMatch[] = allFound;
-      const hasLibrary = mergedDuplicates.some(d => d.sourceType === 'database');
-      if (!hasLibrary && newItems.length > 0) {
-        const dbFromNew = await checkDatabaseDuplicates(newItems);
-        if (dbFromNew.length > 0) {
-          const seen = new Set<string>();
-          mergedDuplicates = [...mergedDuplicates, ...dbFromNew].filter(d => {
-            const key = `${d.sourceType}-${d.queueFile.id}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-          });
         }
       }
 
-      // Clear loading state before showing any dialogs
+      // Check for database duplicates
+      const databaseDuplicates = await checkDatabaseDuplicates(stagedItems, (current, total) => {
+        console.log(`Database duplicate check progress: ${current}/${total}`);
+      });
+      
+      console.log(`Found ${queueDuplicates.length} queue duplicates, ${databaseDuplicates.length} database duplicates`);
+      
+      // Merge duplicates (library first, then queue)
+      const mergedDuplicates: DuplicateMatch[] = [];
+      const seenKeys = new Set<string>();
+      
+      // Add database duplicates first (higher priority)
+      for (const duplicate of databaseDuplicates) {
+        const key = `${duplicate.queueFile.file.name}:${duplicate.queueFile.file.size}`;
+        if (!seenKeys.has(key)) {
+          mergedDuplicates.push(duplicate);
+          seenKeys.add(key);
+        }
+      }
+      
+      // Add queue duplicates if not already seen
+      for (const duplicate of queueDuplicates) {
+        const key = `${duplicate.queueFile.file.name}:${duplicate.queueFile.file.size}`;
+        if (!seenKeys.has(key)) {
+          mergedDuplicates.push(duplicate);
+          seenKeys.add(key);
+        }
+      }
+
+      console.log(`Total merged duplicates: ${mergedDuplicates.length}`);
+
+      // Clear loading state
       setIsCheckingDuplicates(false);
       setIsProcessingFiles(false);
       
-      // Now show all dialogs in proper sequence: Unified duplicates (Library + Queue) → Unsupported → HEIC
+      // Show duplicate dialog if duplicates found, otherwise continue with validation
       if (mergedDuplicates.length > 0) {
         setAllDuplicates(mergedDuplicates);
         setUnifiedDuplicateDialogOpen(true);
-      } else if (validationResults?.duplicateFiles?.length > 0) {
-        showDuplicateDialog(validationResults.duplicateFiles);
-      } else if (validationResults?.unsupportedFiles?.length > 0) {
-        showUnsupportedDialog(validationResults.unsupportedFiles);
       } else {
-        // Check for HEIC files as final step
-        const heicFileNames = files.filter(isHeicFile).map(f => f.name);
-        if (heicFileNames.length > 0) {
-          showHeicWarning(heicFileNames);
+        // No duplicates - proceed with adding files and checking for other issues
+        const validationResults = validateFilesOnly(supportedFiles);
+        
+        // Add files to queue since no duplicates
+        addFiles(supportedFiles, showDuplicateDialog, showUnsupportedDialog, true);
+        
+        // Show remaining validation issues
+        if (validationResults?.unsupportedFiles?.length > 0) {
+          showUnsupportedDialog(validationResults.unsupportedFiles);
+        } else {
+          // Check for HEIC files as final step
+          const heicFileNames = supportedFiles.filter(isHeicFile).map(f => f.name);
+          if (heicFileNames.length > 0) {
+            showHeicWarning(heicFileNames);
+          }
         }
+        
+        // Clear staged files
+        setStagedFiles([]);
       }
       
     } catch (error) {
       console.error('Error during file processing:', error);
       setIsCheckingDuplicates(false);
       setIsProcessingFiles(false);
+      setStagedFiles([]);
+      toast({
+        title: "Error",
+        description: "Failed to process files. Please try again.",
+        variant: "destructive"
+      });
     }
-  }, [addFiles, isHeicFile, showDuplicateDialog, showUnsupportedDialog, showHeicWarning, isProcessingFiles, isCheckingDuplicates, uploadQueue, checkAllDuplicates]);
+  }, [isProcessingFiles, isCheckingDuplicates, uploadQueue, checkDatabaseDuplicates, validateFilesOnly, addFiles, showDuplicateDialog, showUnsupportedDialog, showHeicWarning, isHeicFile, toast]);
 
   // Dialog handlers for legacy stacked dialogs  
   const handleDuplicateConfirm = useCallback((filesToIgnore: string[]) => {
@@ -350,65 +392,106 @@ export const AdvancedFileUpload = () => {
     startUpload(true); // Skip duplicate check since we already did it during file processing
   };
 
-  // Handle purging selected duplicates from queue and continue with next dialogs
+  // Handle purging selected duplicates from staged files
   const handlePurgeSelected = (duplicateIds: string[]) => {
-    setIsPurgingDuplicates(true);
+    console.log('Purging selected duplicates:', duplicateIds);
     
-    // Store files for next dialog sequence before removing duplicates
-    const currentFiles = Array.from(new Set([...uploadQueue.map(item => item.file), ...allDuplicates.map(d => d.queueFile.file)]));
-    setPendingDialogFiles(currentFiles);
+    // Filter staged files to remove ones being purged
+    // duplicateIds contains the IDs of queueFiles (staged items) to be removed
+    const duplicateFileIds = new Set(duplicateIds);
+    const duplicateFileMap = new Map<string, File>();
     
-    // Remove duplicate files
-    duplicateIds.forEach(id => removeFile(id));
-    setUnifiedDuplicateDialogOpen(false);
-    setAllDuplicates([]);
-  };
-
-  // Handle keeping both versions (upload with duplicate tags) and continue with next dialogs
-  const handleKeepBoth = () => {
-    // Add duplicate tags to queue files
-    allDuplicates.forEach((duplicate, index) => {
-      const currentMetadata = duplicate.queueFile.metadata || {
-        mentions: [],
-        tags: [],
-        folders: [],
-        description: '',
-        suggestedPrice: null,
-      };
-      
-      const updatedTags = addDuplicateTag(currentMetadata.tags || [], index + 1);
-      updateFileMetadata(duplicate.queueFile.id, { ...currentMetadata, tags: updatedTags });
+    // Map duplicate IDs to their actual files
+    allDuplicates.forEach(duplicate => {
+      duplicateFileMap.set(duplicate.queueFile.id, duplicate.queueFile.file);
     });
     
+    // Keep files that are NOT in the duplicateIds
+    const keptFiles = stagedFiles.filter(file => {
+      // Find the corresponding duplicate for this file
+      const matchingDuplicate = allDuplicates.find(d => 
+        d.queueFile.file.name === file.name && d.queueFile.file.size === file.size
+      );
+      
+      return !matchingDuplicate || !duplicateFileIds.has(matchingDuplicate.queueFile.id);
+    });
+    
+    console.log(`Keeping ${keptFiles.length} out of ${stagedFiles.length} staged files after purging ${duplicateIds.length} duplicates`);
+    
     setUnifiedDuplicateDialogOpen(false);
-    
-    // Continue with the next dialog in sequence after database duplicates are handled
-    const currentFiles = Array.from(new Set([...uploadQueue.map(item => item.file), ...allDuplicates.map(d => d.queueFile.file)]));
-    showNextDialogInSequence(currentFiles);
-    
     setAllDuplicates([]);
     
-    // Start upload with duplicate tags
-    setTimeout(() => startUpload(true), 100);
+    // Continue with remaining files
+    if (keptFiles.length > 0) {
+      showNextDialogInSequence(keptFiles, { skipDuplicateDialog: true });
+    }
+    
+    setStagedFiles([]);
   };
 
-  // Handle canceling upload and continue with next dialogs
+  // Handle keeping both versions with duplicate tag
+  const handleKeepBoth = () => {
+    console.log('Keeping both versions of duplicates');
+    
+    // Add all staged files to queue
+    addFiles(stagedFiles, showDuplicateDialog, showUnsupportedDialog, true);
+    
+    // Wait for files to be added, then add duplicate tags
+    setTimeout(() => {
+      allDuplicates.forEach((duplicate, index) => {
+        // Find the actual queue item by name and size
+        const queueItem = uploadQueue.find(item => 
+          item.file.name === duplicate.queueFile.file.name && 
+          item.file.size === duplicate.queueFile.file.size
+        );
+        
+        if (queueItem) {
+          const currentMetadata = queueItem.metadata || {
+            mentions: [],
+            tags: [],
+            folders: [],
+            description: '',
+            suggestedPrice: null,
+          };
+          const updatedTags = addDuplicateTag(currentMetadata.tags, index + 1);
+          updateFileMetadata(queueItem.id, { ...currentMetadata, tags: updatedTags });
+        }
+      });
+    }, 100);
+    
+    setUnifiedDuplicateDialogOpen(false);
+    setAllDuplicates([]);
+    
+    // Continue with validation dialogs
+    showNextDialogInSequence(stagedFiles, { skipDuplicateDialog: true });
+    
+    setStagedFiles([]);
+    
+    // Start upload
+    setTimeout(() => startUpload(true), 200);
+  };
+
+  // Handle canceling upload
   const handleCancelUpload = () => {
+    console.log('Canceling upload, clearing staged files');
     setUnifiedDuplicateDialogOpen(false);
-    
-    // Continue with the next dialog in sequence after database duplicates are handled
-    const currentFiles = Array.from(new Set([...uploadQueue.map(item => item.file), ...allDuplicates.map(d => d.queueFile.file)]));
-    showNextDialogInSequence(currentFiles);
-    
     setAllDuplicates([]);
+    setStagedFiles([]);
   };
 
-  // Show next dialog in the sequence after database duplicates
-  const showNextDialogInSequence = useCallback((files: File[]) => {
+  // Show next dialog in the sequence after duplicates are resolved
+  const showNextDialogInSequence = useCallback((files: File[], options: { skipDuplicateDialog?: boolean } = {}) => {
+    console.log(`Showing next dialog for ${files.length} files, skipDuplicateDialog: ${options.skipDuplicateDialog}`);
+    
+    // Add files to queue first if not already added
+    if (files.length > 0) {
+      addFiles(files, showDuplicateDialog, showUnsupportedDialog, true);
+    }
+    
     // Use validation-only function to prevent re-adding files to queue
     const validationResults = validateFilesOnly(files);
     
-    if (validationResults?.duplicateFiles?.length > 0) {
+    if (!options.skipDuplicateDialog && validationResults?.duplicateFiles?.length > 0) {
       showDuplicateDialog(validationResults.duplicateFiles);
     } else if (validationResults?.unsupportedFiles?.length > 0) {
       showUnsupportedDialog(validationResults.unsupportedFiles);
@@ -419,7 +502,7 @@ export const AdvancedFileUpload = () => {
         showHeicWarning(heicFileNames);
       }
     }
-  }, [validateFilesOnly, showDuplicateDialog, showUnsupportedDialog, showHeicWarning, isHeicFile]);
+  }, [validateFilesOnly, addFiles, showDuplicateDialog, showUnsupportedDialog, showHeicWarning, isHeicFile]);
 
   // Effect to handle post-purge actions when upload queue updates
   useEffect(() => {
