@@ -286,8 +286,8 @@ export default function SimpleUpload() {
       }
     });
 
-    // If no queue duplicates, check for database duplicates
-    if (queueDuplicates.length === 0 && uniqueFiles.length > 0) {
+    // Always check for database duplicates for unique files, regardless of queue duplicates
+    if (uniqueFiles.length > 0) {
       const newFiles = uniqueFiles.map(file => ({
         file,
         id: crypto.randomUUID(),
@@ -301,7 +301,7 @@ export default function SimpleUpload() {
         }
       }));
 
-      // Check for database duplicates
+      // Prepare staged queue for DB duplicate detection
       const uploadQueue = newFiles.map(f => ({
         id: f.id,
         file: f.file,
@@ -313,16 +313,16 @@ export default function SimpleUpload() {
       try {
         setIsCheckingDuplicates(true);
         setDuplicateProgress({ current: 0, total: 1, step: 'Initializing...' });
-        
+
         const duplicates = await checkAllDuplicates(uploadQueue, (current, total, step) => {
           setDuplicateProgress({ current, total, step });
         });
-        
+
         if (duplicates.length > 0) {
-          console.log(`🎯 Found ${duplicates.length} database duplicates`);
+          console.log(`🎯 Found ${duplicates.length} database duplicates (addMoreFiles)`);
           setDatabaseDuplicates(duplicates);
           setDatabaseDuplicateDialogOpen(true);
-          // Store files for later processing
+          // Add staged files so the dialog actions can manage them
           setFiles(prev => [...prev, ...newFiles]);
         } else {
           setFiles(prev => [...prev, ...newFiles]);
@@ -332,7 +332,7 @@ export default function SimpleUpload() {
           });
         }
       } catch (error) {
-        console.error('Database duplicate check failed:', error);
+        console.error('Database duplicate check failed (addMoreFiles):', error);
         // Continue with upload if duplicate check fails
         setFiles(prev => [...prev, ...newFiles]);
         toast({
@@ -342,27 +342,6 @@ export default function SimpleUpload() {
       } finally {
         setIsCheckingDuplicates(false);
       }
-    } else if (uniqueFiles.length > 0) {
-      // Add unique files to the queue when there are queue duplicates
-      const newFiles = uniqueFiles.map(file => ({
-        file,
-        id: crypto.randomUUID(),
-        status: 'pending' as const,
-        metadata: {
-          mentions: [],
-          tags: [],
-          folders: [],
-          description: '',
-          suggestedPrice: null,
-        }
-      }));
-
-      setFiles(prev => [...prev, ...newFiles]);
-      
-      toast({
-        title: "Files added",
-        description: `${uniqueFiles.length} file${uniqueFiles.length === 1 ? '' : 's'} added to upload queue`,
-      });
     }
 
     // Show queue duplicates dialog if any duplicates found
