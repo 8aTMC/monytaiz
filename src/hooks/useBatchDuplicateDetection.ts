@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { FileUploadItem } from './useFileUpload';
+import { logger } from '@/utils/logging';
 
 export interface QueueDuplicate {
   queueFile: FileUploadItem;
@@ -89,7 +90,7 @@ export const useBatchDuplicateDetection = () => {
       
       if (processFiles.length === 0) return duplicates;
 
-      console.log('Database duplicate check - Processing files:', processFiles.map(f => ({ name: f.file.name, status: f.status })));
+      logger.debug('🧭 Database duplicate check - Processing files', processFiles.map(f => ({ name: f.file.name, size: f.file.size, status: f.status })));
 
       onProgress?.(0, 1);
 
@@ -98,20 +99,80 @@ export const useBatchDuplicateDetection = () => {
       
       // Deduplicate filenames to keep query efficient
       const uniqueFilenames = Array.from(new Set(filenames));
-      const { data: exactMatches } = await supabase
+      const { data: exactMatches, error: exactError } = await supabase
         .from('simple_media')
         .select('id, title, original_filename, original_size_bytes, optimized_size_bytes, mime_type, created_at, thumbnail_path, processed_path, processing_status')
         .in('original_filename', uniqueFilenames);
 
+      if (exactError) {
+        logger.warn('🌐⚠️ Batched filename lookup failed, falling back to per-file queries', exactError);
+      }
+
       // Index matches by filename for fast lookup
       const matchesByName = new Map<string, any[]>();
-      if (exactMatches) {
+      if (exactMatches && Array.isArray(exactMatches)) {
         for (const m of exactMatches) {
           const list = matchesByName.get(m.original_filename) || [];
           list.push(m);
           matchesByName.set(m.original_filename, list);
         }
       }
+
+      // Fallback: for any filenames not found in the batch response, query individually
+      const missingNames = uniqueFilenames.filter((n) => !matchesByName.has(n));
+      if (missingNames.length > 0) {
+        logger.debug('🔁 Fallback per-file lookups for missing names', missingNames);
+        // Run sequentially to avoid rate limits; count towards progress subtly
+        for (const name of missingNames) {
+          const { data: single, error: singleErr } = await supabase
+            .from('simple_media')
+            .select('id, title, original_filename, original_size_bytes, optimized_size_bytes, mime_type, created_at, thumbnail_path, processed_path, processing_status')
+            .eq('original_filename', name)
+            .limit(10);
+
+          if (singleErr) {
+            logger.warn('🌐⚠️ Single filename lookup failed', { name, error: singleErr });
+            // Try fallback to legacy files table
+          } 
+
+          if (single && single.length > 0) {
+            matchesByName.set(name, single);
+          } else {
+            // Fallback to files table
+            const { data: filesRows, error: filesErr } = await supabase
+              .from('files')
+              .select('id, title, original_filename, file_size, mime_type, created_at, processing_status')
+              .eq('original_filename', name)
+              .limit(10);
+
+            if (filesErr) {
+              logger.warn('🌐⚠️ Files table lookup failed', { name, error: filesErr });
+              continue;
+            }
+
+            if (filesRows && filesRows.length > 0) {
+              const mapped = filesRows.map((r: any) => ({
+                id: r.id,
+                title: r.title,
+                original_filename: r.original_filename,
+                original_size_bytes: r.file_size,
+                optimized_size_bytes: undefined,
+                mime_type: r.mime_type,
+                created_at: r.created_at,
+                thumbnail_path: undefined,
+                processed_path: undefined,
+                processing_status: r.processing_status,
+              }));
+              matchesByName.set(name, mapped);
+            }
+          }
+        }
+      }
+
+      logger.debug('📚 Indexed DB candidates by name', {
+        names: Array.from(matchesByName.keys()),
+        counts: Array.from(matchesByName.entries()).map(([k, v]) => ({ name: k, count: v.length }))
+      });
 
       // Process exact filename matches with size check per staged file
       if (processFiles.length > 0) {
@@ -126,6 +187,9 @@ export const useBatchDuplicateDetection = () => {
               existingFile: match,
               sourceType: 'database'
             });
+            logger.debug('✅ DB duplicate matched', { name: queueFile.file.name, size: queueFile.file.size, matchId: match.id });
+          } else {
+            logger.debug('❎ No DB duplicate for', { name: queueFile.file.name, size: queueFile.file.size });
           }
         }
       }

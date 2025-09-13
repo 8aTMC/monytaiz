@@ -12,10 +12,11 @@ import { SelectionHeader } from './SelectionHeader';
 import { FilePreviewDialog } from './FilePreviewDialog';
 import { UnifiedDuplicateDialog } from './UnifiedDuplicateDialog';
 import { UnsupportedFilesDialog } from './UnsupportedFilesDialog';
-import { useBatchDuplicateDetection, DuplicateMatch } from '@/hooks/useBatchDuplicateDetection';
+import { useBatchDuplicateDetection, DuplicateMatch, QueueDuplicate } from '@/hooks/useBatchDuplicateDetection';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { HEICWarningDialog } from './HEICWarningDialog';
+import { logger } from '@/utils/logging';
 
 // Individual dialog states for stacked dialogs
 
@@ -154,7 +155,7 @@ export const AdvancedFileUpload = () => {
       console.log(`Staged ${stagedItems.length} files for duplicate detection`);
 
       // Check for queue duplicates: staged items vs existing queue
-      const queueDuplicates: DuplicateMatch[] = [];
+      const queueDuplicates: QueueDuplicate[] = [];
       for (const stagedItem of stagedItems) {
         for (const existingItem of uploadQueue.filter(q => ['pending', 'error', 'cancelled', 'completed', 'uploading', 'paused'].includes(q.status))) {
           if (stagedItem.file.name === existingItem.file.name && 
@@ -171,10 +172,24 @@ export const AdvancedFileUpload = () => {
 
       // Check for database duplicates
       const databaseDuplicates = await checkDatabaseDuplicates(stagedItems, (current, total) => {
-        console.log(`Database duplicate check progress: ${current}/${total}`);
+        logger.debug(`DB duplicate check progress: ${current}/${total}`);
       });
       
-      console.log(`Found ${queueDuplicates.length} queue duplicates, ${databaseDuplicates.length} database duplicates`);
+      logger.group('🔎 Duplicate detection summary', () => {
+        logger.debug('Queue duplicates', queueDuplicates.map(d => ({
+          newName: d.queueFile.file.name,
+          newSize: d.queueFile.file.size,
+          existingQueueId: d.duplicateFile.id,
+          existingName: d.duplicateFile.file.name,
+        })));
+        logger.debug('DB duplicates', databaseDuplicates.map(d => ({
+          newName: d.queueFile.file.name,
+          newSize: d.queueFile.file.size,
+          existingId: d.existingFile.id,
+          existingName: d.existingFile.original_filename,
+          existingSize: d.existingFile.original_size_bytes,
+        })));
+      });
       
       // Merge duplicates without collapsing types — show both DB and Queue duplicates for the same file
       const mergedDuplicates: DuplicateMatch[] = [
@@ -182,7 +197,7 @@ export const AdvancedFileUpload = () => {
         ...queueDuplicates,
       ];
 
-      console.log(`Total duplicates — db: ${databaseDuplicates.length}, queue: ${queueDuplicates.length}, combined: ${mergedDuplicates.length}`);
+      logger.debug('Total duplicates', { db: databaseDuplicates.length, queue: queueDuplicates.length, combined: mergedDuplicates.length });
 
       // Clear loading state
       setIsCheckingDuplicates(false);
