@@ -73,7 +73,7 @@ export const useBatchDuplicateDetection = () => {
     return duplicates;
   };
 
-  // OPTIMIZED: Sequential per-file database duplicate detection (reliable)
+  // OPTIMIZED: Batch database duplicate detection using IN queries (10x+ faster)
   const checkDatabaseDuplicates = async (
     uploadQueue: FileUploadItem[], 
     onProgress?: (current: number, total: number) => void
@@ -85,97 +85,155 @@ export const useBatchDuplicateDetection = () => {
       const total = processFiles.length;
       if (total === 0) return duplicates;
 
-      logger.debug('🧭 Database duplicate check - Processing files', processFiles.map(f => ({ name: f.file.name, size: f.file.size, status: f.status })));
+      logger.debug('🧭 BATCH Database duplicate check - Processing files', processFiles.map(f => ({ name: f.file.name, size: f.file.size, status: f.status })));
 
-      let current = 0;
-      for (const queueFile of processFiles) {
-        try {
-          // First try content_files (primary library table)
-          const { data: cfRows, error: cfErr } = await supabase
-            .from('content_files')
-            .select('id, title, original_filename, file_size, mime_type, created_at, thumbnail_url, file_path, is_active')
-            .eq('original_filename', queueFile.file.name)
-            .limit(20);
+      // Extract all unique filenames for batch querying
+      const filenames = [...new Set(processFiles.map(f => f.file.name))];
+      const fileMap = new Map<string, FileUploadItem[]>();
+      
+      // Group files by filename for efficient matching
+      processFiles.forEach(file => {
+        const existing = fileMap.get(file.file.name) || [];
+        existing.push(file);
+        fileMap.set(file.file.name, existing);
+      });
 
-          let match: any | null = null;
+      onProgress?.(0, 3);
 
-          if (cfErr) {
-            logger.warn('🌐⚠️ content_files lookup failed, will try fallbacks', { name: queueFile.file.name, error: cfErr });
-          } else if (cfRows && cfRows.length > 0) {
-            const mappedCf = cfRows.map((r: any) => ({
-              id: r.id,
-              title: r.title,
-              original_filename: r.original_filename,
-              original_size_bytes: r.file_size,
-              optimized_size_bytes: undefined,
-              mime_type: r.mime_type,
-              created_at: r.created_at,
-              thumbnail_path: r.thumbnail_url,
-              processed_path: r.file_path,
-              processing_status: r.is_active ? 'processed' : 'inactive',
-            }));
-            match = mappedCf.find((m: any) => typeof m.original_size_bytes === 'number' && m.original_size_bytes === queueFile.file.size) || mappedCf[0] || null;
-          }
+      // BATCH QUERY 1: content_files table
+      let allMatches: any[] = [];
+      onProgress?.(0, 3);
+      
+      try {
+        const { data: cfRows, error: cfErr } = await supabase
+          .from('content_files')
+          .select('id, title, original_filename, file_size, mime_type, created_at, thumbnail_url, file_path, is_active')
+          .in('original_filename', filenames)
+          .limit(1000);
 
-          // Fallback 1: simple_media by filename
-          if (!match) {
-            const { data: smRows, error: smErr } = await supabase
-              .from('simple_media')
-              .select('id, title, original_filename, original_size_bytes, optimized_size_bytes, mime_type, created_at, thumbnail_path, processed_path, processing_status')
-              .eq('original_filename', queueFile.file.name)
-              .limit(20);
+        if (cfErr) {
+          logger.warn('🌐⚠️ content_files batch lookup failed', { filenames, error: cfErr });
+        } else if (cfRows && cfRows.length > 0) {
+          const mappedCf = cfRows.map((r: any) => ({
+            id: r.id,
+            title: r.title,
+            original_filename: r.original_filename,
+            original_size_bytes: r.file_size,
+            optimized_size_bytes: undefined,
+            mime_type: r.mime_type,
+            created_at: r.created_at,
+            thumbnail_path: r.thumbnail_url,
+            processed_path: r.file_path,
+            processing_status: r.is_active ? 'processed' : 'inactive',
+            source_table: 'content_files'
+          }));
+          allMatches.push(...mappedCf);
+          logger.debug('✅ content_files batch found', mappedCf.length, 'matches');
+        }
+      } catch (err) {
+        logger.warn('🌐⚠️ content_files batch query failed', err);
+      }
 
-            if (smErr) {
-              logger.warn('🌐⚠️ simple_media lookup failed, will try files fallback', { name: queueFile.file.name, error: smErr });
-            } else if (smRows && smRows.length > 0) {
-              match = smRows.find(r => typeof r.original_size_bytes === 'number' && r.original_size_bytes === queueFile.file.size) || smRows[0] || null;
+      onProgress?.(1, 3);
+
+      // BATCH QUERY 2: simple_media table
+      try {
+        const { data: smRows, error: smErr } = await supabase
+          .from('simple_media')
+          .select('id, title, original_filename, original_size_bytes, optimized_size_bytes, mime_type, created_at, thumbnail_path, processed_path, processing_status')
+          .in('original_filename', filenames)
+          .limit(1000);
+
+        if (smErr) {
+          logger.warn('🌐⚠️ simple_media batch lookup failed', { filenames, error: smErr });
+        } else if (smRows && smRows.length > 0) {
+          const mappedSm = smRows.map((r: any) => ({
+            ...r,
+            source_table: 'simple_media'
+          }));
+          allMatches.push(...mappedSm);
+          logger.debug('✅ simple_media batch found', mappedSm.length, 'matches');
+        }
+      } catch (err) {
+        logger.warn('🌐⚠️ simple_media batch query failed', err);
+      }
+
+      onProgress?.(2, 3);
+
+      // BATCH QUERY 3: files table (fallback)
+      try {
+        const { data: filesRows, error: filesErr } = await supabase
+          .from('files')
+          .select('id, title, original_filename, file_size, mime_type, created_at, processing_status')
+          .in('original_filename', filenames)
+          .limit(1000);
+
+        if (filesErr) {
+          logger.warn('🌐⚠️ files batch lookup failed', { filenames, error: filesErr });
+        } else if (filesRows && filesRows.length > 0) {
+          const mappedFiles = filesRows.map((r: any) => ({
+            id: r.id,
+            title: r.title,
+            original_filename: r.original_filename,
+            original_size_bytes: r.file_size,
+            optimized_size_bytes: undefined,
+            mime_type: r.mime_type,
+            created_at: r.created_at,
+            thumbnail_path: undefined,
+            processed_path: undefined,
+            processing_status: r.processing_status,
+            source_table: 'files'
+          }));
+          allMatches.push(...mappedFiles);
+          logger.debug('✅ files batch found', mappedFiles.length, 'matches');
+        }
+      } catch (err) {
+        logger.warn('🌐⚠️ files batch query failed', err);
+      }
+
+      onProgress?.(3, 3);
+
+      // Now match each queue file with database results in memory (fast)
+      for (const [filename, queueFiles] of fileMap.entries()) {
+        // Find all database matches for this filename
+        const dbMatches = allMatches.filter(match => match.original_filename === filename);
+        
+        if (dbMatches.length > 0) {
+          // For each queue file with this filename, find the best match
+          for (const queueFile of queueFiles) {
+            // Prefer exact size match, otherwise take the first match
+            const bestMatch = dbMatches.find(match => 
+              typeof match.original_size_bytes === 'number' && 
+              match.original_size_bytes === queueFile.file.size
+            ) || dbMatches[0];
+
+            if (bestMatch) {
+              duplicates.push({
+                queueFile,
+                existingFile: bestMatch,
+                sourceType: 'database'
+              });
+              logger.debug('✅ BATCH DB duplicate matched', { 
+                name: queueFile.file.name, 
+                size: queueFile.file.size, 
+                matchId: bestMatch.id,
+                source: bestMatch.source_table 
+              });
             }
           }
-
-          // Fallback 2: legacy files table if needed
-          if (!match) {
-            const { data: filesRows, error: filesErr } = await supabase
-              .from('files')
-              .select('id, title, original_filename, file_size, mime_type, created_at, processing_status')
-              .eq('original_filename', queueFile.file.name)
-              .limit(20);
-
-            if (filesErr) {
-              logger.warn('🌐⚠️ files lookup failed', { name: queueFile.file.name, error: filesErr });
-            } else if (filesRows && filesRows.length > 0) {
-              const mapped = filesRows.map((r: any) => ({
-                id: r.id,
-                title: r.title,
-                original_filename: r.original_filename,
-                original_size_bytes: r.file_size,
-                optimized_size_bytes: undefined,
-                mime_type: r.mime_type,
-                created_at: r.created_at,
-                thumbnail_path: undefined,
-                processed_path: undefined,
-                processing_status: r.processing_status,
-              }));
-              match = mapped.find((m: any) => typeof m.original_size_bytes === 'number' && m.original_size_bytes === queueFile.file.size) || mapped[0] || null;
-            }
-          }
-
-          if (match) {
-            duplicates.push({
-              queueFile,
-              existingFile: match,
-              sourceType: 'database'
-            });
-            logger.debug('✅ DB duplicate matched', { name: queueFile.file.name, size: queueFile.file.size, matchId: match.id });
-          } else {
-            logger.debug('❎ No DB duplicate for', { name: queueFile.file.name, size: queueFile.file.size });
-          }
-        } catch (innerErr) {
-          logger.warn('⚠️ DB duplicate check failed for file', { name: queueFile.file.name, error: innerErr });
-        } finally {
-          current += 1;
-          onProgress?.(current, total);
+        } else {
+          queueFiles.forEach(queueFile => {
+            logger.debug('❎ No BATCH DB duplicate for', { name: queueFile.file.name, size: queueFile.file.size });
+          });
         }
       }
+
+      logger.debug('🚀 BATCH duplicate detection complete:', {
+        totalFiles: total,
+        totalDbMatches: allMatches.length,
+        duplicatesFound: duplicates.length,
+        queriesUsed: 3 // Instead of total * 3!
+      });
 
       return duplicates;
     } catch (error) {
