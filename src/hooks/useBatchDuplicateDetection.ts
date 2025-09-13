@@ -47,7 +47,8 @@ export const useBatchDuplicateDetection = () => {
   // Check for duplicates within the upload queue
   const checkQueueDuplicates = async (uploadQueue: FileUploadItem[]): Promise<QueueDuplicate[]> => {
     const duplicates: QueueDuplicate[] = [];
-    const processFiles = uploadQueue.filter(f => f.status === 'pending');
+    // Include files that are pending or could potentially be uploaded
+    const processFiles = uploadQueue.filter(f => ['pending', 'error', 'cancelled'].includes(f.status));
     
     if (processFiles.length < 2) return duplicates;
     
@@ -83,9 +84,12 @@ export const useBatchDuplicateDetection = () => {
       }
 
       const duplicates: DatabaseDuplicate[] = [];
-      const processFiles = uploadQueue.filter(f => f.status === 'pending');
+      // Include files that are pending or could potentially be uploaded - same as queue duplicates
+      const processFiles = uploadQueue.filter(f => ['pending', 'error', 'cancelled'].includes(f.status));
       
       if (processFiles.length === 0) return duplicates;
+
+      console.log('Database duplicate check - Processing files:', processFiles.map(f => ({ name: f.file.name, status: f.status })));
 
       onProgress?.(0, 1);
 
