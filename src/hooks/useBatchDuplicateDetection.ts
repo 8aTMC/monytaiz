@@ -99,7 +99,6 @@ export const useBatchDuplicateDetection = () => {
       const { data: exactMatches } = await supabase
         .from('simple_media')
         .select('id, title, original_filename, original_size_bytes, optimized_size_bytes, mime_type, created_at, thumbnail_path, processed_path, processing_status')
-        .eq('creator_id', userData.user.id)
         .in('original_filename', filenames);
 
       // Process exact filename matches

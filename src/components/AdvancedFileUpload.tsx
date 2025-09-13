@@ -156,7 +156,7 @@ export const AdvancedFileUpload = () => {
       // Check for queue duplicates: staged items vs existing queue
       const queueDuplicates: DuplicateMatch[] = [];
       for (const stagedItem of stagedItems) {
-        for (const existingItem of uploadQueue.filter(q => ['pending', 'error', 'cancelled'].includes(q.status))) {
+        for (const existingItem of uploadQueue.filter(q => ['pending', 'error', 'cancelled', 'completed', 'uploading', 'paused'].includes(q.status))) {
           if (stagedItem.file.name === existingItem.file.name && 
               stagedItem.file.size === existingItem.file.size) {
             queueDuplicates.push({
