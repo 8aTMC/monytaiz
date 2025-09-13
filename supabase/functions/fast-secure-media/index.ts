@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     const path = searchParams.get('path')
     const width = searchParams.get('width')
     const height = searchParams.get('height')
-    const quality = searchParams.get('quality') || '75'
+    const quality = searchParams.get('quality') // Don't default to 75 for audio files
     const format = searchParams.get('format')
 
     if (!path) {
@@ -79,14 +79,22 @@ Deno.serve(async (req) => {
     console.log(`Generating signed URL for user ${user.id}, original path: ${path}, normalized: ${normalizedPath}`)
     console.log(`Request params - width: ${width}, height: ${height}, quality: ${quality}, format: ${format}`)
 
-    // Check if this is a HEIC file or GIF EARLY using normalized path
+    // Check if this is a HEIC file, GIF, or AUDIO file EARLY using normalized path
     const isHEICFile = normalizedPath.toLowerCase().includes('.heic') || 
                        normalizedPath.toLowerCase().includes('.heif') || 
                        normalizedPath.toLowerCase().includes('.heix')
     
     const isGIFFile = normalizedPath.toLowerCase().includes('.gif')
     
-    console.log(`Special File Detection - path: ${normalizedPath}, isHEICFile: ${isHEICFile}, isGIFFile: ${isGIFFile}`)
+    const isAudioFile = normalizedPath.toLowerCase().includes('.mp3') ||
+                        normalizedPath.toLowerCase().includes('.m4a') ||
+                        normalizedPath.toLowerCase().includes('.aac') ||
+                        normalizedPath.toLowerCase().includes('.wav') ||
+                        normalizedPath.toLowerCase().includes('.ogg') ||
+                        normalizedPath.toLowerCase().includes('.opus') ||
+                        normalizedPath.toLowerCase().includes('.flac')
+    
+    console.log(`Special File Detection - path: ${normalizedPath}, isHEICFile: ${isHEICFile}, isGIFFile: ${isGIFFile}, isAudioFile: ${isAudioFile}`)
 
     // Generate optimized signed URL
     const supabaseService = createClient(
@@ -197,6 +205,61 @@ Deno.serve(async (req) => {
           JSON.stringify({ 
             error: 'Exception processing GIF file', 
             details: gifError.message,
+            path: path
+          }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
+    // IMMEDIATE AUDIO CHECK - Exit early for audio files to avoid transforms
+    if (isAudioFile) {
+      console.log(`AUDIO FILE DETECTED - Processing without transforms: ${path}`)
+      
+      try {
+        const { data: urlData, error: urlError } = await supabaseService.storage
+          .from('content')
+          .createSignedUrl(normalizedPath.replace(/^content\//, ''), 7200) // No transforms for audio files
+
+        if (urlError) {
+          console.error('AUDIO STORAGE ERROR:', {
+            path,
+            errorMessage: urlError.message,
+            errorName: urlError.name,
+            errorStack: urlError.stack
+          })
+          return new Response(
+            JSON.stringify({ 
+              error: 'Failed to generate secure URL for audio file', 
+              details: urlError.message,
+              path: path
+            }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        console.log('AUDIO SUCCESS - Generated signed URL without transforms:', path)
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            url: urlData.signedUrl,
+            expires_at: new Date(Date.now() + 7200 * 1000).toISOString(),
+            fileType: 'AUDIO'
+          }),
+          { 
+            headers: { 
+              ...corsHeaders, 
+              'Content-Type': 'application/json',
+              'Cache-Control': 'public, max-age=3600'
+            }
+          }
+        )
+      } catch (audioError) {
+        console.error('AUDIO EXCEPTION:', audioError)
+        return new Response(
+          JSON.stringify({ 
+            error: 'Exception processing audio file', 
+            details: audioError.message,
             path: path
           }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -54,7 +54,7 @@ export const CustomAudioPlayer: React.FC<CustomAudioPlayerProps> = ({
 
     const handleError = (e: Event) => {
       setIsLoading(false);
-      console.error('Audio loading failed:', e, 'URL:', src);
+      console.warn('Audio loading failed:', e, 'URL:', src);
       onError?.(e);
     };
 
@@ -232,7 +232,7 @@ export const CustomAudioPlayer: React.FC<CustomAudioPlayerProps> = ({
             )}
           </Button>
           
-          <div className="w-16">
+          <div className="w-24">
             <Slider
               value={[isMuted ? 0 : volume]}
               onValueChange={handleVolumeChange}
