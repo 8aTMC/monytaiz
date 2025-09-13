@@ -590,7 +590,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                               key={`audio-${item.id}-${selectedIndex}-${fullUrl?.substring(0, 10)}`}
                               src={fullUrl}
                               title={item?.title || item?.original_filename}
-                              className="w-full max-w-xl sm:max-w-2xl"
+                              className="w-full max-w-2xl sm:max-w-4xl lg:max-w-5xl"
                               onError={async (e) => {
                                 console.error('Failed to load audio:', e, 'URL:', fullUrl);
                                 console.log('Attempting fallback URL generation for audio:', item);
