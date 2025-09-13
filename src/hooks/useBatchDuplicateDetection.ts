@@ -58,7 +58,7 @@ export const useBatchDuplicateDetection = () => {
       for (let j = i + 1; j < processFiles.length; j++) {
         const fileB = processFiles[j];
         
-        if (fileA.file.name === fileB.file.name && fileB.file.size === fileB.file.size) {
+        if (fileA.file.name === fileB.file.name && fileA.file.size === fileB.file.size) {
           duplicates.push({
             queueFile: fileA,
             duplicateFile: fileB,

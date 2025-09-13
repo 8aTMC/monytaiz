@@ -10,10 +10,9 @@ import { EnhancedFileUploadRow } from './EnhancedFileUploadRow';
 import { BatchMetadataToolbar } from './BatchMetadataToolbar';
 import { SelectionHeader } from './SelectionHeader';
 import { FilePreviewDialog } from './FilePreviewDialog';
-import { DuplicateFilesDialog } from './DuplicateFilesDialog';
-import { PreUploadDuplicateDialog } from './PreUploadDuplicateDialog';
+import { UnifiedDuplicateDialog } from './UnifiedDuplicateDialog';
 import { UnsupportedFilesDialog } from './UnsupportedFilesDialog';
-import { useDuplicateDetection, DuplicateMatch } from '@/hooks/useDuplicateDetection';
+import { useBatchDuplicateDetection, DuplicateMatch } from '@/hooks/useBatchDuplicateDetection';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { HEICWarningDialog } from './HEICWarningDialog';
@@ -43,14 +42,14 @@ export const AdvancedFileUpload = () => {
   const [heicWarningOpen, setHeicWarningOpen] = useState(false);
   const [heicFiles, setHeicFiles] = useState<string[]>([]);
   
-  // Pre-upload duplicate dialog state  
-  const [preUploadDuplicateDialogOpen, setPreUploadDuplicateDialogOpen] = useState(false);
+  // Unified duplicate dialog state  
+  const [unifiedDuplicateDialogOpen, setUnifiedDuplicateDialogOpen] = useState(false);
   const [allDuplicates, setAllDuplicates] = useState<DuplicateMatch[]>([]);
   const [duplicateCheckLoading, setDuplicateCheckLoading] = useState(false);
   const [isPurgingDuplicates, setIsPurgingDuplicates] = useState(false);
   const [pendingDialogFiles, setPendingDialogFiles] = useState<File[]>([]);
   
-  const { checkAllDuplicates, addDuplicateTag } = useDuplicateDetection();
+  const { checkAllDuplicates, addDuplicateTag } = useBatchDuplicateDetection();
   
   // Dialog callbacks for legacy stacked dialog system
   const showDuplicateDialog = useCallback((duplicates: { id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]) => {
@@ -159,7 +158,7 @@ export const AdvancedFileUpload = () => {
       // Now show all dialogs in proper sequence: Database → Queue → Unsupported → HEIC
       if (databaseDuplicates.length > 0) {
         setAllDuplicates(databaseDuplicates);
-        setPreUploadDuplicateDialogOpen(true);
+        setUnifiedDuplicateDialogOpen(true);
       } else if (validationResults?.duplicateFiles?.length > 0) {
         showDuplicateDialog(validationResults.duplicateFiles);
       } else if (validationResults?.unsupportedFiles?.length > 0) {
@@ -338,7 +337,7 @@ export const AdvancedFileUpload = () => {
     
     // Remove duplicate files
     duplicateIds.forEach(id => removeFile(id));
-    setPreUploadDuplicateDialogOpen(false);
+    setUnifiedDuplicateDialogOpen(false);
     setAllDuplicates([]);
   };
 
@@ -358,7 +357,7 @@ export const AdvancedFileUpload = () => {
       updateFileMetadata(duplicate.queueFile.id, { ...currentMetadata, tags: updatedTags });
     });
     
-    setPreUploadDuplicateDialogOpen(false);
+    setUnifiedDuplicateDialogOpen(false);
     
     // Continue with the next dialog in sequence after database duplicates are handled
     const currentFiles = Array.from(new Set([...uploadQueue.map(item => item.file), ...allDuplicates.map(d => d.queueFile.file)]));
@@ -372,7 +371,7 @@ export const AdvancedFileUpload = () => {
 
   // Handle canceling upload and continue with next dialogs
   const handleCancelUpload = () => {
-    setPreUploadDuplicateDialogOpen(false);
+    setUnifiedDuplicateDialogOpen(false);
     
     // Continue with the next dialog in sequence after database duplicates are handled
     const currentFiles = Array.from(new Set([...uploadQueue.map(item => item.file), ...allDuplicates.map(d => d.queueFile.file)]));
@@ -682,13 +681,6 @@ export const AdvancedFileUpload = () => {
       />
 
       {/* Individual Stacked Dialogs */}
-      <DuplicateFilesDialog
-        open={duplicateDialogOpen}
-        onOpenChange={setDuplicateDialogOpen}
-        duplicateFiles={duplicateFiles}
-        onConfirm={handleDuplicateConfirm}
-      />
-      
       <UnsupportedFilesDialog
         open={unsupportedDialogOpen}
         onOpenChange={setUnsupportedDialogOpen}
@@ -702,10 +694,10 @@ export const AdvancedFileUpload = () => {
         fileNames={heicFiles}
       />
       
-      {/* Pre-upload duplicate dialog */}
-      <PreUploadDuplicateDialog
-        open={preUploadDuplicateDialogOpen}
-        onOpenChange={setPreUploadDuplicateDialogOpen}
+      {/* Unified duplicate dialog */}
+      <UnifiedDuplicateDialog
+        open={unifiedDuplicateDialogOpen}
+        onOpenChange={setUnifiedDuplicateDialogOpen}
         duplicates={allDuplicates}
         onPurgeSelected={handlePurgeSelected}
         onKeepBoth={handleKeepBoth}
