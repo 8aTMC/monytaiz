@@ -761,22 +761,23 @@ export default function SimpleLibrary() {
             </div>
           </div>
 
+          {/* Selection Toolbar - Sticky at top when selecting */}
+          {selecting && selectedItems.size > 0 && (
+            <LibrarySelectionToolbar
+              selectedCount={selectedItems.size}
+              totalCount={filteredMedia.length}
+              currentView={selectedCategory}
+              isCustomFolder={customFolders.some(folder => folder.id === selectedCategory)}
+              onClearSelection={handleClearSelection}
+              onSelectAll={handleSelectAll}
+              onCopy={handleCopy}
+              onDelete={handleDelete}
+            />
+          )}
+
           {/* Scrollable Grid Content */}
           <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-default">
-            <div className="p-4">
-              {/* Selection Toolbar - Conditional Rendering */}
-              {selecting && selectedItems.size > 0 && (
-                <LibrarySelectionToolbar
-                  selectedCount={selectedItems.size}
-                  totalCount={filteredMedia.length}
-                  currentView={selectedCategory}
-                  isCustomFolder={customFolders.some(folder => folder.id === selectedCategory)}
-                  onClearSelection={handleClearSelection}
-                  onSelectAll={handleSelectAll}
-                  onCopy={handleCopy}
-                  onDelete={handleDelete}
-                />
-              )}
+            <div className="p-4 pt-0">
               {loading || folderContentLoading ? (
                 <LibraryGrid
                   content={[]}

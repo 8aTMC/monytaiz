@@ -53,7 +53,7 @@ export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = (
 
   return (
     <>
-      <div className="flex items-center justify-between px-4 py-3 bg-background border border-border rounded-lg mb-4 shadow-sm">
+      <div className="sticky top-0 z-50 flex items-center justify-between px-4 py-3 bg-background/95 backdrop-blur-sm border-b border-border mb-4 shadow-sm">
         <div className="flex items-center gap-3">
           <Button
             variant="secondary"

@@ -429,7 +429,7 @@ const ContentLibrary = () => {
   return (
     <LibraryErrorBoundary>
       <div className="h-full flex flex-col -mb-6">
-        {/* Selection Toolbar - At very top level when selecting */}
+        {/* Selection Toolbar - Sticky at top when selecting */}
         {selecting && (
           <LibrarySelectionToolbar
             selectedCount={selectedItems.size}
