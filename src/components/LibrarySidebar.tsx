@@ -337,7 +337,7 @@ export const LibrarySidebar = ({
                 return (
                   <div 
                     key={folder.id} 
-                    className={`relative transition-all duration-200 -mr-2 ${
+                    className={`relative transition-all duration-200 -mr-3 ${
                       isDragging ? 'opacity-50 scale-95' : 'opacity-100 scale-100'
                     } ${
                       isDragOver ? 'border-t-2 border-primary' : ''
