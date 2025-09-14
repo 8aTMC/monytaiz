@@ -250,9 +250,11 @@ export const MediaPreviewDialog = ({
 
   // Simple modal sizing based on sidebar state - no complex calculations
   const getModalMaxWidth = () => {
-    return sidebar.isCollapsed ? '80vw' : '70vw';
+    const base = sidebar.isCollapsed ? 80 : 70;
+    const isAudio = typeValue === 'audio';
+    const adjusted = isAudio ? Math.min(base * 1.25, 90) : base; // cap at 90vw for safety
+    return `${adjusted}vw`;
   };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogPortal>

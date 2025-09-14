@@ -345,7 +345,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
     containerStyle = {
       maxHeight: availableHeight,
       maxWidth: '90vw',
-      width: 'min(90vw, 1280px)',
+      width: 'min(90vw, 1000px)',
       height: 'auto'
     };
   } else if (isVertical) {
