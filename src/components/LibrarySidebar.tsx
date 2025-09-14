@@ -337,12 +337,11 @@ export const LibrarySidebar = ({
                 return (
                   <div 
                     key={folder.id} 
-                    className={`relative transition-all duration-200 ${
+                    className={`relative transition-all duration-200 -mr-2 ${
                       isDragging ? 'opacity-50 scale-95' : 'opacity-100 scale-100'
                     } ${
                       isDragOver ? 'border-t-2 border-primary' : ''
                     }`}
-                    style={{ width: 'calc(100% - 20px)' }}
                     draggable={isReorderMode}
                     onDragStart={() => handleDragStart(index)}
                     onDragOver={(e) => handleDragOver(e, index)}
