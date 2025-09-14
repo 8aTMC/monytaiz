@@ -678,7 +678,7 @@ export default function SimpleLibrary() {
         </aside>
         
         {/* Main Content Column */}
-        <main className="pl-2 overflow-hidden md:pl-0">
+        <main className="pl-2 md:pl-0 flex flex-col min-h-0">
           <div className="flex-shrink-0 p-4 border-b border-border">
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -762,7 +762,7 @@ export default function SimpleLibrary() {
           </div>
 
           {/* Scrollable Grid Content */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-default">
             <div className="p-4">
               {/* Selection Toolbar - Conditional Rendering */}
               {selecting && selectedItems.size > 0 && (

@@ -315,7 +315,7 @@ export const VirtualizedLibraryGrid = memo(({
   }
 
   return (
-    <div ref={containerRef} className="w-full h-full scrollbar-default">
+    <div ref={containerRef} className="w-full" style={{ height: gridHeight }}>
       <InfiniteLoader
         isItemLoaded={isItemLoaded}
         itemCount={hasNextPage ? items.length + 30 : items.length}

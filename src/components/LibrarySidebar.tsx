@@ -223,7 +223,7 @@ export const LibrarySidebar = ({
     <div className="w-full flex-shrink-0 relative h-full border-r border-border" style={{ zIndex: 10 }}>
       <div className="absolute inset-0 bg-gradient-sidebar" />
       {/* Library directory content */}
-      <div className="relative h-full overflow-y-auto custom-scrollbar px-4 py-4" style={{ minWidth: '100%' }}>
+      <div className="relative h-full overflow-y-auto scrollbar-default px-4 py-4" style={{ minWidth: '100%' }}>
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-foreground mb-0.5 bg-gradient-primary bg-clip-text text-transparent ml-[10px]">
             Library
