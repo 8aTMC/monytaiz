@@ -340,7 +340,15 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
     aspectRatio = '16/9';
   }
   
-  if (isVertical) {
+  // Dedicated width for audio: make the player wider
+  if (item?.media_type === 'audio') {
+    containerStyle = {
+      maxHeight: availableHeight,
+      maxWidth: '90vw',
+      width: 'min(90vw, 1280px)',
+      height: 'auto'
+    };
+  } else if (isVertical) {
     // For vertical images/videos, limit height and calculate width proportionally
     containerStyle = {
       maxHeight: availableHeight,
@@ -585,7 +593,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                           />
                         )}
                         {item?.media_type === 'audio' && (
-                          <div className="flex items-center justify-center h-full">
+                          <div className="flex items-center justify-center w-full">
                             <CustomAudioPlayer
                               key={`audio-${item.id}-${selectedIndex}-${fullUrl?.substring(0, 10)}`}
                               src={fullUrl}
