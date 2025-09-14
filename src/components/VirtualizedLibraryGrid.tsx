@@ -136,14 +136,18 @@ const GridItem = memo(({
         onClick={handleItemClick}
       >
         {/* Selection checkbox */}
-        <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-all duration-300">
+        <div 
+          className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          style={{ transform: 'translate3d(0,0,0)', willChange: 'opacity' }}
+        >
           <div 
-            className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-all duration-300 backdrop-blur-md ${
+            className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center cursor-pointer backdrop-blur-md ${
               selectedItems.has(item.id) 
-                ? 'bg-gradient-primary border-white/30 text-white shadow-shadow-glow scale-110 opacity-100' 
-                : 'bg-black/30 border-white/40 hover:bg-black/50 hover:border-white/60 hover:scale-110'
+                ? 'bg-gradient-primary border-white/30 text-white shadow-shadow-glow opacity-100' 
+                : 'bg-black/30 border-white/40 hover:bg-black/50 hover:border-white/60'
             }`}
             onClick={handleCheckboxClick}
+            style={{ transform: 'translate3d(0,0,0)' }}
           >
             {selectedItems.has(item.id) && <Check className="h-4 w-4 font-bold" />}
           </div>
@@ -151,7 +155,10 @@ const GridItem = memo(({
 
         <CardContent className="p-0 relative overflow-hidden h-full">
           {/* Date badge */}
-          <div className="absolute top-3 left-3 z-10 text-xs text-white bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 font-medium">
+          <div 
+            className="absolute top-3 left-3 z-10 text-xs text-white bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 font-medium"
+            style={{ transform: 'translate3d(0,0,0)' }}
+          >
             {new Date(item.created_at).toLocaleDateString('en-US', { 
               month: 'short', 
               day: 'numeric', 
@@ -160,7 +167,10 @@ const GridItem = memo(({
           </div>
           
           {/* Overlay gradient */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40 z-5"></div>
+          <div 
+            className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40 z-5"
+            style={{ transform: 'translate3d(0,0,0)' }}
+          ></div>
 
           {/* Thumbnail */}
           <MediaThumbnail 
@@ -176,11 +186,15 @@ const GridItem = memo(({
             }}
             debug={debug}
             forceSquare={true}
+            gridMode={true}
             className="w-full h-full"
           />
           
           {/* Tags */}
-          <div className="absolute bottom-3 left-3 right-10 z-10">
+          <div 
+            className="absolute bottom-3 left-3 right-10 z-10"
+            style={{ transform: 'translate3d(0,0,0)' }}
+          >
             {(() => {
               const defaultTags = ['upload', 'story', 'livestream', 'message'];
               const customTags = item.tags.filter(tag => 
@@ -195,9 +209,12 @@ const GridItem = memo(({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className={`text-xs bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 truncate font-medium cursor-pointer ${
-                        hasCustomTags ? 'text-white' : 'text-white/70'
-                      }`}>
+                      <div 
+                        className={`text-xs bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1 truncate font-medium cursor-pointer ${
+                          hasCustomTags ? 'text-white' : 'text-white/70'
+                        }`}
+                        style={{ transform: 'translate3d(0,0,0)' }}
+                      >
                         {displayText}
                       </div>
                     </TooltipTrigger>
@@ -211,7 +228,10 @@ const GridItem = memo(({
           </div>
           
           {/* Hover overlay effect */}
-          <div className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-10 transition-opacity duration-300 z-5"></div>
+          <div 
+            className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-10 transition-opacity duration-300 z-5"
+            style={{ transform: 'translate3d(0,0,0)', willChange: 'opacity' }}
+          ></div>
         </CardContent>
       </Card>
     </div>

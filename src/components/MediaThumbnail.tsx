@@ -27,9 +27,10 @@ interface MediaThumbnailProps {
   isPublic?: boolean;
   debug?: boolean;
   forceSquare?: boolean;
+  gridMode?: boolean; // Disable overlay elements for grid usage
 }
 
-export const MediaThumbnail = ({ item, className = "", isPublic = false, debug = false, forceSquare = false }: MediaThumbnailProps) => {
+export const MediaThumbnail = ({ item, className = "", isPublic = false, debug = false, forceSquare = false, gridMode = false }: MediaThumbnailProps) => {
   const { loadOptimizedMedia, currentUrl, isLoading, error, clearMedia } = useOptimizedMediaDisplay();
   const [imageLoadError, setImageLoadError] = useState(false);
   
@@ -159,11 +160,13 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false, debug =
             loading="lazy"
             decoding="async"
           />
-          {/* Media type icon */}
-          <div className="absolute bottom-3 right-2 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
-            {item.type === 'video' && <Video className="w-3.5 h-3.5 text-white" />}
-            {item.type === 'audio' && <Headphones className="w-3.5 h-3.5 text-white" />}
-          </div>
+          {/* Media type icon - only show if not in grid mode */}
+          {!gridMode && (
+            <div className="absolute bottom-3 right-2 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
+              {item.type === 'video' && <Video className="w-3.5 h-3.5 text-white" />}
+              {item.type === 'audio' && <Headphones className="w-3.5 h-3.5 text-white" />}
+            </div>
+          )}
         </div>
       );
     }
@@ -177,11 +180,13 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false, debug =
         <div className="flex flex-col items-center gap-2">
           {getContentTypeIcon(item.type)}
         </div>
-        {/* Media type icon for non-image fallback */}
-        <div className="absolute bottom-3 right-2 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
-          {item.type === 'video' && <Video className="w-3.5 h-3.5 text-white" />}
-          {item.type === 'audio' && <Headphones className="w-3.5 h-3.5 text-white" />}
-        </div>
+        {/* Media type icon for non-image fallback - only show if not in grid mode */}
+        {!gridMode && (
+          <div className="absolute bottom-3 right-2 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
+            {item.type === 'video' && <Video className="w-3.5 h-3.5 text-white" />}
+            {item.type === 'audio' && <Headphones className="w-3.5 h-3.5 text-white" />}
+          </div>
+        )}
       </div>
     );
   }
@@ -216,10 +221,12 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false, debug =
             <FileImage className="h-8 w-8 text-muted-foreground" />
             <span className="text-xs text-muted-foreground font-medium">HEIC</span>
           </div>
-          {/* HEIC format badge */}
-          <div className="absolute bottom-3 right-2 px-2 py-1 bg-orange-500/90 rounded text-white text-xs font-medium">
-            HEIC
-          </div>
+          {/* HEIC format badge - only show if not in grid mode */}
+          {!gridMode && (
+            <div className="absolute bottom-3 right-2 px-2 py-1 bg-orange-500/90 rounded text-white text-xs font-medium">
+              HEIC
+            </div>
+          )}
         </div>
       ) : (
         <>
@@ -238,15 +245,17 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false, debug =
                   setImageLoadError(true);
                 }}
               />
-              {/* Media type icon or HEIC badge */}
-              {isCurrentHEIC ? (
-                <div className="absolute bottom-3 right-2 px-2 py-1 bg-orange-500/90 rounded text-white text-xs font-medium">
-                  HEIC
-                </div>
-              ) : (
-                <div className="absolute bottom-3 right-2 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
-                  <Image className="w-3.5 h-3.5 text-white" />
-                </div>
+              {/* Media type icon or HEIC badge - only show if not in grid mode */}
+              {!gridMode && (
+                isCurrentHEIC ? (
+                  <div className="absolute bottom-3 right-2 px-2 py-1 bg-orange-500/90 rounded text-white text-xs font-medium">
+                    HEIC
+                  </div>
+                ) : (
+                  <div className="absolute bottom-3 right-2 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center">
+                    <Image className="w-3.5 h-3.5 text-white" />
+                  </div>
+                )
               )}
             </>
           )}
