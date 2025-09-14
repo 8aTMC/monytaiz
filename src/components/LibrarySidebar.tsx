@@ -145,7 +145,7 @@ export const LibrarySidebar = ({
         <Button
           variant={isSelected ? 'default' : 'ghost'}
           className={`w-full justify-start text-left h-auto p-2.5 pr-14 ${
-            leftPad ? 'pl-9' : ''
+            leftPad ? 'pl-7' : ''
           } min-w-0 relative transition-all ${
             isSelected
               ? 'bg-gradient-primary shadow-shadow-soft border-0'
@@ -320,7 +320,7 @@ export const LibrarySidebar = ({
         </div>
 
         {/* Scrollable My Folders section */}
-        <div className="flex-1 overflow-y-auto scrollbar-default">
+        <div className="flex-1 overflow-y-auto scrollbar-default pr-3">
           {foldersToDisplay.length > 0 && (
             <div className="space-y-1">
               <div className="flex items-center justify-between mb-1.5">
