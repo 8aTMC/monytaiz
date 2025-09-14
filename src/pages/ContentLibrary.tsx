@@ -404,7 +404,7 @@ const ContentLibrary = () => {
 
   return (
     <LibraryErrorBoundary>
-      <div className="h-full flex flex-col overflow-hidden -mb-6">
+      <div className="h-full flex flex-col -mb-6">
         {/* Selection Toolbar - At very top level when selecting */}
         {selecting && (
           <LibrarySelectionToolbar
@@ -421,7 +421,7 @@ const ContentLibrary = () => {
         )}
         
         {/* Main Content Area - Full Width */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* Enhanced Header */}
           <div className="bg-gradient-header border-b border-border/50 p-6 pb-5 backdrop-blur-sm">
             <div className="flex items-center justify-between mb-6">
@@ -560,7 +560,7 @@ const ContentLibrary = () => {
           </div>
 
           {/* Enhanced Content Area */}
-          <div className="flex-1 overflow-y-auto p-6 pt-4 custom-scrollbar">
+          <div className="flex-1 min-h-0 p-6 pt-4">
             {/* Virtualized grid with infinite scrolling */}
             <VirtualizedLibraryGrid
               items={content}
@@ -572,7 +572,6 @@ const ContentLibrary = () => {
               hasNextPage={hasNextPage}
               isLoadingMore={isLoadingMore}
               loading={loadingContent}
-              height={Math.max(400, (window?.innerHeight || 800) - 300)}
               debug={false}
             />
           </div>

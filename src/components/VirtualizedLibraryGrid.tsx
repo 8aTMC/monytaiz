@@ -230,23 +230,35 @@ export const VirtualizedLibraryGrid = memo(({
   hasNextPage,
   isLoadingMore,
   loading = false,
-  height = 600,
+  height,
   debug = false
 }: VirtualizedLibraryGridProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = React.useState(1200);
+  const [containerHeight, setContainerHeight] = React.useState(600);
 
-  // Update container width on resize
+  // Update container dimensions on resize
   useEffect(() => {
-    const updateWidth = () => {
+    const updateDimensions = () => {
       if (containerRef.current) {
         setContainerWidth(containerRef.current.offsetWidth);
+        setContainerHeight(containerRef.current.offsetHeight);
       }
     };
 
-    updateWidth();
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    
+    // Use ResizeObserver for more accurate container size tracking
+    const resizeObserver = new ResizeObserver(updateDimensions);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+    
+    return () => {
+      window.removeEventListener('resize', updateDimensions);
+      resizeObserver.disconnect();
+    };
   }, []);
 
   const columnCount = useMemo(() => getColumnCount(containerWidth), [containerWidth]);
@@ -272,9 +284,12 @@ export const VirtualizedLibraryGrid = memo(({
     }
   }, [hasNextPage, isLoadingMore, onLoadMore]);
 
+  // Use provided height or calculated height
+  const gridHeight = height || containerHeight;
+
   if (loading) {
     return (
-      <div ref={containerRef} className="w-full" style={{ height }}>
+      <div ref={containerRef} className="w-full h-full">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           {Array.from({ length: 12 }).map((_, i) => (
             <Card key={i} className="aspect-square">
@@ -290,7 +305,7 @@ export const VirtualizedLibraryGrid = memo(({
 
   if (items.length === 0) {
     return (
-      <div className="flex items-center justify-center py-12 text-muted-foreground">
+      <div ref={containerRef} className="flex items-center justify-center py-12 text-muted-foreground h-full">
         <div className="text-center">
           <p className="text-lg font-medium">No media found</p>
           <p className="text-sm">Try adjusting your filters or search terms</p>
@@ -300,7 +315,7 @@ export const VirtualizedLibraryGrid = memo(({
   }
 
   return (
-    <div ref={containerRef} className="w-full" style={{ height }}>
+    <div ref={containerRef} className="w-full h-full custom-scrollbar">
       <InfiniteLoader
         isItemLoaded={isItemLoaded}
         itemCount={hasNextPage ? items.length + 30 : items.length}
@@ -310,7 +325,7 @@ export const VirtualizedLibraryGrid = memo(({
         {({ onItemsRendered, ref }) => (
           <Grid
             ref={ref}
-            height={height}
+            height={gridHeight}
             width={containerWidth}
             columnCount={columnCount}
             rowCount={rowCount}
@@ -332,6 +347,7 @@ export const VirtualizedLibraryGrid = memo(({
             }}
             overscanRowCount={2}
             style={{ paddingLeft: GAP_SIZE, paddingTop: GAP_SIZE }}
+            className="custom-scrollbar"
           >
             {GridItem}
           </Grid>
