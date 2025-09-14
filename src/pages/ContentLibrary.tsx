@@ -15,8 +15,8 @@ import { LibrarySelectionToolbar } from '@/components/LibrarySelectionToolbar';
 import { useMediaOperations } from '@/hooks/useMediaOperations';
 import { MediaPreviewDialog } from '@/components/MediaPreviewDialog';
 import { useToast } from '@/hooks/use-toast';
-import { LibraryGrid } from '@/components/LibraryGrid';
-import { useLibraryData } from '@/hooks/useLibraryData';
+import { VirtualizedLibraryGrid } from '@/components/VirtualizedLibraryGrid';
+import { useInfiniteLibraryData } from '@/hooks/useInfiniteLibraryData';
 import { LibraryErrorBoundary } from '@/components/LibraryErrorBoundary';
 import { LibraryFiltersDialog } from '@/components/LibraryFiltersDialog';
 import { LibraryFilterState } from '@/types/library-filters';
@@ -117,14 +117,17 @@ const ContentLibrary = () => {
     advancedFilters
   }), [selectedCategory, searchQuery, selectedFilter, sortBy, advancedFilters]);
 
-  // Use the library data hook with stable parameters
+  // Use the infinite library data hook with stable parameters
   const { 
-    content, 
+    items: content, 
     loading: loadingContent, 
+    isLoadingMore,
+    hasNextPage,
     categoryCounts, 
-    fetchContent, 
+    loadMore,
+    refresh: fetchContent, 
     fetchCategoryCounts 
-  } = useLibraryData(libraryParams);
+  } = useInfiniteLibraryData(libraryParams);
 
   // Stable operation handlers
   const onRefreshNeeded = useCallback(() => {
@@ -558,14 +561,19 @@ const ContentLibrary = () => {
 
           {/* Enhanced Content Area */}
           <div className="flex-1 overflow-y-auto p-6 pt-4 custom-scrollbar">
-            {/* Content Grid */}
-            <LibraryGrid
-              content={content}
+            {/* Virtualized grid with infinite scrolling */}
+            <VirtualizedLibraryGrid
+              items={content}
               selectedItems={selectedItems}
               selecting={selecting}
               onItemClick={handleCardClick}
               onCheckboxClick={handleCheckboxClick}
+              onLoadMore={loadMore}
+              hasNextPage={hasNextPage}
+              isLoadingMore={isLoadingMore}
               loading={loadingContent}
+              height={Math.max(400, (window?.innerHeight || 800) - 300)}
+              debug={false}
             />
           </div>
         </div>

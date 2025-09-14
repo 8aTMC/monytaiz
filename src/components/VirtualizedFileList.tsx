@@ -111,6 +111,7 @@ export const VirtualizedFileList = memo(({
     >
       <List
         height={containerHeight}
+        width="100%"
         itemCount={files.length}
         itemSize={ITEM_HEIGHT}
         itemData={itemData}
