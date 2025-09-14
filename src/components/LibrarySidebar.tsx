@@ -223,174 +223,179 @@ export const LibrarySidebar = ({
     <div className="w-full flex-shrink-0 relative h-full border-r border-border" style={{ zIndex: 10 }}>
       <div className="absolute inset-0 bg-gradient-sidebar" />
       {/* Library directory content */}
-      <div className="relative h-full overflow-y-auto scrollbar-default px-4 py-4" style={{ minWidth: '100%' }}>
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold text-foreground mb-0.5 bg-gradient-primary bg-clip-text text-transparent ml-[10px]">
-            Library
-          </h2>
-          <p className="text-xs text-muted-foreground ml-[10px]">Manage your content</p>
-        </div>
-
-        {/* Default categories (more compact, consistent with custom) */}
-        <div className="space-y-1.5 mb-5">
-          {defaultCategories.map((category) => {
-            const isSelected = selectedCategory === category.id;
-            return (
-              <Row
-                key={category.id}
-                item={category}
-                isSelected={isSelected}
-                count={categoryCounts[category.id] || 0}
-                onClick={() => onCategorySelect(category.id)}
-              />
-            );
-          })}
-        </div>
-
-        {/* Divider */}
-        <div className="relative my-4">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-border to-transparent h-px" />
-          <div className="relative flex justify-center" />
-        </div>
-
-        {/* Actions */}
-        <div className="mb-3 flex justify-center">
-          <div className="flex items-center gap-1" style={{ width: 'calc(100% - 30px)' }}>
-            {isReorderMode ? (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setIsReorderMode(false);
-                    setReorderedFolders(customFolders); // Reset to original order
-                  }}
-                  className="text-xs px-2 h-7 flex-1 hover:bg-destructive/10 text-destructive border-destructive/20 hover:border-destructive/40 transition"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setIsReorderMode(false);
-                    // Pass the reordered folders to the parent component
-                    onFolderUpdated(reorderedFolders);
-                  }}
-                  className="text-xs px-2 h-7 flex-1 hover:bg-gradient-glass transition"
-                >
-                  Save
-                </Button>
-              </>
-            ) : (
-              <>
-                <div className="flex-1">
-                  <NewFolderDialog onFolderCreated={onFolderCreated} />
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsReorderMode(!isReorderMode)}
-                  disabled={customFolders.length === 0}
-                  className="text-xs px-2 h-7 flex-1 hover:bg-gradient-glass transition"
-                >
-                  <ArrowUpDown className="h-3.5 w-3.5 mr-1" />
-                  Reorder
-                </Button>
-              </>
-            )}
+      <div className="relative h-full flex flex-col px-4 py-4" style={{ minWidth: '100%' }}>
+        {/* Fixed header section */}
+        <div className="flex-shrink-0">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-foreground mb-0.5 bg-gradient-primary bg-clip-text text-transparent ml-[10px]">
+              Library
+            </h2>
+            <p className="text-xs text-muted-foreground ml-[10px]">Manage your content</p>
           </div>
-        </div>
 
-        {/* Search Field */}
-        <div className="mb-4 flex justify-center">
-          <div className="relative" style={{ width: 'calc(100% - 30px)' }}>
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search folders..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-3 py-2 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 placeholder:text-muted-foreground"
-            />
-          </div>
-        </div>
-
-        {/* Custom folders */}
-        {foldersToDisplay.length > 0 && (
-          <div className="space-y-1">
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="text-[11px] font-medium tracking-wide text-muted-foreground ml-[10px]">
-                My Folders
-              </div>
-            </div>
-
-            {foldersToDisplay.map((folder, index) => {
-              const isSelected = selectedCategory === folder.id;
-              const isDragging = isReorderMode && draggedIndex === index;
-              const isDragOver = isReorderMode && dragOverIndex === index;
-
+          {/* Default categories (more compact, consistent with custom) */}
+          <div className="space-y-1.5 mb-5">
+            {defaultCategories.map((category) => {
+              const isSelected = selectedCategory === category.id;
               return (
-                <div 
-                  key={folder.id} 
-                  className={`relative transition-all duration-200 ${
-                    isDragging ? 'opacity-50 scale-95' : 'opacity-100 scale-100'
-                  } ${
-                    isDragOver ? 'border-t-2 border-primary' : ''
-                  }`}
-                  draggable={isReorderMode}
-                  onDragStart={() => handleDragStart(index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, index)}
-                  onDragEnd={handleDragEnd}
-                >
-                  {/* three-dots edit trigger (absolute, elegant) */}
-                  {!isReorderMode && (
-                    <div className="absolute top-1/2 left-1 -translate-y-1/2 z-10">
-                      {/* If your EditFolderDialog accepts `trigger`, use this: */}
-                      <EditFolderDialog
-                        folder={{ 
-                          id: folder.id, 
-                          label: folder.label,
-                          description: folder.description 
-                        }}
-                        onFolderUpdated={onFolderUpdated}
-                        trigger={
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        }
-                      />
-                      {/* If it doesn't support `trigger`, replace the component above
-                          with your own menu/button that calls the dialog internally,
-                          or style the existing EditFolderDialog to render only the icon. */}
-                    </div>
-                  )}
-
-                  <Row
-                    item={folder}
-                    isSelected={isSelected}
-                    count={categoryCounts[folder.id] || 0}
-                    leftPad={!isReorderMode} // room for kebab icon
-                    showHandle={isReorderMode}
-                    isDragging={isDragging}
-                    onClick={() => {
-                      if (!isReorderMode) onCategorySelect(folder.id);
-                    }}
-                  />
-
-                  {/* subtle divider between folders */}
-                  <div className="h-px mx-1 bg-border/30" />
-                </div>
+                <Row
+                  key={category.id}
+                  item={category}
+                  isSelected={isSelected}
+                  count={categoryCounts[category.id] || 0}
+                  onClick={() => onCategorySelect(category.id)}
+                />
               );
             })}
           </div>
-        )}
+
+          {/* Divider */}
+          <div className="relative my-4">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-border to-transparent h-px" />
+            <div className="relative flex justify-center" />
+          </div>
+
+          {/* Actions */}
+          <div className="mb-3 flex justify-center">
+            <div className="flex items-center gap-1" style={{ width: 'calc(100% - 30px)' }}>
+              {isReorderMode ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsReorderMode(false);
+                      setReorderedFolders(customFolders); // Reset to original order
+                    }}
+                    className="text-xs px-2 h-7 flex-1 hover:bg-destructive/10 text-destructive border-destructive/20 hover:border-destructive/40 transition"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsReorderMode(false);
+                      // Pass the reordered folders to the parent component
+                      onFolderUpdated(reorderedFolders);
+                    }}
+                    className="text-xs px-2 h-7 flex-1 hover:bg-gradient-glass transition"
+                  >
+                    Save
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="flex-1">
+                    <NewFolderDialog onFolderCreated={onFolderCreated} />
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsReorderMode(!isReorderMode)}
+                    disabled={customFolders.length === 0}
+                    className="text-xs px-2 h-7 flex-1 hover:bg-gradient-glass transition"
+                  >
+                    <ArrowUpDown className="h-3.5 w-3.5 mr-1" />
+                    Reorder
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Search Field */}
+          <div className="mb-4 flex justify-center">
+            <div className="relative" style={{ width: 'calc(100% - 30px)' }}>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search folders..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 placeholder:text-muted-foreground"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Scrollable My Folders section */}
+        <div className="flex-1 overflow-y-auto scrollbar-default">
+          {foldersToDisplay.length > 0 && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-[11px] font-medium tracking-wide text-muted-foreground ml-[10px]">
+                  My Folders
+                </div>
+              </div>
+
+              {foldersToDisplay.map((folder, index) => {
+                const isSelected = selectedCategory === folder.id;
+                const isDragging = isReorderMode && draggedIndex === index;
+                const isDragOver = isReorderMode && dragOverIndex === index;
+
+                return (
+                  <div 
+                    key={folder.id} 
+                    className={`relative transition-all duration-200 ${
+                      isDragging ? 'opacity-50 scale-95' : 'opacity-100 scale-100'
+                    } ${
+                      isDragOver ? 'border-t-2 border-primary' : ''
+                    }`}
+                    draggable={isReorderMode}
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, index)}
+                    onDragEnd={handleDragEnd}
+                  >
+                    {/* three-dots edit trigger (absolute, elegant) */}
+                    {!isReorderMode && (
+                      <div className="absolute top-1/2 left-1 -translate-y-1/2 z-10">
+                        {/* If your EditFolderDialog accepts `trigger`, use this: */}
+                        <EditFolderDialog
+                          folder={{ 
+                            id: folder.id, 
+                            label: folder.label,
+                            description: folder.description 
+                          }}
+                          onFolderUpdated={onFolderUpdated}
+                          trigger={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
+                        {/* If it doesn't support `trigger`, replace the component above
+                            with your own menu/button that calls the dialog internally,
+                            or style the existing EditFolderDialog to render only the icon. */}
+                      </div>
+                    )}
+
+                    <Row
+                      item={folder}
+                      isSelected={isSelected}
+                      count={categoryCounts[folder.id] || 0}
+                      leftPad={!isReorderMode} // room for kebab icon
+                      showHandle={isReorderMode}
+                      isDragging={isDragging}
+                      onClick={() => {
+                        if (!isReorderMode) onCategorySelect(folder.id);
+                      }}
+                    />
+
+                    {/* subtle divider between folders */}
+                    <div className="h-px mx-1 bg-border/30" />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
