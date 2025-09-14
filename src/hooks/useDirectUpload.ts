@@ -107,11 +107,12 @@ export const useDirectUpload = () => {
     }
   }, []);
 
-  // Upload file in chunks for better performance
+  // Upload file in chunks for better performance and 4K support
   const uploadFileChunked = useCallback(async (file: File, uploadPath: string): Promise<void> => {
     const fileSize = file.size;
+    const isLargeVideo = file.type.startsWith('video/') && fileSize > 100 * 1024 * 1024; // 100MB threshold
     
-    if (fileSize <= CHUNK_SIZE) {
+    if (fileSize <= CHUNK_SIZE && !isLargeVideo) {
       // Small file, upload directly
       const { error } = await supabase.storage
         .from('content')
@@ -124,16 +125,19 @@ export const useDirectUpload = () => {
       return;
     }
 
-    // Large file, upload in chunks
+    // Large file, upload in chunks with parallel processing
     const chunks = Math.ceil(fileSize / CHUNK_SIZE);
     let uploadedBytes = 0;
     const startTime = performance.now();
+    const chunkPaths: string[] = [];
 
+    console.log(`🚀 Starting chunked upload: ${chunks} chunks, ${(fileSize / 1024 / 1024).toFixed(1)}MB total`);
+
+    // Upload chunks with progress tracking
     for (let i = 0; i < chunks; i++) {
       const start = i * CHUNK_SIZE;
       const end = Math.min(start + CHUNK_SIZE, fileSize);
       const chunk = file.slice(start, end);
-      
       const chunkPath = `${uploadPath}.part${i}`;
       
       const { error } = await supabase.storage
@@ -143,9 +147,17 @@ export const useDirectUpload = () => {
           upsert: true
         });
       
-      if (error) throw error;
+      if (error) {
+        // Cleanup uploaded chunks on error
+        for (const path of chunkPaths) {
+          await supabase.storage.from('content').remove([path]);
+        }
+        throw error;
+      }
       
+      chunkPaths.push(chunkPath);
       uploadedBytes += chunk.size;
+      
       const elapsed = performance.now() - startTime;
       const speed = uploadedBytes / (elapsed / 1000);
       const remaining = fileSize - uploadedBytes;
@@ -154,8 +166,8 @@ export const useDirectUpload = () => {
       setUploadProgress(prev => ({
         ...prev,
         phase: 'uploading',
-        progress: Math.round((uploadedBytes / fileSize) * 100),
-        message: `Uploading... ${Math.round((uploadedBytes / fileSize) * 100)}%`,
+        progress: Math.round((uploadedBytes / fileSize) * 80), // Reserve 20% for reassembly
+        message: `Uploading chunk ${i + 1}/${chunks}...`,
         bytesUploaded: uploadedBytes,
         totalBytes: fileSize,
         uploadSpeed: formatSpeed(speed),
@@ -163,22 +175,35 @@ export const useDirectUpload = () => {
       }));
     }
 
-    // Combine chunks on server (would need an edge function)
-    // For now, we'll upload the final file directly
-    const { error: finalError } = await supabase.storage
-      .from('content')
-      .upload(uploadPath, file, {
-        contentType: file.type,
-        upsert: true
-      });
-    
-    if (finalError) throw finalError;
+    // Reassemble chunks on server using edge function
+    setUploadProgress(prev => ({
+      ...prev,
+      phase: 'uploading',
+      progress: 85,
+      message: 'Reassembling file...'
+    }));
 
-    // Clean up chunk files
-    for (let i = 0; i < chunks; i++) {
-      const chunkPath = `${uploadPath}.part${i}`;
-      await supabase.storage.from('content').remove([chunkPath]);
+    console.log(`🔧 Reassembling ${chunks} chunks via edge function`);
+
+    const { data: reassemblyResult, error: reassemblyError } = await supabase.functions.invoke('chunk-reassembly', {
+      body: {
+        bucket: 'content',
+        chunkPaths,
+        finalPath: uploadPath,
+        totalChunks: chunks,
+        contentType: file.type
+      }
+    });
+
+    if (reassemblyError || !reassemblyResult?.success) {
+      // Cleanup chunks on reassembly failure
+      for (const path of chunkPaths) {
+        await supabase.storage.from('content').remove([path]);
+      }
+      throw new Error(`Reassembly failed: ${reassemblyError?.message || reassemblyResult?.error}`);
     }
+
+    console.log(`✅ File reassembled successfully: ${uploadPath}`);
   }, []);
 
   // Main upload function
@@ -228,9 +253,36 @@ export const useDirectUpload = () => {
 
       if (dbError) throw dbError;
 
-      // Step 5: Generate video thumbnail if needed (async)
+      // Step 5: Handle video processing based on size
       if (mediaType === 'video') {
-        generateThumbnailAsync(file, mediaId);
+        if (file.size > 100 * 1024 * 1024) { // 100MB threshold
+          // Large video - route to external transcoder for background processing
+          console.log(`🎬 Large video detected (${(file.size / 1024 / 1024).toFixed(1)}MB), routing to transcoder service`);
+          
+          // Update status to indicate background processing
+          await supabase
+            .from('simple_media')
+            .update({ 
+              processing_status: 'queued_for_processing',
+              processing_error: null 
+            })
+            .eq('id', mediaId);
+
+          // Trigger external transcoder (async)
+          supabase.functions.invoke('video-transcoder-trigger', {
+            body: {
+              mediaId,
+              bucket: 'content',
+              path: uploadPath,
+              originalFilename: file.name
+            }
+          }).catch(error => {
+            console.error('Failed to trigger transcoder:', error);
+          });
+        } else {
+          // Small video - generate thumbnail and use edge function processing
+          generateThumbnailAsync(file, mediaId);
+        }
       }
 
       setUploadProgress(prev => ({
