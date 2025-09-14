@@ -144,7 +144,7 @@ export const LibrarySidebar = ({
 
         <Button
           variant={isSelected ? 'default' : 'ghost'}
-          className={`w-full justify-start text-left h-auto p-2.5 pr-12 ${
+          className={`w-full justify-start text-left h-auto p-2.5 pr-8 ${
             leftPad ? 'pl-5' : ''
           } min-w-0 relative transition-all ${
             isSelected
@@ -176,7 +176,7 @@ export const LibrarySidebar = ({
               </div>
             )}
 
-            <div className="flex flex-col items-start flex-1 leading-tight" style={{ width: 'calc(100% - 40px)' }}>
+            <div className="flex flex-col items-start flex-1 leading-tight min-w-0">
               <span
                 className={`font-medium text-left w-full truncate ${
                   isDragging 
@@ -320,7 +320,7 @@ export const LibrarySidebar = ({
         </div>
 
         {/* Scrollable My Folders section */}
-        <div className="flex-1 overflow-y-auto scrollbar-default pr-6">
+        <div className="flex-1 overflow-y-auto scrollbar-default pr-3">
           {foldersToDisplay.length > 0 && (
             <div className="space-y-1">
               <div className="flex items-center justify-between mb-1.5">
