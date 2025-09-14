@@ -351,7 +351,7 @@ export const LibrarySidebar = ({
                   >
                     {/* three-dots edit trigger (absolute, elegant) */}
                     {!isReorderMode && (
-                      <div className="absolute top-1/2 left-0 -translate-y-1/2 z-10">
+                      <div className="absolute top-1/2 left-[-2px] -translate-y-1/2 z-10">
                         {/* If your EditFolderDialog accepts `trigger`, use this: */}
                         <EditFolderDialog
                           folder={{ 
