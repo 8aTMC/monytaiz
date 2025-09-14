@@ -144,7 +144,7 @@ export const LibrarySidebar = ({
 
         <Button
           variant={isSelected ? 'default' : 'ghost'}
-          className={`w-full justify-start text-left h-auto p-2.5 pr-5 ${
+          className={`w-full justify-start text-left h-auto p-2.5 pr-8 ${
             leftPad ? 'pl-5' : ''
           } min-w-0 relative transition-all ${
             isSelected
