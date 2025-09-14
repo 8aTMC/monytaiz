@@ -320,7 +320,7 @@ export const LibrarySidebar = ({
         </div>
 
         {/* Scrollable My Folders section */}
-        <div className="flex-1 overflow-y-auto scrollbar-default pr-3">
+        <div className="flex-1 overflow-y-auto scrollbar-thin pr-3">
           {foldersToDisplay.length > 0 && (
             <div className="space-y-1">
               <div className="flex items-center justify-between mb-1.5">
@@ -337,7 +337,7 @@ export const LibrarySidebar = ({
                 return (
                   <div 
                     key={folder.id} 
-                    className={`relative transition-all duration-200 -mr-3 ${
+                    className={`relative transition-all duration-200 -mr-4 ${
                       isDragging ? 'opacity-50 scale-95' : 'opacity-100 scale-100'
                     } ${
                       isDragOver ? 'border-t-2 border-primary' : ''
