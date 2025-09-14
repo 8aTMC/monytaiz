@@ -130,7 +130,7 @@ export const LibrarySidebar = ({
         {/* counter */}
         <Badge
           variant="secondary"
-          className={`absolute top-1.5 right-1.5 rounded-full text-[10px] px-1.5 h-4 min-w-[16px] flex items-center justify-center pointer-events-none transition-all z-10 ${
+          className={`absolute top-1.5 right-2 rounded-full text-[10px] px-1.5 h-4 min-w-[16px] flex items-center justify-center pointer-events-none transition-all z-10 ${
             isSelected
               ? 'bg-white text-primary border-white shadow-sm'
               : 'bg-primary/10 text-primary border-primary/20 group-hover:bg-primary/20'
@@ -144,7 +144,7 @@ export const LibrarySidebar = ({
 
         <Button
           variant={isSelected ? 'default' : 'ghost'}
-          className={`w-full justify-start text-left h-auto p-2.5 pr-8 ${
+          className={`w-full justify-start text-left h-auto p-2.5 pr-14 ${
             leftPad ? 'pl-9' : ''
           } min-w-0 relative transition-all ${
             isSelected
@@ -176,7 +176,7 @@ export const LibrarySidebar = ({
               </div>
             )}
 
-            <div className="flex flex-col items-start flex-1 leading-tight" style={{ width: 'calc(100% - 32px)' }}>
+            <div className="flex flex-col items-start flex-1 leading-tight" style={{ width: 'calc(100% - 48px)' }}>
               <span
                 className={`font-medium text-left w-full truncate ${
                   isDragging 
@@ -192,7 +192,7 @@ export const LibrarySidebar = ({
 
               {/* 2-line subtitle (≈40 chars) */}
               <span
-                className={`text-xs leading-[1.3] text-left ${
+                className={`text-[11px] leading-[1.3] text-left ${
                   isDragging
                     ? 'text-foreground/90'
                     : isSelected 
