@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface UploadProgress {
-  phase: 'processing' | 'uploading' | 'complete' | 'error';
+  phase: 'processing' | 'uploading' | 'complete' | 'error' | 'queued_for_processing';
   progress: number;
   message: string;
   bytesUploaded?: number;

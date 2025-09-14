@@ -21,7 +21,7 @@ interface ProcessingPhase {
 }
 
 interface DetailedUploadProgress {
-  phase: 'processing' | 'uploading' | 'complete';
+  phase: 'processing' | 'uploading' | 'complete' | 'queued_for_processing';
   progress: number;
   message: string;
   originalSize?: number;
