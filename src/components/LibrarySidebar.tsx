@@ -144,8 +144,8 @@ export const LibrarySidebar = ({
 
         <Button
           variant={isSelected ? 'default' : 'ghost'}
-          className={`w-full justify-start text-left h-auto p-2.5 pr-14 ${
-            leftPad ? 'pl-7' : ''
+          className={`w-full justify-start text-left h-auto p-2.5 pr-12 ${
+            leftPad ? 'pl-5' : ''
           } min-w-0 relative transition-all ${
             isSelected
               ? 'bg-gradient-primary shadow-shadow-soft border-0'
@@ -176,7 +176,7 @@ export const LibrarySidebar = ({
               </div>
             )}
 
-            <div className="flex flex-col items-start flex-1 leading-tight" style={{ width: 'calc(100% - 48px)' }}>
+            <div className="flex flex-col items-start flex-1 leading-tight" style={{ width: 'calc(100% - 40px)' }}>
               <span
                 className={`font-medium text-left w-full truncate ${
                   isDragging 
@@ -351,7 +351,7 @@ export const LibrarySidebar = ({
                   >
                     {/* three-dots edit trigger (absolute, elegant) */}
                     {!isReorderMode && (
-                      <div className="absolute top-1/2 left-1 -translate-y-1/2 z-10">
+                      <div className="absolute top-1/2 left-0 -translate-y-1/2 z-10">
                         {/* If your EditFolderDialog accepts `trigger`, use this: */}
                         <EditFolderDialog
                           folder={{ 
