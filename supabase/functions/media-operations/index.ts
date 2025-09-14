@@ -41,51 +41,67 @@ type MediaOperationRequest = CopyToCollectionRequest | RemoveFromCollectionReque
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+    console.log('Media operations request received:', req.method);
+    
+    // Initialize Supabase client with JWT authentication (handled automatically)
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: { persistSession: false }
-    })
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      },
+      global: {
+        headers: {
+          Authorization: req.headers.get('Authorization')!,
+        },
+      },
+    });
 
-    // Get the authorization header
-    const authHeader = req.headers.get('Authorization')
-    if (authHeader) {
-      supabase.auth.setSession({
-        access_token: authHeader.replace('Bearer ', ''),
-        refresh_token: ''
-      })
-    }
-
-    // Get the current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    // Get current user (automatically validated by JWT)
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
     if (userError || !user) {
+      console.error('User authentication failed:', userError);
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Authentication required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      );
     }
 
-    // Check if user has the right permissions (management roles)
-    const { data: userRoles } = await supabase
+    console.log('Authenticated user:', user.id);
+
+    // Check user permissions
+    const { data: userRoles, error: roleError } = await supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', user.id)
+      .eq('user_id', user.id);
+
+    if (roleError) {
+      console.error('Error fetching user roles:', roleError);
+      return new Response(
+        JSON.stringify({ error: 'Permission check failed' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const hasPermission = userRoles?.some(r => 
       ['owner', 'superadmin', 'admin', 'manager', 'chatter'].includes(r.role)
-    )
+    );
 
     if (!hasPermission) {
+      console.log('User lacks required permissions:', userRoles);
       return new Response(
         JSON.stringify({ error: 'Insufficient permissions' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      );
     }
+
+    console.log('User permissions verified');
 
     const body: MediaOperationRequest = await req.json()
     console.log('Processing request:', body)
