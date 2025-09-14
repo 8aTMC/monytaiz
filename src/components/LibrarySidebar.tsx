@@ -342,6 +342,7 @@ export const LibrarySidebar = ({
                     } ${
                       isDragOver ? 'border-t-2 border-primary' : ''
                     }`}
+                    style={{ width: 'calc(100% - 20px)' }}
                     draggable={isReorderMode}
                     onDragStart={() => handleDragStart(index)}
                     onDragOver={(e) => handleDragOver(e, index)}
