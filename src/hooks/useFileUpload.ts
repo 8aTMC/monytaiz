@@ -760,9 +760,9 @@ export const useFileUpload = () => {
         }
       }
 
-      // Post-process media for fast loading with timeout and better error handling
+      // Post-process media for metadata extraction only (no video processing)
       try {
-        console.log('Starting media post-processing...');
+        console.log('Starting media metadata extraction...');
         
         // Set progress to 95% during post-processing
         setUploadQueue(prev => prev.map(f => 
@@ -773,58 +773,61 @@ export const useFileUpload = () => {
           } : f
         ));
 
-        const postProcessPromise = supabase.functions.invoke('media-postprocess', {
-          body: { 
-            bucket: 'content', 
-            path: data!.path, 
-            isPublic: true 
-          },
-          headers: { 'Content-Type': 'application/json' },
-        });
+        // Only call post-processing for images and non-video files
+        if (fileType !== 'video') {
+          const postProcessPromise = supabase.functions.invoke('media-postprocess', {
+            body: { 
+              bucket: 'content', 
+              path: data!.path, 
+              isPublic: true 
+            },
+            headers: { 'Content-Type': 'application/json' },
+          });
 
-        // Different timeouts based on file type
-        const timeoutMs = fileType === 'video' ? 60000 : fileType === 'audio' ? 30000 : 15000;
-        
-        const { data: postProcessData, error: postProcessError } = await Promise.race([
-          postProcessPromise,
-          new Promise((_, reject) => {
-            setTimeout(() => reject(new Error(`Post-processing timeout (${timeoutMs/1000}s)`)), timeoutMs);
-          })
-        ]) as any;
-
-        if (postProcessError) {
-          console.warn('Media post-processing failed:', postProcessError);
-        } else if (postProcessData?.ok) {
-          console.log('Media post-processing successful:', postProcessData);
+          // Shorter timeout since we're not processing videos
+          const timeoutMs = 15000;
           
-          // Insert into media table for fast loading
-          const mediaInsertPayload = {
-            bucket: 'content',
-            path: data!.path,
-            storage_path: data!.path, // Keep for compatibility
-            mime: file.type,
-            type: fileType,
-            size_bytes: file.size,
-            width: postProcessData.width,
-            height: postProcessData.height,
-            tiny_placeholder: postProcessData.tiny_placeholder,
-            title: file.name.replace(/\.[^/.]+$/, ""),
-            notes: null,
-            tags: [],
-            suggested_price_cents: 0,
-            creator_id: userData.user.id,
-            created_by: userData.user.id,
-            origin: 'upload'
-          };
+          const { data: postProcessData, error: postProcessError } = await Promise.race([
+            postProcessPromise,
+            new Promise((_, reject) => {
+              setTimeout(() => reject(new Error(`Post-processing timeout (${timeoutMs/1000}s)`)), timeoutMs);
+            })
+          ]) as any;
 
-          const { error: mediaDbError } = await supabase
-            .from('media')
-            .upsert(mediaInsertPayload, { onConflict: 'bucket,path' });
+          if (postProcessError) {
+            console.warn('Media post-processing failed:', postProcessError);
+          } else if (postProcessData?.ok) {
+            console.log('Media post-processing successful:', postProcessData);
+            
+            // Insert into media table for fast loading
+            const mediaInsertPayload = {
+              bucket: 'content',
+              path: data!.path,
+              storage_path: data!.path, // Keep for compatibility
+              mime: file.type,
+              type: fileType,
+              size_bytes: file.size,
+              width: postProcessData.width,
+              height: postProcessData.height,
+              tiny_placeholder: postProcessData.tiny_placeholder,
+              title: file.name.replace(/\.[^/.]+$/, ""),
+              notes: null,
+              tags: [],
+              suggested_price_cents: 0,
+              creator_id: userData.user.id,
+              created_by: userData.user.id,
+              origin: 'upload'
+            };
 
-          if (mediaDbError) {
-            console.warn('Media table insert failed:', mediaDbError);
-          } else {
-            console.log('Media table insert successful');
+            const { error: mediaDbError } = await supabase
+              .from('media')
+              .upsert(mediaInsertPayload, { onConflict: 'bucket,path' });
+
+            if (mediaDbError) {
+              console.warn('Media table insert failed:', mediaDbError);
+            } else {
+              console.log('Media table insert successful');
+            }
           }
         }
       } catch (postProcessError) {

@@ -246,43 +246,17 @@ export const useDirectUpload = () => {
           mime_type: file.type,
           media_type: mediaType,
           original_size_bytes: file.size,
-          processing_status: 'processed'
+          processing_status: 'uploaded'
         })
         .select()
         .single();
 
       if (dbError) throw dbError;
 
-      // Step 5: Handle video processing based on size
+      // Step 5: Generate thumbnail for videos (no processing)
       if (mediaType === 'video') {
-        if (file.size > 100 * 1024 * 1024) { // 100MB threshold
-          // Large video - route to external transcoder for background processing
-          console.log(`🎬 Large video detected (${(file.size / 1024 / 1024).toFixed(1)}MB), routing to transcoder service`);
-          
-          // Update status to indicate background processing
-          await supabase
-            .from('simple_media')
-            .update({ 
-              processing_status: 'queued_for_processing',
-              processing_error: null 
-            })
-            .eq('id', mediaId);
-
-          // Trigger external transcoder (async)
-          supabase.functions.invoke('video-transcoder-trigger', {
-            body: {
-              mediaId,
-              bucket: 'content',
-              path: uploadPath,
-              originalFilename: file.name
-            }
-          }).catch(error => {
-            console.error('Failed to trigger transcoder:', error);
-          });
-        } else {
-          // Small video - generate thumbnail and use edge function processing
-          generateThumbnailAsync(file, mediaId);
-        }
+        // Just generate thumbnail, no processing
+        generateThumbnailAsync(file, mediaId);
       }
 
       setUploadProgress(prev => ({

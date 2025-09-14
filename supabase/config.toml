@@ -3,8 +3,5 @@ project_id = "alzyzfjzwvofmjccirjq"
 [functions.chunk-reassembly]
 verify_jwt = false
 
-[functions.video-transcoder-trigger]  
-verify_jwt = false
-
 [functions.media-operations]
 verify_jwt = true

@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Maximize } from 'lucide-react';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
 import { VideoQualityBadge } from './VideoQualityBadge';
-import { OptimizedVideoPlayer } from './OptimizedVideoPlayer';
 import { FullscreenImageViewer } from './FullscreenImageViewer';
 import { detectVideoQuality, VideoQualityInfo } from '@/lib/videoQuality';
 
@@ -117,12 +116,17 @@ export const MediaPreview = ({
             )}
 
             {item.media_type === 'video' && currentUrl && (
-              <OptimizedVideoPlayer
+              <video
                 src={currentUrl}
-                storagePath={item.processed_path}
-                className="w-full max-h-[60vh]"
-                autoQuality={true}
-              />
+                controls
+                className="w-full max-h-[60vh] rounded-lg"
+                preload="metadata"
+                onError={(e) => {
+                  console.error('Video playback error:', e);
+                }}
+              >
+                Your browser does not support the video tag.
+              </video>
             )}
 
             {item.media_type === 'audio' && currentUrl && (
