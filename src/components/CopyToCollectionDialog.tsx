@@ -23,12 +23,14 @@ interface CopyToCollectionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: (collectionIds: string[]) => void
+  onFolderCreated?: () => void
 }
 
 export const CopyToCollectionDialog: React.FC<CopyToCollectionDialogProps> = ({
   open,
   onOpenChange,
-  onConfirm
+  onConfirm,
+  onFolderCreated
 }) => {
   const [collections, setCollections] = useState<Collection[]>([])
   const [loading, setLoading] = useState(false)
@@ -85,6 +87,9 @@ export const CopyToCollectionDialog: React.FC<CopyToCollectionDialogProps> = ({
       setNewFolderName('')
       setShowNewFolder(false)
       setSelectedFolders(new Set([newFolder.id]))
+      
+      // Notify parent about the new folder
+      onFolderCreated?.()
     } catch (error) {
       console.error('Error creating folder:', error)
     } finally {

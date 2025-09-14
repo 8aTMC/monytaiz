@@ -152,7 +152,8 @@ export default function SimpleLibrary() {
     loading: mediaOperationsLoading, 
     copyToCollection, 
     removeFromFolder,
-    deleteMediaHard 
+    deleteMediaHard,
+    addToFolders: addToFoldersOperation 
   } = useMediaOperations({
     onRefreshNeeded: fetchMedia,
     onCountsRefreshNeeded: (affectedFolderIds?: string[]) => {
@@ -571,15 +572,13 @@ export default function SimpleLibrary() {
     try {
       const itemIds = Array.from(selectedItems);
       
-      // Copy to each selected folder and wait for completion
-      const copyResults = await Promise.all(
-        folderIds.map(folderId => copyToCollection(folderId, itemIds))
-      );
+      // Use the proper folder operation instead of collection operation
+      await addToFoldersOperation(folderIds, itemIds);
       
       // Small delay to ensure database transaction is fully committed
       await new Promise(resolve => setTimeout(resolve, 250));
       
-      // Refresh folder counts after all copies are complete
+      // Refresh folder counts after copy is complete
       await refreshFolderCounts();
       
       // If currently viewing a folder that was copied to, refresh its content
@@ -589,11 +588,6 @@ export default function SimpleLibrary() {
       
       handleClearSelection();
       
-      toast({
-        title: "Success",
-        description: `Copied ${itemIds.length} item(s) to ${folderIds.length} folder(s)`,
-        duration: 3000
-      });
     } catch (error) {
       console.error('Copy error:', error);
       toast({
@@ -603,7 +597,7 @@ export default function SimpleLibrary() {
         duration: 3000
       });
     }
-  }, [selectedItems, copyToCollection, handleClearSelection, toast, refreshFolderCounts, customFolders, selectedCategory, fetchFolderContent]);
+  }, [selectedItems, addToFoldersOperation, handleClearSelection, toast, refreshFolderCounts, customFolders, selectedCategory, fetchFolderContent]);
 
   const handleDelete = useCallback(async () => {
     if (!selectedItems.size) return;
@@ -772,6 +766,7 @@ export default function SimpleLibrary() {
               onSelectAll={handleSelectAll}
               onCopy={handleCopy}
               onDelete={handleDelete}
+              onFolderCreated={handleFolderCreated}
             />
           )}
 

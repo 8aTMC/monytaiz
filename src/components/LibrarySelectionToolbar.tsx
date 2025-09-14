@@ -14,6 +14,7 @@ interface LibrarySelectionToolbarProps {
   onCopy: (collectionIds: string[]) => void
   onDelete: () => void
   disabled?: boolean
+  onFolderCreated?: () => void
 }
 
 export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = ({
@@ -25,7 +26,8 @@ export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = (
   onSelectAll,
   onCopy,
   onDelete,
-  disabled = false
+  disabled = false,
+  onFolderCreated
 }) => {
   const [copyDialogOpen, setCopyDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -112,6 +114,7 @@ export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = (
         open={copyDialogOpen}
         onOpenChange={setCopyDialogOpen}
         onConfirm={handleCopyConfirm}
+        onFolderCreated={onFolderCreated}
       />
 
       <DeleteConfirmationDialog

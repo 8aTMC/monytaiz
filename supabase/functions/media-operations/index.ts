@@ -36,7 +36,13 @@ interface CreateCollectionRequest {
   name: string
 }
 
-type MediaOperationRequest = CopyToCollectionRequest | RemoveFromCollectionRequest | RemoveFromFolderRequest | DeleteMediaRequest | CreateCollectionRequest
+interface AddToFoldersRequest {
+  action: 'add_to_folders'
+  folder_ids: string[]
+  media_ids: string[]
+}
+
+type MediaOperationRequest = CopyToCollectionRequest | RemoveFromCollectionRequest | RemoveFromFolderRequest | DeleteMediaRequest | CreateCollectionRequest | AddToFoldersRequest
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -122,6 +128,9 @@ serve(async (req) => {
         break
       case 'create_collection':
         result = await createCollection(supabase, body.name, user.id)
+        break
+      case 'add_to_folders':
+        result = await addToFolders(supabase, body.folder_ids, body.media_ids, user.id)
         break
       default:
         return new Response(
@@ -352,4 +361,35 @@ async function createCollection(supabase: any, name: string, userId: string) {
     message: `Created collection "${name}"`,
     collection
   }
+}
+
+async function addToFolders(supabase: any, folderIds: string[], mediaIds: string[], userId: string) {
+  console.log(`Adding ${mediaIds.length} media items to ${folderIds.length} folders`);
+  
+  const insertData = [];
+  for (const folderId of folderIds) {
+    for (const mediaId of mediaIds) {
+      insertData.push({
+        folder_id: folderId,
+        media_id: mediaId,
+        added_by: userId
+      });
+    }
+  }
+
+  const { error } = await supabase
+    .from('file_folder_contents')
+    .upsert(insertData, {
+      onConflict: 'folder_id,media_id'
+    });
+
+  if (error) {
+    console.error('Error adding media to folders:', error);
+    throw new Error('Failed to add media to folders');
+  }
+
+  return {
+    success: true,
+    message: `Added ${mediaIds.length} items to ${folderIds.length} folder${folderIds.length === 1 ? '' : 's'}`
+  };
 }

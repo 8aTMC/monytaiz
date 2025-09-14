@@ -228,12 +228,50 @@ export const useMediaOperations = (callbacks?: {
     }
   }
 
+  const addToFolders = async (folderIds: string[], mediaIds: string[]) => {
+    setLoading(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('media-operations', {
+        body: {
+          action: 'add_to_folders',
+          folder_ids: folderIds,
+          media_ids: mediaIds
+        }
+      })
+
+      if (error) throw error
+
+      toast({
+        title: "Success",
+        description: data.message || `Added ${mediaIds.length} items to folders`,
+        duration: 3000
+      })
+
+      // Trigger refresh of content and counts
+      callbacks?.onRefreshNeeded?.()
+      callbacks?.onCountsRefreshNeeded?.(folderIds)
+
+      return data
+    } catch (error: any) {
+      console.error('Add to folders error:', error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add to folders",
+        variant: "destructive"
+      })
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return {
     loading,
     copyToCollection,
     removeFromCollection,
     removeFromFolder,
     deleteMediaHard,
-    createCollection
+    createCollection,
+    addToFolders
   }
 }
