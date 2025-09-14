@@ -130,7 +130,7 @@ export const LibrarySidebar = ({
         {/* counter */}
         <Badge
           variant="secondary"
-          className={`absolute top-1.5 right-2 rounded-full text-[10px] px-1.5 h-4 min-w-[16px] flex items-center justify-center pointer-events-none transition-all z-10 ${
+          className={`absolute top-0.5 right-2 rounded-full text-[10px] px-1.5 h-4 min-w-[16px] flex items-center justify-center pointer-events-none transition-all z-10 ${
             isSelected
               ? 'bg-white text-primary border-white shadow-sm'
               : 'bg-primary/10 text-primary border-primary/20 group-hover:bg-primary/20'
@@ -320,7 +320,7 @@ export const LibrarySidebar = ({
         </div>
 
         {/* Scrollable My Folders section */}
-        <div className="flex-1 overflow-y-auto scrollbar-default pr-3">
+        <div className="flex-1 overflow-y-auto scrollbar-default pr-6">
           {foldersToDisplay.length > 0 && (
             <div className="space-y-1">
               <div className="flex items-center justify-between mb-1.5">
