@@ -1,5 +1,5 @@
 import React from 'react';
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useSidebar } from '@/components/Navigation';
@@ -145,6 +145,30 @@ const ContentLibrary = () => {
   
   const { toast } = useToast();
   const { isCollapsed } = useSidebar();
+
+  // Measure available height for the grid within the content area
+  const contentAreaRef = useRef<HTMLDivElement>(null);
+  const [contentHeight, setContentHeight] = useState<number>(0);
+  useEffect(() => {
+    const el = contentAreaRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      // Use clientHeight to exclude borders/scrollbars
+      setContentHeight(el.clientHeight);
+    };
+
+    measure();
+
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(el);
+    window.addEventListener('resize', measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
+
 
   // Stable primitive event handlers - no dependencies on changing objects
   const handleFilterChange = useCallback((filter: string) => {
@@ -560,7 +584,7 @@ const ContentLibrary = () => {
           </div>
 
           {/* Enhanced Content Area */}
-          <div className="flex-1 min-h-0 p-6 pt-4">
+          <div ref={contentAreaRef} className="flex-1 min-h-0 p-6 pt-4 overflow-hidden">
             {/* Virtualized grid with infinite scrolling */}
             <VirtualizedLibraryGrid
               items={content}
@@ -572,6 +596,7 @@ const ContentLibrary = () => {
               hasNextPage={hasNextPage}
               isLoadingMore={isLoadingMore}
               loading={loadingContent}
+              height={Math.max(240, contentHeight)}
               debug={false}
             />
           </div>
