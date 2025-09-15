@@ -260,7 +260,7 @@ export const LibrarySidebar = ({
 
           {/* Default categories (more compact, consistent with custom) */}
           {showDefaultFolders && (
-            <div className="space-y-1.5 mb-5">
+            <div className="space-y-1.5 mb-3">
               {defaultCategories.map((category) => {
                 const isSelected = selectedCategory === category.id;
                 return (
@@ -277,7 +277,7 @@ export const LibrarySidebar = ({
           )}
 
           {/* Divider */}
-          <div className="relative my-4">
+          <div className="relative my-3">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-border to-transparent h-px" />
             <div className="relative flex justify-center" />
           </div>
