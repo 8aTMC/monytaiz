@@ -266,7 +266,7 @@ function OptimizedFileReviewRowComponent({
                   variant={file.metadata.mentions.length > 0 ? "default" : "outline"}
                   size="sm"
                   onClick={(e) => { e.stopPropagation(); setMentionsDialogOpen(true); }}
-                  className="text-xs"
+                  className="text-xs transition-all duration-200 ease-out hover:scale-105 hover:shadow-md hover:border-primary/50 hover:bg-primary/10"
                 >
                   <AtSign className="w-3 h-3 mr-1" />
                   Mentions {file.metadata.mentions.length > 0 && `(${file.metadata.mentions.length})`}
@@ -276,7 +276,7 @@ function OptimizedFileReviewRowComponent({
                   variant={file.metadata.tags.length > 0 ? "default" : "outline"}
                   size="sm"
                   onClick={(e) => { e.stopPropagation(); setTagsDialogOpen(true); }}
-                  className="text-xs"
+                  className="text-xs transition-all duration-200 ease-out hover:scale-105 hover:shadow-md hover:border-primary/50 hover:bg-primary/10"
                 >
                   <Hash className="w-3 h-3 mr-1" />
                   Tags {file.metadata.tags.length > 0 && `(${file.metadata.tags.length})`}
@@ -286,7 +286,7 @@ function OptimizedFileReviewRowComponent({
                   variant={file.metadata.folders.length > 0 ? "default" : "outline"}
                   size="sm"
                   onClick={(e) => { e.stopPropagation(); setFoldersDialogOpen(true); }}
-                  className="text-xs"
+                  className="text-xs transition-all duration-200 ease-out hover:scale-105 hover:shadow-md hover:border-primary/50 hover:bg-primary/10"
                 >
                   <FolderOpen className="w-3 h-3 mr-1" />
                   Folders {file.metadata.folders.length > 0 && `(${file.metadata.folders.length})`}
@@ -296,7 +296,7 @@ function OptimizedFileReviewRowComponent({
                   variant={file.metadata.description ? "default" : "outline"}
                   size="sm"
                   onClick={(e) => { e.stopPropagation(); setDescriptionDialogOpen(true); }}
-                  className="text-xs"
+                  className="text-xs transition-all duration-200 ease-out hover:scale-105 hover:shadow-md hover:border-primary/50 hover:bg-primary/10"
                 >
                   <FileText className="w-3 h-3 mr-1" />
                   Description {file.metadata.description && '✓'}
@@ -306,7 +306,7 @@ function OptimizedFileReviewRowComponent({
                   variant={file.metadata.suggestedPrice && file.metadata.suggestedPrice > 0 ? "default" : "outline"}
                   size="sm"
                   onClick={(e) => { e.stopPropagation(); setPriceDialogOpen(true); }}
-                  className="text-xs"
+                  className="text-xs transition-all duration-200 ease-out hover:scale-105 hover:shadow-md hover:border-primary/50 hover:bg-primary/10"
                 >
                   <DollarSign className="w-3 h-3 mr-1" />
                   Price {file.metadata.suggestedPrice && file.metadata.suggestedPrice > 0 && `($${file.metadata.suggestedPrice.toFixed(2)})`}
