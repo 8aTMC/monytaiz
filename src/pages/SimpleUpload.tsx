@@ -24,7 +24,20 @@ import { useBatchDuplicateDetection, DuplicateMatch } from '@/hooks/useBatchDupl
 
 export default function SimpleUpload() {
   const navigate = useNavigate();
-  const { uploading, uploadFile, uploadProgress } = useSimpleUpload();
+  const { 
+    uploading, 
+    uploadFile, 
+    uploadProgress, 
+    uploadMultipleWithControls,
+    fileStates,
+    isPaused,
+    pauseAllUploads,
+    resumeAllUploads,
+    cancelAllUploads,
+    cancelFileUpload,
+    pauseFileUpload,
+    resumeFileUpload
+  } = useSimpleUpload();
   const { checkAllDuplicates } = useBatchDuplicateDetection();
   const { toast } = useToast();
   const [files, setFiles] = useState<(UploadedFileWithMetadata & { 
@@ -584,18 +597,39 @@ export default function SimpleUpload() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h1 className="text-2xl font-bold text-foreground">
-                    {reviewMode ? 'Review Files' : 'Upload Media'}
+                    {uploading ? 'Uploading Files' : reviewMode ? 'Review Files' : 'Upload Media'}
                   </h1>
                   <p className="text-muted-foreground">
-                    {reviewMode 
-                          ? 'Review your selected files before uploading. You can edit metadata and remove files.'
-                          : 'Ultra-fast direct uploads. Files are immediately available in your library.'
+                    {uploading 
+                      ? isPaused ? 'Upload paused - use controls to resume or cancel'
+                                 : 'Files are being uploaded to your library...'
+                      : reviewMode 
+                        ? 'Review your selected files before uploading. You can edit metadata and remove files.'
+                        : 'Ultra-fast direct uploads. Files are immediately available in your library.'
                     }
                   </p>
                 </div>
 
+                {/* Upload Controls - Show when uploading */}
+                {uploading && (
+                  <div className="flex items-center gap-2">
+                    {!isPaused ? (
+                      <Button variant="outline" onClick={pauseAllUploads}>
+                        Pause All
+                      </Button>
+                    ) : (
+                      <Button variant="outline" onClick={resumeAllUploads}>
+                        Resume All
+                      </Button>
+                    )}
+                    <Button variant="destructive" onClick={cancelAllUploads}>
+                      Cancel All
+                    </Button>
+                  </div>
+                )}
+
                 {/* Selection Controls - Always Visible When in Review Mode */}
-                {reviewMode && files.length > 0 && (
+                {reviewMode && !uploading && files.length > 0 && (
                   <div className="space-y-3">
                     <SelectionHeader
                       totalFiles={files.length}
@@ -618,13 +652,13 @@ export default function SimpleUpload() {
 
               {/* Action Buttons */}
               <div className="flex items-center gap-3 justify-between">
-                {hasCompletedFiles && !reviewMode && (
+                {hasCompletedFiles && !reviewMode && !uploading && (
                   <Button onClick={() => navigate('/library')}>
                     View Library ({completedFiles})
                   </Button>
                 )}
                 
-                {reviewMode && files.length > 0 && (
+                {reviewMode && files.length > 0 && !uploading && (
                   <div className="flex items-center gap-3 justify-end ml-auto">
                     <Button 
                       variant="outline" 

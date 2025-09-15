@@ -155,6 +155,30 @@
         "filesAdded": "Files added",
         "filesAddedDescription": "{count} file(s) ready for upload ({size}GB total)"
       }
+    },
+    "upload": {
+      "controls": {
+        "pauseAll": "Pause All",
+        "resumeAll": "Resume All",
+        "cancelAll": "Cancel All",
+        "pause": "Pause",
+        "resume": "Resume",
+        "cancel": "Cancel",
+        "startUpload": "Start Upload",
+        "uploading": "Uploading files...",
+        "uploadPaused": "Upload paused",
+        "addMoreFiles": "Add More Files",
+        "reviewFiles": "Review Files",
+        "clearAll": "Clear All"
+      },
+      "status": {
+        "pending": "Waiting to start...",
+        "uploading": "Uploading...",
+        "paused": "Upload paused",
+        "completed": "Upload completed",
+        "cancelled": "Upload cancelled",
+        "error": "Upload failed"
+      }
     }
   }
 }

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useClientMediaProcessor, type ProcessedMedia } from './useClientMediaProcessor';
@@ -21,7 +21,7 @@ interface ProcessingPhase {
 }
 
 interface DetailedUploadProgress {
-  phase: 'processing' | 'uploading' | 'complete' | 'queued_for_processing';
+  phase: 'processing' | 'uploading' | 'complete' | 'queued_for_processing' | 'paused' | 'cancelled';
   progress: number;
   message: string;
   originalSize?: number;
@@ -37,6 +37,17 @@ interface DetailedUploadProgress {
 
 interface UploadProgress extends DetailedUploadProgress {}
 
+interface FileUploadState {
+  file: File;
+  id: string;
+  status: 'pending' | 'uploading' | 'paused' | 'completed' | 'error' | 'cancelled';
+  progress: number;
+  message: string;
+  abortController?: AbortController;
+  result?: any;
+  error?: string;
+}
+
 export const useSimpleUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>({
@@ -44,9 +55,12 @@ export const useSimpleUpload = () => {
     progress: 0,
     message: 'Starting...'
   });
+  const [fileStates, setFileStates] = useState<Map<string, FileUploadState>>(new Map());
+  const [isPaused, setIsPaused] = useState(false);
   const { toast } = useToast();
   const { processFiles, isProcessing, progress: processingProgress, canProcessVideo } = useClientMediaProcessor();
   const { processMedia } = useMediaPostProcess();
+  const uploadQueueRef = useRef<string[]>([]);
 
   const uploadFile = useCallback(async (file: File) => {
     setUploading(true);
@@ -318,11 +332,174 @@ export const useSimpleUpload = () => {
     return results;
   }, [uploadFile]);
 
+  const uploadMultipleWithControls = useCallback(async (
+    files: Array<{ file: File; id: string; metadata?: any }>,
+    onProgress?: (fileId: string, progress: UploadProgress) => void,
+    onComplete?: (fileId: string, result: any) => void,
+    onError?: (fileId: string, error: string) => void
+  ) => {
+    setUploading(true);
+    setIsPaused(false);
+    
+    // Initialize file states
+    const newFileStates = new Map<string, FileUploadState>();
+    files.forEach(({ file, id }) => {
+      newFileStates.set(id, {
+        file,
+        id,
+        status: 'pending',
+        progress: 0,
+        message: 'Waiting to start...',
+        abortController: new AbortController()
+      });
+    });
+    setFileStates(newFileStates);
+    uploadQueueRef.current = files.map(f => f.id);
+
+    try {
+      for (const { file, id } of files) {
+        // Check if upload was cancelled globally
+        if (!uploading) break;
+        
+        // Check if this specific file was cancelled
+        let currentState = newFileStates.get(id);
+        if (!currentState || currentState.status === 'cancelled') continue;
+
+        // Wait while paused
+        while (isPaused && uploading) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        // Check again after pause - get fresh state
+        currentState = newFileStates.get(id);
+        if (!uploading || !currentState || currentState.status === 'cancelled') break;
+
+        // Update file state to uploading
+        newFileStates.set(id, { ...currentState, status: 'uploading', message: 'Starting upload...' });
+        setFileStates(new Map(newFileStates));
+
+        try {
+          const result = await uploadFile(file);
+          
+          // Update state to completed
+          newFileStates.set(id, {
+            ...currentState,
+            status: 'completed',
+            progress: 100,
+            message: 'Upload completed',
+            result
+          });
+          setFileStates(new Map(newFileStates));
+          
+          onComplete?.(id, result);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+          newFileStates.set(id, {
+            ...currentState,
+            status: 'error',
+            message: errorMessage,
+            error: errorMessage
+          });
+          setFileStates(new Map(newFileStates));
+          
+          onError?.(id, errorMessage);
+        }
+      }
+    } finally {
+      setUploading(false);
+      setIsPaused(false);
+    }
+  }, [uploadFile, uploading, isPaused]);
+
+  const pauseAllUploads = useCallback(() => {
+    setIsPaused(true);
+    setFileStates(prev => {
+      const newStates = new Map(prev);
+      newStates.forEach((state, id) => {
+        if (state.status === 'uploading') {
+          newStates.set(id, { ...state, status: 'paused', message: 'Upload paused' });
+        }
+      });
+      return newStates;
+    });
+  }, []);
+
+  const resumeAllUploads = useCallback(() => {
+    setIsPaused(false);
+    setFileStates(prev => {
+      const newStates = new Map(prev);
+      newStates.forEach((state, id) => {
+        if (state.status === 'paused') {
+          newStates.set(id, { ...state, status: 'pending', message: 'Resuming upload...' });
+        }
+      });
+      return newStates;
+    });
+  }, []);
+
+  const cancelAllUploads = useCallback(() => {
+    setUploading(false);
+    setIsPaused(false);
+    setFileStates(prev => {
+      const newStates = new Map(prev);
+      newStates.forEach((state, id) => {
+        if (state.status === 'uploading' || state.status === 'pending' || state.status === 'paused') {
+          state.abortController?.abort();
+          newStates.set(id, { ...state, status: 'cancelled', message: 'Upload cancelled' });
+        }
+      });
+      return newStates;
+    });
+  }, []);
+
+  const cancelFileUpload = useCallback((fileId: string) => {
+    setFileStates(prev => {
+      const newStates = new Map(prev);
+      const state = newStates.get(fileId);
+      if (state && (state.status === 'uploading' || state.status === 'pending' || state.status === 'paused')) {
+        state.abortController?.abort();
+        newStates.set(fileId, { ...state, status: 'cancelled', message: 'Upload cancelled' });
+      }
+      return newStates;
+    });
+  }, []);
+
+  const pauseFileUpload = useCallback((fileId: string) => {
+    setFileStates(prev => {
+      const newStates = new Map(prev);
+      const state = newStates.get(fileId);
+      if (state && state.status === 'uploading') {
+        newStates.set(fileId, { ...state, status: 'paused', message: 'Upload paused' });
+      }
+      return newStates;
+    });
+  }, []);
+
+  const resumeFileUpload = useCallback((fileId: string) => {
+    setFileStates(prev => {
+      const newStates = new Map(prev);
+      const state = newStates.get(fileId);
+      if (state && state.status === 'paused') {
+        newStates.set(fileId, { ...state, status: 'pending', message: 'Resuming upload...' });
+      }
+      return newStates;
+    });
+  }, []);
+
   return {
     uploading,
     uploadFile,
     uploadMultiple,
+    uploadMultipleWithControls,
     uploadProgress,
-    isProcessing
+    isProcessing,
+    fileStates,
+    isPaused,
+    pauseAllUploads,
+    resumeAllUploads,
+    cancelAllUploads,
+    cancelFileUpload,
+    pauseFileUpload,
+    resumeFileUpload
   };
 };

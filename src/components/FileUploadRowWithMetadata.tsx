@@ -26,7 +26,7 @@ import { SimpleMediaItem } from '@/hooks/useSimpleMedia';
 export interface UploadedFileWithMetadata {
   file: File;
   id: string;
-  status: 'pending' | 'uploading' | 'completed' | 'error' | 'validation_error';
+  status: 'pending' | 'uploading' | 'completed' | 'error' | 'validation_error' | 'paused' | 'cancelled';
   error?: string;
   selected?: boolean;
   metadata: {
