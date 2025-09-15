@@ -102,10 +102,19 @@ function OptimizedFileReviewRowComponent({
         window.getSelection()?.removeAllRanges();
       }
       
-      if (selectionMode) {
+      if (isRangeSelection) {
+        // Range selection: automatically enter selection mode and process selection
+        if (onEnterSelectionMode) {
+          onEnterSelectionMode();
+        }
+        onSelectionChange(file.id, !file.selected, { 
+          range: true, 
+          index: currentIndex 
+        });
+      } else if (selectionMode) {
         // In selection mode: clicking the row selects/deselects
         onSelectionChange(file.id, !file.selected, { 
-          range: isRangeSelection, 
+          range: false, 
           index: currentIndex 
         });
       } else {
@@ -116,7 +125,7 @@ function OptimizedFileReviewRowComponent({
       // No selection callback but not in selection mode: open preview
       setPreviewDialogOpen(true);
     }
-  }, [onSelectionChange, file.id, file.selected, files, currentIndex, selectionMode]);
+  }, [onSelectionChange, file.id, file.selected, files, currentIndex, selectionMode, onEnterSelectionMode]);
 
   // Memoize metadata calculations
   const hasMetadata = file.metadata.mentions.length > 0 || 
