@@ -236,7 +236,7 @@ export const LibrarySidebar = ({
     <div className="w-full flex-shrink-0 relative h-full border-r border-border" style={{ zIndex: 10 }}>
       <div className="absolute inset-0 bg-gradient-sidebar" />
       {/* Library directory content */}
-      <div className="relative h-full flex flex-col px-4 py-4" style={{ minWidth: '100%' }}>
+      <div className="relative h-full flex flex-col px-4 pt-4" style={{ minWidth: '100%' }}>
         {/* Fixed header section */}
         <div className="flex-shrink-0">
           <div className="mb-4 relative">
@@ -347,7 +347,7 @@ export const LibrarySidebar = ({
         </div>
 
         {/* Scrollable My Folders section */}
-        <div className="flex-1 overflow-y-auto scrollbar-default pr-3">
+        <div className="flex-1 overflow-y-auto scrollbar-default pr-3 pb-0">
           {foldersToDisplay.length > 0 && (
             <div className="space-y-1">
               <div className="flex items-center justify-between mb-1.5">
