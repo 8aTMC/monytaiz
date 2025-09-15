@@ -375,11 +375,12 @@ function OptimizedFileReviewRowComponent({
         onPriceChange={onMetadataChange ? (price) => handleMetadataUpdate('suggestedPrice', price ? price / 100 : null) : undefined}
         selecting={!!onSelectionChange}
         selectedFiles={new Set(files?.filter(f => f.selected).map(f => f.id) || [])}
-        onToggleSelection={onSelectionChange ? (fileId) => {
+        onToggleSelection={onSelectionChange ? (targetId) => {
           if (onEnterSelectionMode) {
             onEnterSelectionMode();
           }
-          onSelectionChange(fileId, !file.selected);
+          const target = files?.find(f => f.id === targetId);
+          onSelectionChange(targetId, !(target?.selected ?? false));
         } : undefined}
         fileId={file.id}
       />
