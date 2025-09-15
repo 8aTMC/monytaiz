@@ -11,6 +11,8 @@ interface VirtualizedFileListProps {
   onSelectionChange?: (id: string, selected: boolean, options?: { range?: boolean; index?: number }) => void;
   formatFileSize: (bytes: number) => string;
   height?: number;
+  selectionMode?: boolean;
+  onEnterSelectionMode?: () => void;
 }
 
 const ITEM_HEIGHT = 131; // Optimized height for tighter spacing
@@ -24,11 +26,13 @@ interface ListItemProps {
     onMetadataChange?: (id: string, metadata: Partial<UploadedFileWithMetadata['metadata']>) => void;
     onSelectionChange?: (id: string, selected: boolean, options?: { range?: boolean; index?: number }) => void;
     formatFileSize: (bytes: number) => string;
+    selectionMode?: boolean;
+    onEnterSelectionMode?: () => void;
   };
 }
 
 const ListItem = memo(({ index, style, data }: ListItemProps) => {
-  const { files, onRemove, onMetadataChange, onSelectionChange, formatFileSize } = data;
+  const { files, onRemove, onMetadataChange, onSelectionChange, formatFileSize, selectionMode, onEnterSelectionMode } = data;
   const file = files[index];
   
   if (!file) return null;
@@ -43,6 +47,8 @@ const ListItem = memo(({ index, style, data }: ListItemProps) => {
         onMetadataChange={onMetadataChange}
         onSelectionChange={onSelectionChange}
         formatFileSize={formatFileSize}
+        selectionMode={selectionMode}
+        onEnterSelectionMode={onEnterSelectionMode}
       />
     </div>
   );
@@ -50,13 +56,15 @@ const ListItem = memo(({ index, style, data }: ListItemProps) => {
 
 ListItem.displayName = 'ListItem';
 
-export const VirtualizedFileList = memo(({ 
-  files, 
-  onRemove, 
-  onMetadataChange, 
-  onSelectionChange, 
+export const VirtualizedFileList = memo(({
+  files,
+  onRemove,
+  onMetadataChange,
+  onSelectionChange,
   formatFileSize,
-  height = 400 
+  height = 400,
+  selectionMode = false,
+  onEnterSelectionMode
 }: VirtualizedFileListProps) => {
   // Memoize the data object to prevent List re-renders
   const itemData = useMemo(() => ({
@@ -64,8 +72,10 @@ export const VirtualizedFileList = memo(({
     onRemove,
     onMetadataChange,
     onSelectionChange,
-    formatFileSize
-  }), [files, onRemove, onMetadataChange, onSelectionChange, formatFileSize]);
+    formatFileSize,
+    selectionMode,
+    onEnterSelectionMode
+  }), [files, onRemove, onMetadataChange, onSelectionChange, formatFileSize, selectionMode, onEnterSelectionMode]);
 
   // Use the height passed from parent - no dynamic calculation
   const containerHeight = Math.min(height, files.length * ITEM_HEIGHT + 20);
@@ -95,6 +105,8 @@ export const VirtualizedFileList = memo(({
                   onMetadataChange={onMetadataChange}
                   onSelectionChange={onSelectionChange}
                   formatFileSize={formatFileSize}
+                  selectionMode={selectionMode}
+                  onEnterSelectionMode={onEnterSelectionMode}
                 />
               ))
             )}

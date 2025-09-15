@@ -28,6 +28,8 @@ interface OptimizedFileReviewRowProps {
   onSelectionChange?: (id: string, selected: boolean, options?: { range?: boolean; index?: number }) => void;
   onNavigateToFile?: (index: number) => void;
   formatFileSize: (bytes: number) => string;
+  selectionMode?: boolean;
+  onEnterSelectionMode?: () => void;
 }
 
 const getFileIcon = (fileType: string) => {
@@ -45,7 +47,9 @@ function OptimizedFileReviewRowComponent({
   onMetadataChange, 
   onSelectionChange, 
   onNavigateToFile, 
-  formatFileSize 
+  formatFileSize,
+  selectionMode = false,
+  onEnterSelectionMode
 }: OptimizedFileReviewRowProps) {
   const { thumbnail, isLoading } = useOptimizedThumbnail(file.file);
   
@@ -73,11 +77,22 @@ function OptimizedFileReviewRowComponent({
 
   const handleSelectionChange = useCallback((checked: boolean) => {
     if (onSelectionChange) {
+      // Activate selection mode when checkbox is clicked
+      onEnterSelectionMode?.();
       onSelectionChange(file.id, checked);
     }
-  }, [file.id, onSelectionChange]);
+  }, [file.id, onSelectionChange, onEnterSelectionMode]);
 
   const handleRowClick = useCallback((e: React.MouseEvent) => {
+    // Check if the click was on a button or input element
+    const target = e.target as HTMLElement;
+    const isButton = target.closest('button') || target.closest('input') || target.hasAttribute('role');
+    
+    if (isButton) {
+      // Let buttons handle their own clicks
+      return;
+    }
+
     if (onSelectionChange && files && currentIndex !== undefined) {
       const isRangeSelection = e.shiftKey || e.altKey;
       
@@ -87,12 +102,21 @@ function OptimizedFileReviewRowComponent({
         window.getSelection()?.removeAllRanges();
       }
       
-      onSelectionChange(file.id, !file.selected, { 
-        range: isRangeSelection, 
-        index: currentIndex 
-      });
+      if (selectionMode) {
+        // In selection mode: clicking the row selects/deselects
+        onSelectionChange(file.id, !file.selected, { 
+          range: isRangeSelection, 
+          index: currentIndex 
+        });
+      } else {
+        // Not in selection mode: open preview
+        setPreviewDialogOpen(true);
+      }
+    } else if (!selectionMode) {
+      // No selection callback but not in selection mode: open preview
+      setPreviewDialogOpen(true);
     }
-  }, [onSelectionChange, file.id, file.selected, files, currentIndex]);
+  }, [onSelectionChange, file.id, file.selected, files, currentIndex, selectionMode]);
 
   // Memoize metadata calculations
   const hasMetadata = file.metadata.mentions.length > 0 || 
@@ -351,7 +375,12 @@ function OptimizedFileReviewRowComponent({
         onPriceChange={onMetadataChange ? (price) => handleMetadataUpdate('suggestedPrice', price ? price / 100 : null) : undefined}
         selecting={!!onSelectionChange}
         selectedFiles={new Set(files?.filter(f => f.selected).map(f => f.id) || [])}
-        onToggleSelection={onSelectionChange ? (fileId) => onSelectionChange(fileId, !file.selected) : undefined}
+        onToggleSelection={onSelectionChange ? (fileId) => {
+          if (onEnterSelectionMode) {
+            onEnterSelectionMode();
+          }
+          onSelectionChange(fileId, !file.selected);
+        } : undefined}
         fileId={file.id}
       />
     </>

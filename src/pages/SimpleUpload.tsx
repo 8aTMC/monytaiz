@@ -61,6 +61,7 @@ export default function SimpleUpload() {
   const [unsupportedFiles, setUnsupportedFiles] = useState<{ id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'gif' | 'unknown'; file: File }[]>([]);
   const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
   const [duplicateProgress, setDuplicateProgress] = useState({ current: 0, total: 1, step: '' });
+  const [selectionMode, setSelectionMode] = useState(false);
   const addMoreFileInputRef = useRef<HTMLInputElement>(null);
   
   // Selection state management
@@ -102,11 +103,14 @@ export default function SimpleUpload() {
   }, []);
 
   const selectAllFiles = useCallback(() => {
+    setSelectionMode(true);
     setFiles(prev => prev.map(f => ({ ...f, selected: true })));
   }, []);
 
   const clearSelection = useCallback(() => {
     setFiles(prev => prev.map(f => ({ ...f, selected: false })));
+    // Exit selection mode when all files are deselected
+    setSelectionMode(false);
   }, []);
 
   const updateSelectedFilesMetadata = useCallback((metadata: Partial<UploadedFileWithMetadata['metadata']>) => {
@@ -862,6 +866,8 @@ export default function SimpleUpload() {
                       onSelectionChange={toggleFileSelection}
                       formatFileSize={formatFileSize}
                       height={500}
+                      selectionMode={selectionMode}
+                      onEnterSelectionMode={() => setSelectionMode(true)}
                     />
                   </div>
                 </div>
