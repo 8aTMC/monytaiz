@@ -297,7 +297,7 @@ function OptimizedFileReviewRowComponent({
             {onMetadataChange && file.status !== 'uploading' && (
               <div className="flex flex-wrap gap-2 mt-3">
                 <Button
-                  variant="outline"
+                  variant={file.metadata.mentions.length > 0 ? "default" : "outline"}
                   size="sm"
                   onClick={(e) => { e.stopPropagation(); setMentionsDialogOpen(true); }}
                   className="text-xs"
@@ -307,7 +307,7 @@ function OptimizedFileReviewRowComponent({
                 </Button>
                 
                 <Button
-                  variant="outline"
+                  variant={file.metadata.tags.length > 0 ? "default" : "outline"}
                   size="sm"
                   onClick={(e) => { e.stopPropagation(); setTagsDialogOpen(true); }}
                   className="text-xs"
@@ -317,7 +317,7 @@ function OptimizedFileReviewRowComponent({
                 </Button>
                 
                 <Button
-                  variant="outline"
+                  variant={file.metadata.folders.length > 0 ? "default" : "outline"}
                   size="sm"
                   onClick={(e) => { e.stopPropagation(); setFoldersDialogOpen(true); }}
                   className="text-xs"
@@ -327,7 +327,7 @@ function OptimizedFileReviewRowComponent({
                 </Button>
                 
                 <Button
-                  variant="outline"
+                  variant={file.metadata.description ? "default" : "outline"}
                   size="sm"
                   onClick={(e) => { e.stopPropagation(); setDescriptionDialogOpen(true); }}
                   className="text-xs"
@@ -337,7 +337,7 @@ function OptimizedFileReviewRowComponent({
                 </Button>
                 
                 <Button
-                  variant="outline"
+                  variant={file.metadata.suggestedPrice && file.metadata.suggestedPrice > 0 ? "default" : "outline"}
                   size="sm"
                   onClick={(e) => { e.stopPropagation(); setPriceDialogOpen(true); }}
                   className="text-xs"
