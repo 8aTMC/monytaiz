@@ -143,7 +143,7 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
                   {filteredCollaborators.map((collaborator) => (
                     <div
                       key={collaborator.id}
-                      className="flex items-center gap-3 p-2 rounded-lg border cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                      className="group flex items-center gap-3 p-2 rounded-lg border cursor-pointer hover:bg-accent hover:text-accent-foreground"
                       onClick={() => handleCollaboratorClick(collaborator)}
                     >
                       <Avatar 
@@ -157,7 +157,7 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{collaborator.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{collaborator.url}</p>
+                        <p className="text-xs text-muted-foreground group-hover:text-white truncate">{collaborator.url}</p>
                       </div>
                     </div>
                   ))}
