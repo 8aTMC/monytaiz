@@ -239,43 +239,41 @@ export const LibrarySidebar = ({
       <div className="relative h-full flex flex-col px-4 py-4" style={{ minWidth: '100%' }}>
         {/* Fixed header section */}
         <div className="flex-shrink-0">
-          <div className="mb-4">
+          <div className="mb-4 relative">
             <h2 className="text-lg font-semibold text-foreground mb-0.5 bg-gradient-primary bg-clip-text text-transparent ml-[10px]">
               Library
             </h2>
             <p className="text-xs text-muted-foreground ml-[10px]">Manage your content</p>
-          </div>
-
-          {/* Default categories (more compact, consistent with custom) */}
-          <div className="relative mb-5">
-            {/* Eye button in top right corner */}
+            
+            {/* Eye button in top right corner of header */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowDefaultFolders(!showDefaultFolders)}
-              className="absolute top-0 right-0 z-20 text-xs px-2 h-7 hover:bg-gradient-glass transition"
+              className="absolute top-0 right-0 text-xs px-2 h-7 hover:bg-gradient-glass transition"
               title={showDefaultFolders ? t('platform.library.hideDefault') : t('platform.library.showDefault')}
             >
               {showDefaultFolders ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             </Button>
-
-            {showDefaultFolders && (
-              <div className="space-y-1.5">
-                {defaultCategories.map((category) => {
-                  const isSelected = selectedCategory === category.id;
-                  return (
-                    <Row
-                      key={category.id}
-                      item={category}
-                      isSelected={isSelected}
-                      count={categoryCounts[category.id] || 0}
-                      onClick={() => onCategorySelect(category.id)}
-                    />
-                  );
-                })}
-              </div>
-            )}
           </div>
+
+          {/* Default categories (more compact, consistent with custom) */}
+          {showDefaultFolders && (
+            <div className="space-y-1.5 mb-5">
+              {defaultCategories.map((category) => {
+                const isSelected = selectedCategory === category.id;
+                return (
+                  <Row
+                    key={category.id}
+                    item={category}
+                    isSelected={isSelected}
+                    count={categoryCounts[category.id] || 0}
+                    onClick={() => onCategorySelect(category.id)}
+                  />
+                );
+              })}
+            </div>
+          )}
 
           {/* Divider */}
           <div className="relative my-4">
