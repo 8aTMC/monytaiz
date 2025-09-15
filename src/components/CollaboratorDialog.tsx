@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -118,14 +118,37 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
         const fileName = `collaborator_${timestamp}.webp`;
         const filePath = `collaborators/${fileName}`;
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(filePath, profileImageBlob, {
-            contentType: 'image/webp',
-            upsert: false
-          });
+        // Retry upload logic
+        let uploadAttempts = 0;
+        const maxRetries = 3;
+        let uploadData, uploadError;
 
-        if (uploadError) throw uploadError;
+        while (uploadAttempts < maxRetries) {
+          uploadAttempts++;
+          
+          const uploadResult = await supabase.storage
+            .from('avatars')
+            .upload(filePath, profileImageBlob, {
+              contentType: 'image/webp',
+              upsert: false
+            });
+
+          uploadData = uploadResult.data;
+          uploadError = uploadResult.error;
+
+          if (!uploadError) break;
+
+          console.warn(`Upload attempt ${uploadAttempts} failed:`, uploadError);
+          
+          if (uploadAttempts < maxRetries) {
+            // Wait before retrying (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, 1000 * uploadAttempts));
+          }
+        }
+
+        if (uploadError) {
+          throw new Error(`Upload failed after ${maxRetries} attempts: ${uploadError.message}`);
+        }
 
         const { data: { publicUrl } } = supabase.storage
           .from('avatars')
@@ -158,9 +181,18 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
       });
     } catch (error) {
       console.error('Error creating collaborator:', error);
+      
+      const errorMessage = error instanceof Error 
+        ? error.message.includes('Upload failed') 
+          ? "Failed to upload profile picture. Please try a smaller image or check your connection."
+          : error.message.includes('timeout') || error.message.includes('network')
+            ? "Network connection error. Please check your internet connection and try again."
+            : "Failed to create collaborator. Please try again."
+        : "Failed to create collaborator. Please try again.";
+      
       toast({
         title: "Error",
-        description: "Failed to create collaborator",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -178,6 +210,9 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Add New Collaborator</DialogTitle>
+          <DialogDescription>
+            Add a new collaborator with their profile information and optional profile picture.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
