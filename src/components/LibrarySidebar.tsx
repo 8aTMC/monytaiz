@@ -243,9 +243,7 @@ export const LibrarySidebar = ({
             <h2 className="text-lg font-semibold text-foreground mb-0.5 bg-gradient-primary bg-clip-text text-transparent ml-[10px]">
               Library
             </h2>
-            <p className="text-xs text-muted-foreground ml-[10px]">
-              {showDefaultFolders ? "Browse default folders & custom collections" : "Custom collections only"}
-            </p>
+            <p className="text-xs text-muted-foreground ml-[10px]">Default Folders</p>
             
             {/* Eye button with dynamic text, positioned above default folders */}
             <Button
