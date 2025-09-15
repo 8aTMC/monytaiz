@@ -243,7 +243,6 @@ export const LibrarySidebar = ({
             <h2 className="text-lg font-semibold text-foreground mb-0.5 bg-gradient-primary bg-clip-text text-transparent ml-[10px]">
               Library
             </h2>
-            <p className="text-xs text-muted-foreground ml-[10px]">Default Folders</p>
             
             {/* Eye button with dynamic text, positioned above default folders */}
             <Button
@@ -261,6 +260,9 @@ export const LibrarySidebar = ({
           {/* Default categories (more compact, consistent with custom) */}
           {showDefaultFolders && (
             <div className="space-y-1.5 mb-3">
+              <div className="text-[11px] font-medium tracking-wide text-muted-foreground ml-[10px] mb-1.5">
+                Default Folders
+              </div>
               {defaultCategories.map((category) => {
                 const isSelected = selectedCategory === category.id;
                 return (
