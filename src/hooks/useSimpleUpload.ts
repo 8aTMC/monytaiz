@@ -62,7 +62,7 @@ export const useSimpleUpload = () => {
   const { processMedia } = useMediaPostProcess();
   const uploadQueueRef = useRef<string[]>([]);
 
-  const uploadFile = useCallback(async (file: File) => {
+  const uploadFile = useCallback(async (file: File, onProgress?: (progress: UploadProgress) => void) => {
     setUploading(true);
     
     try {
@@ -76,7 +76,12 @@ export const useSimpleUpload = () => {
       let processedSize = originalSize;
       let compressionRatio = 0;
 
-      setUploadProgress({
+      const updateProgress = (progress: UploadProgress) => {
+        setUploadProgress(progress);
+        onProgress?.(progress);
+      };
+
+      updateProgress({
         phase: 'processing',
         progress: 0,
         message: 'Processing file...',
@@ -116,7 +121,7 @@ export const useSimpleUpload = () => {
 
       // Process images to WebP (excluding GIFs to preserve animation)
       if (shouldProcessImage) {
-        setUploadProgress({
+        updateProgress({
           phase: 'processing',
           progress: 20,
           message: 'Converting image to WebP...',
@@ -147,7 +152,7 @@ export const useSimpleUpload = () => {
 
               console.log(`✅ Image processed: ${file.name} → ${uploadFileName} (${compressionRatio}% smaller)`);
 
-              setUploadProgress({
+              updateProgress({
                 phase: 'processing',
                 progress: 50,
                 message: `WebP conversion complete (${compressionRatio}% smaller)`,
@@ -168,7 +173,7 @@ export const useSimpleUpload = () => {
 
       // For videos, generate thumbnail client-side
       if (mediaType === 'video') {
-        setUploadProgress({
+        updateProgress({
           phase: 'processing',
           progress: shouldProcessImage ? 60 : 30,
           message: 'Generating thumbnail...',
@@ -219,7 +224,7 @@ export const useSimpleUpload = () => {
         }
       }
 
-      setUploadProgress({
+      updateProgress({
         phase: 'uploading',
         progress: shouldProcessImage ? 80 : 60,
         message: 'Uploading files...',
@@ -235,7 +240,7 @@ export const useSimpleUpload = () => {
 
       // Thumbnail already generated and uploaded for videos above
 
-      setUploadProgress({
+      updateProgress({
         phase: 'uploading',
         progress: shouldProcessImage ? 90 : 80,
         message: 'Creating database record...',
@@ -272,7 +277,7 @@ export const useSimpleUpload = () => {
 
       // Skip video processing - upload raw videos directly as requested
 
-      setUploadProgress({
+      updateProgress({
         phase: 'complete',
         progress: 100,
         message: shouldProcessImage && compressionRatio > 0 
@@ -357,6 +362,7 @@ export const useSimpleUpload = () => {
     uploadQueueRef.current = files.map(f => f.id);
 
     try {
+      // Process files one by one (CONCURRENCY_LIMIT = 1)
       for (const { file, id } of files) {
         // Check if upload was cancelled globally
         if (!uploading) break;
@@ -377,9 +383,19 @@ export const useSimpleUpload = () => {
         // Update file state to uploading
         newFileStates.set(id, { ...currentState, status: 'uploading', message: 'Starting upload...' });
         setFileStates(new Map(newFileStates));
+        
+        // Call progress callback with initial state
+        onProgress?.(id, {
+          phase: 'processing',
+          progress: 0,
+          message: 'Starting upload...'
+        });
 
         try {
-          const result = await uploadFile(file);
+          const result = await uploadFile(file, (progress) => {
+            // Update file progress in real-time
+            onProgress?.(id, progress);
+          });
           
           // Update state to completed
           newFileStates.set(id, {

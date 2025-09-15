@@ -2,6 +2,7 @@ import React, { useState, useCallback, memo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { FileImage, FileVideo, FileAudio, X, AtSign, Hash, FolderOpen, FileText, DollarSign, Eye } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { UploadedFileWithMetadata } from '@/components/FileUploadRowWithMetadata';
@@ -15,7 +16,11 @@ import { useOptimizedThumbnail } from '@/hooks/useOptimizedThumbnail';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface OptimizedFileReviewRowProps {
-  file: UploadedFileWithMetadata;
+  file: UploadedFileWithMetadata & {
+    uploadProgress?: number;
+    uploadMessage?: string;
+    uploadPhase?: string;
+  };
   files?: UploadedFileWithMetadata[];
   currentIndex?: number;
   onRemove: (id: string) => void;
@@ -137,6 +142,21 @@ function OptimizedFileReviewRowComponent({
                   {formatFileSize(file.file.size)} • {file.file.type}
                 </p>
                 
+                {/* Upload Progress */}
+                {file.status === 'uploading' && (
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-muted-foreground">
+                        {file.uploadMessage || 'Uploading...'}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        {file.uploadProgress || 0}%
+                      </span>
+                    </div>
+                    <Progress value={file.uploadProgress || 0} className="h-2" />
+                  </div>
+                )}
+                
                 {/* Metadata Preview */}
                 <div className="flex flex-wrap gap-1 mt-2">
                   {file.metadata.mentions.length > 0 && (
@@ -169,28 +189,32 @@ function OptimizedFileReviewRowComponent({
 
               {/* Actions */}
               <div className="flex items-center gap-2 ml-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleDoubleClick}
-                  className="text-xs"
-                >
-                  <Eye className="w-4 h-4 mr-1" />
-                  Preview
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRemove}
-                  className="text-muted-foreground hover:text-destructive"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+                {file.status !== 'uploading' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDoubleClick}
+                    className="text-xs"
+                  >
+                    <Eye className="w-4 h-4 mr-1" />
+                    Preview
+                  </Button>
+                )}
+                {file.status !== 'uploading' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRemove}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             </div>
             
             {/* Metadata Editing Buttons */}
-            {onMetadataChange && (
+            {onMetadataChange && file.status !== 'uploading' && (
               <div className="flex flex-wrap gap-2 mt-3">
                 <Button
                   variant="outline"

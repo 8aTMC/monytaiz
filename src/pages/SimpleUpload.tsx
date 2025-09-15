@@ -44,6 +44,9 @@ export default function SimpleUpload() {
     compressionRatio?: number; 
     processedSize?: number; 
     qualityInfo?: any;
+    uploadProgress?: number;
+    uploadMessage?: string;
+    uploadPhase?: string;
   })[]>([]);
   const [currentUploadProgress, setCurrentUploadProgress] = useState(0);
   const [currentUploadingFile, setCurrentUploadingFile] = useState<string | null>(null);
@@ -414,9 +417,7 @@ export default function SimpleUpload() {
       return;
     }
 
-    setReviewMode(false);
-    
-    // Get pending files before updating status
+    // Stay in review mode but start uploading - don't navigate away
     const filesToUpload = files.filter(f => f.status === 'pending');
     
     // Update all pending files to uploading status
@@ -424,52 +425,63 @@ export default function SimpleUpload() {
       f.status === 'pending' ? { ...f, status: 'uploading' as const } : f
     ));
     
-    // Upload files one by one
-    for (let i = 0; i < filesToUpload.length; i++) {
-      const fileToUpload = filesToUpload[i];
-      setCurrentUploadingFile(fileToUpload.id);
-      
-      try {
-        const result = await uploadFile(fileToUpload.file);
-        
-        setFiles(prev => prev.map(f => 
-          f.id === fileToUpload.id 
-            ? { 
-                ...f, 
-                status: 'completed',
-                compressionRatio: result.compressionRatio,
-                processedSize: result.processedSize,
-                qualityInfo: result.qualityInfo
-              }
-            : f
-        ));
-      } catch (error) {
-        console.error('Upload failed:', error);
-        
-        // Check if it's a validation error
-        const isValidationError = error instanceof Error && (
-          error.message.includes('File too large') ||
-          error.message.includes('Resolution too high') ||
-          error.message.includes('Video processing not available') ||
-          error.message.includes('cannot be processed')
-        );
-        
-        setFiles(prev => prev.map(f => 
-          f.id === fileToUpload.id 
-            ? { 
-                ...f, 
-                status: isValidationError ? 'validation_error' as const : 'error' as const,
-                error: error instanceof Error ? error.message : 'Upload failed' 
-              }
-            : f
-        ));
-      }
-      
-      setCurrentUploadProgress(((i + 1) / filesToUpload.length) * 100);
-    }
+    // Prepare files for upload with controls
+    const uploadFiles = filesToUpload.map(f => ({
+      file: f.file,
+      id: f.id,
+      metadata: f.metadata
+    }));
     
-    setCurrentUploadingFile(null);
-  }, [files, uploadFile, validateStorageLimit]);
+    // Upload files with progress callbacks
+    await uploadMultipleWithControls(
+      uploadFiles,
+      (fileId, progress) => {
+        // Update file progress in real-time
+        setFiles(prev => prev.map(f => 
+          f.id === fileId 
+            ? { 
+                ...f, 
+                uploadProgress: progress.progress,
+                uploadMessage: progress.message,
+                uploadPhase: progress.phase
+              }
+            : f
+        ));
+      },
+      (fileId, result) => {
+        // File completed successfully - remove from queue
+        setFiles(prev => {
+          const updatedFiles = prev.filter(f => f.id !== fileId);
+          
+          // Navigate to library when all uploads complete and no files remain
+          if (updatedFiles.length === 0) {
+            setTimeout(() => navigate('/library'), 1000);
+          }
+          
+          return updatedFiles;
+        });
+        
+        toast({
+          title: "File uploaded",
+          description: `${result.original_filename} uploaded successfully`,
+        });
+      },
+      (fileId, error) => {
+        // Handle upload error
+        setFiles(prev => prev.map(f => 
+          f.id === fileId 
+            ? { ...f, status: 'error' as const, uploadMessage: error }
+            : f
+        ));
+        
+        toast({
+          title: "Upload failed",
+          description: error,
+          variant: "destructive"
+        });
+      }
+    );
+  }, [files, validateStorageLimit, uploadMultipleWithControls, navigate, toast]);
 
   const clearUpload = useCallback(() => {
     setFiles([]);
@@ -658,6 +670,34 @@ export default function SimpleUpload() {
                   </Button>
                 )}
                 
+                {/* Upload Controls - Show during upload */}
+                {uploading && (
+                  <div className="flex items-center gap-3 justify-end ml-auto">
+                    {isPaused ? (
+                      <Button 
+                        onClick={resumeAllUploads}
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                      >
+                        Resume All
+                      </Button>
+                    ) : (
+                      <Button 
+                        onClick={pauseAllUploads}
+                        variant="secondary"
+                      >
+                        Pause All
+                      </Button>
+                    )}
+                    <Button 
+                      onClick={cancelAllUploads}
+                      variant="destructive"
+                    >
+                      Cancel All
+                    </Button>
+                  </div>
+                )}
+                
+                {/* Review Controls - Show in review mode when not uploading */}
                 {reviewMode && files.length > 0 && !uploading && (
                   <div className="flex items-center gap-3 justify-end ml-auto">
                     <Button 
