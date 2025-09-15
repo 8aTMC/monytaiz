@@ -5,13 +5,13 @@ import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Upload, Zap, TrendingDown, Clock, Trash2, Plus } from 'lucide-react';
+import { Upload, Zap, TrendingDown, Clock, Trash2, Plus, CheckSquare, Square } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { FileUploadRowWithMetadata, UploadedFileWithMetadata } from '@/components/FileUploadRowWithMetadata';
 import { DetailedUploadProgressBar } from '@/components/DetailedUploadProgressBar';
 import { VideoValidationError } from '@/components/VideoValidationError';
 import { VirtualizedFileList } from '@/components/VirtualizedFileList';
-import { SelectionHeader } from '@/components/SelectionHeader';
+
 import { BatchMetadataToolbar } from '@/components/BatchMetadataToolbar';
 import { DuplicateFilesDialog } from '@/components/DuplicateFilesDialog';
 import { UnsupportedFilesDialog } from '@/components/UnsupportedFilesDialog';
@@ -640,91 +640,113 @@ export default function SimpleUpload() {
                   </div>
                 )}
 
-                {/* Selection Controls - Always Visible When in Review Mode */}
-                {reviewMode && !uploading && files.length > 0 && (
-                  <div className="space-y-3">
-                    <SelectionHeader
-                      totalFiles={files.length}
-                      selectedCount={selectedFiles.length}
-                      allSelected={allSelected}
-                      onSelectAll={selectAllFiles}
-                      onClearSelection={clearSelection}
-                    />
-                    
-                    {hasSelection && (
-                      <BatchMetadataToolbar
-                        selectedCount={selectedFiles.length}
-                        onClearSelection={clearSelection}
-                        onUpdateMetadata={updateSelectedFilesMetadata}
-                      />
-                    )}
-                  </div>
-                )}
               </div>
 
               {/* Action Buttons */}
               <div className="flex items-center gap-3 justify-between">
-                {hasCompletedFiles && !reviewMode && !uploading && (
-                  <Button onClick={() => navigate('/library')}>
-                    View Library ({completedFiles})
-                  </Button>
-                )}
-                
-                {/* Upload Controls - Show during upload */}
-                {uploading && (
-                  <div className="flex items-center gap-3 justify-end ml-auto">
-                    {isPaused ? (
-                      <Button 
-                        onClick={resumeAllUploads}
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                {/* Left Side - Select All Controls (Review Mode Only) */}
+                <div className="flex items-center gap-3">
+                  {hasCompletedFiles && !reviewMode && !uploading && (
+                    <Button onClick={() => navigate('/library')}>
+                      View Library ({completedFiles})
+                    </Button>
+                  )}
+                  
+                  {/* Select All Controls - Show in review mode when not uploading */}
+                  {reviewMode && files.length > 0 && !uploading && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={allSelected ? clearSelection : selectAllFiles}
+                        className="flex items-center gap-2 h-8"
                       >
-                        Resume All
+                        {allSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                        {allSelected ? 'Deselect All' : 'Select All'}
                       </Button>
-                    ) : (
-                      <Button 
-                        onClick={pauseAllUploads}
-                        variant="secondary"
-                      >
-                        Pause All
-                      </Button>
-                    )}
-                    <Button 
-                      onClick={cancelAllUploads}
-                      variant="destructive"
-                    >
-                      Cancel All
-                    </Button>
-                  </div>
-                )}
+                      
+                      <span className="text-sm text-muted-foreground">
+                        {selectedFiles.length > 0 ? (
+                          <span className="font-medium text-foreground">
+                            {selectedFiles.length} of {files.length} selected
+                          </span>
+                        ) : (
+                          `${files.length} file${files.length !== 1 ? 's' : ''}`
+                        )}
+                      </span>
+                      
+                      {selectedFiles.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={clearSelection}
+                          className="text-muted-foreground hover:text-foreground h-8"
+                        >
+                          Clear Selection
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
                 
-                {/* Review Controls - Show in review mode when not uploading */}
-                {reviewMode && files.length > 0 && !uploading && (
-                  <div className="flex items-center gap-3 justify-end ml-auto">
-                    <Button 
-                      variant="outline" 
-                      onClick={clearUpload}
-                      className="flex items-center gap-2"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Clear Upload
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      onClick={handleAddMoreFiles}
-                      className="flex items-center gap-2"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Add More Files
-                    </Button>
-                    <Button 
-                      onClick={startUpload}
-                      className="flex items-center gap-2"
-                    >
-                      <Upload className="w-4 h-4" />
-                      Start Upload ({files.length} files)
-                    </Button>
-                  </div>
-                )}
+                {/* Right Side - Action Buttons */}
+                <div className="flex items-center gap-3">
+                  {/* Upload Controls - Show during upload */}
+                  {uploading && (
+                    <>
+                      {isPaused ? (
+                        <Button 
+                          onClick={resumeAllUploads}
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                        >
+                          Resume All
+                        </Button>
+                      ) : (
+                        <Button 
+                          onClick={pauseAllUploads}
+                          variant="secondary"
+                        >
+                          Pause All
+                        </Button>
+                      )}
+                      <Button 
+                        onClick={cancelAllUploads}
+                        variant="destructive"
+                      >
+                        Cancel All
+                      </Button>
+                    </>
+                  )}
+                  
+                  {/* Review Controls - Show in review mode when not uploading */}
+                  {reviewMode && files.length > 0 && !uploading && (
+                    <>
+                      <Button 
+                        variant="outline" 
+                        onClick={clearUpload}
+                        className="flex items-center gap-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Clear Upload
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={handleAddMoreFiles}
+                        className="flex items-center gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add More Files
+                      </Button>
+                      <Button 
+                        onClick={startUpload}
+                        className="flex items-center gap-2"
+                      >
+                        <Upload className="w-4 h-4" />
+                        Start Upload ({files.length} files)
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Storage Quota Progress Bar - Show in review mode */}
@@ -733,6 +755,17 @@ export default function SimpleUpload() {
                   totalSizeBytes={totalFilesSize}
                   className="mt-4"
                 />
+              )}
+              
+              {/* Batch Metadata Toolbar - Show when files are selected in review mode */}
+              {reviewMode && !uploading && hasSelection && (
+                <div className="mt-4">
+                  <BatchMetadataToolbar
+                    selectedCount={selectedFiles.length}
+                    onClearSelection={clearSelection}
+                    onUpdateMetadata={updateSelectedFilesMetadata}
+                  />
+                </div>
               )}
             </div>
           </div>
