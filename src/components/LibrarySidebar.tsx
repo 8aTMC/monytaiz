@@ -236,10 +236,10 @@ export const LibrarySidebar = ({
     <div className="w-full flex-shrink-0 relative h-full border-r border-border" style={{ zIndex: 10 }}>
       <div className="absolute inset-0 bg-gradient-sidebar" />
       {/* Library directory content */}
-      <div className="relative h-full flex flex-col px-4 pt-4" style={{ minWidth: '100%' }}>
+      <div className="relative h-full flex flex-col px-4 pt-2" style={{ minWidth: '100%' }}>
         {/* Fixed header section */}
         <div className="flex-shrink-0">
-          <div className="mb-4 relative">
+          <div className="mb-3 relative">
             <h2 className="text-lg font-semibold text-foreground mb-0.5 bg-gradient-primary bg-clip-text text-transparent ml-[10px]">
               Library
             </h2>
