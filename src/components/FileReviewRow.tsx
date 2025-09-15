@@ -46,38 +46,51 @@ export function FileReviewRow({ file, files, currentIndex, onRemove, onMetadataC
   };
 
   useEffect(() => {
-    const generateThumbnail = async () => {
-      if (file.file.type.startsWith('image/')) {
-        const url = URL.createObjectURL(file.file);
-        setThumbnail(url);
-        return () => URL.revokeObjectURL(url);
-      } else if (file.file.type.startsWith('video/')) {
-        // Generate video thumbnail
-        const video = document.createElement('video');
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        video.onloadedmetadata = () => {
-          canvas.width = 120;
-          canvas.height = 80;
-          video.currentTime = Math.min(2, video.duration / 2); // 2 seconds or middle
-        };
-        
-        video.onseeked = () => {
-          if (ctx) {
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.8);
-            setThumbnail(thumbnailUrl);
-          }
-          URL.revokeObjectURL(video.src);
-        };
-        
-        video.src = URL.createObjectURL(file.file);
-        video.load();
-      }
-    };
+    let cleanup: (() => void) | undefined;
 
-    generateThumbnail();
+    if (file.file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          setThumbnail(e.target.result as string);
+        }
+      };
+      reader.onerror = () => setThumbnail(null);
+      reader.readAsDataURL(file.file);
+    } else if (file.file.type.startsWith('video/')) {
+      const video = document.createElement('video');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      video.onloadedmetadata = () => {
+        canvas.width = 120;
+        canvas.height = 80;
+        video.currentTime = Math.min(2, video.duration / 2); // 2 seconds or middle
+      };
+
+      video.onseeked = () => {
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.8);
+          setThumbnail(thumbnailUrl);
+        }
+        try { URL.revokeObjectURL(video.src); } catch {}
+        video.remove();
+        canvas.remove();
+      };
+
+      const videoUrl = URL.createObjectURL(file.file);
+      video.src = videoUrl;
+      video.load();
+
+      cleanup = () => {
+        try { URL.revokeObjectURL(videoUrl); } catch {}
+        video.remove();
+        canvas.remove();
+      };
+    }
+
+    return cleanup;
   }, [file.file]);
 
   const getFileIcon = (fileType: string) => {

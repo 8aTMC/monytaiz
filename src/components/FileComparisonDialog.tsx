@@ -213,12 +213,16 @@ export const FileComparisonDialog = ({
     
     useEffect(() => {
       if (isImage) {
-        const url = URL.createObjectURL(file);
-        setThumbnailUrl(url);
-        
-        return () => {
-          URL.revokeObjectURL(url);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            setThumbnailUrl(e.target.result as string);
+          }
         };
+        reader.onerror = () => {
+          setThumbnailUrl(null);
+        };
+        reader.readAsDataURL(file);
       } else if (isVideo) {
         // Generate video thumbnail
         const video = document.createElement('video');
@@ -253,23 +257,22 @@ export const FileComparisonDialog = ({
               canvas.height = thumbHeight;
               
               ctx.drawImage(video, 0, 0, thumbWidth, thumbHeight);
-              canvas.toBlob((blob) => {
-                if (blob) {
-                  const url = URL.createObjectURL(blob);
-                  setVideoThumbnailUrl(url);
-                }
-              }, 'image/jpeg', 0.8);
+              try {
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                setVideoThumbnailUrl(dataUrl);
+              } catch (e) {
+                console.warn('Failed to create video thumbnail data URL', e);
+                setVideoThumbnailUrl(null);
+              }
             }
           };
         };
         
-        video.src = URL.createObjectURL(file);
+        const videoUrl = URL.createObjectURL(file);
+        video.src = videoUrl;
         
         return () => {
-          URL.revokeObjectURL(video.src);
-          if (videoThumbnailUrl) {
-            URL.revokeObjectURL(videoThumbnailUrl);
-          }
+          try { URL.revokeObjectURL(videoUrl); } catch {}
         };
       }
     }, [file, isImage, isVideo, videoThumbnailUrl]);

@@ -190,11 +190,11 @@ export const FilePreviewDialog = ({
       index: internalCurrentIndex 
     });
     
-    // Create URL with proper lifecycle management
+    // Create URL with safer lifecycle management
     const url = URL.createObjectURL(displayFile);
     
     if (abortController.signal.aborted) {
-      URL.revokeObjectURL(url);
+      try { URL.revokeObjectURL(url); } catch {}
       return;
     }
     
@@ -210,9 +210,11 @@ export const FilePreviewDialog = ({
         
         // Create a temporary video element to get dimensions
         const tempVideo = document.createElement('video');
-        tempVideo.src = url;
+        const tempUrl = URL.createObjectURL(displayFile);
+        tempVideo.src = tempUrl;
         tempVideo.onloadedmetadata = () => {
           if (abortController.signal.aborted) {
+            try { URL.revokeObjectURL(tempUrl); } catch {}
             tempVideo.remove();
             return;
           }
@@ -230,6 +232,7 @@ export const FilePreviewDialog = ({
           }
           
           // Clean up
+          try { URL.revokeObjectURL(tempUrl); } catch {}
           tempVideo.remove();
         };
       }).catch(error => {
@@ -241,8 +244,11 @@ export const FilePreviewDialog = ({
     
     return () => {
       abortController.abort();
-      // Clean up the URL created in this effect
-      URL.revokeObjectURL(url);
+      // Delay revocation slightly to avoid race conditions with media elements during unmount
+      const toRevoke = url;
+      setTimeout(() => {
+        try { URL.revokeObjectURL(toRevoke); } catch {}
+      }, 1000);
     };
   }, [displayFile, open, internalCurrentIndex]);
 
