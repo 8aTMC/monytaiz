@@ -143,7 +143,7 @@ export const LibrarySidebar = ({
         {/* counter */}
         <Badge
           variant="secondary"
-          className={`absolute top-[1px] right-1 rounded-full text-[10px] px-1.5 h-4 min-w-[16px] flex items-center justify-center pointer-events-none transition-all z-10 ${
+          className={`absolute top-[2px] right-1 rounded-full text-[10px] px-1.5 h-4 min-w-[16px] flex items-center justify-center pointer-events-none transition-all z-10 ${
             isSelected
               ? 'bg-white text-primary border-white shadow-sm'
               : 'bg-primary/10 text-primary border-primary/20 group-hover:bg-primary/20'
