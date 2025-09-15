@@ -279,7 +279,7 @@ export const LibrarySidebar = ({
           )}
 
           {/* Divider */}
-          <div className="relative my-3">
+          <div className="relative mt-6 mb-3">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-border to-transparent h-px" />
             <div className="relative flex justify-center" />
           </div>
