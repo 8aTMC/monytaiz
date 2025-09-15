@@ -46,52 +46,69 @@ export const useSavedTags = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // First, try to find existing tag
-      const { data: existingTag } = await supabase
+      // Use upsert to handle both create and update cases atomically
+      const { data, error } = await supabase
         .from('saved_tags')
-        .select('*')
-        .eq('tag_name', tagName)
-        .eq('creator_id', user.id)
+        .upsert({
+          tag_name: tagName,
+          creator_id: user.id,
+          usage_count: 1,
+          last_used_at: new Date().toISOString()
+        }, {
+          onConflict: 'creator_id,tag_name',
+          ignoreDuplicates: false
+        })
+        .select()
         .single();
 
-      if (existingTag) {
-        // Update usage count and last used
-        const { data, error } = await supabase
-          .from('saved_tags')
-          .update({
-            usage_count: existingTag.usage_count + 1,
-            last_used_at: new Date().toISOString()
-          })
-          .eq('id', existingTag.id)
-          .select()
-          .single();
+      if (error) {
+        // If upsert fails due to conflict, manually update the existing record
+        if (error.code === '23505') { // Unique constraint violation
+          const { data: existingTag } = await supabase
+            .from('saved_tags')
+            .select('*')
+            .eq('tag_name', tagName)
+            .eq('creator_id', user.id)
+            .maybeSingle();
 
-        if (error) throw error;
+          if (existingTag) {
+            const { data: updatedData, error: updateError } = await supabase
+              .from('saved_tags')
+              .update({
+                usage_count: existingTag.usage_count + 1,
+                last_used_at: new Date().toISOString()
+              })
+              .eq('id', existingTag.id)
+              .select()
+              .single();
 
-        setSavedTags(prev => 
-          prev.map(tag => tag.id === existingTag.id ? data : tag)
-            .sort((a, b) => new Date(b.last_used_at).getTime() - new Date(a.last_used_at).getTime())
-        );
+            if (updateError) throw updateError;
 
-        return data;
-      } else {
-        // Create new tag
-        const { data, error } = await supabase
-          .from('saved_tags')
-          .insert({
-            tag_name: tagName,
-            creator_id: user.id,
-            usage_count: 1,
-            last_used_at: new Date().toISOString()
-          })
-          .select()
-          .single();
+            setSavedTags(prev => 
+              prev.map(tag => tag.id === existingTag.id ? updatedData : tag)
+                .sort((a, b) => new Date(b.last_used_at).getTime() - new Date(a.last_used_at).getTime())
+            );
 
-        if (error) throw error;
-
-        setSavedTags(prev => [data, ...prev]);
-        return data;
+            return updatedData;
+          }
+        }
+        throw error;
       }
+
+      // Handle successful upsert
+      setSavedTags(prev => {
+        const existingIndex = prev.findIndex(tag => tag.tag_name === tagName);
+        if (existingIndex >= 0) {
+          // Update existing tag
+          return prev.map(tag => tag.id === data.id ? data : tag)
+            .sort((a, b) => new Date(b.last_used_at).getTime() - new Date(a.last_used_at).getTime());
+        } else {
+          // Add new tag
+          return [data, ...prev];
+        }
+      });
+
+      return data;
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error saving tag';
       toast({
