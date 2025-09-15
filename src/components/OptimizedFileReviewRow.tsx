@@ -77,6 +77,12 @@ function OptimizedFileReviewRowComponent({
     }
   }, [file.id, onSelectionChange]);
 
+  const handleRowClick = useCallback(() => {
+    if (onSelectionChange) {
+      handleSelectionChange(!file.selected);
+    }
+  }, [onSelectionChange, handleSelectionChange, file.selected]);
+
   // Memoize metadata calculations
   const hasMetadata = file.metadata.mentions.length > 0 || 
                      file.metadata.tags.length > 0 || 
@@ -100,8 +106,9 @@ function OptimizedFileReviewRowComponent({
     <>
       <Card 
         className={cardClassName}
+        onClick={handleRowClick}
         onDoubleClick={handleDoubleClick}
-        title="Double-click to preview"
+        title="Click to select, double-click to preview"
       >
         <div className="flex items-center gap-4">
           {/* Selection Checkbox */}
@@ -110,6 +117,7 @@ function OptimizedFileReviewRowComponent({
               <Checkbox
                 checked={file.selected || false}
                 onCheckedChange={handleSelectionChange}
+                onClick={(e) => e.stopPropagation()}
                 className="w-5 h-5"
               />
             </div>
@@ -193,7 +201,7 @@ function OptimizedFileReviewRowComponent({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={handleDoubleClick}
+                    onClick={(e) => { e.stopPropagation(); handleDoubleClick(); }}
                     className="text-xs"
                   >
                     <Eye className="w-4 h-4 mr-1" />
@@ -204,7 +212,7 @@ function OptimizedFileReviewRowComponent({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={handleRemove}
+                    onClick={(e) => { e.stopPropagation(); handleRemove(); }}
                     className="text-muted-foreground hover:text-destructive"
                   >
                     <X className="w-4 h-4" />
@@ -219,7 +227,7 @@ function OptimizedFileReviewRowComponent({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setMentionsDialogOpen(true)}
+                  onClick={(e) => { e.stopPropagation(); setMentionsDialogOpen(true); }}
                   className="text-xs"
                 >
                   <AtSign className="w-3 h-3 mr-1" />
@@ -229,7 +237,7 @@ function OptimizedFileReviewRowComponent({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setTagsDialogOpen(true)}
+                  onClick={(e) => { e.stopPropagation(); setTagsDialogOpen(true); }}
                   className="text-xs"
                 >
                   <Hash className="w-3 h-3 mr-1" />
@@ -239,7 +247,7 @@ function OptimizedFileReviewRowComponent({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setFoldersDialogOpen(true)}
+                  onClick={(e) => { e.stopPropagation(); setFoldersDialogOpen(true); }}
                   className="text-xs"
                 >
                   <FolderOpen className="w-3 h-3 mr-1" />
@@ -249,7 +257,7 @@ function OptimizedFileReviewRowComponent({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setDescriptionDialogOpen(true)}
+                  onClick={(e) => { e.stopPropagation(); setDescriptionDialogOpen(true); }}
                   className="text-xs"
                 >
                   <FileText className="w-3 h-3 mr-1" />
@@ -259,7 +267,7 @@ function OptimizedFileReviewRowComponent({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPriceDialogOpen(true)}
+                  onClick={(e) => { e.stopPropagation(); setPriceDialogOpen(true); }}
                   className="text-xs"
                 >
                   <DollarSign className="w-3 h-3 mr-1" />
