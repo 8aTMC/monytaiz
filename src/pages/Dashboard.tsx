@@ -150,7 +150,7 @@ const Platform = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">
+        <h1 className="text-2xl font-bold text-foreground">
           {t('platform.dashboard.title', 'Dashboard')}
         </h1>
       </div>

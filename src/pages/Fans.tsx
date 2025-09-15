@@ -570,7 +570,7 @@ const Fans = () => {
                 ) : (
                   <Users className="h-8 w-8 text-primary" />
                 )}
-                <h1 className="text-3xl font-bold text-foreground">
+                <h1 className="text-2xl font-bold text-foreground">
                   {categoryFilter 
                     ? `${categoryFilter.charAt(0).toUpperCase() + categoryFilter.slice(1)}${categoryFilter === 'fan' ? 's' : categoryFilter.endsWith('s') ? '' : 's'}`
                     : 'All Fans'
