@@ -4,7 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Upload, X, Play, CheckCircle, AlertCircle, RefreshCw, Pause, Clock, Plus } from 'lucide-react';
+import { Upload, X, Play, CheckCircle, AlertCircle, RefreshCw, Pause, Clock, Plus, CheckSquare, Square } from 'lucide-react';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { EnhancedFileUploadRow } from './EnhancedFileUploadRow';
 import { BatchMetadataToolbar } from './BatchMetadataToolbar';
@@ -695,6 +695,38 @@ export const AdvancedFileUpload = () => {
                   {uploadQueue.filter(i => i.status === 'error').length} errors
                 </Badge>
               )}
+              
+              {/* Select All Controls */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={allSelected ? clearSelection : selectAllFiles}
+                className="flex items-center gap-2 h-8"
+              >
+                {allSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                {allSelected ? 'Deselect All' : 'Select All'}
+              </Button>
+              
+              <span className="text-sm text-muted-foreground">
+                {selectedFiles.length > 0 ? (
+                  <span className="font-medium text-foreground">
+                    {selectedFiles.length} of {uploadQueue.length} selected
+                  </span>
+                ) : (
+                  `${uploadQueue.length} file${uploadQueue.length !== 1 ? 's' : ''}`
+                )}
+              </span>
+              
+              {selectedFiles.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearSelection}
+                  className="text-muted-foreground hover:text-foreground h-8"
+                >
+                  Clear Selection
+                </Button>
+              )}
             </div>
             <div className="flex items-center gap-2">
               {isUploading ? (
@@ -759,14 +791,6 @@ export const AdvancedFileUpload = () => {
           </div>
         )}
 
-        {/* Selection Header - Always visible when files exist */}
-        <SelectionHeader
-          totalFiles={uploadQueue.length}
-          selectedCount={selectedFiles.length}
-          allSelected={allSelected}
-          onSelectAll={selectAllFiles}
-          onClearSelection={clearSelection}
-        />
 
         {/* Batch Metadata Toolbar - Only when files are selected */}
         {hasSelection && (
