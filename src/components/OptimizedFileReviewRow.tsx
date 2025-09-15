@@ -231,34 +231,6 @@ function OptimizedFileReviewRowComponent({
                   </div>
                 )}
                 
-                {/* Metadata Preview */}
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {file.metadata.mentions.length > 0 && (
-                    <Badge variant="secondary" className="text-xs">
-                      {file.metadata.mentions.length} mentions
-                    </Badge>
-                  )}
-                  {file.metadata.tags.length > 0 && (
-                    <Badge variant="secondary" className="text-xs">
-                      {file.metadata.tags.length} tags
-                    </Badge>
-                  )}
-                  {file.metadata.folders.length > 0 && (
-                    <Badge variant="secondary" className="text-xs">
-                      {file.metadata.folders.length} folders
-                    </Badge>
-                  )}
-                  {file.metadata.description && (
-                    <Badge variant="secondary" className="text-xs">
-                      Description added
-                    </Badge>
-                  )}
-                  {file.metadata.suggestedPrice && file.metadata.suggestedPrice > 0 && (
-                    <Badge variant="secondary" className="text-xs">
-                      ${file.metadata.suggestedPrice.toFixed(2)}
-                    </Badge>
-                  )}
-                </div>
               </div>
 
               {/* Actions */}
