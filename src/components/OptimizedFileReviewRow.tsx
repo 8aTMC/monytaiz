@@ -154,13 +154,7 @@ function OptimizedFileReviewRowComponent({
   let cardClassName = "p-3 hover:bg-muted/50 transition-colors cursor-pointer relative bg-card text-card-foreground";
   
   if (file.selected) {
-    cardClassName = hasMetadata 
-      ? "p-3 transition-colors cursor-pointer relative bg-accent text-accent-foreground border-2 border-primary hover:bg-accent/80"
-      : "p-3 transition-colors cursor-pointer relative bg-primary/10 text-foreground border-2 border-primary hover:bg-primary/20";
-  } else if (hasMetadata) {
-    cardClassName = "p-3 transition-colors cursor-pointer relative bg-secondary text-secondary-foreground hover:bg-secondary/80";
-  } else if (hasContentData) {
-    cardClassName = "p-3 transition-colors cursor-pointer relative bg-muted text-muted-foreground hover:bg-muted/80";
+    cardClassName = "p-3 transition-colors cursor-pointer relative bg-primary/10 text-foreground border-2 border-primary hover:bg-primary/20";
   }
 
   return (
