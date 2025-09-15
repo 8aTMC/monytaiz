@@ -13,6 +13,7 @@ import { FolderSelectDialog } from './FolderSelectDialog';
 import { DescriptionDialog } from './DescriptionDialog';
 import { PriceDialog } from './PriceDialog';
 import { EditTitleDialog } from './EditTitleDialog';
+import { useBlobUrl } from '@/hooks/useBlobUrl';
 
 interface FileWithId {
   id: string;
@@ -74,6 +75,9 @@ export const FilePreviewDialog = ({
   fileId
 }: FilePreviewDialogProps) => {
   // ===== ALL STATE HOOKS MUST BE AT THE TOP (React Rules of Hooks) =====
+  
+  // Centralized blob URL management
+  const { createBlobUrl, revokeBlobUrl, revokeAllBlobUrls } = useBlobUrl();
   
   // Internal navigation state - manages which file to display
   const [internalCurrentIndex, setInternalCurrentIndex] = useState(0);
@@ -201,11 +205,11 @@ export const FilePreviewDialog = ({
       index: internalCurrentIndex 
     });
     
-    // Create URL with safer lifecycle management
-    const url = URL.createObjectURL(displayFile);
+    // Create URL with centralized blob management
+    const url = createBlobUrl(displayFile);
     
     if (abortController.signal.aborted) {
-      try { URL.revokeObjectURL(url); } catch {}
+      revokeBlobUrl(url);
       return;
     }
     
@@ -221,11 +225,11 @@ export const FilePreviewDialog = ({
         
         // Create a temporary video element to get dimensions
         const tempVideo = document.createElement('video');
-        const tempUrl = URL.createObjectURL(displayFile);
+        const tempUrl = createBlobUrl(displayFile);
         tempVideo.src = tempUrl;
         tempVideo.onloadedmetadata = () => {
           if (abortController.signal.aborted) {
-            try { URL.revokeObjectURL(tempUrl); } catch {}
+            revokeBlobUrl(tempUrl);
             tempVideo.remove();
             return;
           }
@@ -243,7 +247,7 @@ export const FilePreviewDialog = ({
           }
           
           // Clean up
-          try { URL.revokeObjectURL(tempUrl); } catch {}
+          revokeBlobUrl(tempUrl);
           tempVideo.remove();
         };
       }).catch(error => {
@@ -255,11 +259,8 @@ export const FilePreviewDialog = ({
     
     return () => {
       abortController.abort();
-      // Delay revocation slightly to avoid race conditions with media elements during unmount
-      const toRevoke = url;
-      setTimeout(() => {
-        try { URL.revokeObjectURL(toRevoke); } catch {}
-      }, 1000);
+      // Revoke the blob URL immediately since we're using centralized management
+      revokeBlobUrl(url);
     };
   }, [displayFile, open, internalCurrentIndex]);
 
