@@ -245,12 +245,12 @@ export const LibrarySidebar = ({
             </h2>
             <p className="text-xs text-muted-foreground ml-[10px]">Manage your content</p>
             
-            {/* Eye button in top right corner of header */}
+            {/* Eye button positioned 5px above default folders */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowDefaultFolders(!showDefaultFolders)}
-              className="absolute top-0 right-0 text-xs px-2 h-7 hover:bg-gradient-glass transition"
+              className="absolute top-8 right-0 text-xs px-2 h-7 hover:bg-gradient-glass transition"
               title={showDefaultFolders ? t('platform.library.hideDefault') : t('platform.library.showDefault')}
             >
               {showDefaultFolders ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
