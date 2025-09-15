@@ -620,74 +620,57 @@ export const useFileUpload = () => {
           const { data: { session } } = await supabase.auth.getSession();
           if (!session) throw new Error('No auth session');
 
-          // Use direct XMLHttpRequest for upload with abort support
-          const uploadResult = await new Promise<{ data?: any; error?: any }>((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            const formData = new FormData();
-            formData.append('file', file);
-
+          // Use Supabase client for upload with progress tracking
+          const startTime = Date.now();
+          let uploadProgress = 0;
+          
+          const uploadResult = await new Promise<{ data?: any; error?: any }>((resolve) => {
             // Handle abort signal
             const onAbort = () => {
-              xhr.abort();
-              reject(new Error('Upload cancelled'));
+              resolve({ error: { message: 'Upload cancelled' } });
             };
             abortController.signal.addEventListener('abort', onAbort);
 
-            xhr.upload.onprogress = (event) => {
-              if (event.lengthComputable && !pausedUploads.has(item.id)) {
-                const progress = Math.round((event.loaded / event.total) * 100);
+            // Simulate progress tracking since Supabase client doesn't provide detailed progress
+            const progressInterval = setInterval(() => {
+              if (!pausedUploads.has(item.id) && uploadProgress < 90) {
+                uploadProgress += Math.random() * 10;
+                const elapsed = (Date.now() - startTime) / 1000;
+                const estimatedSpeed = (uploadProgress / 100) * file.size / elapsed;
+                
                 setUploadQueue(prev => prev.map(f => 
                   f.id === item.id ? { 
                     ...f, 
-                    progress: Math.min(progress, 95),
-                    uploadedBytes: event.loaded,
-                    uploadSpeed: event.loaded / ((Date.now() - startTime) / 1000) || 0
+                    progress: Math.min(Math.round(uploadProgress), 95),
+                    uploadedBytes: Math.round((uploadProgress / 100) * file.size),
+                    uploadSpeed: estimatedSpeed || 0
                   } : f
                 ));
               }
-            };
+            }, 200);
 
-            xhr.onload = () => {
-              abortController.signal.removeEventListener('abort', onAbort);
-              if (xhr.status === 200) {
-                try {
-                  const response = JSON.parse(xhr.responseText);
-                  resolve({ data: { path: filePath } });
-                } catch {
-                  resolve({ data: { path: filePath } });
+            // Perform the actual upload using Supabase client
+            supabase.storage
+              .from('content')
+              .upload(filePath, file, {
+                upsert: fileType === 'video' && file.size > 500 * 1024 * 1024 ? false : true,
+                cacheControl: fileType === 'video' && file.size > 500 * 1024 * 1024 ? '3600' : undefined
+              })
+              .then(({ data, error }) => {
+                clearInterval(progressInterval);
+                abortController.signal.removeEventListener('abort', onAbort);
+                
+                if (error) {
+                  resolve({ error: { message: error.message } });
+                } else {
+                  resolve({ data: { path: data.path } });
                 }
-              } else {
-                resolve({ error: { message: `Upload failed with status ${xhr.status}` } });
-              }
-            };
-
-            xhr.onerror = () => {
-              abortController.signal.removeEventListener('abort', onAbort);
-              resolve({ error: { message: 'Network error during upload' } });
-            };
-
-            xhr.ontimeout = () => {
-              abortController.signal.removeEventListener('abort', onAbort);
-              resolve({ error: { message: 'Upload timeout' } });
-            };
-
-            // Set timeout
-            xhr.timeout = timeoutDuration;
-
-            const startTime = Date.now();
-            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://alzyzfjzwvofmjccirjq.supabase.co";
-            const uploadUrl = `${supabaseUrl}/storage/v1/object/content/${filePath}`;
-            
-            xhr.open('POST', uploadUrl);
-            xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
-            xhr.setRequestHeader('apikey', import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsenl6Zmp6d3ZvZm1qY2NpcmpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyODkxNjMsImV4cCI6MjA3MDg2NTE2M30.DlmPO0LWTM0T4bMXJheMXdtftCVJZ5V961CUW-fEXmk");
-            
-            if (fileType === 'video' && file.size > 500 * 1024 * 1024) {
-              xhr.setRequestHeader('x-upsert', 'false');
-              xhr.setRequestHeader('cache-control', '3600');
-            }
-            
-            xhr.send(formData);
+              })
+              .catch((err) => {
+                clearInterval(progressInterval);
+                abortController.signal.removeEventListener('abort', onAbort);
+                resolve({ error: { message: err.message || 'Upload failed' } });
+              });
           });
 
           data = uploadResult.data;
