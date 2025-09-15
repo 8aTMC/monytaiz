@@ -1899,6 +1899,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      cleanup_orphaned_duplicates: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       cleanup_stale_typing_indicators: {
         Args: Record<PropertyKey, never>
         Returns: undefined

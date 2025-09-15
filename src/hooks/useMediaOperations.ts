@@ -187,11 +187,7 @@ export const useMediaOperations = (callbacks?: {
         duration: 3000
       })
 
-      // Mark files as deleted in duplicate cache and clear all cache
-      duplicateCache.markAsDeleted(
-        Array(totalFiles).fill('deleted-file'), // placeholder filenames
-        Array(totalFiles).fill(0) // placeholder sizes
-      );
+      // Clear duplicate detection cache since files were deleted
       duplicateCache.clearAll()
       callbacks?.onDuplicateCacheInvalidated?.()
 
