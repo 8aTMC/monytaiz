@@ -80,6 +80,13 @@ function OptimizedFileReviewRowComponent({
   const handleRowClick = useCallback((e: React.MouseEvent) => {
     if (onSelectionChange && files && currentIndex !== undefined) {
       const isRangeSelection = e.shiftKey || e.altKey;
+      
+      // Prevent text selection during range operations
+      if (isRangeSelection) {
+        e.preventDefault();
+        window.getSelection()?.removeAllRanges();
+      }
+      
       onSelectionChange(file.id, !file.selected, { 
         range: isRangeSelection, 
         index: currentIndex 
