@@ -279,15 +279,6 @@ export const useSimpleUpload = () => {
         compressionRatio: shouldProcessImage ? compressionRatio : 0
       });
 
-      toast({
-        title: "Upload successful",
-        description: shouldProcessImage && compressionRatio > 0
-          ? `${file.name} converted to WebP and uploaded (${compressionRatio}% smaller).`
-          : mediaType === 'video'
-            ? `${file.name} uploaded as raw video without processing.`
-            : `${file.name} uploaded successfully.`,
-        variant: "default"
-      });
 
       return { 
         ...mediaRecord, 

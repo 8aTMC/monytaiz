@@ -308,10 +308,6 @@ export const useEnhancedUpload = () => {
       onStatusChange('completed');
       onProgress(100, processedFile.size, processedFile.size);
 
-      toast({
-        title: "Upload successful",
-        description: `${file.name} uploaded successfully${optimizationInfo.percentSaved > 0 ? ` (${optimizationInfo.percentSaved}% smaller)` : ''}`,
-      });
 
       return { success: true, data };
 
