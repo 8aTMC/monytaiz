@@ -327,8 +327,13 @@ async function deleteMediaHard(supabase: any, mediaIds: string[]) {
         }
       }
 
-      // Delete database records
+      // Delete from ALL related tables (preserve revenue data in media_analytics)
       await supabase.from('collection_items').delete().eq('media_id', mediaId)
+      await supabase.from('file_folder_contents').delete().eq('media_id', mediaId)
+      await supabase.from('fan_media_grants').delete().eq('media_id', mediaId)
+      await supabase.from('processing_jobs').delete().eq('media_id', mediaId)
+      await supabase.from('content_files').delete().eq('id', mediaId)
+      await supabase.from('files').delete().eq('id', mediaId)
       await supabase.from('simple_media').delete().eq('id', mediaId)
       await supabase.from('media').delete().eq('id', mediaId)
       

@@ -100,15 +100,21 @@ export const useBatchDuplicateDetection = () => {
 
       onProgress?.(0, 3);
 
-      // BATCH QUERY 1: content_files table
+      // BATCH QUERY 1: content_files table (only active files for current user)
       let allMatches: any[] = [];
       onProgress?.(0, 3);
+      
+      // Get current user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      const currentUserId = user?.id;
       
       try {
         const { data: cfRows, error: cfErr } = await supabase
           .from('content_files')
-          .select('id, title, original_filename, file_size, mime_type, created_at, thumbnail_url, file_path, is_active')
+          .select('id, title, original_filename, file_size, mime_type, created_at, thumbnail_url, file_path, is_active, creator_id')
           .in('original_filename', filenames)
+          .eq('is_active', true)
+          .eq('creator_id', currentUserId)
           .limit(1000);
 
         if (cfErr) {
@@ -136,12 +142,14 @@ export const useBatchDuplicateDetection = () => {
 
       onProgress?.(1, 3);
 
-      // BATCH QUERY 2: simple_media table
+      // BATCH QUERY 2: simple_media table (only for current user, not processing failures)
       try {
         const { data: smRows, error: smErr } = await supabase
           .from('simple_media')
-          .select('id, title, original_filename, original_size_bytes, optimized_size_bytes, mime_type, created_at, thumbnail_path, processed_path, processing_status')
+          .select('id, title, original_filename, original_size_bytes, optimized_size_bytes, mime_type, created_at, thumbnail_path, processed_path, processing_status, creator_id')
           .in('original_filename', filenames)
+          .eq('creator_id', currentUserId)
+          .neq('processing_status', 'error')
           .limit(1000);
 
         if (smErr) {
@@ -160,12 +168,14 @@ export const useBatchDuplicateDetection = () => {
 
       onProgress?.(2, 3);
 
-      // BATCH QUERY 3: files table (fallback)
+      // BATCH QUERY 3: files table (fallback, only active files for current user)
       try {
         const { data: filesRows, error: filesErr } = await supabase
           .from('files')
-          .select('id, title, original_filename, file_size, mime_type, created_at, processing_status')
+          .select('id, title, original_filename, file_size, mime_type, created_at, processing_status, creator_id, is_active')
           .in('original_filename', filenames)
+          .eq('creator_id', currentUserId)
+          .eq('is_active', true)
           .limit(1000);
 
         if (filesErr) {
