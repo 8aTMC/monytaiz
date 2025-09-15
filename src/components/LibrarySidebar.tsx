@@ -247,22 +247,35 @@ export const LibrarySidebar = ({
           </div>
 
           {/* Default categories (more compact, consistent with custom) */}
-          {showDefaultFolders && (
-            <div className="space-y-1.5 mb-5">
-              {defaultCategories.map((category) => {
-                const isSelected = selectedCategory === category.id;
-                return (
-                  <Row
-                    key={category.id}
-                    item={category}
-                    isSelected={isSelected}
-                    count={categoryCounts[category.id] || 0}
-                    onClick={() => onCategorySelect(category.id)}
-                  />
-                );
-              })}
-            </div>
-          )}
+          <div className="relative mb-5">
+            {/* Eye button in top right corner */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowDefaultFolders(!showDefaultFolders)}
+              className="absolute top-0 right-0 z-20 text-xs px-2 h-7 hover:bg-gradient-glass transition"
+              title={showDefaultFolders ? t('platform.library.hideDefault') : t('platform.library.showDefault')}
+            >
+              {showDefaultFolders ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            </Button>
+
+            {showDefaultFolders && (
+              <div className="space-y-1.5">
+                {defaultCategories.map((category) => {
+                  const isSelected = selectedCategory === category.id;
+                  return (
+                    <Row
+                      key={category.id}
+                      item={category}
+                      isSelected={isSelected}
+                      count={categoryCounts[category.id] || 0}
+                      onClick={() => onCategorySelect(category.id)}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {/* Divider */}
           <div className="relative my-4">
@@ -301,15 +314,6 @@ export const LibrarySidebar = ({
                 </>
               ) : (
                 <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowDefaultFolders(!showDefaultFolders)}
-                    className="text-xs px-2 h-7 hover:bg-gradient-glass transition"
-                    title={showDefaultFolders ? t('platform.library.hideDefault') : t('platform.library.showDefault')}
-                  >
-                    {showDefaultFolders ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                  </Button>
                   <div className="flex-1">
                     <NewFolderDialog onFolderCreated={onFolderCreated} />
                   </div>
