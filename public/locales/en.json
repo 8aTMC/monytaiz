@@ -159,7 +159,7 @@
     "upload": {
       "controls": {
         "pauseAll": "Pause All",
-        "resumeAll": "Resume All",
+        "resumeAll": "Resume All", 
         "cancelAll": "Cancel All",
         "pause": "Pause",
         "resume": "Resume",
@@ -167,9 +167,13 @@
         "startUpload": "Start Upload",
         "uploading": "Uploading files...",
         "uploadPaused": "Upload paused",
+        "uploadCancelled": "Upload cancelled",
         "addMoreFiles": "Add More Files",
         "reviewFiles": "Review Files",
-        "clearAll": "Clear All"
+        "clearAll": "Clear All",
+        "pausedAllUploads": "All uploads paused",
+        "resumedAllUploads": "All uploads resumed",
+        "cancelledAllUploads": "All uploads cancelled"
       },
       "status": {
         "pending": "Waiting to start...",

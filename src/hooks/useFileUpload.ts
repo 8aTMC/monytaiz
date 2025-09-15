@@ -114,6 +114,7 @@ export const useFileUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [currentUploadIndex, setCurrentUploadIndex] = useState(0);
   const [pausedUploads, setPausedUploads] = useState<Set<string>>(new Set());
+  const [abortControllers, setAbortControllers] = useState<Map<string, AbortController>>(new Map());
   const { toast } = useToast();
   
   // Use ref to get current queue state in async operations
@@ -446,11 +447,17 @@ export const useFileUpload = () => {
   }, [uploadQueue, isUploading]);
 
   const pauseUpload = useCallback((id: string) => {
+    // Abort the upload if it's currently uploading
+    const controller = abortControllers.get(id);
+    if (controller) {
+      controller.abort();
+    }
+    
     setPausedUploads(prev => new Set(prev).add(id));
     setUploadQueue(prev => prev.map(item => 
       item.id === id ? { ...item, status: 'paused' as const, isPaused: true } : item
     ));
-  }, []);
+  }, [abortControllers]);
 
   const resumeUpload = useCallback((id: string) => {
     setPausedUploads(prev => {
@@ -463,8 +470,15 @@ export const useFileUpload = () => {
     ));
   }, []);
 
+  // Cancel upload function  
   const cancelUpload = useCallback((id: string) => {
     const wasCurrent = uploadQueue.find(item => item.id === id)?.status === 'uploading';
+    
+    // Abort the upload if it's currently uploading
+    const controller = abortControllers.get(id);
+    if (controller) {
+      controller.abort();
+    }
     
     setUploadQueue(prev => prev.map(item => 
       item.id === id ? { ...item, status: 'cancelled' as const } : item
@@ -496,7 +510,7 @@ export const useFileUpload = () => {
         return newQueue;
       });
     }, 1000);
-  }, [uploadQueue, isUploading]);
+  }, [uploadQueue, isUploading, abortControllers]);
 
   const uploadFile = useCallback(async (item: FileUploadItem) => {
     const { file } = item;
@@ -506,7 +520,10 @@ export const useFileUpload = () => {
     const storageFolder = getStorageFolder(fileType);
     
     let progressInterval: NodeJS.Timeout | null = null;
-    let simulatedUploadedBytes = 0;
+    const abortController = new AbortController();
+    
+    // Store abort controller for this upload
+    setAbortControllers(prev => new Map(prev).set(item.id, abortController));
     
     // Different timeouts for different file types - much longer for large videos
     const timeoutDuration = fileType === 'video' ? 1200000 : 180000; // 20min for video, 3min for others
@@ -568,7 +585,6 @@ export const useFileUpload = () => {
       }
 
       // Start progress tracking after validation
-      const chunkSize = Math.max(1024 * 1024, file.size / 100);
       progressInterval = setInterval(() => {
         if (pausedUploads.has(item.id)) {
           if (progressInterval) clearInterval(progressInterval);
@@ -576,29 +592,23 @@ export const useFileUpload = () => {
           return;
         }
 
-        // More realistic progress simulation for large files
-        simulatedUploadedBytes = Math.min(simulatedUploadedBytes + chunkSize, file.size * 0.90);
-        const progress = Math.round((simulatedUploadedBytes / file.size) * 100);
-        
-        setUploadQueue(prev => prev.map(f => 
-          f.id === item.id ? { 
-            ...f, 
-            progress: Math.min(progress, 90), // Allow progress up to 90% during simulation
-            uploadedBytes: simulatedUploadedBytes 
-          } : f
-        ));
+        // Progress is now handled by XMLHttpRequest onprogress
+        // This interval just ensures the UI updates if needed
+      }, 1000);
 
-        if (simulatedUploadedBytes >= file.size * 0.90) {
-          if (progressInterval) {
-            clearInterval(progressInterval);
-            progressInterval = null;
-          }
-        }
-      }, fileType === 'video' ? 500 : 200); // Slower progress updates for video
+      // Check if paused before starting upload
+      if (pausedUploads.has(item.id)) {
+        return;
+      }
+
+      // Update status to uploading
+      setUploadQueue(prev => prev.map(f => 
+        f.id === item.id ? { ...f, status: 'uploading' as const } : f
+      ));
 
       console.log('Uploading to storage path:', filePath);
       
-      // Upload with retry logic
+      // Upload with retry logic using XMLHttpRequest for better control
       let data, error;
       let attempts = 0;
       
@@ -606,35 +616,82 @@ export const useFileUpload = () => {
         attempts++;
         
         try {
-          // For large video files, use chunked upload approach
-          let uploadPromise;
-          
-          if (fileType === 'video' && file.size > 500 * 1024 * 1024) { // 500MB+
-            // For very large videos, use different options to improve reliability
-            uploadPromise = supabase.storage
-              .from('content')
-              .upload(filePath, file, {
-                upsert: false,
-                cacheControl: '3600',
-                duplex: 'half' // Allow for better streaming
-              });
-          } else {
-            uploadPromise = supabase.storage
-              .from('content')
-              .upload(filePath, file, {
-                upsert: false,
-                cacheControl: '3600'
-              });
-          }
+          // Get signed URL for upload
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) throw new Error('No auth session');
 
-          // Race between upload and timeout
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Upload timeout')), timeoutDuration);
+          // Use direct XMLHttpRequest for upload with abort support
+          const uploadResult = await new Promise<{ data?: any; error?: any }>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Handle abort signal
+            const onAbort = () => {
+              xhr.abort();
+              reject(new Error('Upload cancelled'));
+            };
+            abortController.signal.addEventListener('abort', onAbort);
+
+            xhr.upload.onprogress = (event) => {
+              if (event.lengthComputable && !pausedUploads.has(item.id)) {
+                const progress = Math.round((event.loaded / event.total) * 100);
+                setUploadQueue(prev => prev.map(f => 
+                  f.id === item.id ? { 
+                    ...f, 
+                    progress: Math.min(progress, 95),
+                    uploadedBytes: event.loaded,
+                    uploadSpeed: event.loaded / ((Date.now() - startTime) / 1000) || 0
+                  } : f
+                ));
+              }
+            };
+
+            xhr.onload = () => {
+              abortController.signal.removeEventListener('abort', onAbort);
+              if (xhr.status === 200) {
+                try {
+                  const response = JSON.parse(xhr.responseText);
+                  resolve({ data: { path: filePath } });
+                } catch {
+                  resolve({ data: { path: filePath } });
+                }
+              } else {
+                resolve({ error: { message: `Upload failed with status ${xhr.status}` } });
+              }
+            };
+
+            xhr.onerror = () => {
+              abortController.signal.removeEventListener('abort', onAbort);
+              resolve({ error: { message: 'Network error during upload' } });
+            };
+
+            xhr.ontimeout = () => {
+              abortController.signal.removeEventListener('abort', onAbort);
+              resolve({ error: { message: 'Upload timeout' } });
+            };
+
+            // Set timeout
+            xhr.timeout = timeoutDuration;
+
+            const startTime = Date.now();
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://alzyzfjzwvofmjccirjq.supabase.co";
+            const uploadUrl = `${supabaseUrl}/storage/v1/object/content/${filePath}`;
+            
+            xhr.open('POST', uploadUrl);
+            xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
+            xhr.setRequestHeader('apikey', import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsenl6Zmp6d3ZvZm1qY2NpcmpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyODkxNjMsImV4cCI6MjA3MDg2NTE2M30.DlmPO0LWTM0T4bMXJheMXdtftCVJZ5V961CUW-fEXmk");
+            
+            if (fileType === 'video' && file.size > 500 * 1024 * 1024) {
+              xhr.setRequestHeader('x-upsert', 'false');
+              xhr.setRequestHeader('cache-control', '3600');
+            }
+            
+            xhr.send(formData);
           });
 
-          const result = await Promise.race([uploadPromise, timeoutPromise]) as any;
-          data = result.data;
-          error = result.error;
+          data = uploadResult.data;
+          error = uploadResult.error;
           
           if (!error) break; // Success, exit retry loop
           
@@ -863,9 +920,18 @@ export const useFileUpload = () => {
         progressInterval = null;
       }
       
+      // Clean up abort controller
+      setAbortControllers(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(item.id);
+        return newMap;
+      });
+      
       let errorMessage = 'Upload failed';
       if (error instanceof Error) {
-        if (error.name === 'AbortError') {
+        if (error.message === 'Upload cancelled') {
+          errorMessage = 'Upload was cancelled';
+        } else if (error.name === 'AbortError') {
           errorMessage = 'Upload timeout - file too large or connection slow';
         } else {
           errorMessage = error.message;
@@ -887,6 +953,13 @@ export const useFileUpload = () => {
       });
 
       return { success: false, error: errorMessage };
+    } finally {
+      // Clean up abort controller on completion
+      setAbortControllers(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(item.id);
+        return newMap;
+      });
     }
   }, [pausedUploads, toast]);
 
@@ -965,15 +1038,49 @@ export const useFileUpload = () => {
     setPausedUploads(new Set()); // Clear paused uploads set
   }, []);
 
+  // Pause all uploads
+  const pauseAllUploads = useCallback(() => {
+    uploadQueue.forEach(item => {
+      if (item.status === 'uploading' || item.status === 'pending') {
+        pauseUpload(item.id);
+      }
+    });
+    
+    toast({
+      title: "Uploads paused",
+      description: "All uploads have been paused",
+    });
+  }, [uploadQueue, pauseUpload, toast]);
+
+  // Resume all uploads
+  const resumeAllUploads = useCallback(() => {
+    uploadQueue.forEach(item => {
+      if (item.status === 'paused') {
+        resumeUpload(item.id);
+      }
+    });
+    
+    toast({
+      title: "Uploads resumed", 
+      description: "All uploads have been resumed",
+    });
+  }, [uploadQueue, resumeUpload, toast]);
+
   const cancelAllUploads = useCallback(() => {
-    if (!isUploading) return;
+    // Abort all active uploads using stored abort controllers
+    abortControllers.forEach((controller, itemId) => {
+      controller.abort();
+    });
     
     // Cancel all pending/uploading files
     uploadQueue.forEach(item => {
-      if (item.status === 'uploading' || item.status === 'pending') {
+      if (item.status === 'uploading' || item.status === 'pending' || item.status === 'paused') {
         cancelUpload(item.id);
       }
     });
+    
+    // Clear abort controllers
+    setAbortControllers(new Map());
     
     // Reset state
     setIsUploading(false);
@@ -983,7 +1090,7 @@ export const useFileUpload = () => {
       title: "Upload cancelled",
       description: "All uploads have been cancelled",
     });
-  }, [isUploading, uploadQueue, cancelUpload, toast]);
+  }, [uploadQueue, cancelUpload, toast, abortControllers]);
 
   const updateFileMetadata = useCallback((id: string, metadata: Partial<FileUploadItem['metadata']>) => {
     setUploadQueue(prev => prev.map(item => 
@@ -1065,6 +1172,8 @@ export const useFileUpload = () => {
     uploadFile,
     startUpload,
     clearQueue,
+    pauseAllUploads,
+    resumeAllUploads,
     cancelAllUploads,
     updateFileMetadata,
     toggleFileSelection,

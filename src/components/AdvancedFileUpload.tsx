@@ -83,6 +83,8 @@ export const AdvancedFileUpload = () => {
     resumeUpload,
     cancelUpload,
     clearQueue,
+    pauseAllUploads,
+    resumeAllUploads,
     cancelAllUploads,
     updateFileMetadata,
     toggleFileSelection,
@@ -696,14 +698,43 @@ export const AdvancedFileUpload = () => {
             </div>
             <div className="flex items-center gap-2">
               {isUploading ? (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={cancelAllUploads}
-                >
-                  <X className="w-4 h-4 mr-2" />
-                  Pause All
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={pauseAllUploads}
+                  >
+                    <Pause className="w-4 h-4 mr-2" />
+                    Pause All
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={cancelAllUploads}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel All
+                  </Button>
+                </>
+              ) : uploadQueue.some(item => item.status === 'paused') ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={resumeAllUploads}
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Resume All
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={cancelAllUploads}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel All
+                  </Button>
+                </>
               ) : (
                 <>
                   <Button
