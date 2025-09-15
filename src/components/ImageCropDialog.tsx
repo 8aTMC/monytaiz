@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -140,9 +141,9 @@ export function ImageCropDialog({ open, onOpenChange, imageSrc, onCropComplete }
     setCompletedCrop(undefined);
   };
 
-  return (
+  return createPortal(
     <Dialog open={open} onOpenChange={handleCancel}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px]" style={{ zIndex: 9999 }}>
         <DialogHeader>
           <DialogTitle>Crop Profile Picture</DialogTitle>
           <DialogDescription>
@@ -198,6 +199,7 @@ export function ImageCropDialog({ open, onOpenChange, imageSrc, onCropComplete }
           </div>
         </div>
       </DialogContent>
-    </Dialog>
+    </Dialog>,
+    document.body
   );
 }
