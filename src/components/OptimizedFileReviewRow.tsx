@@ -357,9 +357,9 @@ function OptimizedFileReviewRowComponent({
       {/* Preview dialog */}
       <FilePreviewDialog
         file={file.file}
-        files={files?.map(f => f.file) || []}
+        files={files?.map(f => ({ id: f.id, file: f.file }))}
         totalFiles={files?.length || 1}
-        currentIndex={currentIndex || 0}
+        currentIndex={files?.findIndex(f => f.id === file.id) ?? 0}
         open={previewDialogOpen}
         onOpenChange={setPreviewDialogOpen}
         mentions={file.metadata?.mentions || []}

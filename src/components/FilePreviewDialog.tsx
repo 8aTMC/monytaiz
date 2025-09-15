@@ -14,13 +14,18 @@ import { DescriptionDialog } from './DescriptionDialog';
 import { PriceDialog } from './PriceDialog';
 import { EditTitleDialog } from './EditTitleDialog';
 
+interface FileWithId {
+  id: string;
+  file: File;
+}
+
 interface FilePreviewDialogProps {
   file: File;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   
   // Navigation props
-  files?: File[];
+  files?: (File | FileWithId)[];
   totalFiles?: number; // Backup detection method
   currentIndex?: number;
   // Metadata props
@@ -101,7 +106,12 @@ export const FilePreviewDialog = ({
   const safeFiles = Array.isArray(files) ? files : [];
   
   // Determine which file to display
-  const displayFile = safeFiles.length > 0 ? safeFiles[internalCurrentIndex] : file;
+  const displayFileData = safeFiles.length > 0 ? safeFiles[internalCurrentIndex] : null;
+  const displayFile = displayFileData ? 
+    ('file' in displayFileData ? displayFileData.file : displayFileData) : file;
+  
+  // Get current file ID for selection logic
+  const currentFileId = displayFileData && 'id' in displayFileData ? displayFileData.id : fileId;
 
   // ===== EFFECTS =====
   
@@ -112,7 +122,8 @@ export const FilePreviewDialog = ({
       console.log('FilePreviewDialog: Index changed', { 
         oldIndex: internalCurrentIndex, 
         newIndex: clampedIndex, 
-        fileName: safeFiles[clampedIndex]?.name 
+        fileName: displayFileData ? 
+          ('file' in displayFileData ? displayFileData.file.name : displayFileData.name) : 'unknown'
       });
       setInternalCurrentIndex(clampedIndex);
       // Clear URL immediately to prevent showing wrong content
@@ -489,7 +500,7 @@ export const FilePreviewDialog = ({
                 </div>
                 <div className="flex gap-2">
                   {/* Selection checkbox */}
-                  {selecting && onToggleSelection && fileId && (
+                  {selecting && onToggleSelection && currentFileId && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -497,7 +508,7 @@ export const FilePreviewDialog = ({
                         e.stopPropagation();
                         e.preventDefault();
                         setIsSelectingFile(true);
-                        onToggleSelection(fileId);
+                        onToggleSelection(currentFileId);
                         // Reset flag after selection to allow normal dialog behavior
                         setTimeout(() => setIsSelectingFile(false), 100);
                       }}
