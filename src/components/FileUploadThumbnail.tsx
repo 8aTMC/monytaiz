@@ -16,13 +16,22 @@ export const FileUploadThumbnail = ({ file, className = "w-12 h-12" }: FileUploa
     // Determine file type
     if (['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif'].includes(extension)) {
       setFileType('image');
-      // Create thumbnail for images
-      const url = URL.createObjectURL(file);
-      setThumbnailUrl(url);
-      return () => URL.revokeObjectURL(url);
+      // Create data URL for images to avoid blob URL lifecycle issues
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          setThumbnailUrl(e.target.result as string);
+        }
+      };
+      reader.onerror = () => {
+        console.error('Error reading image file:', file.name);
+        setThumbnailUrl(null);
+      };
+      reader.readAsDataURL(file);
     } else if (['.mp4', '.mov', '.webm', '.mkv'].includes(extension)) {
       setFileType('video');
       // Create video thumbnail with proper aspect ratio
+      let blobUrl: string | null = null;
       const video = document.createElement('video');
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -56,13 +65,35 @@ export const FileUploadThumbnail = ({ file, className = "w-12 h-12" }: FileUploa
           
           // Draw video frame maintaining aspect ratio
           ctx.drawImage(video, 0, 0, thumbWidth, thumbHeight);
-          const url = canvas.toDataURL();
-          setThumbnailUrl(url);
+          const dataUrl = canvas.toDataURL();
+          setThumbnailUrl(dataUrl);
+          
+          // Clean up blob URL after we have the data URL
+          if (blobUrl) {
+            URL.revokeObjectURL(blobUrl);
+            blobUrl = null;
+          }
         }
       };
       
-      video.src = URL.createObjectURL(file);
-      return () => URL.revokeObjectURL(video.src);
+      video.onerror = () => {
+        console.error('Error loading video for thumbnail:', file.name);
+        setThumbnailUrl(null);
+        if (blobUrl) {
+          URL.revokeObjectURL(blobUrl);
+          blobUrl = null;
+        }
+      };
+      
+      blobUrl = URL.createObjectURL(file);
+      video.src = blobUrl;
+      
+      return () => {
+        if (blobUrl) {
+          URL.revokeObjectURL(blobUrl);
+        }
+        video.remove();
+      };
     } else if (['.mp3', '.wav', '.aac', '.ogg', '.opus'].includes(extension)) {
       setFileType('audio');
     }
@@ -76,6 +107,7 @@ export const FileUploadThumbnail = ({ file, className = "w-12 h-12" }: FileUploa
             src={thumbnailUrl} 
             alt={file.name}
             className="w-full h-full object-cover rounded"
+            onError={() => setThumbnailUrl(null)}
           />
           {fileType === 'video' && (
             <Play className="absolute bottom-1 left-1 w-3 h-3 text-white bg-black/50 rounded-sm p-0.5" />

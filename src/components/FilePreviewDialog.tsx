@@ -170,12 +170,12 @@ export const FilePreviewDialog = ({
     }
     
     // Clear previous states immediately
-    setFileUrl('');
     setVideoQualityInfo(null);
     setVideoAspectRatio('16/9');
     setIsLoadingUrl(false);
     
     if (!displayFile || !open) {
+      setFileUrl('');
       return;
     }
     
@@ -190,64 +190,59 @@ export const FilePreviewDialog = ({
       index: internalCurrentIndex 
     });
     
-    // Use timeout to ensure URL creation happens after state clearing
-    setTimeout(() => {
-      if (abortController.signal.aborted) return;
-      
-      const url = URL.createObjectURL(displayFile);
-      
-      if (abortController.signal.aborted) {
-        URL.revokeObjectURL(url);
-        return;
-      }
-      
-      setFileUrl(url);
-      setIsLoadingUrl(false);
-      
-      // Get video quality info and aspect ratio for video files
-      if (getFileType() === 'video' && !abortController.signal.aborted) {
-        getVideoMetadataFromFile(displayFile).then(qualityInfo => {
-          if (abortController.signal.aborted) return;
-          
-          setVideoQualityInfo(qualityInfo);
-          
-          // Create a temporary video element to get dimensions
-          const tempVideo = document.createElement('video');
-          tempVideo.src = url;
-          tempVideo.onloadedmetadata = () => {
-            if (abortController.signal.aborted) {
-              tempVideo.remove();
-              return;
-            }
-            
-            const width = tempVideo.videoWidth;
-            const height = tempVideo.videoHeight;
-            
-            if (width && height) {
-              // Calculate aspect ratio
-              const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
-              const divisor = gcd(width, height);
-              const aspectW = width / divisor;
-              const aspectH = height / divisor;
-              setVideoAspectRatio(`${aspectW}/${aspectH}`);
-            }
-            
-            // Clean up
+    // Create URL with proper lifecycle management
+    const url = URL.createObjectURL(displayFile);
+    
+    if (abortController.signal.aborted) {
+      URL.revokeObjectURL(url);
+      return;
+    }
+    
+    setFileUrl(url);
+    setIsLoadingUrl(false);
+    
+    // Get video quality info and aspect ratio for video files
+    if (getFileType() === 'video' && !abortController.signal.aborted) {
+      getVideoMetadataFromFile(displayFile).then(qualityInfo => {
+        if (abortController.signal.aborted) return;
+        
+        setVideoQualityInfo(qualityInfo);
+        
+        // Create a temporary video element to get dimensions
+        const tempVideo = document.createElement('video');
+        tempVideo.src = url;
+        tempVideo.onloadedmetadata = () => {
+          if (abortController.signal.aborted) {
             tempVideo.remove();
-          };
-        }).catch(error => {
-          if (!abortController.signal.aborted) {
-            console.error('Error getting video metadata:', error);
+            return;
           }
-        });
-      }
-    }, 50);
+          
+          const width = tempVideo.videoWidth;
+          const height = tempVideo.videoHeight;
+          
+          if (width && height) {
+            // Calculate aspect ratio
+            const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+            const divisor = gcd(width, height);
+            const aspectW = width / divisor;
+            const aspectH = height / divisor;
+            setVideoAspectRatio(`${aspectW}/${aspectH}`);
+          }
+          
+          // Clean up
+          tempVideo.remove();
+        };
+      }).catch(error => {
+        if (!abortController.signal.aborted) {
+          console.error('Error getting video metadata:', error);
+        }
+      });
+    }
     
     return () => {
       abortController.abort();
-      if (fileUrl) {
-        URL.revokeObjectURL(fileUrl);
-      }
+      // Clean up the URL created in this effect
+      URL.revokeObjectURL(url);
     };
   }, [displayFile, open, internalCurrentIndex]);
 

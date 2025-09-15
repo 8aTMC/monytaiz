@@ -112,15 +112,32 @@ export const PreUploadDuplicateDialog = ({
   
   const FileThumbnail = ({ duplicate }: { duplicate: DuplicateMatch }) => {
     const { queueFile } = duplicate;
+    const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
     
-    if (queueFile.file.type.startsWith('image/')) {
-      const url = URL.createObjectURL(queueFile.file);
+    useEffect(() => {
+      if (queueFile.file.type.startsWith('image/')) {
+        // Use data URL instead of blob URL to avoid lifecycle issues
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            setThumbnailUrl(e.target.result as string);
+          }
+        };
+        reader.onerror = () => {
+          console.error('Error reading image file for thumbnail:', queueFile.file.name);
+          setThumbnailUrl(null);
+        };
+        reader.readAsDataURL(queueFile.file);
+      }
+    }, [queueFile.file]);
+    
+    if (queueFile.file.type.startsWith('image/') && thumbnailUrl) {
       return (
         <img 
-          src={url} 
+          src={thumbnailUrl} 
           alt="File preview" 
           className="w-12 h-12 object-cover rounded border"
-          onLoad={() => URL.revokeObjectURL(url)}
+          onError={() => setThumbnailUrl(null)}
         />
       );
     }

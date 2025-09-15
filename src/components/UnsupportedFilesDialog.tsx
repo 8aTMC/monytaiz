@@ -89,12 +89,18 @@ export const UnsupportedFilesDialog = ({
     
     useEffect(() => {
       if (isImage && file.file) {
-        const url = URL.createObjectURL(file.file);
-        setThumbnailUrl(url);
-        
-        return () => {
-          URL.revokeObjectURL(url);
+        // Use data URL instead of blob URL to avoid lifecycle issues
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            setThumbnailUrl(e.target.result as string);
+          }
         };
+        reader.onerror = () => {
+          console.error('Error reading image file for thumbnail:', file.file.name);
+          setThumbnailUrl(null);
+        };
+        reader.readAsDataURL(file.file);
       }
     }, [file.file, isImage]);
     
