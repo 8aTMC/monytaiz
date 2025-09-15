@@ -684,7 +684,10 @@ export default function SimpleLibrary() {
                   {selectedCategory === 'all-files' ? 'All Files' : 
                    selectedCategory === 'stories' ? 'Stories' :
                    selectedCategory === 'livestreams' ? 'LiveStreams' :
-                   selectedCategory === 'messages' ? 'Messages' : 'Library'}
+                   selectedCategory === 'messages' ? 'Messages' : 
+                   customFolders.find(folder => folder.id === selectedCategory)?.name || 
+                   customFolders.find(folder => folder.id === selectedCategory)?.label || 
+                   'Library'}
                 </h1>
               </div>
             </div>
