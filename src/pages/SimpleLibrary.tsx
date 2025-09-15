@@ -678,19 +678,18 @@ export default function SimpleLibrary() {
         {/* Main Content Column */}
         <main className="pl-2 md:pl-0 flex flex-col min-h-0">
           <div className="flex-shrink-0 p-4 border-b border-border">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">
-                  {selectedCategory === 'all-files' ? 'All Files' : 
-                   selectedCategory === 'stories' ? 'Stories' :
-                   selectedCategory === 'livestreams' ? 'LiveStreams' :
-                   selectedCategory === 'messages' ? 'Messages' : 
-                   customFolders.find(folder => folder.id === selectedCategory)?.name || 
-                   customFolders.find(folder => folder.id === selectedCategory)?.label || 
-                   'Library'}
-                </h1>
+            {(['all-files', 'stories', 'livestreams', 'messages'].includes(selectedCategory)) && (
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">
+                    {selectedCategory === 'all-files' ? 'All Files' : 
+                     selectedCategory === 'stories' ? 'Stories' :
+                     selectedCategory === 'livestreams' ? 'LiveStreams' :
+                     'Messages'}
+                  </h1>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Filter Tabs and Controls */}
             <div className="flex items-center justify-between">
