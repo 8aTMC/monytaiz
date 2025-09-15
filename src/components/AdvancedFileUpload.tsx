@@ -322,6 +322,58 @@ export const AdvancedFileUpload = () => {
     });
   }, [uploadQueue.length]);
 
+  // Close preview if the currently viewed file is uploaded/removed
+  useEffect(() => {
+    if (previewIndex !== null) {
+      const currentFile = uploadQueue[previewIndex];
+      
+      // Close preview if file is completed or no longer exists
+      if (!currentFile || currentFile.status === 'completed') {
+        setPreviewOpen(false);
+        setPreviewIndex(null);
+      }
+      
+      // Adjust preview index if queue length changed
+      else if (previewIndex >= uploadQueue.length) {
+        const newIndex = Math.max(0, uploadQueue.length - 1);
+        if (uploadQueue.length > 0) {
+          setPreviewIndex(newIndex);
+        } else {
+          setPreviewOpen(false);
+          setPreviewIndex(null);
+        }
+      }
+    }
+  }, [uploadQueue, previewIndex]);
+
+  // Handle page navigation/reload - cancel uploads but preserve completed ones
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const hasUploading = uploadQueue.some(item => 
+        item.status === 'uploading' || item.status === 'processing'
+      );
+      
+      if (hasUploading) {
+        e.preventDefault();
+        e.returnValue = 'Uploads in progress will be cancelled. Are you sure?';
+        return 'Uploads in progress will be cancelled. Are you sure?';
+      }
+    };
+
+    const handleUnload = () => {
+      // Cancel any ongoing uploads
+      cancelAllUploads();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('unload', handleUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('unload', handleUnload);
+    };
+  }, [uploadQueue, cancelAllUploads]);
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -650,7 +702,7 @@ export const AdvancedFileUpload = () => {
                   onClick={cancelAllUploads}
                 >
                   <X className="w-4 h-4 mr-2" />
-                  Cancel All
+                  Pause All
                 </Button>
               ) : (
                 <>

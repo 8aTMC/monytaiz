@@ -91,7 +91,7 @@ export function EnhancedFileUploadRow({
     onPreview?.();
   };
 
-  const isCurrentlyUploading = item.status === 'uploading';
+  const isCurrentlyUploading = item.status === 'uploading' || item.status === 'processing';
   const canEditMetadata = !isUploading || item.status === 'pending' || item.status === 'error';
 
   // Get highlighting class based on metadata and selection
@@ -104,6 +104,17 @@ export function EnhancedFileUploadRow({
     if (hasMetadata) return "bg-green-50 border-green-200 dark:bg-green-950/50 dark:border-green-800";
     if (hasDetails) return "bg-blue-50 border-blue-200 dark:bg-blue-950/50 dark:border-blue-800";
     return "hover:bg-muted/50";
+  };
+
+  const formatUploadSpeed = (bytesPerSecond: number): string => {
+    if (!bytesPerSecond) return '';
+    if (bytesPerSecond < 1024) return `${bytesPerSecond.toFixed(0)} B/s`;
+    if (bytesPerSecond < 1024 * 1024) return `${(bytesPerSecond / 1024).toFixed(1)} KB/s`;
+    return `${(bytesPerSecond / (1024 * 1024)).toFixed(1)} MB/s`;
+  };
+
+  const getFileExtension = () => {
+    return '.' + (item.file.name.split('.').pop()?.toLowerCase() || '');
   };
 
   return (
@@ -133,20 +144,49 @@ export function EnhancedFileUploadRow({
             
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">{item.file.name}</p>
-              <p className="text-sm text-muted-foreground">
-                {formatFileSize(item.file.size)}
+              <div className="text-sm text-muted-foreground flex items-center gap-2">
+                <span>{formatFileSize(item.file.size)}</span>
+                {/* Optimization info for images */}
+                {item.optimizationInfo && (
+                  <span className="text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded">
+                    Optimized: {formatFileSize(item.optimizationInfo.originalSize)} → {formatFileSize(item.optimizationInfo.optimizedSize)} 
+                    ({item.optimizationInfo.percentSaved}% saved)
+                  </span>
+                )}
+                {/* Upload progress info */}
                 {item.uploadedBytes && item.totalBytes && (
                   <span className="ml-2">
                     ({formatFileSize(item.uploadedBytes)} / {formatFileSize(item.totalBytes)})
                   </span>
                 )}
-              </p>
+              </div>
               {item.error && (
                 <p className="text-sm text-destructive mt-1">{item.error}</p>
               )}
             </div>
             
             <div className="flex items-center gap-2">
+              {/* File type badge */}
+              <Badge variant="secondary" className="text-xs">
+                {getFileExtension()}
+              </Badge>
+              
+              {/* Progress bar (positioned to the right of file extension) */}
+              {(item.status === 'uploading' || item.status === 'processing') && (
+                <div className="flex flex-col items-end gap-1 min-w-[120px]">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{item.progress}%</span>
+                    {item.uploadSpeed && (
+                      <span className="text-primary">{formatUploadSpeed(item.uploadSpeed)}</span>
+                    )}
+                  </div>
+                  <Progress value={item.progress} className="h-2 w-full" />
+                  {item.status === 'processing' && (
+                    <span className="text-xs text-orange-600 dark:text-orange-400">Processing...</span>
+                  )}
+                </div>
+              )}
+              
               {getStatusIcon(item.status)}
               
               {/* Action buttons for upload control */}
@@ -202,11 +242,6 @@ export function EnhancedFileUploadRow({
               </Button>
             </div>
           </div>
-
-          {/* Progress bar for uploading files */}
-          {(item.status === 'uploading' || item.status === 'paused') && (
-            <Progress value={item.progress} className="h-2" />
-          )}
 
           {/* Metadata Editing Buttons */}
           <div className="flex flex-wrap gap-2">

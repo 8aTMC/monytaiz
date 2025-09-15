@@ -6,14 +6,20 @@ export interface FileUploadItem {
   file: File;
   id: string;
   progress: number;
-  status: 'pending' | 'uploading' | 'completed' | 'error' | 'paused' | 'cancelled';
+  status: 'pending' | 'uploading' | 'completed' | 'error' | 'paused' | 'cancelled' | 'processing';
   error?: string;
   thumbnailUrl?: string;
   uploadedBytes?: number;
   totalBytes?: number;
+  uploadSpeed?: number; // bytes per second
   isPaused?: boolean;
   selected?: boolean;
   needsConversion?: boolean;
+  optimizationInfo?: {
+    originalSize: number;
+    optimizedSize: number;
+    percentSaved: number;
+  };
   metadata?: {
     mentions: string[];
     tags: string[];
@@ -898,38 +904,46 @@ export const useFileUpload = () => {
     let successCount = 0;
     let errorCount = 0;
 
-    // Keep processing files until none are left
-    while (true) {
-      // Always get fresh queue state to handle removed files
-      const currentQueue = queueRef.current.filter(item => item.status === 'pending');
+    // Get pending files for upload
+    const pendingFiles = queueRef.current.filter(item => item.status === 'pending');
+    
+    if (pendingFiles.length === 0) {
+      setIsUploading(false);
+      return;
+    }
+
+    // Parallel upload with concurrency limit
+    const CONCURRENCY_LIMIT = 3;
+    const uploadPromises: Promise<any>[] = [];
+
+    // Process files in batches to avoid overwhelming the connection
+    for (let i = 0; i < pendingFiles.length; i += CONCURRENCY_LIMIT) {
+      const batch = pendingFiles.slice(i, i + CONCURRENCY_LIMIT);
       
-      if (currentQueue.length === 0) {
-        break; // No more pending files
-      }
-
-      const nextFile = currentQueue[0];
-      if (!nextFile) {
-        break;
-      }
-
-      // Check if this file still exists in the queue (wasn't removed)
-      const fileStillExists = queueRef.current.some(item => item.id === nextFile.id);
-      if (!fileStillExists) {
-        continue; // File was removed, check for next one
-      }
-
-      if (!pausedUploads.has(nextFile.id)) {
-        const result = await uploadFile(nextFile);
-        
-        if (result?.success) {
-          successCount++;
-        } else {
+      // Wait for current batch to complete before starting next batch
+      const batchPromises = batch.map(async (item) => {
+        try {
+          const result = await uploadFile(item);
+          if (result?.success) {
+            successCount++;
+          } else {
+            errorCount++;
+          }
+          return result;
+        } catch (error) {
           errorCount++;
+          console.error('Upload error:', error);
+          return { success: false, error };
         }
-      }
+      });
+
+      // Wait for all files in this batch to complete
+      await Promise.allSettled(batchPromises);
       
-      // Small delay to allow UI updates and queue changes
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Small delay between batches to prevent overwhelming the server
+      if (i + CONCURRENCY_LIMIT < pendingFiles.length) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
     }
 
     setIsUploading(false);
