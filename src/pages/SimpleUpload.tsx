@@ -71,11 +71,34 @@ export default function SimpleUpload() {
   // Calculate total file size for storage quota
   const totalFilesSize = files.reduce((acc, file) => acc + file.file.size, 0);
 
+  // Track anchor for range selection
+  const anchorIndexRef = useRef<number | null>(null);
+
   // Selection functions
-  const toggleFileSelection = useCallback((fileId: string, selected: boolean) => {
-    setFiles(prev => prev.map(f => 
-      f.id === fileId ? { ...f, selected } : f
-    ));
+  const toggleFileSelection = useCallback((fileId: string, selected: boolean, options?: { range?: boolean; index?: number }) => {
+    setFiles(prev => {
+      if (options?.range && anchorIndexRef.current !== null && options.index !== undefined) {
+        // Range selection: select all files between anchor and current index
+        const startIndex = Math.min(anchorIndexRef.current, options.index);
+        const endIndex = Math.max(anchorIndexRef.current, options.index);
+        
+        return prev.map((file, idx) => {
+          if (idx >= startIndex && idx <= endIndex) {
+            return { ...file, selected: true };
+          }
+          return file;
+        });
+      } else {
+        // Normal single selection
+        const fileIndex = options?.index ?? prev.findIndex(f => f.id === fileId);
+        if (fileIndex !== -1) {
+          anchorIndexRef.current = fileIndex;
+        }
+        return prev.map(f => 
+          f.id === fileId ? { ...f, selected } : f
+        );
+      }
+    });
   }, []);
 
   const selectAllFiles = useCallback(() => {
@@ -830,7 +853,7 @@ export default function SimpleUpload() {
 
               {/* Review Mode - File List Only */}
               {reviewMode && files.length > 0 && (
-                <div key={`cache-buster-${Math.random()}-${files.length}-${selectedFiles.length}`} className="h-full flex flex-col animate-in fade-in-0 duration-300">
+                <div className="h-full flex flex-col animate-in fade-in-0 duration-300">
                   <div className="flex-1 min-h-0">
                     <VirtualizedFileList
                       files={files}

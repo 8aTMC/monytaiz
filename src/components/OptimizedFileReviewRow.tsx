@@ -25,7 +25,7 @@ interface OptimizedFileReviewRowProps {
   currentIndex?: number;
   onRemove: (id: string) => void;
   onMetadataChange?: (id: string, metadata: Partial<UploadedFileWithMetadata['metadata']>) => void;
-  onSelectionChange?: (id: string, selected: boolean) => void;
+  onSelectionChange?: (id: string, selected: boolean, options?: { range?: boolean; index?: number }) => void;
   onNavigateToFile?: (index: number) => void;
   formatFileSize: (bytes: number) => string;
 }
@@ -77,11 +77,15 @@ function OptimizedFileReviewRowComponent({
     }
   }, [file.id, onSelectionChange]);
 
-  const handleRowClick = useCallback(() => {
-    if (onSelectionChange) {
-      handleSelectionChange(!file.selected);
+  const handleRowClick = useCallback((e: React.MouseEvent) => {
+    if (onSelectionChange && files && currentIndex !== undefined) {
+      const isRangeSelection = e.shiftKey || e.altKey;
+      onSelectionChange(file.id, !file.selected, { 
+        range: isRangeSelection, 
+        index: currentIndex 
+      });
     }
-  }, [onSelectionChange, handleSelectionChange, file.selected]);
+  }, [onSelectionChange, file.id, file.selected, files, currentIndex]);
 
   // Memoize metadata calculations
   const hasMetadata = file.metadata.mentions.length > 0 || 

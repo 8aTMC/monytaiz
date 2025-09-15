@@ -8,7 +8,7 @@ interface VirtualizedFileListProps {
   files: UploadedFileWithMetadata[];
   onRemove: (id: string) => void;
   onMetadataChange?: (id: string, metadata: Partial<UploadedFileWithMetadata['metadata']>) => void;
-  onSelectionChange?: (id: string, selected: boolean) => void;
+  onSelectionChange?: (id: string, selected: boolean, options?: { range?: boolean; index?: number }) => void;
   formatFileSize: (bytes: number) => string;
   height?: number;
 }
@@ -22,7 +22,7 @@ interface ListItemProps {
     files: UploadedFileWithMetadata[];
     onRemove: (id: string) => void;
     onMetadataChange?: (id: string, metadata: Partial<UploadedFileWithMetadata['metadata']>) => void;
-    onSelectionChange?: (id: string, selected: boolean) => void;
+    onSelectionChange?: (id: string, selected: boolean, options?: { range?: boolean; index?: number }) => void;
     formatFileSize: (bytes: number) => string;
   };
 }
@@ -109,21 +109,22 @@ export const VirtualizedFileList = memo(({
       className="w-full bg-background rounded-lg overflow-hidden"
       style={{ height: containerHeight }}
     >
-      <List
-        height={containerHeight}
-        width="100%"
-        itemCount={files.length}
-        itemSize={ITEM_HEIGHT}
-        itemData={itemData}
-        overscanCount={5} // Render 5 extra items for smoother scrolling
-        style={{
-          backgroundColor: 'hsl(var(--card))',
-          color: 'hsl(var(--card-foreground))',
-          width: '100%'
-        }}
-      >
-        {ListItem}
-      </List>
+        <List
+          height={containerHeight}
+          width="100%"
+          itemCount={files.length}
+          itemSize={ITEM_HEIGHT}
+          itemData={itemData}
+          itemKey={(index) => files[index].id}
+          overscanCount={5} // Render 5 extra items for smoother scrolling
+          style={{
+            backgroundColor: 'hsl(var(--card))',
+            color: 'hsl(var(--card-foreground))',
+            width: '100%'
+          }}
+        >
+          {ListItem}
+        </List>
     </div>
   );
 });
