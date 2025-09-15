@@ -29,40 +29,19 @@ export default function TagManagement() {
     try {
       setLoading(true);
       
-      // Get tags from both media and content_files tables
-      const [mediaResult, contentResult] = await Promise.all([
-        supabase
-          .from('media')
-          .select('tags')
-          .not('tags', 'is', null),
-        supabase
-          .from('content_files')
-          .select('tags')
-          .not('tags', 'is', null)
-      ]);
+      // Get tags from saved_tags table
+      const { data: savedTags, error } = await supabase
+        .from('saved_tags')
+        .select('tag_name, usage_count')
+        .order('usage_count', { ascending: false });
 
-      if (mediaResult.error) throw mediaResult.error;
-      if (contentResult.error) throw contentResult.error;
+      if (error) throw error;
 
-      // Combine and count tags
-      const allTags: string[] = [];
-      
-      [...(mediaResult.data || []), ...(contentResult.data || [])].forEach(item => {
-        if (item.tags && Array.isArray(item.tags)) {
-          allTags.push(...item.tags.filter(tag => !defaultTags.includes(tag.toLowerCase())));
-        }
-      });
-
-      // Count occurrences
-      const tagCounts: Record<string, number> = {};
-      allTags.forEach(tag => {
-        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-      });
-
-      // Convert to array and sort by count
-      const tagsArray = Object.entries(tagCounts)
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count);
+      // Convert to the expected format
+      const tagsArray = (savedTags || []).map(tag => ({
+        name: tag.tag_name,
+        count: tag.usage_count
+      }));
 
       setTags(tagsArray);
     } catch (error) {
@@ -92,14 +71,34 @@ export default function TagManagement() {
       return;
     }
 
-    // Add to tags list
-    setTags(prev => [...prev, { name: tagName, count: 0 }].sort((a, b) => b.count - a.count));
-    setNewTagName('');
-    
-    toast({
-      title: "Success",
-      description: `Tag "${tagName}" added`,
-    });
+    try {
+      // Add to saved_tags table
+      const { error } = await supabase
+        .from('saved_tags')
+        .insert({
+          tag_name: tagName,
+          usage_count: 0,
+          creator_id: (await supabase.auth.getUser()).data.user?.id
+        });
+
+      if (error) throw error;
+
+      // Add to local state
+      setTags(prev => [...prev, { name: tagName, count: 0 }].sort((a, b) => b.count - a.count));
+      setNewTagName('');
+      
+      toast({
+        title: "Success",
+        description: `Tag "${tagName}" added`,
+      });
+    } catch (error) {
+      console.error('Error adding tag:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add tag",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteSelectedTags = async () => {
@@ -109,45 +108,13 @@ export default function TagManagement() {
       setLoading(true);
       const tagsToDelete = Array.from(selectedTags);
 
-      // Remove tags from media table
-      const { data: mediaItems } = await supabase
-        .from('media')
-        .select('id, tags')
-        .not('tags', 'is', null);
+      // Delete tags from saved_tags table
+      const { error } = await supabase
+        .from('saved_tags')
+        .delete()
+        .in('tag_name', tagsToDelete);
 
-      if (mediaItems) {
-        for (const item of mediaItems) {
-          if (item.tags && Array.isArray(item.tags)) {
-            const filteredTags = item.tags.filter(tag => !tagsToDelete.includes(tag));
-            if (filteredTags.length !== item.tags.length) {
-              await supabase
-                .from('media')
-                .update({ tags: filteredTags })
-                .eq('id', item.id);
-            }
-          }
-        }
-      }
-
-      // Remove tags from content_files table
-      const { data: contentItems } = await supabase
-        .from('content_files')
-        .select('id, tags')
-        .not('tags', 'is', null);
-
-      if (contentItems) {
-        for (const item of contentItems) {
-          if (item.tags && Array.isArray(item.tags)) {
-            const filteredTags = item.tags.filter(tag => !tagsToDelete.includes(tag));
-            if (filteredTags.length !== item.tags.length) {
-              await supabase
-                .from('content_files')
-                .update({ tags: filteredTags })
-                .eq('id', item.id);
-            }
-          }
-        }
-      }
+      if (error) throw error;
 
       // Update local state
       setTags(prev => prev.filter(tag => !selectedTags.has(tag.name)));
