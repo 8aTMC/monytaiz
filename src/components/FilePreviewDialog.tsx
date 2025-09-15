@@ -313,10 +313,12 @@ export const FilePreviewDialog = ({
       const [width, height] = videoAspectRatio.split('/').map(Number);
       const aspectValue = width / height;
       
-      // Calculate available space based on modal size minus header and minimal padding
-      const headerHeight = 100; // Approximate header height
+      // Calculate available space based on modal size minus header, toolbar, and controls
+      const headerHeight = 120; // Header with navigation and file info
+      const toolbarHeight = 100; // Metadata editing toolbar at bottom
+      const controlsHeight = 60; // Video player controls
       const modalMaxHeight = window.innerHeight * 0.95;
-      const availableHeight = modalMaxHeight - headerHeight - 4; // 4px for minimal spacing
+      const availableHeight = modalMaxHeight - headerHeight - toolbarHeight - controlsHeight;
       
       // For vertical videos (aspect < 1), maximize available height
       if (aspectValue < 1) {
