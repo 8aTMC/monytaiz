@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowUpDown, GripVertical, MoreVertical, Search } from 'lucide-react';
+import { ArrowUpDown, GripVertical, MoreVertical, Search, Eye, EyeOff } from 'lucide-react';
 import { NewFolderDialog } from '@/components/NewFolderDialog';
 import { EditFolderDialog } from '@/components/EditFolderDialog';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface CategoryItem {
   id: string;
@@ -32,12 +33,24 @@ export const LibrarySidebar = ({
   onFolderCreated,
   onFolderUpdated
 }: LibrarySidebarProps) => {
+  const { t } = useTranslation();
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [reorderedFolders, setReorderedFolders] = useState<CategoryItem[]>(customFolders);
+  
+  // State for showing/hiding default folders with localStorage persistence
+  const [showDefaultFolders, setShowDefaultFolders] = useState(() => {
+    const stored = localStorage.getItem('showDefaultFolders');
+    return stored !== null ? JSON.parse(stored) : true;
+  });
+
+  // Persist default folders visibility to localStorage
+  useEffect(() => {
+    localStorage.setItem('showDefaultFolders', JSON.stringify(showDefaultFolders));
+  }, [showDefaultFolders]);
 
   // Sync reorderedFolders with customFolders when not in reorder mode
   useEffect(() => {
@@ -234,20 +247,22 @@ export const LibrarySidebar = ({
           </div>
 
           {/* Default categories (more compact, consistent with custom) */}
-          <div className="space-y-1.5 mb-5">
-            {defaultCategories.map((category) => {
-              const isSelected = selectedCategory === category.id;
-              return (
-                <Row
-                  key={category.id}
-                  item={category}
-                  isSelected={isSelected}
-                  count={categoryCounts[category.id] || 0}
-                  onClick={() => onCategorySelect(category.id)}
-                />
-              );
-            })}
-          </div>
+          {showDefaultFolders && (
+            <div className="space-y-1.5 mb-5">
+              {defaultCategories.map((category) => {
+                const isSelected = selectedCategory === category.id;
+                return (
+                  <Row
+                    key={category.id}
+                    item={category}
+                    isSelected={isSelected}
+                    count={categoryCounts[category.id] || 0}
+                    onClick={() => onCategorySelect(category.id)}
+                  />
+                );
+              })}
+            </div>
+          )}
 
           {/* Divider */}
           <div className="relative my-4">
@@ -286,6 +301,15 @@ export const LibrarySidebar = ({
                 </>
               ) : (
                 <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowDefaultFolders(!showDefaultFolders)}
+                    className="text-xs px-2 h-7 hover:bg-gradient-glass transition"
+                    title={showDefaultFolders ? t('platform.library.hideDefault') : t('platform.library.showDefault')}
+                  >
+                    {showDefaultFolders ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </Button>
                   <div className="flex-1">
                     <NewFolderDialog onFolderCreated={onFolderCreated} />
                   </div>

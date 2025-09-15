@@ -36,6 +36,10 @@
       "upload": "Upload",
       "analytics": "Analytics"
     },
+    "library": {
+      "showDefault": "Show default folders",
+      "hideDefault": "Hide default folders"
+    },
     "auth": {
       "signIn": "Sign In",
       "signUp": "Sign Up",
