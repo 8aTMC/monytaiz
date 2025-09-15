@@ -130,7 +130,7 @@ export const LibrarySidebar = ({
         {/* counter */}
         <Badge
           variant="secondary"
-          className={`absolute top-1 right-1 rounded-full text-[10px] px-1.5 h-4 min-w-[16px] flex items-center justify-center pointer-events-none transition-all z-10 ${
+          className={`absolute top-0 right-1 rounded-full text-[10px] px-1.5 h-4 min-w-[16px] flex items-center justify-center pointer-events-none transition-all z-10 ${
             isSelected
               ? 'bg-white text-primary border-white shadow-sm'
               : 'bg-primary/10 text-primary border-primary/20 group-hover:bg-primary/20'
@@ -144,7 +144,7 @@ export const LibrarySidebar = ({
 
         <Button
           variant={isSelected ? 'default' : 'ghost'}
-          className={`w-full justify-start text-left h-auto p-3 pr-8 min-h-[52px] ${
+          className={`w-full justify-start text-left h-auto p-3 pr-8 min-h-[60px] ${
             leftPad ? 'pl-5' : ''
           } min-w-0 relative transition-all ${
             isSelected
