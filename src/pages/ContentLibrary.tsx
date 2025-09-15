@@ -140,7 +140,11 @@ const ContentLibrary = () => {
 
   const { copyToCollection, removeFromCollection, deleteMediaHard, loading: operationLoading } = useMediaOperations({
     onRefreshNeeded,
-    onCountsRefreshNeeded
+    onCountsRefreshNeeded,
+    onDuplicateCacheInvalidated: () => {
+      console.log('🔄 Duplicate detection cache invalidated in ContentLibrary');
+      // Any upload components will get fresh data on next duplicate check
+    }
   });
   
   const { toast } = useToast();

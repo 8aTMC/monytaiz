@@ -165,6 +165,10 @@ export default function SimpleLibrary() {
         // For delete operations, only refresh counts without refetching folder structure  
         refreshFolderCounts();
       }
+    },
+    onDuplicateCacheInvalidated: () => {
+      console.log('🔄 Duplicate detection cache invalidated in SimpleLibrary');
+      // Any upload components will get fresh data on next duplicate check
     }
   });
 

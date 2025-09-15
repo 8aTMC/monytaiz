@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { FileUploadItem } from './useFileUpload';
+import { duplicateCache } from '@/utils/duplicateCache';
 
 export interface QueueDuplicate {
   queueFile: FileUploadItem;
@@ -74,6 +75,12 @@ export const useDuplicateDetection = () => {
       const processFiles = uploadQueue.filter(f => f.status === 'pending');
 
       for (const queueFile of processFiles) {
+        // Skip if file was recently deleted
+        if (duplicateCache.isRecentlyDeleted(queueFile.file.name, queueFile.file.size)) {
+          console.log('⏭️ Skipping recently deleted file:', queueFile.file.name);
+          continue;
+        }
+
         // Check for exact filename match only
         const { data: exactMatches } = await supabase
           .from('simple_media')
@@ -84,15 +91,27 @@ export const useDuplicateDetection = () => {
         if (exactMatches && exactMatches.length > 0) {
           console.log('🎯 Found exact filename match for:', queueFile.file.name);
           
+          // Verification step - re-check that the file still exists
           const mostRecent = exactMatches.sort((a, b) => 
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           )[0];
 
-          duplicates.push({
-            queueFile,
-            existingFile: mostRecent,
-            sourceType: 'database'
-          });
+          // Double-check that the file still exists by ID
+          const { data: verifyFile } = await supabase
+            .from('simple_media')
+            .select('id, title, original_filename')
+            .eq('id', mostRecent.id)
+            .single();
+
+          if (verifyFile) {
+            duplicates.push({
+              queueFile,
+              existingFile: mostRecent,
+              sourceType: 'database'
+            });
+          } else {
+            console.log('⚠️ File no longer exists during verification:', queueFile.file.name);
+          }
         }
       }
 
@@ -104,14 +123,23 @@ export const useDuplicateDetection = () => {
     }
   };
 
-  // Combined duplicate detection that checks both queue and database
+  // Combined duplicate detection that checks both queue and database with caching
   const checkAllDuplicates = async (uploadQueue: FileUploadItem[]): Promise<DuplicateMatch[]> => {
     console.log('🔍 Starting comprehensive duplicate detection...');
+    
+    // Check cache first
+    const cacheKey = duplicateCache.getCacheKey(uploadQueue);
+    const cachedResult = duplicateCache.get(cacheKey);
+    
+    if (cachedResult) {
+      console.log('🎯 Using cached duplicate detection result');
+      return cachedResult;
+    }
     
     // First check queue duplicates (faster)
     const queueDuplicates = await checkQueueDuplicates(uploadQueue);
     
-    // Then check database duplicates
+    // Then check database duplicates with verification
     const databaseDuplicates = await checkDatabaseDuplicates(uploadQueue);
     
     // Combine both types of duplicates
@@ -119,6 +147,9 @@ export const useDuplicateDetection = () => {
       ...queueDuplicates,
       ...databaseDuplicates
     ];
+    
+    // Cache the result for 2 minutes (shorter TTL for more accuracy)
+    duplicateCache.set(cacheKey, allDuplicates, 2 * 60 * 1000);
     
     console.log('🔍 Total duplicates found:', allDuplicates.length, '| Queue:', queueDuplicates.length, '| Database:', databaseDuplicates.length);
     
@@ -130,10 +161,24 @@ export const useDuplicateDetection = () => {
     return tags.includes(duplicateTag) ? tags : [...tags, duplicateTag];
   };
 
+  // Clear duplicate detection cache (called after media operations)
+  const clearCache = () => {
+    console.log('🗑️ Clearing duplicate detection cache');
+    duplicateCache.clearAll();
+  };
+
+  // Mark files as deleted in cache (for tracking recent deletions)
+  const markFilesAsDeleted = (filenames: string[], sizes: number[]) => {
+    console.log('🗑️ Marking files as deleted in duplicate cache:', filenames);
+    duplicateCache.markAsDeleted(filenames, sizes);
+  };
+
   return {
     checkDatabaseDuplicates,
     checkQueueDuplicates,
     checkAllDuplicates,
-    addDuplicateTag
+    addDuplicateTag,
+    clearCache,
+    markFilesAsDeleted
   };
 };

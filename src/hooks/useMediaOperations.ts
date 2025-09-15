@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { duplicateCache } from '@/utils/duplicateCache'
 
 export interface MediaItem {
   id: string
@@ -20,6 +21,7 @@ export interface Collection {
 export const useMediaOperations = (callbacks?: {
   onRefreshNeeded?: () => void;
   onCountsRefreshNeeded?: (affectedFolderIds?: string[]) => void;
+  onDuplicateCacheInvalidated?: () => void;
 }) => {
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
@@ -46,6 +48,10 @@ export const useMediaOperations = (callbacks?: {
       // Trigger refresh of content and counts
       callbacks?.onRefreshNeeded?.()
       callbacks?.onCountsRefreshNeeded?.()
+      
+      // Clear duplicate detection cache since files were copied
+      duplicateCache.clearAll()
+      callbacks?.onDuplicateCacheInvalidated?.()
 
       return data
     } catch (error: any) {
@@ -83,6 +89,10 @@ export const useMediaOperations = (callbacks?: {
       // Trigger refresh of content and counts
       callbacks?.onRefreshNeeded?.()
       callbacks?.onCountsRefreshNeeded?.()
+      
+      // Clear duplicate detection cache since files were removed
+      duplicateCache.clearAll()
+      callbacks?.onDuplicateCacheInvalidated?.()
 
       return data
     } catch (error: any) {
@@ -120,6 +130,10 @@ export const useMediaOperations = (callbacks?: {
       // Trigger refresh of content and counts
       callbacks?.onRefreshNeeded?.()
       callbacks?.onCountsRefreshNeeded?.([folderId])
+      
+      // Clear duplicate detection cache since files were removed from folder
+      duplicateCache.clearAll()
+      callbacks?.onDuplicateCacheInvalidated?.()
 
       return data
     } catch (error: any) {
@@ -173,6 +187,10 @@ export const useMediaOperations = (callbacks?: {
         duration: 3000
       })
 
+      // Clear duplicate detection cache and mark files as deleted
+      duplicateCache.clearAll()
+      callbacks?.onDuplicateCacheInvalidated?.()
+
       // Trigger refresh of content and counts  
       callbacks?.onRefreshNeeded?.()
       // Don't refresh folder structure for deletions, only refresh counts
@@ -213,6 +231,10 @@ export const useMediaOperations = (callbacks?: {
       // Trigger refresh of content and counts for new collection
       callbacks?.onRefreshNeeded?.()
       callbacks?.onCountsRefreshNeeded?.()
+      
+      // Clear duplicate detection cache since new collection was created
+      duplicateCache.clearAll()
+      callbacks?.onDuplicateCacheInvalidated?.()
 
       return data.collection
     } catch (error: any) {
@@ -250,6 +272,10 @@ export const useMediaOperations = (callbacks?: {
       // Trigger refresh of content and counts
       callbacks?.onRefreshNeeded?.()
       callbacks?.onCountsRefreshNeeded?.(folderIds)
+      
+      // Clear duplicate detection cache since files were added to folders
+      duplicateCache.clearAll()
+      callbacks?.onDuplicateCacheInvalidated?.()
 
       return data
     } catch (error: any) {
