@@ -75,13 +75,30 @@ function OptimizedFileReviewRowComponent({
     onRemove(file.id);
   }, [file.id, onRemove]);
 
-  const handleSelectionChange = useCallback((checked: boolean) => {
-    if (onSelectionChange) {
+  const handleSelectionChange = useCallback((checked: boolean, e?: React.MouseEvent) => {
+    if (onSelectionChange && currentIndex !== undefined) {
       // Activate selection mode when checkbox is clicked
       onEnterSelectionMode?.();
-      onSelectionChange(file.id, checked);
+      
+      // Check if this is a range selection (Shift/Alt + click)
+      const isRangeSelection = e && (e.shiftKey || e.altKey);
+      
+      if (isRangeSelection) {
+        // Prevent text selection during range operations
+        e.preventDefault();
+        window.getSelection()?.removeAllRanges();
+        onSelectionChange(file.id, true, { 
+          range: true, 
+          index: currentIndex 
+        });
+      } else {
+        onSelectionChange(file.id, checked, { 
+          range: false, 
+          index: currentIndex 
+        });
+      }
     }
-  }, [file.id, onSelectionChange, onEnterSelectionMode]);
+  }, [file.id, onSelectionChange, onEnterSelectionMode, currentIndex]);
 
   const handleRowClick = useCallback((e: React.MouseEvent) => {
     // Check if the click was on a button or input element
@@ -160,8 +177,19 @@ function OptimizedFileReviewRowComponent({
             <div className="flex-shrink-0">
               <Checkbox
                 checked={file.selected || false}
-                onCheckedChange={handleSelectionChange}
-                onClick={(e) => e.stopPropagation()}
+                onCheckedChange={(checked) => {
+                  if (typeof checked === 'boolean') {
+                    handleSelectionChange(checked);
+                  }
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Handle range selection on checkbox click
+                  const isRangeSelection = e.shiftKey || e.altKey;
+                  if (isRangeSelection) {
+                    handleSelectionChange(true, e);
+                  }
+                }}
                 className="w-5 h-5"
               />
             </div>

@@ -83,12 +83,16 @@ export default function SimpleUpload() {
         const startIndex = Math.min(anchorIndexRef.current, options.index);
         const endIndex = Math.max(anchorIndexRef.current, options.index);
         
-        return prev.map((file, idx) => {
+        const updatedFiles = prev.map((file, idx) => {
           if (idx >= startIndex && idx <= endIndex) {
             return { ...file, selected: true };
           }
           return file;
         });
+        
+        // Update anchor to the current index after range selection
+        anchorIndexRef.current = options.index;
+        return updatedFiles;
       } else {
         // Normal single selection
         const fileIndex = options?.index ?? prev.findIndex(f => f.id === fileId);
