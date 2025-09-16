@@ -140,7 +140,20 @@ export default function SimpleUpload() {
       description: `Metadata updated for ${selectedFiles.length} files (selection preserved)`,
       variant: "default",
     });
-  }, [selectedFiles.length, clearSelection, toast]);
+  }, [selectedFiles.length, toast]);
+
+  const reorderFiles = useCallback((dragIndex: number, hoverIndex: number) => {
+    setFiles(prev => {
+      const newFiles = [...prev];
+      const draggedFile = newFiles[dragIndex];
+      
+      // Remove the dragged file and insert it at the new position
+      newFiles.splice(dragIndex, 1);
+      newFiles.splice(hoverIndex, 0, draggedFile);
+      
+      return newFiles;
+    });
+  }, []);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     logger.debug(`[UploadDebug] onDrop received`, { count: acceptedFiles.length });
@@ -842,6 +855,7 @@ export default function SimpleUpload() {
                       onRemove={removeFile}
                       onMetadataChange={handleMetadataChange}
                       onSelectionChange={toggleFileSelection}
+                      onReorder={reorderFiles}
                       formatFileSize={formatFileSize}
                       height={500}
                       selectionMode={selectionMode}

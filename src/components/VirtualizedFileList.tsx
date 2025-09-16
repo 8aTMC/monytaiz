@@ -9,6 +9,7 @@ interface VirtualizedFileListProps {
   onRemove: (id: string) => void;
   onMetadataChange?: (id: string, metadata: Partial<UploadedFileWithMetadata['metadata']>) => void;
   onSelectionChange?: (id: string, selected: boolean, options?: { range?: boolean; index?: number }) => void;
+  onReorder?: (dragIndex: number, hoverIndex: number) => void;
   formatFileSize: (bytes: number) => string;
   height?: number;
   selectionMode?: boolean;
@@ -25,6 +26,7 @@ interface ListItemProps {
     onRemove: (id: string) => void;
     onMetadataChange?: (id: string, metadata: Partial<UploadedFileWithMetadata['metadata']>) => void;
     onSelectionChange?: (id: string, selected: boolean, options?: { range?: boolean; index?: number }) => void;
+    onReorder?: (dragIndex: number, hoverIndex: number) => void;
     formatFileSize: (bytes: number) => string;
     selectionMode?: boolean;
     onEnterSelectionMode?: () => void;
@@ -32,7 +34,7 @@ interface ListItemProps {
 }
 
 const ListItem = memo(({ index, style, data }: ListItemProps) => {
-  const { files, onRemove, onMetadataChange, onSelectionChange, formatFileSize, selectionMode, onEnterSelectionMode } = data;
+  const { files, onRemove, onMetadataChange, onSelectionChange, onReorder, formatFileSize, selectionMode, onEnterSelectionMode } = data;
   const file = files[index];
   
   if (!file) return null;
@@ -43,9 +45,11 @@ const ListItem = memo(({ index, style, data }: ListItemProps) => {
         file={file}
         files={files}
         currentIndex={index}
+        position={index + 1}
         onRemove={onRemove}
         onMetadataChange={onMetadataChange}
         onSelectionChange={onSelectionChange}
+        onReorder={onReorder}
         formatFileSize={formatFileSize}
         selectionMode={selectionMode}
         onEnterSelectionMode={onEnterSelectionMode}
@@ -61,6 +65,7 @@ export const VirtualizedFileList = memo(({
   onRemove,
   onMetadataChange,
   onSelectionChange,
+  onReorder,
   formatFileSize,
   height = 400,
   selectionMode = false,
@@ -72,10 +77,11 @@ export const VirtualizedFileList = memo(({
     onRemove,
     onMetadataChange,
     onSelectionChange,
+    onReorder,
     formatFileSize,
     selectionMode,
     onEnterSelectionMode
-  }), [files, onRemove, onMetadataChange, onSelectionChange, formatFileSize, selectionMode, onEnterSelectionMode]);
+  }), [files, onRemove, onMetadataChange, onSelectionChange, onReorder, formatFileSize, selectionMode, onEnterSelectionMode]);
 
   // Use the height passed from parent - no dynamic calculation
   const containerHeight = Math.min(height, files.length * ITEM_HEIGHT + 20);
@@ -101,9 +107,11 @@ export const VirtualizedFileList = memo(({
                   file={file}
                   files={files}
                   currentIndex={index}
+                  position={index + 1}
                   onRemove={onRemove}
                   onMetadataChange={onMetadataChange}
                   onSelectionChange={onSelectionChange}
+                  onReorder={onReorder}
                   formatFileSize={formatFileSize}
                   selectionMode={selectionMode}
                   onEnterSelectionMode={onEnterSelectionMode}

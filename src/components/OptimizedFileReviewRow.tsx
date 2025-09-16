@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { FileImage, FileVideo, FileAudio, X, AtSign, Hash, FolderOpen, FileText, DollarSign, Eye } from 'lucide-react';
+import { FileImage, FileVideo, FileAudio, X, AtSign, Hash, FolderOpen, FileText, DollarSign, Eye, GripVertical } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { UploadedFileWithMetadata } from '@/components/FileUploadRowWithMetadata';
 import { MentionsDialog } from './MentionsDialog';
@@ -23,10 +23,12 @@ interface OptimizedFileReviewRowProps {
   };
   files?: UploadedFileWithMetadata[];
   currentIndex?: number;
+  position?: number;
   onRemove: (id: string) => void;
   onMetadataChange?: (id: string, metadata: Partial<UploadedFileWithMetadata['metadata']>) => void;
   onSelectionChange?: (id: string, selected: boolean, options?: { range?: boolean; index?: number }) => void;
   onNavigateToFile?: (index: number) => void;
+  onReorder?: (dragIndex: number, hoverIndex: number) => void;
   formatFileSize: (bytes: number) => string;
   selectionMode?: boolean;
   onEnterSelectionMode?: () => void;
@@ -43,15 +45,21 @@ function OptimizedFileReviewRowComponent({
   file, 
   files, 
   currentIndex, 
+  position = 1,
   onRemove, 
   onMetadataChange, 
   onSelectionChange, 
   onNavigateToFile, 
+  onReorder,
   formatFileSize,
   selectionMode = false,
   onEnterSelectionMode
 }: OptimizedFileReviewRowProps) {
   const { thumbnail, isLoading } = useOptimizedThumbnail(file.file);
+  
+  // Drag state
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   
   // Dialog states
   const [mentionsDialogOpen, setMentionsDialogOpen] = useState(false);
@@ -99,6 +107,40 @@ function OptimizedFileReviewRowComponent({
       }
     }
   }, [file.id, onSelectionChange, onEnterSelectionMode, currentIndex]);
+
+  // Drag handlers
+  const handleDragStart = useCallback((e: React.DragEvent) => {
+    setIsDragging(true);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', currentIndex?.toString() || '0');
+  }, [currentIndex]);
+
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+    setDragOver(false);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    
+    const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
+    const hoverIndex = currentIndex;
+    
+    if (dragIndex !== hoverIndex && onReorder && hoverIndex !== undefined) {
+      onReorder(dragIndex, hoverIndex);
+    }
+  }, [currentIndex, onReorder]);
 
   const handleRowClick = useCallback((e: React.MouseEvent) => {
     // Check if the click was on a button or input element
@@ -150,6 +192,14 @@ function OptimizedFileReviewRowComponent({
   if (file.selected) {
     cardClassName = "p-3 transition-colors cursor-pointer relative bg-primary/10 text-foreground border-2 border-primary hover:bg-primary/20";
   }
+  
+  if (isDragging) {
+    cardClassName += " opacity-50";
+  }
+  
+  if (dragOver) {
+    cardClassName += " border-2 border-primary bg-primary/5";
+  }
 
   return (
     <>
@@ -157,9 +207,17 @@ function OptimizedFileReviewRowComponent({
         className={cardClassName}
         onClick={handleRowClick}
         onDoubleClick={handleDoubleClick}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         title="Double-click to preview"
       >
         <div className="flex items-center gap-4">
+          {/* Position Counter */}
+          <div className="flex-shrink-0 w-8 h-8 bg-muted rounded-full flex items-center justify-center text-sm font-semibold text-muted-foreground">
+            {position}
+          </div>
+
           {/* Selection Checkbox */}
           {onSelectionChange && (
             <div className="flex-shrink-0">
@@ -238,6 +296,20 @@ function OptimizedFileReviewRowComponent({
                   >
                     <Eye className="w-4 h-4 mr-1" />
                     Preview
+                  </Button>
+                )}
+                {onReorder && file.status !== 'uploading' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    draggable
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
+                    title="Drag to reorder"
+                  >
+                    <GripVertical className="w-4 h-4" />
                   </Button>
                 )}
                 {file.status !== 'uploading' && (
