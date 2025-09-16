@@ -283,6 +283,7 @@ export const FileComparisonDialog = ({
         
         return () => {
           clearTimeout(timeout);
+          video.src = '';
           try { 
             URL.revokeObjectURL(videoUrl); 
           } catch (e) {

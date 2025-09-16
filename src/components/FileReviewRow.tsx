@@ -62,6 +62,7 @@ export function FileReviewRow({ file, files, currentIndex, onRemove, onMetadataC
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
+      video.preload = 'metadata';
       video.onloadedmetadata = () => {
         canvas.width = 120;
         canvas.height = 80;
@@ -74,16 +75,22 @@ export function FileReviewRow({ file, files, currentIndex, onRemove, onMetadataC
           const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.8);
           setThumbnail(thumbnailUrl);
         }
-        try { URL.revokeObjectURL(video.src); } catch {}
+        video.src = '';
+        video.remove();
+        canvas.remove();
+      };
+
+      video.onerror = () => {
+        video.src = '';
         video.remove();
         canvas.remove();
       };
 
       const videoUrl = URL.createObjectURL(file.file);
       video.src = videoUrl;
-      video.load();
 
       cleanup = () => {
+        video.src = '';
         try { URL.revokeObjectURL(videoUrl); } catch {}
         video.remove();
         canvas.remove();

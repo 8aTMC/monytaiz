@@ -38,27 +38,7 @@ window.addEventListener('unhandledrejection', (event) => {
   }
 });
 
-// Global error handler for blob URL loading errors
-window.addEventListener('error', (event) => {
-  const target = event.target as HTMLImageElement | HTMLVideoElement | HTMLAudioElement;
-  
-  // Check if this is a blob URL error
-  if (target && target.src && target.src.startsWith('blob:')) {
-    // Check if it's a network error for blob URLs
-    if (event.message?.includes('net::ERR_FILE_NOT_FOUND') || 
-        event.message?.includes('Failed to load resource')) {
-      
-      // Suppress the error to prevent console spam
-      event.preventDefault();
-      event.stopPropagation();
-      
-      // Clear the src to prevent further attempts
-      target.src = '';
-      
-      return false;
-    }
-  }
-}, true); // Use capture to catch errors early
+// Blob URL error handling is now managed per-component to prevent retry loops
 
 // Suppress browser extension notifications and automatic fix messages
 const originalToast = window.console?.warn;

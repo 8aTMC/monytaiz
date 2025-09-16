@@ -226,9 +226,11 @@ export const FilePreviewDialog = ({
         // Create a temporary video element to get dimensions
         const tempVideo = document.createElement('video');
         const tempUrl = createBlobUrl(displayFile);
+        tempVideo.preload = 'metadata';
         tempVideo.src = tempUrl;
         tempVideo.onloadedmetadata = () => {
           if (abortController.signal.aborted) {
+            tempVideo.src = '';
             revokeBlobUrl(tempUrl);
             tempVideo.remove();
             return;
@@ -247,6 +249,7 @@ export const FilePreviewDialog = ({
           }
           
           // Clean up
+          tempVideo.src = '';
           revokeBlobUrl(tempUrl);
           tempVideo.remove();
         };

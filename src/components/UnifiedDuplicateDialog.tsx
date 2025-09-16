@@ -184,6 +184,7 @@ export const UnifiedDuplicateDialog = ({
         
         return () => {
           clearTimeout(timeout);
+          video.src = '';
           try {
             URL.revokeObjectURL(videoUrl);
           } catch (e) {
