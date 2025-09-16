@@ -642,22 +642,31 @@ export default function SimpleUpload() {
                   </p>
                 </div>
 
-                {/* Upload Controls - Show when uploading */}
+                {/* Upload Controls - Show during upload */}
                 {uploading && (
-                  <div className="flex items-center gap-2">
-                    {!isPaused ? (
-                      <Button variant="outline" onClick={pauseAllUploads}>
-                        Pause All
-                      </Button>
-                    ) : (
-                      <Button variant="outline" onClick={resumeAllUploads}>
+                  <>
+                    {isPaused ? (
+                      <Button 
+                        onClick={resumeAllUploads}
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                      >
                         Resume All
                       </Button>
+                    ) : (
+                      <Button 
+                        onClick={pauseAllUploads}
+                        variant="secondary"
+                      >
+                        Pause All
+                      </Button>
                     )}
-                    <Button variant="destructive" onClick={cancelAllUploads}>
+                    <Button 
+                      onClick={cancelAllUploads}
+                      variant="destructive"
+                    >
                       Cancel All
                     </Button>
-                  </div>
+                  </>
                 )}
 
               </div>
@@ -711,8 +720,8 @@ export default function SimpleUpload() {
                 
                 {/* Right Side - Action Buttons */}
                 <div className="flex items-center gap-3">
-                  {/* Upload Controls - Show during upload */}
-                  {uploading && (
+                  {/* Upload Controls - Hide duplicate controls when uploading */}
+                  {!uploading && (
                     <>
                       {isPaused ? (
                         <Button 

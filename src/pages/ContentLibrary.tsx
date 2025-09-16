@@ -22,6 +22,7 @@ import { LibraryFiltersDialog } from '@/components/LibraryFiltersDialog';
 import { LibraryFilterState } from '@/types/library-filters';
 import { OrphanedDataManager } from '@/components/OrphanedDataManager';
 import { RecreateStorageFolders } from '@/components/RecreateStorageFolders';
+import { useAdvancedPreloader } from '@/hooks/useAdvancedPreloader';
 
 interface MediaItem {
   id: string;
@@ -84,8 +85,10 @@ const ContentLibrary = () => {
   const [selecting, setSelecting] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   
-  // Preview state
   const [previewItem, setPreviewItem] = useState<MediaItem | null>(null);
+  
+  // Preloader for fast media loading
+  const { preloadMultiResolution, preloadImage } = useAdvancedPreloader();
   
   // Deletion progress state
   const [deletionProgress, setDeletionProgress] = useState({
@@ -345,6 +348,26 @@ const ContentLibrary = () => {
            advancedFilters.priceRange[0] > 0 ||
            advancedFilters.priceRange[1] < 1000000;
   }, [advancedFilters]);
+  
+  // Preload media when content changes (first 24 items for faster loading)
+  useEffect(() => {
+    if (!content || content.length === 0) return;
+    
+    const preloadItems = content.slice(0, 24);
+    preloadItems.forEach(item => {
+      if (item.type === 'image' || item.type === 'gif') {
+        // Preload multiple resolutions for images
+        preloadMultiResolution(item.storage_path, [
+          { width: 300 }, // thumbnail
+          { width: 800 }, // medium
+          {}              // full size
+        ]).catch(() => {}); // Silently fail
+      } else if (item.type === 'video' && item.tiny_placeholder) {
+        // Preload video thumbnails
+        preloadImage(item.tiny_placeholder, { width: 300 }).catch(() => {});
+      }
+    });
+  }, [content, preloadMultiResolution, preloadImage]);
 
   // Auth setup
   useEffect(() => {

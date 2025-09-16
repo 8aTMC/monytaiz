@@ -46,7 +46,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   },
   global: {
     headers: {
-      'Cache-Control': 'no-cache',
+      // Enable caching for better performance
     },
   }
 });

@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useClientMediaProcessor, type ProcessedMedia } from './useClientMediaProcessor';
 import { useMediaPostProcess } from './useMediaPostProcess';
-import { generateVideoThumbnail } from '@/lib/videoThumbnail';
+import { uploadWithProgress } from '@/lib/uploadWithProgress';
 import { logger } from '@/utils/logging';
 
 interface QualityProgress {
@@ -174,58 +174,8 @@ export const useSimpleUpload = () => {
       // For GIFs, use uploads folder to preserve original format and animation
       const uploadPath = isGif ? `uploads/${fileId}-${file.name}` : `processed/${fileId}-${uploadFileName}`;
 
-      // For videos, generate thumbnail client-side
-      if (mediaType === 'video') {
-        updateProgress({
-          phase: 'processing',
-          progress: shouldProcessImage ? 60 : 30,
-          message: 'Generating thumbnail...',
-          originalSize,
-          processedSize,
-          compressionRatio
-        });
-
-        try {
-          // Add timeout wrapper for thumbnail generation
-          const thumbnailPromise = generateVideoThumbnail(fileToUpload, {
-            width: 320,
-            height: 180,
-            quality: 0.8,
-            timePosition: 1
-          });
-
-          // Race between thumbnail generation and timeout
-          const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('Thumbnail generation timeout')), 15000);
-          });
-
-          const { blob: generatedThumbnail } = await Promise.race([
-            thumbnailPromise,
-            timeoutPromise
-          ]);
-          
-          // Upload thumbnail to storage
-          const thumbnailFilename = `thumbnails/${fileId}-thumbnail.jpg`;
-          const thumbnailUpload = await supabase.storage
-            .from('content')
-            .upload(thumbnailFilename, generatedThumbnail, { 
-              contentType: 'image/jpeg',
-              upsert: false 
-            });
-
-          if (thumbnailUpload.error) {
-            logger.error('[UploadError] Thumbnail upload failed', thumbnailUpload.error);
-          } else {
-            thumbnailPath = thumbnailFilename;
-            // logger.debug('Thumbnail uploaded', { thumbnailPath });
-          }
-
-          // Skip video dimension analysis to avoid processing errors
-        } catch (error) {
-          logger.error('[UploadError] Client-side thumbnail generation failed', error);
-          // Continue without thumbnail - video upload will proceed normally
-        }
-      }
+      // Skip client-side video processing for faster uploads
+      // Thumbnails will be generated server-side via Edge Function
 
       updateProgress({
         phase: 'uploading',
@@ -236,10 +186,26 @@ export const useSimpleUpload = () => {
         compressionRatio
       });
 
-      // Upload file: GIFs to uploads folder (preserve animation), processed images to processed folder
-      // logger.debug(`Uploading ${isGif ? 'GIF' : 'processed'} file: ${uploadFileName}`);
-      const originalUpload = await supabase.storage.from('content').upload(uploadPath, fileToUpload, { upsert: false });
-      if (originalUpload.error) throw new Error(`Upload failed: ${originalUpload.error.message}`);
+      // Upload file with real progress tracking
+      const { data: uploadData, error: uploadError } = await uploadWithProgress(
+        'content',
+        uploadPath,
+        fileToUpload,
+        (progressEvent) => {
+          const progressPercent = Math.min(95, progressEvent.progress);
+          updateProgress({
+            phase: 'uploading',
+            progress: progressPercent,
+            message: `Uploading... ${(progressEvent.bytesUploaded / (1024 * 1024)).toFixed(1)}MB / ${(progressEvent.totalBytes / (1024 * 1024)).toFixed(1)}MB`,
+            originalSize,
+            processedSize,
+            compressionRatio
+          });
+        },
+        new AbortController()
+      );
+      
+      if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
       // Thumbnail already generated and uploaded for videos above
 
@@ -278,7 +244,18 @@ export const useSimpleUpload = () => {
         throw new Error(`Database error: ${dbError.message}`);
       }
 
-      // Skip video processing - upload raw videos directly as requested
+      // Fire-and-forget thumbnail generation for videos via Edge Function
+      if (mediaType === 'video') {
+        supabase.functions.invoke('video-thumbnail', {
+          body: { 
+            bucket: 'content',
+            path: uploadPath,
+            mediaId: mediaRecord.id 
+          }
+        }).catch(error => {
+          logger.error('Video thumbnail generation failed (non-blocking)', error);
+        });
+      }
 
       updateProgress({
         phase: 'complete',

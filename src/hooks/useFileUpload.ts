@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { uploadWithProgress } from '@/lib/uploadWithProgress';
 
 export interface FileUploadItem {
   file: File;
@@ -632,59 +633,25 @@ export const useFileUpload = () => {
           const { data: { session } } = await supabase.auth.getSession();
           if (!session) throw new Error('No auth session');
 
-          // Use Supabase client for upload with progress tracking
-          const startTime = Date.now();
-          let uploadProgress = 0;
+          // Use uploadWithProgress for real progress tracking
+          const uploadResult = await uploadWithProgress(
+            'content',
+            filePath,
+            file,
+            (progressEvent) => {
+              setUploadQueue(prev => prev.map(f => 
+                f.id === item.id ? { 
+                  ...f, 
+                  progress: Math.min(Math.round(progressEvent.progress), 95),
+                  uploadedBytes: progressEvent.bytesUploaded,
+                  totalBytes: progressEvent.totalBytes,
+                  uploadSpeed: progressEvent.uploadSpeed
+                } : f
+              ));
+            },
+            abortController
+          );
           
-          const uploadResult = await new Promise<{ data?: any; error?: any }>((resolve) => {
-            // Handle abort signal
-            const onAbort = () => {
-              resolve({ error: { message: 'Upload cancelled' } });
-            };
-            abortController.signal.addEventListener('abort', onAbort);
-
-            // Simulate progress tracking since Supabase client doesn't provide detailed progress
-            const progressInterval = setInterval(() => {
-              if (!pausedUploadsRef.current.has(item.id) && uploadProgress < 90) {
-                uploadProgress += Math.random() * 10;
-                const elapsed = (Date.now() - startTime) / 1000;
-                const estimatedSpeed = (uploadProgress / 100) * file.size / elapsed;
-                
-                setUploadQueue(prev => prev.map(f => 
-                  f.id === item.id ? { 
-                    ...f, 
-                    progress: Math.min(Math.round(uploadProgress), 95),
-                    uploadedBytes: Math.round((uploadProgress / 100) * file.size),
-                    uploadSpeed: estimatedSpeed || 0
-                  } : f
-                ));
-              }
-            }, 200);
-
-            // Perform the actual upload using Supabase client
-            supabase.storage
-              .from('content')
-              .upload(filePath, file, {
-                upsert: fileType === 'video' && file.size > 500 * 1024 * 1024 ? false : true,
-                cacheControl: fileType === 'video' && file.size > 500 * 1024 * 1024 ? '3600' : undefined
-              })
-              .then(({ data, error }) => {
-                clearInterval(progressInterval);
-                abortController.signal.removeEventListener('abort', onAbort);
-                
-                if (error) {
-                  resolve({ error: { message: error.message } });
-                } else {
-                  resolve({ data: { path: data.path } });
-                }
-              })
-              .catch((err) => {
-                clearInterval(progressInterval);
-                abortController.signal.removeEventListener('abort', onAbort);
-                resolve({ error: { message: err.message || 'Upload failed' } });
-              });
-          });
-
           data = uploadResult.data;
           error = uploadResult.error;
           
