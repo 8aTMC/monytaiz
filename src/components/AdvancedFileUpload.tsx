@@ -441,7 +441,25 @@ export const AdvancedFileUpload = () => {
 
   // Handle start upload - duplicates already checked during file processing
   const handleStartUpload = () => {
-    if (uploadQueue.length === 0) return;
+    if (uploadQueue.length === 0) {
+      toast({
+        title: "No files to upload",
+        description: "Please add files to the queue before starting upload.",
+        variant: "default",
+      });
+      return;
+    }
+    
+    const pendingFiles = uploadQueue.filter(item => item.status === 'pending');
+    if (pendingFiles.length === 0) {
+      toast({
+        title: "No pending files",
+        description: "All files have already been uploaded or processed.",
+        variant: "default",
+      });
+      return;
+    }
+    
     startUpload(true); // Skip duplicate check since we already did it during file processing
   };
 

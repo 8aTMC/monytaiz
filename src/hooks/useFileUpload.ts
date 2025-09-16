@@ -954,63 +954,85 @@ export const useFileUpload = () => {
       return { requiresDuplicateCheck: true };
     }
 
+    // Get pending files for upload
+    const pendingFiles = queueRef.current.filter(item => item.status === 'pending');
+    
+    if (pendingFiles.length === 0) {
+      toast({
+        title: "No files to upload",
+        description: "Please add files to the queue before starting upload.",
+        variant: "default",
+      });
+      return;
+    }
+
     setIsUploading(true);
     setCurrentUploadIndex(0);
 
     let successCount = 0;
     let errorCount = 0;
 
-    // Get pending files for upload
-    const pendingFiles = queueRef.current.filter(item => item.status === 'pending');
-    
-    if (pendingFiles.length === 0) {
-      setIsUploading(false);
-      return;
-    }
+    try {
+      // Parallel upload with concurrency limit
+      const CONCURRENCY_LIMIT = 3;
 
-    // Parallel upload with concurrency limit
-    const CONCURRENCY_LIMIT = 3;
-    const uploadPromises: Promise<any>[] = [];
-
-    // Process files in batches to avoid overwhelming the connection
-    for (let i = 0; i < pendingFiles.length; i += CONCURRENCY_LIMIT) {
-      const batch = pendingFiles.slice(i, i + CONCURRENCY_LIMIT);
-      
-      // Wait for current batch to complete before starting next batch
-      const batchPromises = batch.map(async (item) => {
-        try {
-          const result = await uploadFile(item);
-          if (result?.success) {
-            successCount++;
-          } else {
+      // Process files in batches to avoid overwhelming the connection
+      for (let i = 0; i < pendingFiles.length; i += CONCURRENCY_LIMIT) {
+        const batch = pendingFiles.slice(i, i + CONCURRENCY_LIMIT);
+        
+        // Update current upload index
+        setCurrentUploadIndex(i);
+        
+        // Wait for current batch to complete before starting next batch
+        const batchPromises = batch.map(async (item, batchIndex) => {
+          try {
+            // Set initial progress to 1% to show upload started
+            setUploadQueue(prev => prev.map(f => 
+              f.id === item.id ? { ...f, progress: 1 } : f
+            ));
+            
+            const result = await uploadFile(item);
+            if (result?.success) {
+              successCount++;
+            } else {
+              errorCount++;
+            }
+            return result;
+          } catch (error) {
             errorCount++;
+            console.error('Upload error:', error);
+            return { success: false, error };
           }
-          return result;
-        } catch (error) {
-          errorCount++;
-          console.error('Upload error:', error);
-          return { success: false, error };
+        });
+
+        // Wait for all files in this batch to complete
+        await Promise.allSettled(batchPromises);
+        
+        // Small delay between batches to prevent overwhelming the server
+        if (i + CONCURRENCY_LIMIT < pendingFiles.length) {
+          await new Promise(resolve => setTimeout(resolve, 200));
         }
-      });
-
-      // Wait for all files in this batch to complete
-      await Promise.allSettled(batchPromises);
-      
-      // Small delay between batches to prevent overwhelming the server
-      if (i + CONCURRENCY_LIMIT < pendingFiles.length) {
-        await new Promise(resolve => setTimeout(resolve, 200));
       }
-    }
-
-    setIsUploading(false);
-    
-    // Show completion toast with results
-    if (successCount > 0 || errorCount > 0) {
+      
+      // Show completion toast with results
+      if (successCount > 0 || errorCount > 0) {
+        toast({
+          title: "Upload complete",
+          description: `${successCount} file${successCount !== 1 ? 's' : ''} uploaded successfully${errorCount > 0 ? `. ${errorCount} failed.` : ''}`,
+          variant: successCount > errorCount ? "success" : "destructive",
+        });
+      }
+      
+    } catch (error) {
+      console.error('Upload process error:', error);
       toast({
-        title: "Upload complete",
-        description: `${successCount} file${successCount !== 1 ? 's' : ''} uploaded successfully${errorCount > 0 ? `. ${errorCount} failed.` : ''}`,
-        variant: successCount > errorCount ? "success" : "destructive",
+        title: "Upload failed",
+        description: "An error occurred during the upload process. Please try again.",
+        variant: "destructive",
       });
+    } finally {
+      setIsUploading(false);
+      setCurrentUploadIndex(0);
     }
   }, [isUploading, uploadFile, pausedUploads, toast]);
 
