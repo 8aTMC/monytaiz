@@ -394,11 +394,16 @@ function OptimizedFileReviewRowComponent({
 // Memoize with custom comparison function
 export const OptimizedFileReviewRow = memo(OptimizedFileReviewRowComponent, (prevProps, nextProps) => {
   // Only re-render if the file data or key props actually changed
+  // Also re-render when any file's selection state changes so the preview's checkbox stays in sync
+  const prevSelectionSig = prevProps.files?.map(f => (f.selected ? 1 : 0)).join('') ?? '';
+  const nextSelectionSig = nextProps.files?.map(f => (f.selected ? 1 : 0)).join('') ?? '';
+
   return (
     prevProps.file.id === nextProps.file.id &&
     prevProps.file.selected === nextProps.file.selected &&
     prevProps.file.metadata === nextProps.file.metadata &&
     prevProps.currentIndex === nextProps.currentIndex &&
-    prevProps.files?.length === nextProps.files?.length
+    prevProps.files?.length === nextProps.files?.length &&
+    prevSelectionSig === nextSelectionSig
   );
 });

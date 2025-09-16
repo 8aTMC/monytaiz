@@ -332,7 +332,10 @@ export function FileReviewRow({ file, files, currentIndex, onRemove, onMetadataC
         onPriceChange={onMetadataChange ? (price) => handleMetadataUpdate('suggestedPrice', price ? price / 100 : null) : undefined}
         selecting={!!onSelectionChange}
         selectedFiles={new Set(files?.filter(f => f.selected).map(f => f.id) || [])}
-        onToggleSelection={onSelectionChange ? (fileId) => onSelectionChange(fileId, !file.selected) : undefined}
+        onToggleSelection={onSelectionChange ? (targetId) => {
+          const target = files?.find(f => f.id === targetId);
+          onSelectionChange(targetId, !(target?.selected ?? false));
+        } : undefined}
         fileId={file.id}
       />
     </>

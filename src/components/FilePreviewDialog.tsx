@@ -116,7 +116,7 @@ export const FilePreviewDialog = ({
   
   // Get current file ID for selection logic
   const currentFileId = displayFileData && 'id' in displayFileData ? displayFileData.id : fileId;
-
+  const isSelected = !!(selectedFiles && currentFileId && selectedFiles.has(currentFileId));
   // ===== EFFECTS =====
   
   // Initialize internal index when dialog opens
