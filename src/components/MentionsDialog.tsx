@@ -66,11 +66,13 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
 
   const handleCreateCollaborator = async (collaboratorData: { name: string; url: string; profile_picture_url?: string }) => {
     try {
-      const newCollaborator = await createCollaborator(collaboratorData);
-      const mentionToAdd = `@${newCollaborator.name}`;
+      const result = await createCollaborator(collaboratorData);
+      const mentionToAdd = `@${result.name}`;
       if (!mentions.includes(mentionToAdd)) {
         onMentionsChange([...mentions, mentionToAdd]);
       }
+      // Close the dialog regardless of whether it was new or existing
+      setShowCollaboratorDialog(false);
     } catch (error) {
       console.error('Error creating collaborator:', error);
     }

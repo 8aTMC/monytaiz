@@ -56,11 +56,52 @@ export const useCollaborators = () => {
     }
   }, [toast]);
 
+  const findExistingCollaborator = async (name: string, url: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('collaborators')
+      .select('*')
+      .or(`name.ilike.${name.replace(/'/g, "''")},url.eq.${url}`)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      throw error;
+    }
+
+    return data;
+  };
+
   const createCollaborator = async (collaboratorData: Omit<Collaborator, 'id' | 'creator_id' | 'created_at' | 'updated_at'>) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      // Check for existing collaborator with same name (case-insensitive) or URL
+      const existingCollaborator = await findExistingCollaborator(collaboratorData.name, collaboratorData.url);
+      
+      if (existingCollaborator) {
+        // Return existing collaborator with a different message
+        toast({
+          title: "Collaborator already exists",
+          description: `Using existing collaborator: ${existingCollaborator.name}`,
+          variant: "default"
+        });
+        
+        // Update local state if not already present
+        setCollaborators(prev => {
+          const exists = prev.some(c => c.id === existingCollaborator.id);
+          if (!exists) {
+            return [existingCollaborator, ...prev];
+          }
+          return prev;
+        });
+
+        return { ...existingCollaborator, wasExisting: true };
+      }
+
+      // Create new collaborator if no duplicate found
       const { data, error } = await supabase
         .from('collaborators')
         .insert({
@@ -78,7 +119,7 @@ export const useCollaborators = () => {
         description: "Collaborator added successfully"
       });
 
-      return data;
+      return { ...data, wasExisting: false };
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error creating collaborator';
       toast({
@@ -161,7 +202,11 @@ export const useCollaborators = () => {
   };
 
   const getRecentCollaborators = (limit = 5) => {
-    return collaborators.slice(0, limit);
+    // Remove duplicates by name (case-insensitive) and return most recent
+    const unique = collaborators.filter((collaborator, index, arr) => 
+      arr.findIndex(c => c.name.toLowerCase() === collaborator.name.toLowerCase()) === index
+    );
+    return unique.slice(0, limit);
   };
 
   const searchCollaborators = (query: string) => {
