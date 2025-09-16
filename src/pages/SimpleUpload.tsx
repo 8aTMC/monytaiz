@@ -78,7 +78,7 @@ export default function SimpleUpload() {
 
   // Selection functions
   const toggleFileSelection = useCallback((fileId: string, selected: boolean, options?: { range?: boolean; index?: number }) => {
-    logger.error(`[UploadAction] ToggleSelection`, { fileId, selected, range: !!options?.range, index: options?.index });
+    logger.debug(`[UploadAction] ToggleSelection`, { fileId, selected, range: !!options?.range, index: options?.index });
     setFiles(prev => {
       if (options?.range && anchorIndexRef.current !== null && options.index !== undefined) {
         const startIndex = Math.min(anchorIndexRef.current, options.index);
@@ -95,13 +95,13 @@ export default function SimpleUpload() {
   }, []);
 
   const selectAllFiles = useCallback(() => {
-    logger.error(`[UploadAction] SelectAll clicked`, { total: files.length });
+    logger.debug(`[UploadAction] SelectAll clicked`, { total: files.length });
     setSelectionMode(true);
     setFiles(prev => prev.map(f => ({ ...f, selected: true })));
   }, [files.length]);
 
   const clearSelection = useCallback(() => {
-    logger.error(`[UploadAction] ClearSelection clicked`);
+    logger.debug(`[UploadAction] ClearSelection clicked`);
     setFiles(prev => prev.map(f => ({ ...f, selected: false })));
     // Exit selection mode when all files are deselected
     setSelectionMode(false);
@@ -156,7 +156,7 @@ export default function SimpleUpload() {
       
       // Check file extension
       const extension = '.' + file.name.split('.').pop()?.toLowerCase();
-      const supportedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.gif', '.avif', '.tiff', '.tif', '.bmp', '.mp4', '.mov', '.webm', '.mkv', '.mp3', '.wav', '.aac', '.ogg', '.opus', '.flac'];
+      const supportedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.mp4', '.mov', '.webm', '.mkv', '.mp3', '.wav', '.aac', '.ogg', '.opus'];
       
       // logger.debug(`[UploadDebug] Extension`, { extension, supported: supportedExtensions.includes(extension) });
       
@@ -165,15 +165,17 @@ export default function SimpleUpload() {
       } else {
         // Determine file type for conversion suggestions
         let fileType: 'image' | 'video' | 'audio' | 'gif' | 'unknown' = 'unknown';
-        if (file.type.startsWith('image/') || ['.avif', '.tiff', '.tif', '.bmp', '.svg', '.ico'].includes(extension)) {
+        if (extension === '.gif') {
+          fileType = 'gif';
+        } else if (file.type.startsWith('image/') || ['.avif', '.tiff', '.tif', '.bmp', '.svg', '.ico'].includes(extension)) {
           fileType = 'image';
         } else if (file.type.startsWith('video/') || ['.avi', '.wmv', '.flv', '.3gp', '.m4v'].includes(extension)) {
           fileType = 'video';
-        } else if (file.type.startsWith('audio/') || ['.flac', '.m4a'].includes(extension)) {
+        } else if (file.type.startsWith('audio/') || ['.flac', '.wma', '.m4a', '.amr'].includes(extension)) {
           fileType = 'audio';
         }
         
-        logger.error(`[UploadAction] Unsupported file detected`, { name: file.name, fileType });
+        logger.info(`[UploadAction] Unsupported file detected`, { name: file.name, fileType });
         
         unsupportedFiles.push({
           id: `unsupported-${Date.now()}-${index}`,
@@ -189,7 +191,7 @@ export default function SimpleUpload() {
 
     // Show unsupported files dialog if any
     if (unsupportedFiles.length > 0) {
-      logger.error(`[UploadAction] Unsupported files dialog opened`, { count: unsupportedFiles.length });
+      logger.info(`[UploadAction] Unsupported files dialog opened`, { count: unsupportedFiles.length });
       setUnsupportedFiles(unsupportedFiles);
       setUnsupportedDialogOpen(true);
     }
@@ -227,7 +229,7 @@ export default function SimpleUpload() {
         });
         
         if (duplicates.length > 0) {
-          logger.error(`[UploadAction] Database duplicates found`, { count: duplicates.length });
+          logger.info(`[UploadAction] Database duplicates found`, { count: duplicates.length });
           setDatabaseDuplicates(duplicates);
           setDatabaseDuplicateDialogOpen(true);
           // Store files for later processing
@@ -248,7 +250,7 @@ export default function SimpleUpload() {
   }, []);
 
   const addMoreFiles = useCallback(async (acceptedFiles: File[]) => {
-    logger.error(`[UploadAction] AddMoreFiles invoked`, { count: acceptedFiles.length });
+    logger.info(`[UploadAction] AddMoreFiles invoked`, { count: acceptedFiles.length });
     
     // Separate supported and unsupported files first
     const supportedFiles: File[] = [];
@@ -259,7 +261,7 @@ export default function SimpleUpload() {
       
       // Check file extension
       const extension = '.' + file.name.split('.').pop()?.toLowerCase();
-      const supportedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.gif', '.avif', '.tiff', '.tif', '.bmp', '.mp4', '.mov', '.webm', '.mkv', '.mp3', '.wav', '.aac', '.ogg', '.opus', '.flac'];
+      const supportedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.mp4', '.mov', '.webm', '.mkv', '.mp3', '.wav', '.aac', '.ogg', '.opus'];
       
       // logger.debug(`[UploadDebug] Extension (addMore)`, { extension, supported: supportedExtensions.includes(extension) });
       
@@ -268,15 +270,17 @@ export default function SimpleUpload() {
       } else {
         // Determine file type for conversion suggestions
         let fileType: 'image' | 'video' | 'audio' | 'gif' | 'unknown' = 'unknown';
-        if (file.type.startsWith('image/') || ['.avif', '.tiff', '.tif', '.bmp', '.svg', '.ico'].includes(extension)) {
+        if (extension === '.gif') {
+          fileType = 'gif';
+        } else if (file.type.startsWith('image/') || ['.avif', '.tiff', '.tif', '.bmp', '.svg', '.ico'].includes(extension)) {
           fileType = 'image';
         } else if (file.type.startsWith('video/') || ['.avi', '.wmv', '.flv', '.3gp', '.m4v'].includes(extension)) {
           fileType = 'video';
-        } else if (file.type.startsWith('audio/') || ['.flac', '.m4a'].includes(extension)) {
+        } else if (file.type.startsWith('audio/') || ['.flac', '.wma', '.m4a', '.amr'].includes(extension)) {
           fileType = 'audio';
         }
         
-        logger.error(`[UploadAction] Unsupported file detected (addMore)`, { name: file.name, fileType });
+        logger.info(`[UploadAction] Unsupported file detected (addMore)`, { name: file.name, fileType });
         
         unsupportedFiles.push({
           id: `unsupported-${Date.now()}-${index}`,
@@ -292,7 +296,7 @@ export default function SimpleUpload() {
 
     // Show unsupported files dialog if any
     if (unsupportedFiles.length > 0) {
-      logger.error(`[UploadAction] Unsupported files dialog opened (addMore)`, { count: unsupportedFiles.length });
+      logger.info(`[UploadAction] Unsupported files dialog opened (addMore)`, { count: unsupportedFiles.length });
       setUnsupportedFiles(unsupportedFiles);
       setUnsupportedDialogOpen(true);
     }
@@ -353,7 +357,7 @@ export default function SimpleUpload() {
         });
 
         if (duplicates.length > 0) {
-          logger.error(`[UploadAction] Database duplicates found (addMore)`, { count: duplicates.length });
+          logger.info(`[UploadAction] Database duplicates found (addMore)`, { count: duplicates.length });
           setDatabaseDuplicates(duplicates);
           setDatabaseDuplicateDialogOpen(true);
           // Add staged files so the dialog actions can manage them
@@ -386,7 +390,7 @@ export default function SimpleUpload() {
   }, [files, toast]);
 
   const handleAddMoreFiles = useCallback(() => {
-    logger.error(`[UploadAction] AddMoreFiles button clicked`);
+    logger.debug(`[UploadAction] AddMoreFiles button clicked`);
     addMoreFileInputRef.current?.click();
   }, []);
 
