@@ -40,10 +40,10 @@ class Logger {
       window.location.search.includes('debug=true');
     
     return {
-      level: hasDebugFlag ? 'debug' : isDevelopment ? 'info' : 'warn',
+      level: hasDebugFlag ? 'debug' : 'error',
       isLovablePreview,
       enableTelemetryLogs: hasDebugFlag,
-      enableNetworkDiagnostics: hasDebugFlag || isDevelopment
+      enableNetworkDiagnostics: hasDebugFlag // Only when explicitly enabled
     };
   }
   

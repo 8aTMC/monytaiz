@@ -21,6 +21,7 @@ import { PreUploadDuplicateDialog } from '@/components/PreUploadDuplicateDialog'
 import { useToast } from '@/hooks/use-toast';
 import { SelectedFilesProvider } from '@/contexts/SelectedFilesContext';
 import { useBatchDuplicateDetection, DuplicateMatch } from '@/hooks/useBatchDuplicateDetection';
+import { logger } from '@/utils/logging';
 
 export default function SimpleUpload() {
   const navigate = useNavigate();
@@ -77,41 +78,30 @@ export default function SimpleUpload() {
 
   // Selection functions
   const toggleFileSelection = useCallback((fileId: string, selected: boolean, options?: { range?: boolean; index?: number }) => {
+    logger.error(`[UploadAction] ToggleSelection`, { fileId, selected, range: !!options?.range, index: options?.index });
     setFiles(prev => {
       if (options?.range && anchorIndexRef.current !== null && options.index !== undefined) {
-        // Range selection: select all files between anchor and current index
         const startIndex = Math.min(anchorIndexRef.current, options.index);
         const endIndex = Math.max(anchorIndexRef.current, options.index);
-        
-        const updatedFiles = prev.map((file, idx) => {
-          if (idx >= startIndex && idx <= endIndex) {
-            return { ...file, selected: true };
-          }
-          return file;
-        });
-        
-        // Update anchor to the current index after range selection
+        const updatedFiles = prev.map((file, idx) => (idx >= startIndex && idx <= endIndex) ? { ...file, selected: true } : file);
         anchorIndexRef.current = options.index;
         return updatedFiles;
       } else {
-        // Normal single selection
         const fileIndex = options?.index ?? prev.findIndex(f => f.id === fileId);
-        if (fileIndex !== -1) {
-          anchorIndexRef.current = fileIndex;
-        }
-        return prev.map(f => 
-          f.id === fileId ? { ...f, selected } : f
-        );
+        if (fileIndex !== -1) anchorIndexRef.current = fileIndex;
+        return prev.map(f => f.id === fileId ? { ...f, selected } : f);
       }
     });
   }, []);
 
   const selectAllFiles = useCallback(() => {
+    logger.error(`[UploadAction] SelectAll clicked`, { total: files.length });
     setSelectionMode(true);
     setFiles(prev => prev.map(f => ({ ...f, selected: true })));
-  }, []);
+  }, [files.length]);
 
   const clearSelection = useCallback(() => {
+    logger.error(`[UploadAction] ClearSelection clicked`);
     setFiles(prev => prev.map(f => ({ ...f, selected: false })));
     // Exit selection mode when all files are deselected
     setSelectionMode(false);
@@ -154,20 +144,21 @@ export default function SimpleUpload() {
   }, [selectedFiles.length, clearSelection, toast]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    console.log(`🔄 Processing ${acceptedFiles.length} files through onDrop`);
+    logger.debug(`[UploadDebug] onDrop received`, { count: acceptedFiles.length });
     
     // Separate supported and unsupported files
     const supportedFiles: File[] = [];
     const unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'gif' | 'unknown'; file: File }[] = [];
     
     acceptedFiles.forEach((file, index) => {
-      console.log(`📁 Processing file: ${file.name} (type: ${file.type})`);
+      // debug: processing each file
+      // logger.debug(`[UploadDebug] Processing file`, { name: file.name, type: file.type });
       
       // Check file extension
       const extension = '.' + file.name.split('.').pop()?.toLowerCase();
       const supportedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.mp4', '.mov', '.webm', '.mkv', '.mp3', '.wav', '.aac', '.ogg', '.opus'];
       
-      console.log(`🔍 File extension: ${extension}, supported: ${supportedExtensions.includes(extension)}`);
+      // logger.debug(`[UploadDebug] Extension`, { extension, supported: supportedExtensions.includes(extension) });
       
       if (supportedExtensions.includes(extension)) {
         supportedFiles.push(file);
@@ -184,7 +175,7 @@ export default function SimpleUpload() {
           fileType = 'audio';
         }
         
-        console.log(`❌ Unsupported file detected: ${file.name} (${fileType})`);
+        logger.error(`[UploadAction] Unsupported file detected`, { name: file.name, fileType });
         
         unsupportedFiles.push({
           id: `unsupported-${Date.now()}-${index}`,
@@ -196,11 +187,11 @@ export default function SimpleUpload() {
       }
     });
 
-    console.log(`✅ Supported files: ${supportedFiles.length}, ❌ Unsupported files: ${unsupportedFiles.length}`);
+    // logger.debug(`[UploadDebug] Supported vs Unsupported`, { supported: supportedFiles.length, unsupported: unsupportedFiles.length });
 
     // Show unsupported files dialog if any
     if (unsupportedFiles.length > 0) {
-      console.log(`🚨 Opening unsupported files dialog for ${unsupportedFiles.length} files`);
+      logger.error(`[UploadAction] Unsupported files dialog opened`, { count: unsupportedFiles.length });
       setUnsupportedFiles(unsupportedFiles);
       setUnsupportedDialogOpen(true);
     }
@@ -238,7 +229,7 @@ export default function SimpleUpload() {
         });
         
         if (duplicates.length > 0) {
-          console.log(`🎯 Found ${duplicates.length} database duplicates`);
+          logger.error(`[UploadAction] Database duplicates found`, { count: duplicates.length });
           setDatabaseDuplicates(duplicates);
           setDatabaseDuplicateDialogOpen(true);
           // Store files for later processing
@@ -248,7 +239,7 @@ export default function SimpleUpload() {
           setReviewMode(true);
         }
       } catch (error) {
-        console.error('Database duplicate check failed:', error);
+        logger.error('[UploadError] Database duplicate check failed', error);
         // Continue with upload if duplicate check fails
         setFiles(prev => [...prev, ...newFiles]);
         setReviewMode(true);
@@ -259,20 +250,20 @@ export default function SimpleUpload() {
   }, []);
 
   const addMoreFiles = useCallback(async (acceptedFiles: File[]) => {
-    console.log(`🔄 Processing ${acceptedFiles.length} files through addMoreFiles`);
+    logger.error(`[UploadAction] AddMoreFiles invoked`, { count: acceptedFiles.length });
     
     // Separate supported and unsupported files first
     const supportedFiles: File[] = [];
     const unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'gif' | 'unknown'; file: File }[] = [];
     
     acceptedFiles.forEach((file, index) => {
-      console.log(`📁 Processing file: ${file.name} (type: ${file.type})`);
+      // logger.debug(`[UploadDebug] Processing file (addMore)`, { name: file.name, type: file.type });
       
       // Check file extension
       const extension = '.' + file.name.split('.').pop()?.toLowerCase();
       const supportedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.mp4', '.mov', '.webm', '.mkv', '.mp3', '.wav', '.aac', '.ogg', '.opus'];
       
-      console.log(`🔍 File extension: ${extension}, supported: ${supportedExtensions.includes(extension)}`);
+      // logger.debug(`[UploadDebug] Extension (addMore)`, { extension, supported: supportedExtensions.includes(extension) });
       
       if (supportedExtensions.includes(extension)) {
         supportedFiles.push(file);
@@ -289,7 +280,7 @@ export default function SimpleUpload() {
           fileType = 'audio';
         }
         
-        console.log(`❌ Unsupported file detected: ${file.name} (${fileType})`);
+        logger.error(`[UploadAction] Unsupported file detected (addMore)`, { name: file.name, fileType });
         
         unsupportedFiles.push({
           id: `unsupported-${Date.now()}-${index}`,
@@ -301,11 +292,11 @@ export default function SimpleUpload() {
       }
     });
 
-    console.log(`✅ Supported files: ${supportedFiles.length}, ❌ Unsupported files: ${unsupportedFiles.length}`);
+    // logger.debug(`[UploadDebug] Supported vs Unsupported (addMore)`, { supported: supportedFiles.length, unsupported: unsupportedFiles.length });
 
     // Show unsupported files dialog if any
     if (unsupportedFiles.length > 0) {
-      console.log(`🚨 Opening unsupported files dialog for ${unsupportedFiles.length} files`);
+      logger.error(`[UploadAction] Unsupported files dialog opened (addMore)`, { count: unsupportedFiles.length });
       setUnsupportedFiles(unsupportedFiles);
       setUnsupportedDialogOpen(true);
     }
@@ -366,7 +357,7 @@ export default function SimpleUpload() {
         });
 
         if (duplicates.length > 0) {
-          console.log(`🎯 Found ${duplicates.length} database duplicates (addMoreFiles)`);
+          logger.error(`[UploadAction] Database duplicates found (addMore)`, { count: duplicates.length });
           setDatabaseDuplicates(duplicates);
           setDatabaseDuplicateDialogOpen(true);
           // Add staged files so the dialog actions can manage them
@@ -379,7 +370,7 @@ export default function SimpleUpload() {
           });
         }
       } catch (error) {
-        console.error('Database duplicate check failed (addMoreFiles):', error);
+        logger.error('[UploadError] Database duplicate check failed (addMoreFiles)', error);
         // Continue with upload if duplicate check fails
         setFiles(prev => [...prev, ...newFiles]);
         toast({
@@ -399,6 +390,7 @@ export default function SimpleUpload() {
   }, [files, toast]);
 
   const handleAddMoreFiles = useCallback(() => {
+    logger.error(`[UploadAction] AddMoreFiles button clicked`);
     addMoreFileInputRef.current?.click();
   }, []);
 
@@ -439,9 +431,9 @@ export default function SimpleUpload() {
   }, [files, totalFilesSize]);
 
   const startUpload = useCallback(async () => {
+    logger.error(`[UploadAction] StartUpload clicked`, { total: files.length, pending: files.filter(f => f.status === 'pending').length });
     // Check storage limit before proceeding
     const { canProceed, analysis } = validateStorageLimit();
-    
     if (!canProceed) {
       setFilesAnalysis(analysis);
       setExceedsLimitDialogOpen(true);
@@ -515,6 +507,7 @@ export default function SimpleUpload() {
   }, [files, validateStorageLimit, uploadMultipleWithControls, navigate, toast]);
 
   const clearUpload = useCallback(() => {
+    logger.error(`[UploadAction] ClearUpload clicked`);
     setFiles([]);
     setReviewMode(false);
     setCurrentUploadProgress(0);
@@ -528,22 +521,17 @@ export default function SimpleUpload() {
   });
 
   const removeFile = (id: string) => {
+    logger.error(`[UploadAction] RemoveFile clicked`, { fileId: id });
     setFiles(prev => {
       const newFiles = prev.filter(f => f.id !== id);
-      // If no files left, exit review mode
-      if (newFiles.length === 0) {
-        setReviewMode(false);
-      }
+      if (newFiles.length === 0) setReviewMode(false);
       return newFiles;
     });
   };
 
   const handleMetadataChange = (fileId: string, metadata: Partial<UploadedFileWithMetadata['metadata']>) => {
-    setFiles(prev => prev.map(f => 
-      f.id === fileId 
-        ? { ...f, metadata: { ...f.metadata, ...metadata } }
-        : f
-    ));
+    logger.error(`[UploadAction] MetadataChange`, { fileId, keys: Object.keys(metadata) });
+    setFiles(prev => prev.map(f => f.id === fileId ? { ...f, metadata: { ...f.metadata, ...metadata } } : f));
   };
 
   const formatFileSize = (bytes: number) => {
@@ -575,7 +563,7 @@ export default function SimpleUpload() {
 
   // Database duplicate handlers
   const handlePurgeSelectedDuplicates = (duplicateIds: string[]) => {
-    console.log(`🗑️ Purging ${duplicateIds.length} duplicate files`);
+    logger.error(`[UploadAction] PurgeSelectedDuplicates`, { count: duplicateIds.length });
     setFiles(prev => prev.filter(f => !duplicateIds.includes(f.id)));
     setDatabaseDuplicates([]);
     setDatabaseDuplicateDialogOpen(false);
@@ -588,6 +576,7 @@ export default function SimpleUpload() {
   };
 
   const handleKeepBothDuplicates = () => {
+    logger.error(`[UploadAction] KeepBothDuplicates clicked`);
     console.log(`📝 Keeping both versions - adding duplicate tags`);
     // Add duplicate tags to help identify files
     setFiles(prev => prev.map(f => {
@@ -616,7 +605,7 @@ export default function SimpleUpload() {
   };
 
   const handleCancelDuplicateUpload = () => {
-    console.log(`❌ Canceling upload due to duplicates`);
+    logger.error(`[UploadAction] CancelDuplicateUpload clicked`);
     // Remove all files that were being checked for duplicates
     const duplicateFileIds = databaseDuplicates.map(d => d.queueFile.id);
     setFiles(prev => prev.filter(f => !duplicateFileIds.includes(f.id)));
@@ -945,7 +934,7 @@ export default function SimpleUpload() {
                 onOpenChange={setUnsupportedDialogOpen}
                 unsupportedFiles={unsupportedFiles}
                 onConfirm={() => {
-                  console.log(`Closing unsupported files dialog`);
+                  // logger.debug(`Closing unsupported files dialog`);
                   setUnsupportedDialogOpen(false);
                   setUnsupportedFiles([]);
                 }}

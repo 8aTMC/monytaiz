@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useClientMediaProcessor, type ProcessedMedia } from './useClientMediaProcessor';
 import { useMediaPostProcess } from './useMediaPostProcess';
 import { generateVideoThumbnail } from '@/lib/videoThumbnail';
+import { logger } from '@/utils/logging';
 
 interface QualityProgress {
   resolution: string;
@@ -61,6 +62,8 @@ export const useSimpleUpload = () => {
   const { processFiles, isProcessing, progress: processingProgress, canProcessVideo } = useClientMediaProcessor();
   const { processMedia } = useMediaPostProcess();
   const uploadQueueRef = useRef<string[]>([]);
+  const cancelledRef = useRef(false);
+  const pausedRef = useRef(false);
 
   const uploadFile = useCallback(async (file: File, onProgress?: (progress: UploadProgress) => void) => {
     setUploading(true);
@@ -150,7 +153,7 @@ export const useSimpleUpload = () => {
               width = processedMedia.metadata.width;
               height = processedMedia.metadata.height;
 
-              console.log(`✅ Image processed: ${file.name} → ${uploadFileName} (${compressionRatio}% smaller)`);
+              // logger.debug(`Image processed: ${file.name} → ${uploadFileName} (${compressionRatio}% smaller)`);
 
               updateProgress({
                 phase: 'processing',
@@ -163,7 +166,7 @@ export const useSimpleUpload = () => {
             }
           }
         } catch (error) {
-          console.warn('Image processing failed, uploading original:', error);
+          logger.error('[UploadError] Image processing failed, uploading original', error);
           // Continue with original file if processing fails
         }
       }
@@ -211,15 +214,15 @@ export const useSimpleUpload = () => {
             });
 
           if (thumbnailUpload.error) {
-            console.warn('Thumbnail upload failed:', thumbnailUpload.error);
+            logger.error('[UploadError] Thumbnail upload failed', thumbnailUpload.error);
           } else {
             thumbnailPath = thumbnailFilename;
-            console.log('✅ Thumbnail uploaded:', thumbnailPath);
+            // logger.debug('Thumbnail uploaded', { thumbnailPath });
           }
 
           // Skip video dimension analysis to avoid processing errors
         } catch (error) {
-          console.warn('Client-side thumbnail generation failed:', error);
+          logger.error('[UploadError] Client-side thumbnail generation failed', error);
           // Continue without thumbnail - video upload will proceed normally
         }
       }
@@ -234,7 +237,7 @@ export const useSimpleUpload = () => {
       });
 
       // Upload file: GIFs to uploads folder (preserve animation), processed images to processed folder
-      console.log(`Uploading ${isGif ? 'GIF' : 'processed'} file:`, uploadFileName);
+      // logger.debug(`Uploading ${isGif ? 'GIF' : 'processed'} file: ${uploadFileName}`);
       const originalUpload = await supabase.storage.from('content').upload(uploadPath, fileToUpload, { upsert: false });
       if (originalUpload.error) throw new Error(`Upload failed: ${originalUpload.error.message}`);
 
@@ -290,13 +293,7 @@ export const useSimpleUpload = () => {
         compressionRatio
       });
 
-      console.log('✅ File uploaded successfully:', { 
-        id: mediaRecord.id, 
-        path: uploadPath,
-        thumbnailPath: thumbnailPath,
-        processed: shouldProcessImage,
-        compressionRatio: shouldProcessImage ? compressionRatio : 0
-      });
+      // logger.debug('File uploaded successfully', { id: mediaRecord.id, path: uploadPath, thumbnailPath, processed: shouldProcessImage, compressionRatio: shouldProcessImage ? compressionRatio : 0 });
 
 
       return { 
@@ -310,7 +307,7 @@ export const useSimpleUpload = () => {
       };
 
     } catch (error) {
-      console.error('Upload error:', error);
+      logger.error('[UploadError] Upload error', error);
       toast({
         title: "Upload failed",
         description: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -330,7 +327,7 @@ export const useSimpleUpload = () => {
         const result = await uploadFile(file);
         results.push(result);
       } catch (error) {
-        console.error(`Failed to upload ${file.name}:`, error);
+        logger.error('[UploadError] Failed to upload file', { name: file.name, error });
       }
     }
     
@@ -345,8 +342,9 @@ export const useSimpleUpload = () => {
   ) => {
     setUploading(true);
     setIsPaused(false);
+    pausedRef.current = false;
+    cancelledRef.current = false;
     
-    // Initialize file states
     const newFileStates = new Map<string, FileUploadState>();
     files.forEach(({ file, id }) => {
       newFileStates.set(id, {
@@ -362,78 +360,48 @@ export const useSimpleUpload = () => {
     uploadQueueRef.current = files.map(f => f.id);
 
     try {
-      // Process files one by one (CONCURRENCY_LIMIT = 1)
       for (const { file, id } of files) {
-        // Check if upload was cancelled globally
-        if (!uploading) break;
-        
-        // Check if this specific file was cancelled
+        if (cancelledRef.current) break;
         let currentState = newFileStates.get(id);
         if (!currentState || currentState.status === 'cancelled') continue;
 
-        // Wait while paused
-        while (isPaused && uploading) {
+        while (pausedRef.current && !cancelledRef.current) {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
-
-        // Check again after pause - get fresh state
-        currentState = newFileStates.get(id);
-        if (!uploading || !currentState || currentState.status === 'cancelled') break;
+        if (cancelledRef.current) break;
 
         // Update file state to uploading
         newFileStates.set(id, { ...currentState, status: 'uploading', message: 'Starting upload...' });
         setFileStates(new Map(newFileStates));
-        
-        // Call progress callback with initial state
-        onProgress?.(id, {
-          phase: 'processing',
-          progress: 0,
-          message: 'Starting upload...'
-        });
+        onProgress?.(id, { phase: 'processing', progress: 0, message: 'Starting upload...' });
 
         try {
-          const result = await uploadFile(file, (progress) => {
-            // Update file progress in real-time
-            onProgress?.(id, progress);
-          });
-          
-          // Update state to completed
-          newFileStates.set(id, {
-            ...currentState,
-            status: 'completed',
-            progress: 100,
-            message: 'Upload completed',
-            result
-          });
+          const result = await uploadFile(file, (progress) => onProgress?.(id, progress));
+          newFileStates.set(id, { ...currentState, status: 'completed', progress: 100, message: 'Upload completed', result });
           setFileStates(new Map(newFileStates));
-          
           onComplete?.(id, result);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Upload failed';
-          newFileStates.set(id, {
-            ...currentState,
-            status: 'error',
-            message: errorMessage,
-            error: errorMessage
-          });
+          newFileStates.set(id, { ...currentState, status: 'error', message: errorMessage, error: errorMessage });
           setFileStates(new Map(newFileStates));
-          
           onError?.(id, errorMessage);
         }
       }
     } finally {
       setUploading(false);
       setIsPaused(false);
+      pausedRef.current = false;
     }
-  }, [uploadFile, uploading, isPaused]);
+  }, [uploadFile]);
 
   const pauseAllUploads = useCallback(() => {
+    pausedRef.current = true;
     setIsPaused(true);
     setFileStates(prev => {
       const newStates = new Map(prev);
-      newStates.forEach((state, id) => {
+      newStates.forEach((state) => {
         if (state.status === 'uploading') {
-          newStates.set(id, { ...state, status: 'paused', message: 'Upload paused' });
+          newStates.set(state.id, { ...state, status: 'paused', message: 'Upload paused' });
         }
       });
       return newStates;
@@ -441,12 +409,13 @@ export const useSimpleUpload = () => {
   }, []);
 
   const resumeAllUploads = useCallback(() => {
+    pausedRef.current = false;
     setIsPaused(false);
     setFileStates(prev => {
       const newStates = new Map(prev);
-      newStates.forEach((state, id) => {
+      newStates.forEach((state) => {
         if (state.status === 'paused') {
-          newStates.set(id, { ...state, status: 'pending', message: 'Resuming upload...' });
+          newStates.set(state.id, { ...state, status: 'pending', message: 'Resuming upload...' });
         }
       });
       return newStates;
@@ -454,14 +423,15 @@ export const useSimpleUpload = () => {
   }, []);
 
   const cancelAllUploads = useCallback(() => {
+    cancelledRef.current = true;
     setUploading(false);
     setIsPaused(false);
     setFileStates(prev => {
       const newStates = new Map(prev);
-      newStates.forEach((state, id) => {
+      newStates.forEach((state) => {
         if (state.status === 'uploading' || state.status === 'pending' || state.status === 'paused') {
           state.abortController?.abort();
-          newStates.set(id, { ...state, status: 'cancelled', message: 'Upload cancelled' });
+          newStates.set(state.id, { ...state, status: 'cancelled', message: 'Upload cancelled' });
         }
       });
       return newStates;
