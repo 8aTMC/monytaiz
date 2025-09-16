@@ -2,12 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogPortal } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Image, Video, FileAudio, FileText, X, ChevronLeft, ChevronRight, Check, Play, Pause } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Image, Video, FileAudio, FileText, X, ChevronLeft, ChevronRight, Check, Play, Pause, Maximize } from 'lucide-react';
 import { useSidebar } from '@/components/Navigation';
 import { useProgressiveMediaLoading } from '@/hooks/useProgressiveMediaLoading';
 import { useIntersectionPreloader } from '@/hooks/useIntersectionPreloader';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
 import { EnhancedVideoPlayer } from '@/components/EnhancedVideoPlayer';
+import { FullscreenImageViewer } from '@/components/FullscreenImageViewer';
 
 // Use the MediaItem interface from ContentLibrary
 interface MediaItem {
@@ -64,6 +66,7 @@ export const MediaPreviewDialog = ({
   const [needsScroll, setNeedsScroll] = useState(false);
   const [gifPlaying, setGifPlaying] = useState(true);
   const [gifNonce, setGifNonce] = useState(0);
+  const [fullscreenOpen, setFullscreenOpen] = useState(false);
   const { 
     loadProgressiveMedia, 
     enhanceQuality, 
@@ -365,6 +368,30 @@ export const MediaPreviewDialog = ({
                           </div>
                         </div>
                       )}
+
+                      {/* Fullscreen toggle button - always visible and prominent */}
+                      {getCurrentUrl() && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="secondary"
+                                size="default"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setFullscreenOpen(true);
+                                }}
+                                className="absolute top-3 right-3 z-20 bg-background/90 backdrop-blur-sm border-2 border-primary/20 shadow-lg hover:bg-background hover:border-primary/40 hover:scale-105 transition-all duration-200"
+                              >
+                                <Maximize className="w-5 h-5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>View fullscreen</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </div>
                   )}
 
@@ -555,6 +582,14 @@ export const MediaPreviewDialog = ({
           </button>
         </div>
       </DialogPortal>
+      
+      {/* Fullscreen Image Viewer */}
+      <FullscreenImageViewer
+        isOpen={fullscreenOpen}
+        onClose={() => setFullscreenOpen(false)}
+        imageUrl={getCurrentUrl() || ''}
+        title={item.title || 'Media preview'}
+      />
     </Dialog>
   );
 };
