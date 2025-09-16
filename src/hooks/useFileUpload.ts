@@ -117,12 +117,22 @@ export const useFileUpload = () => {
   const [abortControllers, setAbortControllers] = useState<Map<string, AbortController>>(new Map());
   const { toast } = useToast();
   
-  // Use ref to get current queue state in async operations
+  // Use refs to get current state in async operations without stale closures
   const queueRef = useRef<FileUploadItem[]>([]);
+  const isUploadingRef = useRef(false);
+  const pausedUploadsRef = useRef(new Set<string>());
   
   useEffect(() => {
     queueRef.current = uploadQueue;
   }, [uploadQueue]);
+
+  useEffect(() => {
+    isUploadingRef.current = isUploading;
+  }, [isUploading]);
+
+  useEffect(() => {
+    pausedUploadsRef.current = pausedUploads;
+  }, [pausedUploads]);
 
   // Clear any potentially cached files that don't match current restrictions
   useEffect(() => {
@@ -531,7 +541,8 @@ export const useFileUpload = () => {
 
     try {
       // Check if paused
-      if (pausedUploads.has(item.id)) {
+      if (pausedUploadsRef.current.has(item.id)) {
+        console.log('Upload paused for file:', file.name);
         return;
       }
 
@@ -586,7 +597,7 @@ export const useFileUpload = () => {
 
       // Start progress tracking after validation
       progressInterval = setInterval(() => {
-        if (pausedUploads.has(item.id)) {
+        if (pausedUploadsRef.current.has(item.id)) {
           if (progressInterval) clearInterval(progressInterval);
           progressInterval = null;
           return;
@@ -597,7 +608,8 @@ export const useFileUpload = () => {
       }, 1000);
 
       // Check if paused before starting upload
-      if (pausedUploads.has(item.id)) {
+      if (pausedUploadsRef.current.has(item.id)) {
+        console.log('Upload paused before starting for file:', file.name);
         return;
       }
 
@@ -633,7 +645,7 @@ export const useFileUpload = () => {
 
             // Simulate progress tracking since Supabase client doesn't provide detailed progress
             const progressInterval = setInterval(() => {
-              if (!pausedUploads.has(item.id) && uploadProgress < 90) {
+              if (!pausedUploadsRef.current.has(item.id) && uploadProgress < 90) {
                 uploadProgress += Math.random() * 10;
                 const elapsed = (Date.now() - startTime) / 1000;
                 const estimatedSpeed = (uploadProgress / 100) * file.size / elapsed;
@@ -740,7 +752,7 @@ export const useFileUpload = () => {
         }
       }
 
-      // Save to database with proper user ID and additional debugging
+      // Save to database with proper user ID and metadata
       console.log('Inserting content file:', {
         creator_id: userData.user.id,
         auth_uid: userData.user.id,
@@ -749,17 +761,19 @@ export const useFileUpload = () => {
       });
 
       const insertPayload = {
-        title: item.metadata?.description || file.name.replace(/\.[^/.]+$/, ""), // Use description or remove extension
+        title: item.metadata?.description || file.name.replace(/\.[^/.]+$/, ""), // Clean title
         description: item.metadata?.description || null,
         tags: item.metadata?.tags || [],
         mentions: item.metadata?.mentions || [],
         suggested_price_cents: item.metadata?.suggestedPrice ? Math.round(item.metadata.suggestedPrice * 100) : 0,
         original_filename: file.name,
         original_path: data!.path,
+        processed_path: data!.path, // Same as original for now
         mime_type: file.type,
         media_type: fileType,
         original_size_bytes: file.size,
         creator_id: userData.user.id,
+        processing_status: 'processed', // Mark as processed since we're uploading directly
       };
       
       console.log('Insert payload:', insertPayload);
@@ -947,7 +961,13 @@ export const useFileUpload = () => {
   }, [pausedUploads, toast]);
 
   const startUpload = useCallback(async (skipDuplicateCheck = false) => {
-    if (queueRef.current.length === 0 || isUploading) return;
+    if (queueRef.current.length === 0 || isUploadingRef.current) {
+      console.log('Upload blocked:', { 
+        queueLength: queueRef.current.length, 
+        isUploading: isUploadingRef.current 
+      });
+      return;
+    }
 
     // Return duplicate check results if not skipping
     if (!skipDuplicateCheck) {
@@ -956,6 +976,7 @@ export const useFileUpload = () => {
 
     // Get pending files for upload
     const pendingFiles = queueRef.current.filter(item => item.status === 'pending');
+    console.log('Starting upload for', pendingFiles.length, 'pending files');
     
     if (pendingFiles.length === 0) {
       toast({
