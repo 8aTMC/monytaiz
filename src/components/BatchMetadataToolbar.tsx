@@ -83,7 +83,7 @@ export const BatchMetadataToolbar = ({
               className="flex items-center gap-1 h-8"
             >
               <Save className="w-4 h-4" />
-              Apply
+              Apply & Clear
             </Button>
           </div>
         </div>
@@ -97,6 +97,11 @@ export const BatchMetadataToolbar = ({
         onMentionsChange={(mentions) => {
           onUpdateMetadata({ mentions });
           setMentionsDialogOpen(false);
+          toast({
+            title: "Mentions added",
+            description: `Mentions updated for ${selectedCount} files`,
+            variant: "success",
+          });
         }}
       />
       
@@ -107,6 +112,11 @@ export const BatchMetadataToolbar = ({
         onTagsChange={(tags) => {
           onUpdateMetadata({ tags });
           setTagsDialogOpen(false);
+          toast({
+            title: "Tags added",
+            description: `Tags updated for ${selectedCount} files`,
+            variant: "success",
+          });
         }}
       />
       
@@ -117,6 +127,11 @@ export const BatchMetadataToolbar = ({
         onFoldersChange={(folders) => {
           onUpdateMetadata({ folders });
           setFoldersDialogOpen(false);
+          toast({
+            title: "Folders updated",
+            description: `Folders updated for ${selectedCount} files`,
+            variant: "success",
+          });
         }}
       />
     </>

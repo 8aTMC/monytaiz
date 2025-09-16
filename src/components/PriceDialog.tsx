@@ -114,9 +114,9 @@ export function PriceDialog({ open, onOpenChange, price = 0, onPriceChange }: Pr
           </div>
 
           {previewValue > 0 && (
-            <div className="p-3 bg-accent rounded-lg">
+            <div className="p-3 bg-muted/50 rounded-lg border">
               <p className="text-sm text-muted-foreground">Preview:</p>
-              <p className="text-lg font-semibold">{formatDisplayValue(previewValue)}</p>
+              <p className="text-lg font-semibold text-foreground">{formatDisplayValue(previewValue)}</p>
             </div>
           )}
 
