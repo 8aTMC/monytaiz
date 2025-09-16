@@ -64,7 +64,6 @@ export const MediaPreviewDialog = ({
   const [needsScroll, setNeedsScroll] = useState(false);
   const [gifPlaying, setGifPlaying] = useState(true);
   const [gifNonce, setGifNonce] = useState(0);
-  const [checkboxState, setCheckboxState] = useState(false);
   const { 
     loadProgressiveMedia, 
     enhanceQuality, 
@@ -198,14 +197,6 @@ export const MediaPreviewDialog = ({
     };
   }, [open, item?.id, item?.storage_path]); // Only depend on stable values
 
-  // Synchronize checkbox state when item or selection changes
-  useEffect(() => {
-    if (item) {
-      const isSelected = selectedItems.has(item.id);
-      console.log('🔄 Checkbox state sync - item:', item.id, 'isSelected:', isSelected, 'checkboxState:', checkboxState);
-      setCheckboxState(isSelected);
-    }
-  }, [item?.id, selectedItems, selectedItems.size]);
 
   // Dynamic overflow detection - only show scroll when content truly overflows
   useEffect(() => {
@@ -257,6 +248,7 @@ export const MediaPreviewDialog = ({
 
   const typeValue = getItemType(item);
   const itemSize = getItemSize(item);
+  const isSelected = selectedItems.has(item.id);
 
   // Simple modal sizing based on sidebar state - no complex calculations
   const getModalMaxWidth = () => {
@@ -503,22 +495,29 @@ export const MediaPreviewDialog = ({
               key={`checkbox-${item.id}`}
               className="absolute top-4 right-16 z-[115] bg-primary p-3 rounded-lg border-2 border-white shadow-2xl"
               onClick={(e) => {
-                console.log('✅ Selection checkbox clicked for item:', item.id, 'current state:', checkboxState);
+                console.log('✅ Selection checkbox clicked for item:', item.id, 'current state:', isSelected);
                 e.stopPropagation();
                 e.preventDefault();
-                setCheckboxState(prev => !prev); // Optimistic update
                 onToggleSelection(item.id);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === ' ' || e.key === 'Enter') {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onToggleSelection(item.id);
+                }
               }}
             >
               <div 
                 role="checkbox"
-                aria-checked={checkboxState}
+                aria-checked={isSelected}
+                tabIndex={0}
                 className={`w-8 h-8 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${
-                  checkboxState
+                  isSelected
                     ? 'bg-white border-white text-primary' 
                     : 'bg-transparent border-white text-white hover:bg-white/20'
                 }`}>
-                {checkboxState && <Check className="h-6 w-6" />}
+                {isSelected && <Check className="h-6 w-6" />}
               </div>
             </div>
           )}
