@@ -721,7 +721,7 @@ export default function SimpleUpload() {
                 {/* Right Side - Action Buttons */}
                 <div className="flex items-center gap-3">
                   {/* Upload Controls - Hide duplicate controls when uploading */}
-                  {!uploading && (
+                  {!uploading && files.length > 0 && (
                     <>
                       {isPaused ? (
                         <Button 
