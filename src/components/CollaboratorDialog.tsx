@@ -84,9 +84,18 @@ export function CollaboratorDialog({ open, onOpenChange, onCollaboratorCreated }
     }
   });
 
-  const handleCropComplete = (imageBlob: Blob) => {
+  const handleCropComplete = async (imageBlob: Blob) => {
     setProfileImageBlob(imageBlob);
-    setProfileImageUrl(URL.createObjectURL(imageBlob)); // For preview only
+    // Convert blob to data URL to avoid blob URL lifecycle issues
+    try {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setProfileImageUrl(reader.result as string);
+      };
+      reader.readAsDataURL(imageBlob);
+    } catch (error) {
+      console.warn('Failed to create preview URL:', error);
+    }
     setCropCompleted(true);
     setShowCropDialog(false); // Close crop dialog after state is updated
   };

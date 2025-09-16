@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -81,8 +81,23 @@ export function FileUploadRowWithMetadata({
     onMetadataChange(uploadedFile.id, { [field]: value });
   };
 
-  // Create a mock media item for preview
-  const mockMediaItem = uploadedFile.status === 'completed' ? {
+  // Create a mock media item for preview with data URL to avoid blob URL issues
+  const [previewDataUrl, setPreviewDataUrl] = useState<string>('');
+  
+  React.useEffect(() => {
+    if (uploadedFile.status === 'completed' && !previewDataUrl) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPreviewDataUrl(reader.result as string);
+      };
+      reader.onerror = () => {
+        console.warn('Failed to create preview data URL');
+      };
+      reader.readAsDataURL(uploadedFile.file);
+    }
+  }, [uploadedFile.status, uploadedFile.file, previewDataUrl]);
+
+  const mockMediaItem = uploadedFile.status === 'completed' && previewDataUrl ? {
     id: uploadedFile.id,
     creator_id: '',
     original_filename: uploadedFile.file.name,
@@ -92,7 +107,7 @@ export function FileUploadRowWithMetadata({
     mentions: uploadedFile.metadata.mentions,
     suggested_price_cents: uploadedFile.metadata.suggestedPrice ? Math.round(uploadedFile.metadata.suggestedPrice * 100) : 0,
     original_path: '',
-    processed_path: URL.createObjectURL(uploadedFile.file),
+    processed_path: previewDataUrl,
     mime_type: uploadedFile.file.type,
     media_type: (() => {
       const isImage = uploadedFile.file.type.startsWith('image/') || isHeicFile(uploadedFile.file);
@@ -108,7 +123,7 @@ export function FileUploadRowWithMetadata({
   } : null;
 
   const mockGetFullUrlAsync = async (item: SimpleMediaItem) => {
-    return URL.createObjectURL(uploadedFile.file);
+    return previewDataUrl;
   };
 
   return (

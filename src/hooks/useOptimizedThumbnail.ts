@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { fileToDataURL } from '@/lib/blobUtils';
 
 // Cache for thumbnails to avoid regeneration
 const thumbnailCache = new Map<string, string>();
@@ -33,17 +34,18 @@ export function useOptimizedThumbnail(file: File) {
       
       try {
         if (file.type.startsWith('image/')) {
-          const url = URL.createObjectURL(file);
+          // Use data URL for images to avoid blob URL lifecycle issues
+          const dataUrl = await fileToDataURL(file);
           if (!abortController.signal.aborted) {
-            setThumbnail(url);
-            thumbnailCache.set(cacheKey, url);
+            setThumbnail(dataUrl);
+            thumbnailCache.set(cacheKey, dataUrl);
           }
         } else if (file.type.startsWith('video/')) {
-          // Use a more efficient video thumbnail generation
-          const thumbnailUrl = await generateVideoThumbnailOptimized(file, abortController.signal);
-          if (!abortController.signal.aborted && thumbnailUrl) {
-            setThumbnail(thumbnailUrl);
-            thumbnailCache.set(cacheKey, thumbnailUrl);
+          // Use canvas-based video thumbnail generation that returns data URL
+          const thumbnailDataUrl = await generateVideoThumbnailOptimized(file, abortController.signal);
+          if (!abortController.signal.aborted && thumbnailDataUrl) {
+            setThumbnail(thumbnailDataUrl);
+            thumbnailCache.set(cacheKey, thumbnailDataUrl);
           }
         }
       } catch (error) {
@@ -86,8 +88,13 @@ async function generateVideoThumbnailOptimized(file: File, signal: AbortSignal):
     video.muted = true;
     video.playsInline = true;
     
+    let blobUrl: string | null = null;
+    
     const cleanup = () => {
-      URL.revokeObjectURL(video.src);
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+        blobUrl = null;
+      }
       video.remove();
       canvas.remove();
     };
@@ -115,10 +122,11 @@ async function generateVideoThumbnailOptimized(file: File, signal: AbortSignal):
       
       try {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.7);
+        // Return data URL instead of blob URL to avoid lifecycle issues
+        const thumbnailDataUrl = canvas.toDataURL('image/jpeg', 0.7);
         signal.removeEventListener('abort', onAbort);
         cleanup();
-        resolve(thumbnailUrl);
+        resolve(thumbnailDataUrl);
       } catch (error) {
         signal.removeEventListener('abort', onAbort);
         cleanup();
@@ -132,7 +140,9 @@ async function generateVideoThumbnailOptimized(file: File, signal: AbortSignal):
       resolve(null);
     };
     
-    video.src = URL.createObjectURL(file);
+    // Create blob URL and track it for cleanup
+    blobUrl = URL.createObjectURL(file);
+    video.src = blobUrl;
     video.load();
   });
 }
