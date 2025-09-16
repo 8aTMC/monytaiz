@@ -64,6 +64,7 @@ export const MediaPreviewDialog = ({
   const [needsScroll, setNeedsScroll] = useState(false);
   const [gifPlaying, setGifPlaying] = useState(true);
   const [gifNonce, setGifNonce] = useState(0);
+  const [checkboxState, setCheckboxState] = useState(false);
   const { 
     loadProgressiveMedia, 
     enhanceQuality, 
@@ -196,6 +197,15 @@ export const MediaPreviewDialog = ({
       isMounted = false;
     };
   }, [open, item?.id, item?.storage_path]); // Only depend on stable values
+
+  // Synchronize checkbox state when item or selection changes
+  useEffect(() => {
+    if (item) {
+      const isSelected = selectedItems.has(item.id);
+      console.log('🔄 Checkbox state sync - item:', item.id, 'isSelected:', isSelected, 'checkboxState:', checkboxState);
+      setCheckboxState(isSelected);
+    }
+  }, [item?.id, selectedItems]);
 
   // Dynamic overflow detection - only show scroll when content truly overflows
   useEffect(() => {
@@ -490,20 +500,21 @@ export const MediaPreviewDialog = ({
           {/* Selection checkbox - positioned to avoid overlap with close button */}
           {selecting && (
             <div 
+              key={`checkbox-${item.id}`}
               className="absolute top-4 right-16 z-[115] bg-primary p-3 rounded-lg border-2 border-white shadow-2xl"
               onClick={(e) => {
-                console.log('✅ Selection checkbox clicked for item:', item.id);
+                console.log('✅ Selection checkbox clicked for item:', item.id, 'current state:', checkboxState);
                 e.stopPropagation();
                 e.preventDefault();
                 onToggleSelection(item.id);
               }}
             >
               <div className={`w-8 h-8 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${
-                selectedItems.has(item.id)
+                checkboxState
                   ? 'bg-white border-white text-primary' 
                   : 'bg-transparent border-white text-white hover:bg-white/20'
               }`}>
-                {selectedItems.has(item.id) && <Check className="h-6 w-6" />}
+                {checkboxState && <Check className="h-6 w-6" />}
               </div>
             </div>
           )}
