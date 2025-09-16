@@ -13,7 +13,8 @@ console.error = (...args) => {
       message.includes('RS SDK') ||
       message.includes('chrome-extension') ||
       message.includes('trying to fix automatically') ||
-      message.includes('An error occurred')) {
+      message.includes('An error occurred') ||
+      message.includes('net::ERR_FILE_NOT_FOUND')) {
     console.warn('Third-party integration error suppressed:', ...args);
     return;
   }
@@ -29,11 +30,35 @@ window.addEventListener('unhandledrejection', (event) => {
       reason.includes('PixelML') || 
       reason.includes('RS SDK') ||
       reason.includes('trying to fix automatically') ||
-      reason.includes('An error occurred')) {
+      reason.includes('An error occurred') ||
+      reason.includes('blob:') ||
+      reason.includes('net::ERR_FILE_NOT_FOUND')) {
     console.warn('Third-party integration promise rejection handled:', event.reason);
     event.preventDefault(); // Prevent the error from showing in console
   }
 });
+
+// Global error handler for blob URL loading errors
+window.addEventListener('error', (event) => {
+  const target = event.target as HTMLImageElement | HTMLVideoElement | HTMLAudioElement;
+  
+  // Check if this is a blob URL error
+  if (target && target.src && target.src.startsWith('blob:')) {
+    // Check if it's a network error for blob URLs
+    if (event.message?.includes('net::ERR_FILE_NOT_FOUND') || 
+        event.message?.includes('Failed to load resource')) {
+      
+      // Suppress the error to prevent console spam
+      event.preventDefault();
+      event.stopPropagation();
+      
+      // Clear the src to prevent further attempts
+      target.src = '';
+      
+      return false;
+    }
+  }
+}, true); // Use capture to catch errors early
 
 // Suppress browser extension notifications and automatic fix messages
 const originalToast = window.console?.warn;

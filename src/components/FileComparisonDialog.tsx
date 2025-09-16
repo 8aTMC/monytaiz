@@ -232,6 +232,10 @@ export const FileComparisonDialog = ({
         video.preload = 'metadata';
         video.currentTime = 1; // Seek to 1 second
         
+        const timeout = setTimeout(() => {
+          setVideoThumbnailUrl(null);
+        }, 10000); // 10 second timeout
+        
         video.onloadedmetadata = () => {
           video.onseeked = () => {
             if (ctx && video.videoWidth && video.videoHeight) {
@@ -265,14 +269,25 @@ export const FileComparisonDialog = ({
                 setVideoThumbnailUrl(null);
               }
             }
+            clearTimeout(timeout);
           };
+        };
+        
+        video.onerror = () => {
+          clearTimeout(timeout);
+          setVideoThumbnailUrl(null);
         };
         
         const videoUrl = URL.createObjectURL(file);
         video.src = videoUrl;
         
         return () => {
-          try { URL.revokeObjectURL(videoUrl); } catch {}
+          clearTimeout(timeout);
+          try { 
+            URL.revokeObjectURL(videoUrl); 
+          } catch (e) {
+            // Ignore revocation errors
+          }
         };
       }
     }, [file, isImage, isVideo, videoThumbnailUrl]);

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useState, useEffect, useMemo } from 'react';
 import { DuplicateMatch, QueueDuplicate, DatabaseDuplicate } from '@/hooks/useBatchDuplicateDetection';
 import { FileComparisonDialog } from './FileComparisonDialog';
-import { useOptimizedThumbnail } from '@/hooks/useOptimizedThumbnail';
+
 
 interface UnifiedDuplicateDialogProps {
   open: boolean;
@@ -114,7 +114,84 @@ export const UnifiedDuplicateDialog = ({
   };
 
   const FileThumbnail = ({ duplicate }: { duplicate: DuplicateMatch }) => {
-    const { thumbnail, isLoading } = useOptimizedThumbnail(duplicate.queueFile.file);
+    const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const file = duplicate.queueFile.file;
+    
+    useEffect(() => {
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
+      
+      if (!isImage && !isVideo) {
+        return;
+      }
+      
+      setIsLoading(true);
+      
+      if (isImage) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            setThumbnailUrl(e.target.result as string);
+          }
+          setIsLoading(false);
+        };
+        reader.onerror = () => {
+          setThumbnailUrl(null);
+          setIsLoading(false);
+        };
+        reader.readAsDataURL(file);
+      } else if (isVideo) {
+        const video = document.createElement('video');
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        video.preload = 'metadata';
+        video.currentTime = 1;
+        
+        const timeout = setTimeout(() => {
+          setThumbnailUrl(null);
+          setIsLoading(false);
+        }, 5000);
+        
+        video.onloadedmetadata = () => {
+          video.onseeked = () => {
+            if (ctx && video.videoWidth && video.videoHeight) {
+              canvas.width = 120;
+              canvas.height = 120;
+              ctx.drawImage(video, 0, 0, 120, 120);
+              
+              try {
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                setThumbnailUrl(dataUrl);
+              } catch (e) {
+                setThumbnailUrl(null);
+              }
+            }
+            clearTimeout(timeout);
+            setIsLoading(false);
+          };
+        };
+        
+        video.onerror = () => {
+          clearTimeout(timeout);
+          setThumbnailUrl(null);
+          setIsLoading(false);
+        };
+        
+        const videoUrl = URL.createObjectURL(file);
+        video.src = videoUrl;
+        
+        return () => {
+          clearTimeout(timeout);
+          try {
+            URL.revokeObjectURL(videoUrl);
+          } catch (e) {
+            // Ignore revocation errors
+          }
+        };
+      }
+    }, [file]);
     
     if (isLoading) {
       return (
@@ -122,13 +199,14 @@ export const UnifiedDuplicateDialog = ({
       );
     }
     
-    if (thumbnail) {
+    if (thumbnailUrl) {
       return (
         <div className="w-12 h-12 rounded overflow-hidden bg-muted flex-shrink-0">
           <img 
-            src={thumbnail} 
+            src={thumbnailUrl} 
             alt="File preview" 
             className="w-full h-full object-cover"
+            onError={() => setThumbnailUrl(null)}
           />
         </div>
       );

@@ -76,14 +76,34 @@ export function getVideoMetadataFromFile(file: File): Promise<VideoQualityInfo |
     video.preload = 'metadata';
     video.src = url;
     
+    // Set a timeout to prevent hanging
+    const timeout = setTimeout(() => {
+      try {
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        // Ignore revocation errors
+      }
+      resolve(null);
+    }, 10000); // 10 second timeout
+    
     video.onloadedmetadata = () => {
+      clearTimeout(timeout);
       const metadata = getVideoMetadata(video);
-      URL.revokeObjectURL(url);
+      try {
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        // Ignore revocation errors
+      }
       resolve(metadata);
     };
     
     video.onerror = () => {
-      URL.revokeObjectURL(url);
+      clearTimeout(timeout);
+      try {
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        // Ignore revocation errors
+      }
       resolve(null);
     };
   });
