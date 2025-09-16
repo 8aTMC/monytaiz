@@ -128,21 +128,15 @@ function OptimizedFileReviewRowComponent({
           range: true, 
           index: currentIndex 
         });
-      } else if (selectionMode) {
-        // In selection mode: clicking the row selects/deselects
-        onSelectionChange(file.id, !file.selected, { 
-          range: false, 
-          index: currentIndex 
-        });
       } else {
-        // Not in selection mode: open preview
+        // Regular click: always open preview (no auto-selection)
         setPreviewDialogOpen(true);
       }
-    } else if (!selectionMode) {
-      // No selection callback but not in selection mode: open preview
+    } else {
+      // No selection callback or no range selection: open preview
       setPreviewDialogOpen(true);
     }
-  }, [onSelectionChange, file.id, file.selected, files, currentIndex, selectionMode, onEnterSelectionMode]);
+  }, [onSelectionChange, file.id, file.selected, files, currentIndex, onEnterSelectionMode]);
 
   // Memoize metadata calculations
   const hasMetadata = file.metadata.mentions.length > 0 || 
@@ -163,7 +157,7 @@ function OptimizedFileReviewRowComponent({
         className={cardClassName}
         onClick={handleRowClick}
         onDoubleClick={handleDoubleClick}
-        title="Click to select, double-click to preview"
+        title="Double-click to preview"
       >
         <div className="flex items-center gap-4">
           {/* Selection Checkbox */}
