@@ -661,7 +661,10 @@ export default function SimpleUpload() {
                       </Button>
                     )}
                     <Button 
-                      onClick={cancelAllUploads}
+                      onClick={() => {
+                        cancelAllUploads();
+                        clearUpload();
+                      }}
                       variant="destructive"
                     >
                       Cancel All
@@ -720,32 +723,6 @@ export default function SimpleUpload() {
                 
                 {/* Right Side - Action Buttons */}
                 <div className="flex items-center gap-3">
-                  {/* Upload Controls - Hide duplicate controls when uploading */}
-                  {!uploading && files.length > 0 && (
-                    <>
-                      {isPaused ? (
-                        <Button 
-                          onClick={resumeAllUploads}
-                          className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                        >
-                          Resume All
-                        </Button>
-                      ) : (
-                        <Button 
-                          onClick={pauseAllUploads}
-                          variant="secondary"
-                        >
-                          Pause All
-                        </Button>
-                      )}
-                      <Button 
-                        onClick={cancelAllUploads}
-                        variant="destructive"
-                      >
-                        Cancel All
-                      </Button>
-                    </>
-                  )}
                   
                   {/* Review Controls - Show in review mode when not uploading */}
                   {reviewMode && files.length > 0 && !uploading && (
