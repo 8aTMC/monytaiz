@@ -205,7 +205,7 @@ export const MediaPreviewDialog = ({
       console.log('🔄 Checkbox state sync - item:', item.id, 'isSelected:', isSelected, 'checkboxState:', checkboxState);
       setCheckboxState(isSelected);
     }
-  }, [item?.id, selectedItems]);
+  }, [item?.id, selectedItems, selectedItems.size]);
 
   // Dynamic overflow detection - only show scroll when content truly overflows
   useEffect(() => {
@@ -506,14 +506,18 @@ export const MediaPreviewDialog = ({
                 console.log('✅ Selection checkbox clicked for item:', item.id, 'current state:', checkboxState);
                 e.stopPropagation();
                 e.preventDefault();
+                setCheckboxState(prev => !prev); // Optimistic update
                 onToggleSelection(item.id);
               }}
             >
-              <div className={`w-8 h-8 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${
-                checkboxState
-                  ? 'bg-white border-white text-primary' 
-                  : 'bg-transparent border-white text-white hover:bg-white/20'
-              }`}>
+              <div 
+                role="checkbox"
+                aria-checked={checkboxState}
+                className={`w-8 h-8 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${
+                  checkboxState
+                    ? 'bg-white border-white text-primary' 
+                    : 'bg-transparent border-white text-white hover:bg-white/20'
+                }`}>
                 {checkboxState && <Check className="h-6 w-6" />}
               </div>
             </div>
