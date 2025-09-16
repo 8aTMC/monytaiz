@@ -29,20 +29,49 @@ interface FilePreviewDialogProps {
   files?: (File | FileWithId)[];
   totalFiles?: number; // Backup detection method
   currentIndex?: number;
-  // Metadata props
+  // Metadata props (legacy - fallback)
   mentions?: string[];
   tags?: string[];
   folders?: string[];
   description?: string;
   suggestedPrice?: number;
   title?: string;
-  // Change handlers
+  // Change handlers (legacy - fallback)
   onMentionsChange?: (mentions: string[]) => void;
   onTagsChange?: (tags: string[]) => void;
   onFoldersChange?: (folders: string[]) => void;
   onDescriptionChange?: (description: string) => void;
   onPriceChange?: (price: number | null) => void;
   onTitleChange?: (title: string) => void;
+  // New index/ID-aware metadata handlers
+  getMetadataById?: (fileId: string) => {
+    mentions: string[];
+    tags: string[];
+    folders: string[];
+    description: string;
+    suggestedPrice: number | null;
+  } | null;
+  updateMetadataById?: (fileId: string, changes: Partial<{
+    mentions: string[];
+    tags: string[];
+    folders: string[];
+    description: string;
+    suggestedPrice: number | null;
+  }>) => void;
+  getMetadataByIndex?: (index: number) => {
+    mentions: string[];
+    tags: string[];
+    folders: string[];
+    description: string;
+    suggestedPrice: number | null;
+  } | null;
+  updateMetadataByIndex?: (index: number, changes: Partial<{
+    mentions: string[];
+    tags: string[];
+    folders: string[];
+    description: string;
+    suggestedPrice: number | null;
+  }>) => void;
   // Selection props
   selecting?: boolean;
   selectedFiles?: Set<string>;
@@ -69,6 +98,10 @@ export const FilePreviewDialog = ({
   onDescriptionChange,
   onPriceChange,
   onTitleChange,
+  getMetadataById,
+  updateMetadataById,
+  getMetadataByIndex,
+  updateMetadataByIndex,
   selecting = false,
   selectedFiles,
   onToggleSelection,
@@ -117,6 +150,69 @@ export const FilePreviewDialog = ({
   // Get current file ID for selection logic
   const currentFileId = displayFileData && 'id' in displayFileData ? displayFileData.id : fileId;
   const isSelected = !!(selectedFiles && currentFileId && selectedFiles.has(currentFileId));
+
+  // Get current metadata using index/ID-aware handlers or fallback to props
+  const getCurrentMetadata = () => {
+    // Try ID-based metadata first
+    if (getMetadataById && currentFileId) {
+      const metadata = getMetadataById(currentFileId);
+      if (metadata) return metadata;
+    }
+    
+    // Try index-based metadata
+    if (getMetadataByIndex && safeFiles.length > 0) {
+      const metadata = getMetadataByIndex(internalCurrentIndex);
+      if (metadata) return metadata;
+    }
+    
+    // Fallback to props (legacy behavior)
+    return {
+      mentions,
+      tags,
+      folders,
+      description,
+      suggestedPrice
+    };
+  };
+
+  const currentMetadata = getCurrentMetadata();
+
+  // Create update handlers that route to appropriate updater
+  const handleMetadataUpdate = (field: string, value: any) => {
+    // Convert price from cents to dollars for storage if needed
+    const convertedValue = field === 'suggestedPrice' && typeof value === 'number' ? value / 100 : value;
+    
+    // Try ID-based update first
+    if (updateMetadataById && currentFileId) {
+      updateMetadataById(currentFileId, { [field]: convertedValue });
+      return;
+    }
+    
+    // Try index-based update
+    if (updateMetadataByIndex && safeFiles.length > 0) {
+      updateMetadataByIndex(internalCurrentIndex, { [field]: convertedValue });
+      return;
+    }
+    
+    // Fallback to legacy handlers
+    switch (field) {
+      case 'mentions':
+        onMentionsChange?.(value);
+        break;
+      case 'tags':
+        onTagsChange?.(value);
+        break;
+      case 'folders':
+        onFoldersChange?.(value);
+        break;
+      case 'description':
+        onDescriptionChange?.(value);
+        break;
+      case 'suggestedPrice':
+        onPriceChange?.(convertedValue);
+        break;
+    }
+  };
   // ===== EFFECTS =====
   
   // Initialize internal index when dialog opens
@@ -134,6 +230,17 @@ export const FilePreviewDialog = ({
       setFileUrl('');
     }
   }, [open, currentIndex, safeFiles.length]);
+
+  // Reset metadata dialog states when navigating to prevent carryover
+  useEffect(() => {
+    // Close all metadata dialogs when index changes to prevent stale data
+    setMentionsDialogOpen(false);
+    setTagsDialogOpen(false);
+    setFoldersDialogOpen(false);
+    setDescriptionDialogOpen(false);
+    setPriceDialogOpen(false);
+    setEditTitleDialogOpen(false);
+  }, [internalCurrentIndex]);
   
   // Initialize client-side mounting
   useEffect(() => {
@@ -641,8 +748,8 @@ export const FilePreviewDialog = ({
                     onClick={() => setMentionsDialogOpen(true)}
                     className="text-xs"
                   >
-                    <AtSign className="w-3 h-3 mr-1" />
-                    Mentions {mentions.length > 0 && `(${mentions.length})`}
+                     <AtSign className="w-3 h-3 mr-1" />
+                    Mentions {currentMetadata.mentions.length > 0 && `(${currentMetadata.mentions.length})`}
                   </Button>
                 )}
                 
@@ -653,8 +760,8 @@ export const FilePreviewDialog = ({
                     onClick={() => setTagsDialogOpen(true)}
                     className="text-xs"
                   >
-                    <Hash className="w-3 h-3 mr-1" />
-                    Tags {tags.length > 0 && `(${tags.length})`}
+                     <Hash className="w-3 h-3 mr-1" />
+                    Tags {currentMetadata.tags.length > 0 && `(${currentMetadata.tags.length})`}
                   </Button>
                 )}
                 
@@ -677,8 +784,8 @@ export const FilePreviewDialog = ({
                     onClick={() => setDescriptionDialogOpen(true)}
                     className="text-xs"
                   >
-                    <FileText className="w-3 h-3 mr-1" />
-                    Description {description && description.length > 0 && '✓'}
+                     <FileText className="w-3 h-3 mr-1" />
+                    Description {currentMetadata.description && currentMetadata.description.length > 0 && '✓'}
                   </Button>
                 )}
                 
@@ -689,27 +796,27 @@ export const FilePreviewDialog = ({
                     onClick={() => setPriceDialogOpen(true)}
                     className="text-xs"
                   >
-                    <DollarSign className="w-3 h-3 mr-1" />
-                    Price {suggestedPrice > 0 && `($${(suggestedPrice / 100).toFixed(2)})`}
+                     <DollarSign className="w-3 h-3 mr-1" />
+                    Price {currentMetadata.suggestedPrice && currentMetadata.suggestedPrice > 0 && `($${currentMetadata.suggestedPrice.toFixed(2)})`}
                   </Button>
                 )}
               </div>
 
               {/* Show current metadata values */}
               <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-                {mentions.length > 0 && (
+                {currentMetadata.mentions.length > 0 && (
                   <div>
-                    <span className="font-medium">Mentions:</span> {mentions.join(', ')}
+                    <span className="font-medium">Mentions:</span> {currentMetadata.mentions.join(', ')}
                   </div>
                 )}
-                {tags.length > 0 && (
+                {currentMetadata.tags.length > 0 && (
                   <div>
-                    <span className="font-medium">Tags:</span> {tags.join(', ')}
+                    <span className="font-medium">Tags:</span> {currentMetadata.tags.join(', ')}
                   </div>
                 )}
-                {description && (
+                {currentMetadata.description && (
                   <div>
-                    <span className="font-medium">Description:</span> {description.length > 60 ? `${description.substring(0, 60)}...` : description}
+                    <span className="font-medium">Description:</span> {currentMetadata.description.length > 60 ? `${currentMetadata.description.substring(0, 60)}...` : currentMetadata.description}
                   </div>
                 )}
               </div>
@@ -717,48 +824,53 @@ export const FilePreviewDialog = ({
           </div>
 
           {/* Metadata Dialogs */}
-          {onMentionsChange && (
+          {(onMentionsChange || updateMetadataById || updateMetadataByIndex) && (
             <MentionsDialog
+              key={`mentions-${internalCurrentIndex}`}
               open={mentionsDialogOpen}
               onOpenChange={setMentionsDialogOpen}
-              mentions={mentions}
-              onMentionsChange={onMentionsChange}
+              mentions={currentMetadata.mentions}
+              onMentionsChange={(mentions) => handleMetadataUpdate('mentions', mentions)}
             />
           )}
 
-          {onTagsChange && (
+          {(onTagsChange || updateMetadataById || updateMetadataByIndex) && (
             <TagsDialog
+              key={`tags-${internalCurrentIndex}`}
               open={tagsDialogOpen}
               onOpenChange={setTagsDialogOpen}
-              tags={tags}
-              onTagsChange={onTagsChange}
+              tags={currentMetadata.tags}
+              onTagsChange={(tags) => handleMetadataUpdate('tags', tags)}
             />
           )}
 
-          {onFoldersChange && (
+          {(onFoldersChange || updateMetadataById || updateMetadataByIndex) && (
             <FolderSelectDialog
+              key={`folders-${internalCurrentIndex}`}
               open={foldersDialogOpen}
               onOpenChange={setFoldersDialogOpen}
-              selectedFolders={folders}
-              onFoldersChange={onFoldersChange}
+              selectedFolders={currentMetadata.folders}
+              onFoldersChange={(folders) => handleMetadataUpdate('folders', folders)}
             />
           )}
 
-          {onDescriptionChange && (
+          {(onDescriptionChange || updateMetadataById || updateMetadataByIndex) && (
             <DescriptionDialog
+              key={`description-${internalCurrentIndex}`}
               open={descriptionDialogOpen}
               onOpenChange={setDescriptionDialogOpen}
-              description={description}
-              onDescriptionChange={onDescriptionChange}
+              description={currentMetadata.description}
+              onDescriptionChange={(description) => handleMetadataUpdate('description', description)}
             />
           )}
 
-          {onPriceChange && (
+          {(onPriceChange || updateMetadataById || updateMetadataByIndex) && (
             <PriceDialog
+              key={`price-${internalCurrentIndex}`}
               open={priceDialogOpen}
               onOpenChange={setPriceDialogOpen}
-              price={suggestedPrice ? suggestedPrice / 100 : undefined}
-              onPriceChange={onPriceChange}
+              price={currentMetadata.suggestedPrice || undefined}
+              onPriceChange={(price) => handleMetadataUpdate('suggestedPrice', price ? price * 100 : null)}
             />
           )}
 

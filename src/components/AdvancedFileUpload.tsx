@@ -954,19 +954,33 @@ export const AdvancedFileUpload = () => {
         files={filesArray}
         totalFiles={uploadQueue.length}
         currentIndex={previewIndex}
-        // Metadata props
-        mentions={previewIndex !== null ? uploadQueue[previewIndex]?.metadata?.mentions || [] : []}
-        tags={previewIndex !== null ? uploadQueue[previewIndex]?.metadata?.tags || [] : []}
-        folders={previewIndex !== null ? uploadQueue[previewIndex]?.metadata?.folders || [] : []}
-        description={previewIndex !== null ? uploadQueue[previewIndex]?.metadata?.description || '' : ''}
-        suggestedPrice={previewIndex !== null && uploadQueue[previewIndex]?.metadata?.suggestedPrice ? uploadQueue[previewIndex].metadata!.suggestedPrice! * 100 : 0}
-        title={previewIndex !== null ? uploadQueue[previewIndex]?.file.name : ''}
-        // Metadata change handlers
-        onMentionsChange={(mentions) => handlePreviewMetadataUpdate('mentions', mentions)}
-        onTagsChange={(tags) => handlePreviewMetadataUpdate('tags', tags)}
-        onFoldersChange={(folders) => handlePreviewMetadataUpdate('folders', folders)}
-        onDescriptionChange={(description) => handlePreviewMetadataUpdate('description', description)}
-        onPriceChange={(price) => handlePreviewMetadataUpdate('suggestedPrice', price ? price / 100 : null)}
+        getMetadataByIndex={(index) => {
+          const item = uploadQueue[index];
+          if (!item) return null;
+          return {
+            mentions: item.metadata?.mentions || [],
+            tags: item.metadata?.tags || [],
+            folders: item.metadata?.folders || [],
+            description: item.metadata?.description || '',
+            suggestedPrice: item.metadata?.suggestedPrice || null,
+          };
+        }}
+        updateMetadataByIndex={(index, changes) => {
+          const item = uploadQueue[index];
+          if (!item) return;
+          const currentMetadata = item.metadata || {
+            mentions: [],
+            tags: [],
+            folders: [],
+            description: '',
+            suggestedPrice: null,
+          };
+          updateFileMetadata(item.id, { ...currentMetadata, ...changes });
+        }}
+        selecting={true}
+        selectedFiles={new Set(uploadQueue.filter(item => item.selected).map(item => item.id))}
+        onToggleSelection={toggleFileSelection}
+        fileId={previewIndex !== null ? uploadQueue[previewIndex]?.id : undefined}
       />
 
       {/* Individual Stacked Dialogs */}

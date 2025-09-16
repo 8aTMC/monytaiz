@@ -357,17 +357,20 @@ export function FileReviewRow({ file, files, currentIndex, onRemove, onMetadataC
         currentIndex={currentIndex || 0}
         open={previewDialogOpen}
         onOpenChange={setPreviewDialogOpen}
-        mentions={file.metadata?.mentions || []}
-        tags={file.metadata?.tags || []}
-        folders={file.metadata?.folders || []}
-        description={file.metadata?.description || ''}
-        suggestedPrice={file.metadata?.suggestedPrice ? file.metadata.suggestedPrice * 100 : 0}
-        title={file.file.name}
-        onMentionsChange={onMetadataChange ? (mentions) => handleMetadataUpdate('mentions', mentions) : undefined}
-        onTagsChange={onMetadataChange ? (tags) => handleMetadataUpdate('tags', tags) : undefined}
-        onFoldersChange={onMetadataChange ? (folders) => handleMetadataUpdate('folders', folders) : undefined}
-        onDescriptionChange={onMetadataChange ? (description) => handleMetadataUpdate('description', description) : undefined}
-        onPriceChange={onMetadataChange ? (price) => handleMetadataUpdate('suggestedPrice', price ? price / 100 : null) : undefined}
+        getMetadataById={(fileId) => {
+          const target = files?.find(f => f.id === fileId);
+          if (!target) return null;
+          return {
+            mentions: target.metadata?.mentions || [],
+            tags: target.metadata?.tags || [],
+            folders: target.metadata?.folders || [],
+            description: target.metadata?.description || '',
+            suggestedPrice: target.metadata?.suggestedPrice || null,
+          };
+        }}
+        updateMetadataById={onMetadataChange ? (fileId, changes) => {
+          onMetadataChange(fileId, changes);
+        } : undefined}
         selecting={!!onSelectionChange}
         selectedFiles={new Set(files?.filter(f => f.selected).map(f => f.id) || [])}
         onToggleSelection={onSelectionChange ? (targetId) => {
