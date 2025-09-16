@@ -77,7 +77,7 @@ export const FilePreviewDialog = ({
   // ===== ALL STATE HOOKS MUST BE AT THE TOP (React Rules of Hooks) =====
   
   // Centralized blob URL management
-  const { createBlobUrl, revokeBlobUrl, revokeAllBlobUrls } = useBlobUrl();
+  const { createBlobUrl, revokeBlobUrl, safeRevokeBlobUrl, revokeAllBlobUrls } = useBlobUrl();
   
   // Internal navigation state - manages which file to display
   const [internalCurrentIndex, setInternalCurrentIndex] = useState(0);
@@ -188,9 +188,10 @@ export const FilePreviewDialog = ({
     setVideoQualityInfo(null);
     setVideoAspectRatio('16/9');
     setIsLoadingUrl(false);
+    // Ensure consumers release old src before we revoke in cleanup
+    setFileUrl('');
     
     if (!displayFile || !open) {
-      setFileUrl('');
       return;
     }
     
@@ -209,7 +210,7 @@ export const FilePreviewDialog = ({
     const url = createBlobUrl(displayFile);
     
     if (abortController.signal.aborted) {
-      revokeBlobUrl(url);
+      safeRevokeBlobUrl(url);
       return;
     }
     
@@ -231,7 +232,7 @@ export const FilePreviewDialog = ({
         tempVideo.onloadedmetadata = () => {
           if (abortController.signal.aborted) {
             tempVideo.src = '';
-            revokeBlobUrl(tempUrl);
+            safeRevokeBlobUrl(tempUrl);
             tempVideo.remove();
             return;
           }
@@ -250,7 +251,7 @@ export const FilePreviewDialog = ({
           
           // Clean up
           tempVideo.src = '';
-          revokeBlobUrl(tempUrl);
+          safeRevokeBlobUrl(tempUrl);
           tempVideo.remove();
         };
       }).catch(error => {
@@ -262,8 +263,10 @@ export const FilePreviewDialog = ({
     
     return () => {
       abortController.abort();
-      // Revoke the blob URL immediately since we're using centralized management
-      revokeBlobUrl(url);
+      // Clear src before revoking to avoid race with media decoding
+      setFileUrl('');
+      // Use safe revoke to prevent net::ERR_FILE_NOT_FOUND
+      safeRevokeBlobUrl(url);
     };
   }, [displayFile, open, internalCurrentIndex]);
 

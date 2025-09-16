@@ -79,6 +79,7 @@ export function getVideoMetadataFromFile(file: File): Promise<VideoQualityInfo |
     // Set a timeout to prevent hanging
     const timeout = setTimeout(() => {
       try {
+        (video as HTMLVideoElement).src = '';
         URL.revokeObjectURL(url);
       } catch (e) {
         // Ignore revocation errors
@@ -90,6 +91,7 @@ export function getVideoMetadataFromFile(file: File): Promise<VideoQualityInfo |
       clearTimeout(timeout);
       const metadata = getVideoMetadata(video);
       try {
+        (video as HTMLVideoElement).src = '';
         URL.revokeObjectURL(url);
       } catch (e) {
         // Ignore revocation errors
@@ -100,6 +102,7 @@ export function getVideoMetadataFromFile(file: File): Promise<VideoQualityInfo |
     video.onerror = () => {
       clearTimeout(timeout);
       try {
+        (video as HTMLVideoElement).src = '';
         URL.revokeObjectURL(url);
       } catch (e) {
         // Ignore revocation errors

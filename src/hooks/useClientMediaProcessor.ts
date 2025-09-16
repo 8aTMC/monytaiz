@@ -97,11 +97,13 @@ export const useClientMediaProcessor = () => {
             height: video.videoHeight,
             duration: video.duration
           };
+          try { (video as HTMLVideoElement).src = ''; } catch {}
           if (videoUrl) revokeBlobUrl(videoUrl);
           resolve(info);
         };
         
         video.onerror = () => {
+          try { (video as HTMLVideoElement).src = ''; } catch {}
           if (videoUrl) revokeBlobUrl(videoUrl);
           reject(new Error('Failed to load video metadata'));
         };
@@ -550,6 +552,7 @@ export const useClientMediaProcessor = () => {
       
       const metadata = await new Promise<{width: number, height: number, duration: number}>((resolve, reject) => {
         const timeout = setTimeout(() => {
+          try { (video as HTMLVideoElement).src = ''; } catch {}
           revokeBlobUrl(videoUrl);
           reject(new Error('Video metadata timeout'));
         }, 3000); // 3 second timeout
@@ -565,11 +568,13 @@ export const useClientMediaProcessor = () => {
         
         video.onerror = () => {
           clearTimeout(timeout);
-      revokeBlobUrl(videoUrl);
+          try { (video as HTMLVideoElement).src = ''; } catch {}
+          revokeBlobUrl(videoUrl);
           reject(new Error('Failed to load video metadata'));
         };
       });
 
+      try { (video as HTMLVideoElement).src = ''; } catch {}
       revokeBlobUrl(videoUrl);
 
       setProgress({

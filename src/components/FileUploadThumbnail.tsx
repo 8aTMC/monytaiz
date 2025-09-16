@@ -30,6 +30,8 @@ export const FileUploadThumbnail = ({ file, className = "w-12 h-12" }: FileUploa
       let timeoutId: number | null = null;
 
       const cleanup = () => {
+        // Clear the src before revoking to avoid file-not-found during teardown
+        try { (video as HTMLVideoElement).src = ''; } catch {}
         if (blobUrl) {
           revokeBlobUrl(blobUrl);
           blobUrl = null;
