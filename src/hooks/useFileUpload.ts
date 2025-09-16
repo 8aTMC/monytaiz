@@ -976,7 +976,7 @@ export const useFileUpload = () => {
 
     // Get pending files for upload
     const pendingFiles = queueRef.current.filter(item => item.status === 'pending');
-    console.log('Starting upload for', pendingFiles.length, 'pending files');
+    console.log('🚀 Starting upload for', pendingFiles.length, 'pending files');
     
     if (pendingFiles.length === 0) {
       toast({
@@ -987,6 +987,7 @@ export const useFileUpload = () => {
       return;
     }
 
+    console.log('📤 Setting isUploading to true');
     setIsUploading(true);
     setCurrentUploadIndex(0);
 
@@ -1052,10 +1053,11 @@ export const useFileUpload = () => {
         variant: "destructive",
       });
     } finally {
+      console.log('📤 Setting isUploading to false - upload complete');
       setIsUploading(false);
       setCurrentUploadIndex(0);
     }
-  }, [isUploading, uploadFile, pausedUploads, toast]);
+  }, [uploadFile, toast]);
 
   const clearQueue = useCallback(() => {
     setUploadQueue([]);

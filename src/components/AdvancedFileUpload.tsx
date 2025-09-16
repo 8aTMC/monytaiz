@@ -714,16 +714,18 @@ export const AdvancedFileUpload = () => {
                 </Badge>
               )}
               
-              {/* Select All Controls */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={allSelected ? clearSelection : selectAllFiles}
-                className="flex items-center gap-2 h-8"
-              >
-                {allSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-                {allSelected ? 'Deselect All' : 'Select All'}
-              </Button>
+               {/* Select All Controls - hide during upload */}
+              {!isUploading && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={allSelected ? clearSelection : selectAllFiles}
+                  className="flex items-center gap-2 h-8"
+                >
+                  {allSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                  {allSelected ? 'Deselect All' : 'Select All'}
+                </Button>
+              )}
               
               <span className="text-sm text-muted-foreground">
                 {selectedFiles.length > 0 ? (
@@ -735,7 +737,7 @@ export const AdvancedFileUpload = () => {
                 )}
               </span>
               
-              {selectedFiles.length > 0 && (
+              {selectedFiles.length > 0 && !isUploading && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -882,7 +884,7 @@ export const AdvancedFileUpload = () => {
           </div>
         )}
 
-        {/* Add More Files Button - Below Start Upload when files exist */}
+        {/* Add More Files Button - Hide during upload */}
         {uploadQueue.length > 0 && uploadQueue.length < 100 && !isUploading && (
           <div className="flex justify-center mb-4">
             <Button

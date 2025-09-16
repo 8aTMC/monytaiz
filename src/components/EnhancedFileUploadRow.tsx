@@ -127,8 +127,8 @@ export function EnhancedFileUploadRow({
             onDoubleClick={handleDoubleClick}
             title="Double-click to preview"
           >
-            {/* Selection checkbox */}
-            {onToggleSelection && (
+            {/* Selection checkbox - hide during upload */}
+            {onToggleSelection && !isUploading && (
               <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                 <Checkbox
                   checked={item.selected || false}
@@ -236,7 +236,7 @@ export function EnhancedFileUploadRow({
                 variant="ghost"
                 size="sm"
                 onClick={() => onRemove(item.id)}
-                disabled={isCurrentlyUploading}
+                title={isCurrentlyUploading ? "Cancel upload" : "Remove from queue"}
               >
                 <X className="w-4 h-4" />
               </Button>
