@@ -156,7 +156,7 @@ export default function SimpleUpload() {
       
       // Check file extension
       const extension = '.' + file.name.split('.').pop()?.toLowerCase();
-      const supportedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.mp4', '.mov', '.webm', '.mkv', '.mp3', '.wav', '.aac', '.ogg', '.opus'];
+      const supportedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.gif', '.avif', '.tiff', '.tif', '.bmp', '.mp4', '.mov', '.webm', '.mkv', '.mp3', '.wav', '.aac', '.ogg', '.opus', '.flac'];
       
       // logger.debug(`[UploadDebug] Extension`, { extension, supported: supportedExtensions.includes(extension) });
       
@@ -165,13 +165,11 @@ export default function SimpleUpload() {
       } else {
         // Determine file type for conversion suggestions
         let fileType: 'image' | 'video' | 'audio' | 'gif' | 'unknown' = 'unknown';
-        if (extension === '.gif') {
-          fileType = 'gif';
-        } else if (file.type.startsWith('image/') || ['.avif', '.tiff', '.tif', '.bmp', '.svg', '.ico'].includes(extension)) {
+        if (file.type.startsWith('image/') || ['.avif', '.tiff', '.tif', '.bmp', '.svg', '.ico'].includes(extension)) {
           fileType = 'image';
         } else if (file.type.startsWith('video/') || ['.avi', '.wmv', '.flv', '.3gp', '.m4v'].includes(extension)) {
           fileType = 'video';
-        } else if (file.type.startsWith('audio/') || ['.flac', '.wma', '.m4a', '.amr'].includes(extension)) {
+        } else if (file.type.startsWith('audio/') || ['.flac', '.m4a'].includes(extension)) {
           fileType = 'audio';
         }
         
@@ -261,7 +259,7 @@ export default function SimpleUpload() {
       
       // Check file extension
       const extension = '.' + file.name.split('.').pop()?.toLowerCase();
-      const supportedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.mp4', '.mov', '.webm', '.mkv', '.mp3', '.wav', '.aac', '.ogg', '.opus'];
+      const supportedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.gif', '.avif', '.tiff', '.tif', '.bmp', '.mp4', '.mov', '.webm', '.mkv', '.mp3', '.wav', '.aac', '.ogg', '.opus', '.flac'];
       
       // logger.debug(`[UploadDebug] Extension (addMore)`, { extension, supported: supportedExtensions.includes(extension) });
       
@@ -270,13 +268,11 @@ export default function SimpleUpload() {
       } else {
         // Determine file type for conversion suggestions
         let fileType: 'image' | 'video' | 'audio' | 'gif' | 'unknown' = 'unknown';
-        if (extension === '.gif') {
-          fileType = 'gif';
-        } else if (file.type.startsWith('image/') || ['.avif', '.tiff', '.tif', '.bmp', '.svg', '.ico'].includes(extension)) {
+        if (file.type.startsWith('image/') || ['.avif', '.tiff', '.tif', '.bmp', '.svg', '.ico'].includes(extension)) {
           fileType = 'image';
         } else if (file.type.startsWith('video/') || ['.avi', '.wmv', '.flv', '.3gp', '.m4v'].includes(extension)) {
           fileType = 'video';
-        } else if (file.type.startsWith('audio/') || ['.flac', '.wma', '.m4a', '.amr'].includes(extension)) {
+        } else if (file.type.startsWith('audio/') || ['.flac', '.m4a'].includes(extension)) {
           fileType = 'audio';
         }
         
