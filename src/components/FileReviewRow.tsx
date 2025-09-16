@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useBlobUrl } from '@/hooks/useBlobUrl';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ interface FileReviewRowProps {
 
 export function FileReviewRow({ file, files, currentIndex, onRemove, onMetadataChange, onSelectionChange, onNavigateToFile, formatFileSize }: FileReviewRowProps) {
   const [thumbnail, setThumbnail] = useState<string | null>(null);
+  const { createBlobUrl, revokeBlobUrl } = useBlobUrl();
   
   // Dialog states
   const [mentionsDialogOpen, setMentionsDialogOpen] = useState(false);
@@ -58,47 +60,76 @@ export function FileReviewRow({ file, files, currentIndex, onRemove, onMetadataC
       reader.onerror = () => setThumbnail(null);
       reader.readAsDataURL(file.file);
     } else if (file.file.type.startsWith('video/')) {
-      const video = document.createElement('video');
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
+      let videoUrl: string | null = null;
+      
+      try {
+        const video = document.createElement('video');
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
 
-      video.preload = 'metadata';
-      video.onloadedmetadata = () => {
-        canvas.width = 120;
-        canvas.height = 80;
-        video.currentTime = Math.min(2, video.duration / 2); // 2 seconds or middle
-      };
-
-      video.onseeked = () => {
-        if (ctx) {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.8);
-          setThumbnail(thumbnailUrl);
+        if (!ctx) {
+          console.warn('Canvas context not available for thumbnail generation');
+          return;
         }
-        video.src = '';
-        video.remove();
-        canvas.remove();
-      };
 
-      video.onerror = () => {
-        video.src = '';
-        video.remove();
-        canvas.remove();
-      };
+        video.preload = 'metadata';
+        video.muted = true;
+        
+        video.onloadedmetadata = () => {
+          try {
+            canvas.width = 120;
+            canvas.height = 80;
+            video.currentTime = Math.min(2, video.duration / 2); // 2 seconds or middle
+          } catch (error) {
+            console.warn('Failed to seek video for thumbnail:', error);
+            cleanup?.();
+          }
+        };
 
-      const videoUrl = URL.createObjectURL(file.file);
-      video.src = videoUrl;
+        video.onseeked = () => {
+          try {
+            if (ctx) {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.8);
+              setThumbnail(thumbnailUrl);
+            }
+          } catch (error) {
+            console.warn('Failed to generate video thumbnail:', error);
+          } finally {
+            cleanup?.();
+          }
+        };
 
-      cleanup = () => {
-        video.src = '';
-        try { URL.revokeObjectURL(videoUrl); } catch {}
-        video.remove();
-        canvas.remove();
-      };
+        video.onerror = () => {
+          console.warn('Video loading failed for thumbnail generation');
+          cleanup?.();
+        };
+
+        videoUrl = createBlobUrl(file.file);
+        video.src = videoUrl;
+
+        cleanup = () => {
+          video.pause();
+          video.src = '';
+          if (videoUrl) {
+            revokeBlobUrl(videoUrl);
+            videoUrl = null;
+          }
+          try {
+            video.remove();
+            canvas.remove();
+          } catch (error) {
+            // Ignore cleanup errors
+          }
+        };
+      } catch (error) {
+        console.warn('Failed to create video thumbnail:', error);
+        setThumbnail(null);
+      }
     }
 
     return cleanup;
-  }, [file.file]);
+  }, [file.file, createBlobUrl, revokeBlobUrl]);
 
   const getFileIcon = (fileType: string) => {
     if (fileType.startsWith('image/')) return <FileImage className="w-6 h-6" />;

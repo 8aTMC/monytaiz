@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useVideoConverter } from '@/hooks/useVideoConverter';
+import { useBlobUrl } from '@/hooks/useBlobUrl';
 import heic2any from 'heic2any';
 
 export interface ProcessingProgress {
@@ -38,44 +39,18 @@ export const useClientMediaProcessor = () => {
   });
   const canvasRef = useRef<HTMLCanvasElement>();
   const abortControllerRef = useRef<AbortController | null>(null);
-  const blobUrlsRef = useRef<Set<string>>(new Set());
   const { toast } = useToast();
   const { convertVideo, checkBrowserSupport, isConverting } = useVideoConverter();
+  const { createBlobUrl, revokeBlobUrl, revokeAllBlobUrls } = useBlobUrl();
 
-  // Cleanup blob URLs
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      blobUrlsRef.current.forEach(url => {
-        try {
-          URL.revokeObjectURL(url);
-        } catch (error) {
-          console.warn('Failed to revoke blob URL:', error);
-        }
-      });
-      blobUrlsRef.current.clear();
-      
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
+      // Blob URLs are now managed by useBlobUrl hook
     };
-  }, []);
-
-  // Track blob URL for cleanup
-  const trackBlobUrl = useCallback((url: string) => {
-    blobUrlsRef.current.add(url);
-    return url;
-  }, []);
-
-  // Clean up tracked blob URL
-  const cleanupBlobUrl = useCallback((url: string) => {
-    if (blobUrlsRef.current.has(url)) {
-      try {
-        URL.revokeObjectURL(url);
-        blobUrlsRef.current.delete(url);
-      } catch (error) {
-        console.warn('Failed to revoke blob URL:', error);
-      }
-    }
   }, []);
 
   // Get canvas for processing
@@ -109,26 +84,33 @@ export const useClientMediaProcessor = () => {
   const getVideoInfo = useCallback((file: File): Promise<{ width: number; height: number; duration: number }> => {
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');
-      const videoUrl = trackBlobUrl(URL.createObjectURL(file));
-      video.src = videoUrl;
-      video.muted = true;
+      let videoUrl: string | null = null;
       
-      video.onloadedmetadata = () => {
-        const info = {
-          width: video.videoWidth,
-          height: video.videoHeight,
-          duration: video.duration
+      try {
+        videoUrl = createBlobUrl(file);
+        video.src = videoUrl;
+        video.muted = true;
+        
+        video.onloadedmetadata = () => {
+          const info = {
+            width: video.videoWidth,
+            height: video.videoHeight,
+            duration: video.duration
+          };
+          if (videoUrl) revokeBlobUrl(videoUrl);
+          resolve(info);
         };
-        cleanupBlobUrl(videoUrl);
-        resolve(info);
-      };
-      
-      video.onerror = () => {
-        cleanupBlobUrl(videoUrl);
-        reject(new Error('Failed to load video metadata'));
-      };
+        
+        video.onerror = () => {
+          if (videoUrl) revokeBlobUrl(videoUrl);
+          reject(new Error('Failed to load video metadata'));
+        };
+      } catch (error) {
+        if (videoUrl) revokeBlobUrl(videoUrl);
+        reject(new Error('Failed to create video URL for metadata extraction'));
+      }
     });
-  }, [trackBlobUrl, cleanupBlobUrl]);
+  }, [createBlobUrl, revokeBlobUrl]);
 
   // Check if a video can be processed client-side
   const canProcessVideo = useCallback((file: File): { canProcess: boolean; reason?: string } => {
@@ -158,12 +140,14 @@ export const useClientMediaProcessor = () => {
 
       if (file.type.startsWith('image/')) {
         const img = new Image();
+        let imgUrl: string | null = null;
+        
         img.onload = () => {
           canvas.width = 8;
           canvas.height = 8;
           ctx.drawImage(img, 0, 0, 8, 8);
           resolve(canvas.toDataURL('image/png'));
-          cleanupBlobUrl(img.src);
+          if (imgUrl) revokeBlobUrl(imgUrl);
         };
         img.onerror = () => {
           canvas.width = 8;
@@ -176,9 +160,26 @@ export const useClientMediaProcessor = () => {
           ctx.fillStyle = `hsl(${hue}, 30%, 80%)`;
           ctx.fillRect(0, 0, 8, 8);
           resolve(canvas.toDataURL('image/png'));
-          cleanupBlobUrl(img.src);
+          if (imgUrl) revokeBlobUrl(imgUrl);
         };
-        img.src = trackBlobUrl(URL.createObjectURL(file));
+        
+        try {
+          imgUrl = createBlobUrl(file);
+          img.src = imgUrl;
+        } catch (error) {
+          console.warn('Failed to create blob URL for placeholder:', error);
+          // Fallback to colored rectangle
+          canvas.width = 8;
+          canvas.height = 8;
+          const hash = file.name.split('').reduce((a, b) => {
+            a = ((a << 5) - a) + b.charCodeAt(0);
+            return a & a;
+          }, 0);
+          const hue = Math.abs(hash) % 360;
+          ctx.fillStyle = `hsl(${hue}, 50%, 60%)`;
+          ctx.fillRect(0, 0, 8, 8);
+          resolve(canvas.toDataURL('image/png'));
+        }
       } else {
         canvas.width = 8;
         canvas.height = 8;
@@ -192,7 +193,7 @@ export const useClientMediaProcessor = () => {
         resolve(canvas.toDataURL('image/png'));
       }
     });
-  }, [getCanvas, trackBlobUrl, cleanupBlobUrl]);
+  }, [getCanvas, createBlobUrl, revokeBlobUrl]);
 
   // Check if file has HEIC/HEIF extension
   const hasHeicExtension = useCallback((file: File): boolean => {
@@ -329,6 +330,8 @@ export const useClientMediaProcessor = () => {
       
       const result = await new Promise<{ blob: Blob; width: number; height: number }>((resolve, reject) => {
         const img = new Image();
+        let imgUrl: string | null = null;
+        
         img.onload = () => {
           const canvas = getCanvas();
           const ctx = canvas.getContext('2d')!;
@@ -407,13 +410,19 @@ export const useClientMediaProcessor = () => {
           
           encodeImage();
 
-          cleanupBlobUrl(img.src);
+          if (imgUrl) revokeBlobUrl(imgUrl);
         };
         img.onerror = () => {
+          if (imgUrl) revokeBlobUrl(imgUrl);
           reject(new Error('Failed to load image'));
-          cleanupBlobUrl(img.src);
         };
-        img.src = trackBlobUrl(URL.createObjectURL(processedFile));
+        
+        try {
+          imgUrl = createBlobUrl(processedFile);
+          img.src = imgUrl;
+        } catch (error) {
+          reject(new Error('Failed to create blob URL for image processing'));
+        }
       });
 
       const placeholder = await createTinyPlaceholder(processedFile);
@@ -443,7 +452,7 @@ export const useClientMediaProcessor = () => {
       console.error('Image processing failed:', error);
       return null;
     }
-  }, [getCanvas, createTinyPlaceholder, trackBlobUrl, cleanupBlobUrl, isHeicFile, convertHeicToWebP]);
+  }, [getCanvas, createTinyPlaceholder, createBlobUrl, revokeBlobUrl, isHeicFile, convertHeicToWebP]);
 
   // Helper function to create video thumbnail
   const createVideoThumbnail = useCallback(async (file: File): Promise<Blob | null> => {
@@ -451,6 +460,8 @@ export const useClientMediaProcessor = () => {
       const video = document.createElement('video');
       const canvas = getCanvas();
       const ctx = canvas.getContext('2d')!;
+      
+      let videoUrl: string | null = null;
       
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
@@ -505,13 +516,21 @@ export const useClientMediaProcessor = () => {
           resolve(null);
         };
         
-        video.src = trackBlobUrl(URL.createObjectURL(file));
+        try {
+          videoUrl = createBlobUrl(file);
+          video.src = videoUrl;
+          video.muted = true;
+          video.preload = 'metadata';
+        } catch (error) {
+          clearTimeout(timeout);
+          reject(new Error('Failed to create video blob URL'));
+        }
       });
     } catch (error) {
       console.error('Thumbnail creation failed:', error);
       return null;
     }
-  }, [getCanvas, trackBlobUrl]);
+  }, [getCanvas, createBlobUrl, revokeBlobUrl]);
 
   const processVideo = useCallback(async (file: File): Promise<ProcessedMedia> => {
     console.log('🎬 Starting simplified video processing:', file.name, file.size);
@@ -525,13 +544,13 @@ export const useClientMediaProcessor = () => {
     try {
       // Get video metadata quickly with timeout
       const video = document.createElement('video');
-      const videoUrl = trackBlobUrl(URL.createObjectURL(file));
+      const videoUrl = createBlobUrl(file);
       video.src = videoUrl;
       video.muted = true;
       
       const metadata = await new Promise<{width: number, height: number, duration: number}>((resolve, reject) => {
         const timeout = setTimeout(() => {
-          cleanupBlobUrl(videoUrl);
+          revokeBlobUrl(videoUrl);
           reject(new Error('Video metadata timeout'));
         }, 3000); // 3 second timeout
         
@@ -546,12 +565,12 @@ export const useClientMediaProcessor = () => {
         
         video.onerror = () => {
           clearTimeout(timeout);
-          cleanupBlobUrl(videoUrl);
+      revokeBlobUrl(videoUrl);
           reject(new Error('Failed to load video metadata'));
         };
       });
 
-      cleanupBlobUrl(videoUrl);
+      revokeBlobUrl(videoUrl);
 
       setProgress({
         phase: 'complete',
@@ -603,7 +622,7 @@ export const useClientMediaProcessor = () => {
         }
       };
     }
-  }, [createVideoThumbnail, trackBlobUrl, cleanupBlobUrl]);
+  }, [createVideoThumbnail, createBlobUrl, revokeBlobUrl]);
 
   // Audio fallback processing
   const processAudioFallback = useCallback(async (file: File): Promise<ProcessedMedia | null> => {
