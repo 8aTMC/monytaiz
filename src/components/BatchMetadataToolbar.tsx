@@ -99,7 +99,7 @@ export const BatchMetadataToolbar = ({
           setMentionsDialogOpen(false);
           toast({
             title: "Mentions added",
-            description: `Mentions updated for ${selectedCount} files`,
+            description: `Mentions updated for ${selectedCount} selected files`,
             variant: "success",
           });
         }}
@@ -114,7 +114,7 @@ export const BatchMetadataToolbar = ({
           setTagsDialogOpen(false);
           toast({
             title: "Tags added",
-            description: `Tags updated for ${selectedCount} files`,
+            description: `Tags updated for ${selectedCount} selected files`,
             variant: "success",
           });
         }}
@@ -129,7 +129,7 @@ export const BatchMetadataToolbar = ({
           setFoldersDialogOpen(false);
           toast({
             title: "Folders updated",
-            description: `Folders updated for ${selectedCount} files`,
+            description: `Folders updated for ${selectedCount} selected files`,
             variant: "success",
           });
         }}

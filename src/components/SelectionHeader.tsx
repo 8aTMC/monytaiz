@@ -45,10 +45,10 @@ export const SelectionHeader = ({
       
       {selectedCount > 0 && (
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={onClearSelection}
-          className="text-muted-foreground hover:text-foreground h-8"
+          className="text-destructive border-destructive/30 hover:bg-destructive hover:text-destructive-foreground h-8 font-medium"
         >
           Clear Selection
         </Button>
