@@ -18,8 +18,14 @@ Deno.serve(async (req) => {
 
   console.log('🎬 Video thumbnail generator started');
 
+  let mediaId: string | undefined;
+  let tempVideoPath: string | undefined;
+  let thumbnailPath: string | undefined;
+
   try {
-    const { bucket, path, mediaId } = await req.json();
+    const requestBody = await req.json();
+    const { bucket, path, mediaId: parsedMediaId } = requestBody;
+    mediaId = parsedMediaId;
 
     if (!bucket || !path || !mediaId) {
       return new Response(JSON.stringify({
@@ -77,22 +83,32 @@ Deno.serve(async (req) => {
     }
 
     // Write video to temp file using streaming
-    const tempVideoPath = `/tmp/video_${mediaId}.mp4`;
+    tempVideoPath = `/tmp/video_${mediaId}.mp4`;
     
     // Use ReadableStream to avoid loading entire file into memory at once
     const videoStream = videoData.stream();
-    const fileHandle = await Deno.open(tempVideoPath, { write: true, create: true });
+    let fileHandle: Deno.FsFile | undefined;
     
     try {
+      fileHandle = await Deno.open(tempVideoPath, { write: true, create: true });
       await videoStream.pipeTo(fileHandle.writable);
+    } catch (streamError) {
+      console.error('Error during video streaming:', streamError);
+      throw new Error(`Video streaming failed: ${streamError instanceof Error ? streamError.message : 'Unknown error'}`);
     } finally {
-      fileHandle.close();
+      if (fileHandle) {
+        try {
+          fileHandle.close();
+        } catch (closeError) {
+          console.warn('Warning: Could not close file handle:', closeError);
+        }
+      }
     }
 
     console.log(`💾 Video saved to: ${tempVideoPath}`);
 
     // Generate thumbnail using ffmpeg with memory-efficient settings
-    const thumbnailPath = `/tmp/thumb_${mediaId}.jpg`;
+    thumbnailPath = `/tmp/thumb_${mediaId}.jpg`;
     
     const ffmpegArgs = [
       '-i', tempVideoPath,
@@ -176,8 +192,12 @@ Deno.serve(async (req) => {
 
     // Cleanup temp files
     try {
-      await Deno.remove(tempVideoPath);
-      await Deno.remove(thumbnailPath);
+      if (tempVideoPath) {
+        await Deno.remove(tempVideoPath);
+      }
+      if (thumbnailPath) {
+        await Deno.remove(thumbnailPath);
+      }
     } catch (e) {
       console.warn('Failed to cleanup temp files:', e);
     }
@@ -194,21 +214,23 @@ Deno.serve(async (req) => {
     console.error('❌ Thumbnail generation error:', error);
     
     // Even if thumbnail generation fails, mark video as processed so it shows in library
-    try {
-      const { error: updateError } = await supabase
-        .from('simple_media')
-        .update({
-          processing_status: 'processed',
-          processed_at: new Date().toISOString(),
-          processing_error: error instanceof Error ? error.message : 'Unknown error'
-        })
-        .eq('id', mediaId);
+    if (mediaId) {
+      try {
+        const { error: updateError } = await supabase
+          .from('simple_media')
+          .update({
+            processing_status: 'processed',
+            processed_at: new Date().toISOString(),
+            processing_error: error instanceof Error ? error.message : 'Unknown error'
+          })
+          .eq('id', mediaId);
 
-      if (updateError) {
-        console.error('Failed to update media record after error:', updateError);
+        if (updateError) {
+          console.error('Failed to update media record after error:', updateError);
+        }
+      } catch (updateErr) {
+        console.error('Failed to update media record:', updateErr);
       }
-    } catch (updateErr) {
-      console.error('Failed to update media record:', updateErr);
     }
     
     return new Response(JSON.stringify({
@@ -220,5 +242,17 @@ Deno.serve(async (req) => {
       status: 200, // Return 200 so upload process continues
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+  } finally {
+    // Final cleanup attempt for temp files
+    try {
+      if (tempVideoPath) {
+        await Deno.remove(tempVideoPath);
+      }
+      if (thumbnailPath) {
+        await Deno.remove(thumbnailPath);
+      }
+    } catch (e) {
+      console.warn('Final cleanup warning:', e);
+    }
   }
 });
