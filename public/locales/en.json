@@ -175,6 +175,15 @@
         "resumedAllUploads": "All uploads resumed",
         "cancelledAllUploads": "All uploads cancelled"
       },
+      "folders": {
+        "searchPlaceholder": "Search folders...",
+        "noMatchingFolders": "No folders match your search query."
+      },
+      "price": {
+        "limitExceeded": "Price Limit Exceeded",
+        "maxPriceMessage": "Maximum allowed price is $10,000.00",
+        "maxPriceHint": "Maximum price: $10,000.00"
+      },
       "status": {
         "pending": "Waiting to start...",
         "uploading": "Uploading...",

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DollarSign } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface PriceDialogProps {
   open: boolean;
@@ -14,6 +15,9 @@ interface PriceDialogProps {
 
 export function PriceDialog({ open, onOpenChange, price = 0, onPriceChange }: PriceDialogProps) {
   const [inputValue, setInputValue] = useState((price / 100).toFixed(2));
+  const { toast } = useToast();
+  
+  const MAX_PRICE = 10000; // $10,000 maximum
 
   // Format price input to handle both comma and dot as decimal separators
   const formatPriceInput = (value: string): string => {
@@ -46,6 +50,13 @@ export function PriceDialog({ open, onOpenChange, price = 0, onPriceChange }: Pr
     const numericValue = parseFloat(inputValue);
     if (isNaN(numericValue) || numericValue < 0) {
       onPriceChange(0);
+    } else if (numericValue > MAX_PRICE) {
+      toast({
+        title: "Price Limit Exceeded",
+        description: `Maximum allowed price is ${formatDisplayValue(MAX_PRICE)}`,
+        variant: "destructive",
+      });
+      return;
     } else {
       // Round to 2 decimal places and convert to cents
       const roundedValue = Math.round(numericValue * 100) / 100;
@@ -109,7 +120,7 @@ export function PriceDialog({ open, onOpenChange, price = 0, onPriceChange }: Pr
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Use either comma (,) or dot (.) as decimal separator. Both will be converted to dot format.
+              Use either comma (,) or dot (.) as decimal separator. Maximum price: {formatDisplayValue(MAX_PRICE)}
             </p>
           </div>
 

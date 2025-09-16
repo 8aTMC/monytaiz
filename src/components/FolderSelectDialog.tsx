@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Folder, Check, Loader2 } from 'lucide-react';
+import { Plus, Folder, Check, Loader2, Search } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -35,6 +35,7 @@ export const FolderSelectDialog = ({
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -144,6 +145,11 @@ export const FolderSelectDialog = ({
     }
   };
 
+  // Filter folders based on search query
+  const filteredFolders = folders.filter(folder =>
+    folder.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const toggleFolder = (folderId: string) => {
     if (selectedFolders.includes(folderId)) {
       onFoldersChange(selectedFolders.filter(id => id !== folderId));
@@ -216,6 +222,22 @@ export const FolderSelectDialog = ({
             </div>
           )}
 
+          {/* Search Bar */}
+          {folders.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Search Folders</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search folders..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Existing Folders */}
           <div>
             <Label className="text-sm font-medium">
@@ -231,9 +253,13 @@ export const FolderSelectDialog = ({
                 <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
                   No custom folders created yet. Create your first folder above.
                 </div>
+              ) : filteredFolders.length === 0 ? (
+                <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+                  No folders match your search query.
+                </div>
               ) : (
                 <div className="space-y-2">
-                  {folders.map((folder) => (
+                  {filteredFolders.map((folder) => (
                     <div
                       key={folder.id}
                       className="flex items-center space-x-3 p-2 rounded-md hover:bg-accent cursor-pointer"
