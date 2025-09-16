@@ -514,32 +514,42 @@ export const useClientMediaProcessor = () => {
   }, [getCanvas, trackBlobUrl]);
 
   const processVideo = useCallback(async (file: File): Promise<ProcessedMedia> => {
-    console.log('🎬 Starting video processing (upload original):', file.name, file.size);
+    console.log('🎬 Starting simplified video processing:', file.name, file.size);
     
     setProgress({
       phase: 'analyzing',
-      message: 'Preparing video for upload...',
-      progress: 50
+      message: 'Analyzing video...',
+      progress: 30
     });
 
     try {
-      // Create thumbnail only - backend will handle compression
-      const thumbnail = await createVideoThumbnail(file);
-      
-      // Get video metadata
+      // Get video metadata quickly with timeout
       const video = document.createElement('video');
       const videoUrl = trackBlobUrl(URL.createObjectURL(file));
       video.src = videoUrl;
+      video.muted = true;
       
-      await new Promise((resolve) => {
-        video.onloadedmetadata = resolve;
+      const metadata = await new Promise<{width: number, height: number, duration: number}>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          cleanupBlobUrl(videoUrl);
+          reject(new Error('Video metadata timeout'));
+        }, 3000); // 3 second timeout
+        
+        video.onloadedmetadata = () => {
+          clearTimeout(timeout);
+          resolve({
+            width: video.videoWidth,
+            height: video.videoHeight,
+            duration: video.duration
+          });
+        };
+        
+        video.onerror = () => {
+          clearTimeout(timeout);
+          cleanupBlobUrl(videoUrl);
+          reject(new Error('Failed to load video metadata'));
+        };
       });
-
-      const metadata = {
-        width: video.videoWidth,
-        height: video.videoHeight,
-        duration: video.duration
-      };
 
       cleanupBlobUrl(videoUrl);
 
@@ -549,14 +559,17 @@ export const useClientMediaProcessor = () => {
         progress: 100
       });
 
+      // Generate tiny placeholder only
+      const placeholder = await createTinyPlaceholder(file);
+
       return {
         id: crypto.randomUUID(),
         original: file,
         originalFile: file, // Alias for compatibility
         processed: file,
-        thumbnail,
+        thumbnail: null, // No client-side thumbnail - will be generated server-side
         processedBlobs: new Map(),
-        tinyPlaceholder: null,
+        tinyPlaceholder: placeholder,
         metadata: {
           width: metadata.width,
           height: metadata.height,
@@ -564,7 +577,7 @@ export const useClientMediaProcessor = () => {
           format: 'mp4',
           originalSize: file.size,
           processedSize: file.size,
-          compressionRatio: 1
+          compressionRatio: 0
         }
       };
 

@@ -644,7 +644,7 @@ export default function SimpleUpload() {
 
                 {/* Upload Controls - Show during upload */}
                 {uploading && (
-                  <>
+                  <div className="flex items-center gap-3">
                     {isPaused ? (
                       <Button 
                         onClick={resumeAllUploads}
@@ -669,7 +669,7 @@ export default function SimpleUpload() {
                     >
                       Cancel All
                     </Button>
-                  </>
+                  </div>
                 )}
 
               </div>
@@ -755,8 +755,8 @@ export default function SimpleUpload() {
                 </div>
               </div>
 
-              {/* Storage Quota Progress Bar - Show in review mode */}
-              {reviewMode && files.length > 0 && (
+              {/* Storage Quota Progress Bar - Show in review mode but hide during upload */}
+              {reviewMode && files.length > 0 && !uploading && (
                 <StorageQuotaProgressBar 
                   totalSizeBytes={totalFilesSize}
                   className="mt-4"
