@@ -135,10 +135,9 @@ export default function SimpleUpload() {
       return { ...f, metadata: updatedMetadata };
     }));
     
-    clearSelection();
     toast({
       title: "Batch changes applied",
-      description: `Metadata updated for ${selectedFiles.length} files`,
+      description: `Metadata updated for ${selectedFiles.length} files (selection preserved)`,
       variant: "default",
     });
   }, [selectedFiles.length, clearSelection, toast]);
