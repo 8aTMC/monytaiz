@@ -431,7 +431,7 @@ export default function SimpleUpload() {
   }, [files, totalFilesSize]);
 
   const startUpload = useCallback(async () => {
-    logger.error(`[UploadAction] StartUpload clicked`, { total: files.length, pending: files.filter(f => f.status === 'pending').length });
+    logger.info(`[UploadAction] StartUpload clicked`, { total: files.length, pending: files.filter(f => f.status === 'pending').length });
     // Check storage limit before proceeding
     const { canProceed, analysis } = validateStorageLimit();
     if (!canProceed) {
@@ -507,7 +507,7 @@ export default function SimpleUpload() {
   }, [files, validateStorageLimit, uploadMultipleWithControls, navigate, toast]);
 
   const clearUpload = useCallback(() => {
-    logger.error(`[UploadAction] ClearUpload clicked`);
+    logger.info(`[UploadAction] ClearUpload clicked`);
     setFiles([]);
     setReviewMode(false);
     setCurrentUploadProgress(0);
@@ -521,7 +521,7 @@ export default function SimpleUpload() {
   });
 
   const removeFile = (id: string) => {
-    logger.error(`[UploadAction] RemoveFile clicked`, { fileId: id });
+    logger.info(`[UploadAction] RemoveFile clicked`, { fileId: id });
     setFiles(prev => {
       const newFiles = prev.filter(f => f.id !== id);
       if (newFiles.length === 0) setReviewMode(false);
@@ -530,7 +530,7 @@ export default function SimpleUpload() {
   };
 
   const handleMetadataChange = (fileId: string, metadata: Partial<UploadedFileWithMetadata['metadata']>) => {
-    logger.error(`[UploadAction] MetadataChange`, { fileId, keys: Object.keys(metadata) });
+    logger.debug(`[UploadAction] MetadataChange`, { fileId, keys: Object.keys(metadata) });
     setFiles(prev => prev.map(f => f.id === fileId ? { ...f, metadata: { ...f.metadata, ...metadata } } : f));
   };
 
@@ -563,7 +563,7 @@ export default function SimpleUpload() {
 
   // Database duplicate handlers
   const handlePurgeSelectedDuplicates = (duplicateIds: string[]) => {
-    logger.error(`[UploadAction] PurgeSelectedDuplicates`, { count: duplicateIds.length });
+    logger.info(`[UploadAction] PurgeSelectedDuplicates`, { count: duplicateIds.length });
     setFiles(prev => prev.filter(f => !duplicateIds.includes(f.id)));
     setDatabaseDuplicates([]);
     setDatabaseDuplicateDialogOpen(false);
@@ -576,7 +576,7 @@ export default function SimpleUpload() {
   };
 
   const handleKeepBothDuplicates = () => {
-    logger.error(`[UploadAction] KeepBothDuplicates clicked`);
+    logger.info(`[UploadAction] KeepBothDuplicates clicked`);
     console.log(`📝 Keeping both versions - adding duplicate tags`);
     // Add duplicate tags to help identify files
     setFiles(prev => prev.map(f => {

@@ -174,8 +174,41 @@ export const useSimpleUpload = () => {
       // For GIFs, use uploads folder to preserve original format and animation
       const uploadPath = isGif ? `uploads/${fileId}-${file.name}` : `processed/${fileId}-${uploadFileName}`;
 
-      // Skip client-side video processing for faster uploads
-      // Thumbnails will be generated server-side via Edge Function
+      // Generate video thumbnail client-side before upload
+      let videoThumbnailPath: string | undefined;
+      if (mediaType === 'video') {
+        try {
+          console.log(`📹 Generating client-side thumbnail for video: ${file.name}`);
+          const { generateVideoThumbnail } = await import('@/lib/videoThumbnail');
+          const { blob } = await generateVideoThumbnail(file, {
+            width: 320,
+            height: 180,
+            quality: 0.8,
+            timePosition: 1
+          });
+          
+          // Upload thumbnail to storage
+          const thumbnailFilename = `${fileId}-${file.name.replace(/\.[^/.]+$/, '')}-thumbnail.jpg`;
+          const thumbnailStoragePath = `content/thumbnails/${thumbnailFilename}`;
+          
+          const { error: thumbnailUploadError } = await supabase.storage
+            .from('content')
+            .upload(thumbnailStoragePath, blob, {
+              contentType: 'image/jpeg',
+              cacheControl: '3600'
+            });
+          
+          if (!thumbnailUploadError) {
+            videoThumbnailPath = thumbnailStoragePath;
+            console.log(`✅ Video thumbnail uploaded successfully: ${videoThumbnailPath}`);
+          } else {
+            console.error('❌ Video thumbnail upload failed:', thumbnailUploadError);
+          }
+        } catch (thumbnailError) {
+          console.error('❌ Client-side video thumbnail generation failed:', thumbnailError);
+          // Continue with upload even if thumbnail fails
+        }
+      }
 
       updateProgress({
         phase: 'uploading',
@@ -230,7 +263,7 @@ export const useSimpleUpload = () => {
           optimized_size_bytes: processedSize,
           original_path: uploadPath,
           processed_path: uploadPath,
-          thumbnail_path: thumbnailPath,
+          thumbnail_path: videoThumbnailPath || thumbnailPath,
           media_type: mediaType,
           processing_status: 'processed',
           width: width,
@@ -242,19 +275,6 @@ export const useSimpleUpload = () => {
 
       if (dbError) {
         throw new Error(`Database error: ${dbError.message}`);
-      }
-
-      // Fire-and-forget thumbnail generation for videos via Edge Function
-      if (mediaType === 'video') {
-        supabase.functions.invoke('video-thumbnail', {
-          body: { 
-            bucket: 'content',
-            path: uploadPath,
-            mediaId: mediaRecord.id 
-          }
-        }).catch(error => {
-          logger.error('Video thumbnail generation failed (non-blocking)', error);
-        });
       }
 
       updateProgress({
