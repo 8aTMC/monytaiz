@@ -833,11 +833,6 @@ export const useFileUpload = () => {
         processing_status: 'processed', // Mark as processed since we're uploading directly
       };
       
-      console.log('📤 Database insert payload:', {
-        table: 'simple_media',
-        payload: insertPayload,
-        itemMetadata: item.metadata
-      });
       
       const { data: insertData, error: dbError } = await supabase
         .from('simple_media')
@@ -856,18 +851,10 @@ export const useFileUpload = () => {
         throw new Error(`Failed to save file metadata: ${dbError.message} (Code: ${dbError.code})`);
       }
       
-      console.log('✅ Database insert successful:', {
-        insertedData: insertData,
-        itemMetadata: item.metadata
-      });
 
       // Add to folders if specified
       if (item.metadata?.folders && item.metadata.folders.length > 0 && insertData?.[0]?.id) {
         try {
-          console.log('📂 Adding to folders:', {
-            mediaId: insertData[0].id,
-            folders: item.metadata.folders
-          });
 
           const folderAssignments = item.metadata.folders.map(folderId => ({
             media_id: insertData[0].id,
@@ -885,7 +872,7 @@ export const useFileUpload = () => {
               assignments: folderAssignments
             });
           } else {
-            console.log('✅ Folder assignments successful');
+            
           }
         } catch (folderAssignError) {
           console.error('Folder assignment error:', folderAssignError);

@@ -170,12 +170,6 @@ const LibraryGridComponent = ({
                     !defaultTags.includes(tag.toLowerCase()) && 
                     !tag.startsWith('folder:')
                   );
-                  console.log('🏷️ LibraryGrid - Item tags debug:', {
-                    itemId: item.id,
-                    allTags: item.tags,
-                    customTags,
-                    mentions: item.notes ? 'has notes' : 'no notes'
-                  });
                   const displayText = customTags.length > 0 ? customTags.join(', ') : 'No Tags';
                   const hasCustomTags = customTags.length > 0;
                   const tooltipContent = hasCustomTags ? customTags.join(', ') : 'No Tags';
