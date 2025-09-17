@@ -17,7 +17,7 @@ export const validateVideoFile = (
   options: { timeoutMs?: number } = {}
 ): Promise<VideoValidationResult> => {
   return new Promise((resolve) => {
-    const { timeoutMs = 8000 } = options;
+    const { timeoutMs = 10000 } = options;
     
     // Create video element for validation
     const video = document.createElement('video');
@@ -65,6 +65,72 @@ export const validateVideoFile = (
       });
     };
     
+    // Frame decode validation
+    const validateFrameDecode = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolveOnce({
+            isValid: false,
+            isCorrupted: true,
+            error: 'Cannot create canvas context for frame validation',
+            errorType: 'corruption'
+          });
+          return;
+        }
+        
+        canvas.width = 32;
+        canvas.height = 32;
+        
+        try {
+          ctx.drawImage(video, 0, 0, 32, 32);
+          const imageData = ctx.getImageData(0, 0, 32, 32);
+          
+          // Check if we got actual pixel data (not all zeros/transparent)
+          let hasData = false;
+          for (let i = 0; i < imageData.data.length; i += 4) {
+            if (imageData.data[i] !== 0 || imageData.data[i + 1] !== 0 || imageData.data[i + 2] !== 0) {
+              hasData = true;
+              break;
+            }
+          }
+          
+          if (!hasData) {
+            resolveOnce({
+              isValid: false,
+              isCorrupted: true,
+              error: 'Video frame data is corrupted - no visual data available',
+              errorType: 'corruption'
+            });
+            return;
+          }
+          
+          // Frame decode successful
+          resolveOnce({
+            isValid: true,
+            isCorrupted: false
+          });
+        } catch (drawError) {
+          resolveOnce({
+            isValid: false,
+            isCorrupted: true,
+            error: 'Failed to decode video frame - file appears corrupted',
+            errorType: 'corruption'
+          });
+        } finally {
+          canvas.remove();
+        }
+      } catch (error) {
+        resolveOnce({
+          isValid: false,
+          isCorrupted: true,
+          error: 'Frame validation failed - file may be corrupted',
+          errorType: 'corruption'
+        });
+      }
+    };
+
     // Metadata loaded - check basic properties
     const onLoadedMetadata = () => {
       try {
@@ -90,9 +156,13 @@ export const validateVideoFile = (
           return;
         }
         
-        // Try to seek to test if video data is accessible
-        const seekTime = Math.min(1, Math.max(0, video.duration - 0.1));
-        video.currentTime = seekTime;
+        // Wait for loadeddata to ensure frame data is available
+        video.addEventListener('loadeddata', () => {
+          // Try to seek to test if video data is accessible
+          const seekTime = Math.min(1, Math.max(0, video.duration - 0.1));
+          video.currentTime = seekTime;
+        }, { once: true });
+        
       } catch (error) {
         resolveOnce({
           isValid: false,
@@ -103,12 +173,18 @@ export const validateVideoFile = (
       }
     };
     
-    // Seek completed - video appears playable
+    // Seek completed - perform frame decode validation
     const onSeeked = () => {
-      resolveOnce({
-        isValid: true,
-        isCorrupted: false
-      });
+      // Seek to another position to test accessibility
+      const secondSeekTime = Math.max(0, video.duration * 0.1);
+      if (Math.abs(video.currentTime - secondSeekTime) > 0.1) {
+        video.currentTime = secondSeekTime;
+        video.addEventListener('seeked', () => {
+          validateFrameDecode();
+        }, { once: true });
+      } else {
+        validateFrameDecode();
+      }
     };
     
     // Can play - additional validation check

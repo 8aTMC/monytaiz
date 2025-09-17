@@ -235,8 +235,14 @@ const metadataVersion = useMemo(() => {
         // No duplicates - proceed with adding files and checking for other issues
         const validationResults = validateFilesOnly(supportedFiles);
         
-        // Add files to queue since no duplicates
-        addFiles(supportedFiles, showDuplicateDialog, showUnsupportedDialog, showCorruptedDialog, true);
+        // Add files to queue and await results to check for corrupted files
+        const addResults = await addFiles(supportedFiles, showDuplicateDialog, showUnsupportedDialog, showCorruptedDialog, true);
+        
+        // Always surface corrupted results if found, even when dialogs are suppressed
+        if (addResults?.corruptedFiles?.length > 0) {
+          console.log(`Found ${addResults.corruptedFiles.length} corrupted files, showing dialog`);
+          showCorruptedDialog(addResults.corruptedFiles);
+        }
         
         // Show remaining validation issues
         if (validationResults?.unsupportedFiles?.length > 0) {
@@ -264,7 +270,7 @@ const metadataVersion = useMemo(() => {
         variant: "destructive"
       });
     }
-  }, [isProcessingFiles, isCheckingDuplicates, uploadQueue, checkDatabaseDuplicates, validateFilesOnly, addFiles, showDuplicateDialog, showUnsupportedDialog, showHeicWarning, isHeicFile, toast]);
+  }, [isProcessingFiles, isCheckingDuplicates, uploadQueue, checkDatabaseDuplicates, validateFilesOnly, addFiles, showDuplicateDialog, showUnsupportedDialog, showCorruptedDialog, showHeicWarning, isHeicFile, toast]);
 
   // Dialog handlers for legacy stacked dialogs  
   const handleDuplicateConfirm = useCallback((filesToIgnore: string[]) => {

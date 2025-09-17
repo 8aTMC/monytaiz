@@ -248,10 +248,11 @@ export const useFileUpload = () => {
       
       for (const videoFile of videoFiles) {
         try {
-          const validationResult = await validateVideoFile(videoFile, { timeoutMs: 5000 });
+          console.log(`Validating video file: ${videoFile.name}`);
+          const validationResult = await validateVideoFile(videoFile, { timeoutMs: 10000 });
           
           if (validationResult.isCorrupted) {
-            console.log(`Video file ${videoFile.name} is corrupted:`, validationResult.error);
+            console.log(`✗ Video file ${videoFile.name} is corrupted:`, validationResult.error);
             
             const fileIndex = supportedFiles.indexOf(videoFile);
             corruptedFiles.push({
@@ -266,12 +267,31 @@ export const useFileUpload = () => {
             // Remove from supported files to prevent further processing
             const supportedIndex = supportedFiles.indexOf(videoFile);
             if (supportedIndex > -1) {
+              console.log(`Removing corrupted file ${videoFile.name} from supported files list`);
               supportedFiles.splice(supportedIndex, 1);
             }
+          } else {
+            console.log(`✓ Video file ${videoFile.name} validation passed`);
           }
         } catch (error) {
           console.warn(`Error validating video file ${videoFile.name}:`, error);
-          // If validation fails unexpectedly, continue with the file
+          // If validation fails unexpectedly, treat as corrupted for safety
+          const fileIndex = supportedFiles.indexOf(videoFile);
+          corruptedFiles.push({
+            id: `corrupted-${Date.now()}-${fileIndex}`,
+            name: videoFile.name,
+            size: videoFile.size,
+            file: videoFile,
+            error: 'Video validation failed unexpectedly',
+            errorType: 'corruption'
+          });
+          
+          // Remove from supported files
+          const supportedIndex = supportedFiles.indexOf(videoFile);
+          if (supportedIndex > -1) {
+            console.log(`Removing failed validation file ${videoFile.name} from supported files list`);
+            supportedFiles.splice(supportedIndex, 1);
+          }
         }
       }
     }
