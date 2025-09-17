@@ -180,12 +180,13 @@ export const FilePreviewDialog = ({
     };
   };
 
-  // Derive metadata directly from parent to avoid stale local state
-  const currentMetadata = React.useMemo(() => getCurrentMetadata(), [internalCurrentIndex, currentFileId, metadataVersion, mentions, tags, folders, description, suggestedPrice]);
+  // Derive metadata directly from latest props on every render (no memo to avoid staleness)
+  const currentMetadata = getCurrentMetadata();
 
   // Update handlers route to appropriate updater (no local state)
   const handleMetadataUpdate = (field: string, value: any) => {
     const newValue = value;
+    console.log('FilePreviewDialog: handleMetadataUpdate', { field, newValue, index: internalCurrentIndex, fileId: currentFileId });
 
     if (updateMetadataById && currentFileId) {
       updateMetadataById(currentFileId, { [field]: newValue });
@@ -835,7 +836,7 @@ export const FilePreviewDialog = ({
           {/* Metadata Dialogs */}
           {(onMentionsChange || updateMetadataById || updateMetadataByIndex) && (
             <MentionsDialog
-              key={`mentions-${internalCurrentIndex}`}
+              key={`mentions-${currentFileId ?? internalCurrentIndex}`}
               open={mentionsDialogOpen}
               onOpenChange={setMentionsDialogOpen}
               mentions={currentMetadata.mentions}
@@ -845,7 +846,7 @@ export const FilePreviewDialog = ({
 
           {(onTagsChange || updateMetadataById || updateMetadataByIndex) && (
             <TagsDialog
-              key={`tags-${internalCurrentIndex}`}
+              key={`tags-${currentFileId ?? internalCurrentIndex}`}
               open={tagsDialogOpen}
               onOpenChange={setTagsDialogOpen}
               tags={currentMetadata.tags}
@@ -855,7 +856,7 @@ export const FilePreviewDialog = ({
 
           {(onFoldersChange || updateMetadataById || updateMetadataByIndex) && (
             <FolderSelectDialog
-              key={`folders-${internalCurrentIndex}`}
+              key={`folders-${currentFileId ?? internalCurrentIndex}`}
               open={foldersDialogOpen}
               onOpenChange={setFoldersDialogOpen}
               selectedFolders={currentMetadata.folders}
@@ -865,7 +866,7 @@ export const FilePreviewDialog = ({
 
           {(onDescriptionChange || updateMetadataById || updateMetadataByIndex) && (
             <DescriptionDialog
-              key={`description-${internalCurrentIndex}`}
+              key={`description-${currentFileId ?? internalCurrentIndex}`}
               open={descriptionDialogOpen}
               onOpenChange={setDescriptionDialogOpen}
               description={currentMetadata.description}
@@ -875,7 +876,7 @@ export const FilePreviewDialog = ({
 
           {(onPriceChange || updateMetadataById || updateMetadataByIndex) && (
             <PriceDialog
-              key={`price-${internalCurrentIndex}`}
+              key={`price-${currentFileId ?? internalCurrentIndex}`}
               open={priceDialogOpen}
               onOpenChange={setPriceDialogOpen}
               price={currentMetadata.suggestedPrice || undefined}
