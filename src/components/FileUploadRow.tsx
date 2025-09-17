@@ -3,7 +3,7 @@ import { useAuth } from './AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Users, Folder, Hash, StickyNote, DollarSign, User, Clock, Pause, Play, Trash2 } from 'lucide-react';
-import { FileUploadThumbnail } from './FileUploadThumbnail';
+import { CachedThumbnail } from './CachedThumbnail';
 import { CreatorTagDialog } from './CreatorTagDialog';
 import { FolderSelectDialog } from './FolderSelectDialog';
 import { TagsDialog } from './TagsDialog';
@@ -83,7 +83,7 @@ export const FileUploadRow = ({
         onDoubleClick={handleDoubleClick}
       >
         {/* Thumbnail */}
-        <FileUploadThumbnail file={item.file} className="w-16 h-16 flex-shrink-0" />
+        <CachedThumbnail file={item.file} className="w-16 h-16 flex-shrink-0" />
         
         {/* File Info and Controls */}
         <div className="flex-1 min-w-0 space-y-3">

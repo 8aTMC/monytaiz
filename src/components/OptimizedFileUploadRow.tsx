@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Users, Folder, Hash, StickyNote, DollarSign, User, Clock, Trash2, RefreshCw, ArrowRight } from 'lucide-react';
-import { FileUploadThumbnail } from './FileUploadThumbnail';
+import { CachedThumbnail } from './CachedThumbnail';
 import { CreatorTagDialog } from './CreatorTagDialog';
 import { FolderSelectDialog } from './FolderSelectDialog';
 import { TagsDialog } from './TagsDialog';
@@ -109,7 +109,7 @@ export const OptimizedFileUploadRow = ({
         {/* Top Row: Thumbnail, File Info, Status */}
         <div className="flex items-start gap-3">
           {/* Thumbnail */}
-          <FileUploadThumbnail file={item.originalFile} className="w-16 h-16 flex-shrink-0" />
+          <CachedThumbnail file={item.originalFile} className="w-16 h-16 flex-shrink-0" />
           
           {/* File Info */}
           <div className="flex-1 min-w-0">
