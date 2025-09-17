@@ -741,7 +741,7 @@ export const FilePreviewDialog = ({
             {/* Metadata Editing Menu Bar */}
             <div className="p-4 border-t bg-background">
               <div className="flex flex-wrap gap-2">
-                {onMentionsChange && (
+                {(onMentionsChange || updateMetadataById || updateMetadataByIndex) && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -753,7 +753,7 @@ export const FilePreviewDialog = ({
                   </Button>
                 )}
                 
-                {onTagsChange && (
+                {(onTagsChange || updateMetadataById || updateMetadataByIndex) && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -765,7 +765,7 @@ export const FilePreviewDialog = ({
                   </Button>
                 )}
                 
-                {onFoldersChange && (
+                {(onFoldersChange || updateMetadataById || updateMetadataByIndex) && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -777,7 +777,7 @@ export const FilePreviewDialog = ({
                   </Button>
                 )}
                 
-                {onDescriptionChange && (
+                {(onDescriptionChange || updateMetadataById || updateMetadataByIndex) && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -789,7 +789,7 @@ export const FilePreviewDialog = ({
                   </Button>
                 )}
                 
-                {onPriceChange && (
+                {(onPriceChange || updateMetadataById || updateMetadataByIndex) && (
                   <Button
                     variant="outline"
                     size="sm"
