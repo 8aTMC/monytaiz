@@ -181,43 +181,41 @@ export const FilePreviewDialog = ({
 
   // Create update handlers that route to appropriate updater
   const handleMetadataUpdate = (field: string, value: any) => {
-    // Convert price from cents to dollars for storage if needed
-    const convertedValue = field === 'suggestedPrice' && typeof value === 'number' ? value / 100 : value;
-    
-    // Update metadata state optimistically for immediate visual feedback
+    // Keep values as-is (price is in dollars)
+    const newValue = value;
+
+    // Optimistic local update for immediate UI feedback
     setCurrentMetadata(prev => ({
       ...prev,
-      [field]: convertedValue
+      [field]: newValue
     }));
-    
-    // Try ID-based update first
+
+    // Propagate to parent (ID first, then index)
     if (updateMetadataById && currentFileId) {
-      updateMetadataById(currentFileId, { [field]: convertedValue });
+      updateMetadataById(currentFileId, { [field]: newValue });
       return;
     }
-    
-    // Try index-based update
     if (updateMetadataByIndex && safeFiles.length > 0) {
-      updateMetadataByIndex(internalCurrentIndex, { [field]: convertedValue });
+      updateMetadataByIndex(internalCurrentIndex, { [field]: newValue });
       return;
     }
-    
-    // Fallback to legacy handlers
+
+    // Legacy handlers
     switch (field) {
       case 'mentions':
-        onMentionsChange?.(value);
+        onMentionsChange?.(newValue);
         break;
       case 'tags':
-        onTagsChange?.(value);
+        onTagsChange?.(newValue);
         break;
       case 'folders':
-        onFoldersChange?.(value);
+        onFoldersChange?.(newValue);
         break;
       case 'description':
-        onDescriptionChange?.(value);
+        onDescriptionChange?.(newValue);
         break;
       case 'suggestedPrice':
-        onPriceChange?.(convertedValue);
+        onPriceChange?.(newValue);
         break;
     }
   };
