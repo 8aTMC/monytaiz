@@ -546,7 +546,7 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                               variant="secondary"
                               size="default"
                               onClick={() => setFullscreenOpen(true)}
-                              className="absolute bottom-3 right-3 bg-black/80 backdrop-blur-sm text-white hover:bg-black/90 border border-white/20 shadow-lg transition-all duration-200 z-10 ring-1 ring-white/10"
+                              className="absolute bottom-3 right-3 bg-black backdrop-blur-sm text-white hover:bg-gray-800 border border-white/20 shadow-lg transition-all duration-200 z-10 ring-1 ring-white/10"
                             >
                               <Maximize className="w-4 h-4" />
                             </Button>
