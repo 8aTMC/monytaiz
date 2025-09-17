@@ -947,7 +947,6 @@ export const AdvancedFileUpload = () => {
       </CardContent>
 
       <FilePreviewDialog
-        key={`preview-${previewIndex}-${uploadQueue.length}-${uploadQueue.map(item => `${item.id}-${JSON.stringify(item.metadata)}`).join('-')}`}
         file={previewIndex !== null ? uploadQueue[previewIndex]?.file : null}
         open={previewOpen}
         onOpenChange={closePreview}
@@ -955,6 +954,7 @@ export const AdvancedFileUpload = () => {
         files={filesArray}
         totalFiles={uploadQueue.length}
         currentIndex={previewIndex}
+        onNavigate={(idx) => setPreviewIndex(idx)}
         getMetadataByIndex={(index) => {
           const item = uploadQueue[index];
           if (!item) return null;

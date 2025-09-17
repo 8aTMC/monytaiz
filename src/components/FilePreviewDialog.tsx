@@ -29,6 +29,7 @@ interface FilePreviewDialogProps {
   files?: (File | FileWithId)[];
   totalFiles?: number; // Backup detection method
   currentIndex?: number;
+  onNavigate?: (index: number) => void;
   // Metadata props (legacy - fallback)
   mentions?: string[];
   tags?: string[];
