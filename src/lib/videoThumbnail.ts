@@ -9,6 +9,14 @@ export interface ThumbnailOptions {
   timePosition?: number; // Time in seconds to capture thumbnail
 }
 
+export type ThumbnailError = 
+  | 'video_corrupted' 
+  | 'video_load_failed' 
+  | 'invalid_metadata' 
+  | 'canvas_error' 
+  | 'timeout' 
+  | 'unknown';
+
 /**
  * Generate a thumbnail from a video file using HTML5 video and canvas
  */
@@ -43,14 +51,18 @@ export const generateVideoThumbnail = (
 
     const onError = () => {
       cleanup();
-      reject(new Error('Failed to load video for thumbnail generation'));
+      const error = new Error('Failed to load video for thumbnail generation - file may be corrupted') as Error & { type: ThumbnailError };
+      error.type = 'video_corrupted';
+      reject(error);
     };
 
     const onLoadedMetadata = () => {
       try {
         // Validate video duration
         if (!video.duration || video.duration <= 0 || !isFinite(video.duration)) {
-          throw new Error('Invalid video duration');
+          const error = new Error('Invalid video duration - file appears to be corrupted') as Error & { type: ThumbnailError };
+          error.type = 'invalid_metadata';
+          throw error;
         }
         
         // Set time position (but not beyond video duration)
@@ -58,7 +70,13 @@ export const generateVideoThumbnail = (
         video.currentTime = seekTime;
       } catch (error) {
         cleanup();
-        reject(new Error('Failed to process video metadata'));
+        const wrappedError = error instanceof Error && 'type' in error 
+          ? error 
+          : new Error('Failed to process video metadata') as Error & { type: ThumbnailError };
+        if (!('type' in wrappedError)) {
+          (wrappedError as any).type = 'invalid_metadata';
+        }
+        reject(wrappedError);
       }
     };
 
@@ -69,7 +87,9 @@ export const generateVideoThumbnail = (
         const ctx = canvas.getContext('2d');
         
         if (!ctx) {
-          throw new Error('Could not get canvas context');
+          const error = new Error('Could not get canvas context') as Error & { type: ThumbnailError };
+          error.type = 'canvas_error';
+          throw error;
         }
 
         // Calculate dimensions maintaining aspect ratio
@@ -108,7 +128,9 @@ export const generateVideoThumbnail = (
           (blob) => {
             if (!blob) {
               cleanup();
-              reject(new Error('Failed to create thumbnail blob'));
+              const error = new Error('Failed to create thumbnail blob') as Error & { type: ThumbnailError };
+              error.type = 'canvas_error';
+              reject(error);
               return;
             }
 
@@ -121,14 +143,22 @@ export const generateVideoThumbnail = (
         );
       } catch (error) {
         cleanup();
-        reject(error);
+        const wrappedError = error instanceof Error && 'type' in error 
+          ? error 
+          : new Error('Thumbnail generation failed') as Error & { type: ThumbnailError };
+        if (!('type' in wrappedError)) {
+          (wrappedError as any).type = 'unknown';
+        }
+        reject(wrappedError);
       }
     };
 
     // Set up timeout
     timeoutId = setTimeout(() => {
       cleanup();
-      reject(new Error('Video thumbnail generation timed out'));
+      const error = new Error('Video thumbnail generation timed out - file may be corrupted') as Error & { type: ThumbnailError };
+      error.type = 'timeout';
+      reject(error);
     }, TIMEOUT_MS);
 
     // Set up event listeners
@@ -141,7 +171,9 @@ export const generateVideoThumbnail = (
       video.src = URL.createObjectURL(file);
     } catch (error) {
       cleanup();
-      reject(new Error('Failed to create video URL'));
+      const wrappedError = new Error('Failed to create video URL - file may be corrupted') as Error & { type: ThumbnailError };
+      wrappedError.type = 'video_load_failed';
+      reject(wrappedError);
     }
   });
 };

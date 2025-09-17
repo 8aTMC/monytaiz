@@ -228,7 +228,7 @@ const metadataVersion = useMemo(() => {
         const validationResults = validateFilesOnly(supportedFiles);
         
         // Add files to queue since no duplicates
-        addFiles(supportedFiles, showDuplicateDialog, showUnsupportedDialog, true);
+        addFiles(supportedFiles, showDuplicateDialog, showUnsupportedDialog, undefined, true);
         
         // Show remaining validation issues
         if (validationResults?.unsupportedFiles?.length > 0) {
@@ -576,7 +576,7 @@ const metadataVersion = useMemo(() => {
     console.log('Keeping both versions of duplicates');
     
     // Add all staged files to queue
-    addFiles(stagedFiles, showDuplicateDialog, showUnsupportedDialog, true);
+    addFiles(stagedFiles, showDuplicateDialog, showUnsupportedDialog, undefined, true);
     
     // Wait for files to be added, then add duplicate tags
     setTimeout(() => {
@@ -627,7 +627,7 @@ const metadataVersion = useMemo(() => {
     
     // Add files to queue first if not already added
     if (files.length > 0) {
-      addFiles(files, showDuplicateDialog, showUnsupportedDialog, true);
+      addFiles(files, showDuplicateDialog, showUnsupportedDialog, undefined, true);
     }
     
     // Use validation-only function to prevent re-adding files to queue

@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { uploadWithProgress } from '@/lib/uploadWithProgress';
+import { validateVideoFile } from '@/lib/videoValidation';
 
 export interface FileUploadItem {
   file: File;
@@ -178,7 +179,13 @@ export const useFileUpload = () => {
     }
   }, []);
 
-  const addFiles = useCallback((files: File[], showDuplicateDialog?: (duplicates: { id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]) => void, showUnsupportedDialog?: (unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'gif' | 'unknown'; file: File }[]) => void, suppressDialogs?: boolean) => {
+  const addFiles = useCallback(async (
+    files: File[], 
+    showDuplicateDialog?: (duplicates: { id: string; name: string; size: number; type: string; existingFile: File; newFile: File }[]) => void, 
+    showUnsupportedDialog?: (unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'gif' | 'unknown'; file: File }[]) => void,
+    showCorruptedDialog?: (corruptedFiles: { id: string; name: string; size: number; file: File; error: string; errorType?: 'corruption' | 'format' | 'timeout' | 'metadata' }[]) => void,
+    suppressDialogs?: boolean
+  ) => {
     if (uploadQueue.length + files.length > 100) {
       toast({
         title: "Too many files",
@@ -192,12 +199,17 @@ export const useFileUpload = () => {
     const errors: string[] = [];
     const unsupportedFiles: { id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'gif' | 'unknown'; file: File }[] = [];
     const duplicateFiles: { name: string; size: number; type: string; existingFile: File; newFile: File }[] = [];
+    const corruptedFiles: { id: string; name: string; size: number; file: File; error: string; errorType?: 'corruption' | 'format' | 'timeout' | 'metadata' }[] = [];
     
     // Calculate current upload size from existing queue
     const currentUploadSize = uploadQueue.reduce((total, item) => total + item.file.size, 0);
     let cumulativeSize = currentUploadSize;
     let filesAdded = 0;
     let totalFiles = files.length;
+
+    // Separate supported video files for corruption checking
+    const supportedFiles: File[] = [];
+    const videoFiles: File[] = [];
 
     files.forEach((file, index) => {
       console.log(`Processing file: ${file.name}`);
@@ -215,6 +227,57 @@ export const useFileUpload = () => {
         });
         return;
       }
+
+      // File is supported, add to processing queue
+      supportedFiles.push(file);
+      
+      // If it's a video file, add to video files for corruption checking
+      try {
+        const fileType = getFileType(file);
+        if (fileType === 'video') {
+          videoFiles.push(file);
+        }
+      } catch (error) {
+        // File type error already handled above
+      }
+    });
+
+    // Check video files for corruption
+    if (videoFiles.length > 0) {
+      console.log(`Checking ${videoFiles.length} video files for corruption...`);
+      
+      for (const videoFile of videoFiles) {
+        try {
+          const validationResult = await validateVideoFile(videoFile, { timeoutMs: 5000 });
+          
+          if (validationResult.isCorrupted) {
+            console.log(`Video file ${videoFile.name} is corrupted:`, validationResult.error);
+            
+            const fileIndex = supportedFiles.indexOf(videoFile);
+            corruptedFiles.push({
+              id: `corrupted-${Date.now()}-${fileIndex}`,
+              name: videoFile.name,
+              size: videoFile.size,
+              file: videoFile,
+              error: validationResult.error || 'File appears to be corrupted',
+              errorType: validationResult.errorType
+            });
+            
+            // Remove from supported files to prevent further processing
+            const supportedIndex = supportedFiles.indexOf(videoFile);
+            if (supportedIndex > -1) {
+              supportedFiles.splice(supportedIndex, 1);
+            }
+          }
+        } catch (error) {
+          console.warn(`Error validating video file ${videoFile.name}:`, error);
+          // If validation fails unexpectedly, continue with the file
+        }
+      }
+    }
+
+    // Process remaining supported files
+    supportedFiles.forEach((file, index) => {
       
       // Check for duplicates (same name and size)
       const existingItem = uploadQueue.find(existingItem => 
@@ -319,6 +382,12 @@ export const useFileUpload = () => {
           showUnsupportedDialog(unsupportedFiles);
         }
 
+        // Show dialog for corrupted files if callback provided
+        if (corruptedFiles.length > 0 && showCorruptedDialog) {
+          console.log(`Showing corrupted files dialog for ${corruptedFiles.length} files`);
+          showCorruptedDialog(corruptedFiles);
+        }
+
         // Show error messages for other rejected files
         if (errors.length > 0) {
           toast({
@@ -351,6 +420,7 @@ export const useFileUpload = () => {
         newFile: df.newFile
       })),
       unsupportedFiles,
+      corruptedFiles,
       errors
     };
   }, [uploadQueue, validateFile, toast]);

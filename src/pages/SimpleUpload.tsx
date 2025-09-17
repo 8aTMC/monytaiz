@@ -15,6 +15,7 @@ import { VirtualizedFileList } from '@/components/VirtualizedFileList';
 import { BatchMetadataToolbar } from '@/components/BatchMetadataToolbar';
 import { DuplicateFilesDialog } from '@/components/DuplicateFilesDialog';
 import { UnsupportedFilesDialog } from '@/components/UnsupportedFilesDialog';
+import { CorruptedFilesDialog } from '@/components/CorruptedFilesDialog';
 import { StorageQuotaProgressBar, STORAGE_LIMIT_BYTES } from '@/components/StorageQuotaProgressBar';
 import { ExceedsLimitDialog, FileWithStatus } from '@/components/ExceedsLimitDialog';
 import { PreUploadDuplicateDialog } from '@/components/PreUploadDuplicateDialog';
@@ -60,6 +61,8 @@ export default function SimpleUpload() {
   const [filesAnalysis, setFilesAnalysis] = useState<FileWithStatus[]>([]);
   const [unsupportedDialogOpen, setUnsupportedDialogOpen] = useState(false);
   const [unsupportedFiles, setUnsupportedFiles] = useState<{ id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'gif' | 'unknown'; file: File }[]>([]);
+  const [corruptedDialogOpen, setCorruptedDialogOpen] = useState(false);
+  const [corruptedFiles, setCorruptedFiles] = useState<{ id: string; name: string; size: number; file: File; error: string; errorType?: 'corruption' | 'format' | 'timeout' | 'metadata' }[]>([]);
   const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
   const [duplicateProgress, setDuplicateProgress] = useState({ current: 0, total: 1, step: '' });
   const [selectionMode, setSelectionMode] = useState(false);
@@ -208,6 +211,13 @@ export default function SimpleUpload() {
       setUnsupportedDialogOpen(true);
     }
 
+    // Show corrupted files dialog if any
+    if (corruptedFiles.length > 0) {
+      logger.info(`[UploadAction] Corrupted files dialog opened`, { count: corruptedFiles.length });
+      setCorruptedFiles(corruptedFiles);
+      setCorruptedDialogOpen(true);
+    }
+
     // Add supported files and check for database duplicates
     if (supportedFiles.length > 0) {
       const newFiles = supportedFiles.map(file => ({
@@ -311,6 +321,13 @@ export default function SimpleUpload() {
       logger.info(`[UploadAction] Unsupported files dialog opened (addMore)`, { count: unsupportedFiles.length });
       setUnsupportedFiles(unsupportedFiles);
       setUnsupportedDialogOpen(true);
+    }
+
+    // Show corrupted files dialog if any
+    if (corruptedFiles.length > 0) {
+      logger.info(`[UploadAction] Corrupted files dialog opened (addMore)`, { count: corruptedFiles.length });
+      setCorruptedFiles(corruptedFiles);
+      setCorruptedDialogOpen(true);
     }
 
     // Check for duplicates among supported files
@@ -888,6 +905,25 @@ export default function SimpleUpload() {
                   // logger.debug(`Closing unsupported files dialog`);
                   setUnsupportedDialogOpen(false);
                   setUnsupportedFiles([]);
+                }}
+              />
+
+              {/* Corrupted Files Dialog */}
+              <CorruptedFilesDialog
+                open={corruptedDialogOpen}
+                onOpenChange={setCorruptedDialogOpen}
+                corruptedFiles={corruptedFiles}
+                onRemoveFiles={(fileIds: string[]) => {
+                  // Remove corrupted files from upload queue
+                  setFiles(prev => prev.filter(f => !fileIds.includes(f.id)));
+                  logger.info(`[UploadAction] Removed corrupted files`, { count: fileIds.length });
+                }}
+                onRemoveAll={() => {
+                  // Remove all corrupted files from upload queue
+                  const corruptedFileIds = corruptedFiles.map(f => f.id);
+                  setFiles(prev => prev.filter(f => !corruptedFileIds.includes(f.id)));
+                  setCorruptedFiles([]);
+                  logger.info(`[UploadAction] Removed all corrupted files`, { count: corruptedFileIds.length });
                 }}
               />
 
