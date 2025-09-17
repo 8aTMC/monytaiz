@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -47,6 +47,7 @@ export function DescriptionDialog({
             <FileText className="h-5 w-5" />
             Edit Description
           </DialogTitle>
+          <DialogDescription id="description-dialog-desc">Add a short description for this file.</DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">

@@ -180,14 +180,18 @@ export const FilePreviewDialog = ({
     };
   };
 
-  // Derive metadata directly from latest props on every render (no memo to avoid staleness)
-  const currentMetadata = getCurrentMetadata();
+  // Local reactive metadata snapshot to avoid stale closures and enable optimistic updates
+  const [currentMeta, setCurrentMeta] = useState(getCurrentMetadata());
 
-  // Update handlers route to appropriate updater (no local state)
+  // Update handlers with optimistic local update, then persist to parent
   const handleMetadataUpdate = (field: string, value: any) => {
     const newValue = value;
     console.log('FilePreviewDialog: handleMetadataUpdate', { field, newValue, index: internalCurrentIndex, fileId: currentFileId });
 
+    // Optimistically update local snapshot for instant UI feedback
+    setCurrentMeta(prev => ({ ...prev, [field]: newValue }));
+
+    // Persist to parent using the most specific updater available
     if (updateMetadataById && currentFileId) {
       updateMetadataById(currentFileId, { [field]: newValue });
       return;
@@ -245,7 +249,13 @@ export const FilePreviewDialog = ({
     setEditTitleDialogOpen(false);
   }, [internalCurrentIndex]);
 
-// Metadata derived via useMemo; no syncing effect needed
+// Sync local metadata snapshot whenever index/id/version changes while open
+useEffect(() => {
+  if (!open) return;
+  const meta = getCurrentMetadata();
+  setCurrentMeta(meta);
+  console.log('FilePreviewDialog: sync currentMeta from parent', { currentFileId, internalCurrentIndex, metadataVersion, meta });
+}, [open, internalCurrentIndex, currentFileId, metadataVersion]);
   
   // Initialize client-side mounting
   useEffect(() => {
@@ -753,31 +763,31 @@ export const FilePreviewDialog = ({
               <div className="flex flex-wrap gap-2">
                 {(onMentionsChange || updateMetadataById || updateMetadataByIndex) && (
                   <Button
-                    variant={currentMetadata.mentions.length > 0 ? "default" : "outline"}
+                    variant={currentMeta.mentions.length > 0 ? "default" : "outline"}
                     size="sm"
                     onClick={() => setMentionsDialogOpen(true)}
                     className="text-xs"
                   >
                      <AtSign className="w-3 h-3 mr-1" />
-                    Mentions {currentMetadata.mentions.length > 0 && `(${currentMetadata.mentions.length})`}
+                    Mentions {currentMeta.mentions.length > 0 && `(${currentMeta.mentions.length})`}
                   </Button>
                 )}
                 
                 {(onTagsChange || updateMetadataById || updateMetadataByIndex) && (
                   <Button
-                    variant={currentMetadata.tags.length > 0 ? "default" : "outline"}
+                    variant={currentMeta.tags.length > 0 ? "default" : "outline"}
                     size="sm"
                     onClick={() => setTagsDialogOpen(true)}
                     className="text-xs"
                   >
                      <Hash className="w-3 h-3 mr-1" />
-                    Tags {currentMetadata.tags.length > 0 && `(${currentMetadata.tags.length})`}
+                    Tags {currentMeta.tags.length > 0 && `(${currentMeta.tags.length})`}
                   </Button>
                 )}
                 
                 {(onFoldersChange || updateMetadataById || updateMetadataByIndex) && (
                   <Button
-                    variant={currentMetadata.folders.length > 0 ? "default" : "outline"}
+                    variant={currentMeta.folders.length > 0 ? "default" : "outline"}
                     size="sm"
                     onClick={() => setFoldersDialogOpen(true)}
                     className="text-xs"
@@ -789,44 +799,44 @@ export const FilePreviewDialog = ({
                 
                 {(onDescriptionChange || updateMetadataById || updateMetadataByIndex) && (
                   <Button
-                    variant={currentMetadata.description && currentMetadata.description.length > 0 ? "default" : "outline"}
+                    variant={currentMeta.description && currentMeta.description.length > 0 ? "default" : "outline"}
                     size="sm"
                     onClick={() => setDescriptionDialogOpen(true)}
                     className="text-xs"
                   >
                      <FileText className="w-3 h-3 mr-1" />
-                    Description {currentMetadata.description && currentMetadata.description.length > 0 && '✓'}
+                    Description {currentMeta.description && currentMeta.description.length > 0 && '✓'}
                   </Button>
                 )}
                 
                 {(onPriceChange || updateMetadataById || updateMetadataByIndex) && (
                   <Button
-                    variant={currentMetadata.suggestedPrice && currentMetadata.suggestedPrice > 0 ? "default" : "outline"}
+                    variant={currentMeta.suggestedPrice && currentMeta.suggestedPrice > 0 ? "default" : "outline"}
                     size="sm"
                     onClick={() => setPriceDialogOpen(true)}
                     className="text-xs"
                   >
                      <DollarSign className="w-3 h-3 mr-1" />
-                    Price {currentMetadata.suggestedPrice && currentMetadata.suggestedPrice > 0 && `($${currentMetadata.suggestedPrice.toFixed(2)})`}
+                    Price {currentMeta.suggestedPrice && currentMeta.suggestedPrice > 0 && `($${currentMeta.suggestedPrice.toFixed(2)})`}
                   </Button>
                 )}
               </div>
 
               {/* Show current metadata values */}
               <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-                {currentMetadata.mentions.length > 0 && (
+                {currentMeta.mentions.length > 0 && (
                   <div>
-                    <span className="font-medium">Mentions:</span> {currentMetadata.mentions.join(', ')}
+                    <span className="font-medium">Mentions:</span> {currentMeta.mentions.join(', ')}
                   </div>
                 )}
-                {currentMetadata.tags.length > 0 && (
+                {currentMeta.tags.length > 0 && (
                   <div>
-                    <span className="font-medium">Tags:</span> {currentMetadata.tags.join(', ')}
+                    <span className="font-medium">Tags:</span> {currentMeta.tags.join(', ')}
                   </div>
                 )}
-                {currentMetadata.description && (
+                {currentMeta.description && (
                   <div>
-                    <span className="font-medium">Description:</span> {currentMetadata.description.length > 60 ? `${currentMetadata.description.substring(0, 60)}...` : currentMetadata.description}
+                    <span className="font-medium">Description:</span> {currentMeta.description.length > 60 ? `${currentMeta.description.substring(0, 60)}...` : currentMeta.description}
                   </div>
                 )}
               </div>
@@ -839,7 +849,7 @@ export const FilePreviewDialog = ({
               key={`mentions-${currentFileId ?? internalCurrentIndex}`}
               open={mentionsDialogOpen}
               onOpenChange={setMentionsDialogOpen}
-              mentions={currentMetadata.mentions}
+              mentions={currentMeta.mentions}
               onMentionsChange={(mentions) => handleMetadataUpdate('mentions', mentions)}
             />
           )}
@@ -849,7 +859,7 @@ export const FilePreviewDialog = ({
               key={`tags-${currentFileId ?? internalCurrentIndex}`}
               open={tagsDialogOpen}
               onOpenChange={setTagsDialogOpen}
-              tags={currentMetadata.tags}
+              tags={currentMeta.tags}
               onTagsChange={(tags) => handleMetadataUpdate('tags', tags)}
             />
           )}
@@ -859,7 +869,7 @@ export const FilePreviewDialog = ({
               key={`folders-${currentFileId ?? internalCurrentIndex}`}
               open={foldersDialogOpen}
               onOpenChange={setFoldersDialogOpen}
-              selectedFolders={currentMetadata.folders}
+              selectedFolders={currentMeta.folders}
               onFoldersChange={(folders) => handleMetadataUpdate('folders', folders)}
             />
           )}
@@ -869,7 +879,7 @@ export const FilePreviewDialog = ({
               key={`description-${currentFileId ?? internalCurrentIndex}`}
               open={descriptionDialogOpen}
               onOpenChange={setDescriptionDialogOpen}
-              description={currentMetadata.description}
+              description={currentMeta.description}
               onDescriptionChange={(description) => handleMetadataUpdate('description', description)}
             />
           )}
@@ -879,7 +889,7 @@ export const FilePreviewDialog = ({
               key={`price-${currentFileId ?? internalCurrentIndex}`}
               open={priceDialogOpen}
               onOpenChange={setPriceDialogOpen}
-              price={currentMetadata.suggestedPrice || undefined}
+              price={currentMeta.suggestedPrice || undefined}
               onPriceChange={(price) => handleMetadataUpdate('suggestedPrice', price ?? null)}
             />
           )}
