@@ -216,6 +216,44 @@ const ContentLibrary = () => {
     }
   }, [setSearchParams]);
 
+  // Metadata update handler
+  const handleMetadataUpdate = useCallback(async (itemId: string, field: string, value: any) => {
+    try {
+      console.log('Updating metadata for item:', itemId, 'field:', field, 'value:', value);
+      
+      // Update the database
+      const { error } = await supabase
+        .from('media')
+        .update({ [field]: value })
+        .eq('id', itemId);
+
+      if (error) {
+        console.error('Failed to update metadata:', error);
+        toast({
+          title: "Error",
+          description: `Failed to update ${field}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Refresh the content to reflect changes
+      await fetchContent();
+
+      toast({
+        title: "Success", 
+        description: `${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully`
+      });
+    } catch (error) {
+      console.error('Error updating metadata:', error);
+      toast({
+        title: "Error",
+        description: `Failed to update ${field}`,
+        variant: "destructive"
+      });
+    }
+  }, [fetchContent, toast]);
+
   // Stable selection handlers using functional updates
   const handleToggleItem = useCallback((itemId: string) => {
     setSelectedItems(prevItems => {
@@ -655,6 +693,7 @@ const ContentLibrary = () => {
           onToggleSelection={handleToggleItem}
           onItemChange={setPreviewItem}
           selecting={selecting}
+          onMetadataUpdate={handleMetadataUpdate}
         />
 
         {/* Advanced Filters Dialog */}

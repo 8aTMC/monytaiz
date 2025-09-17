@@ -3,13 +3,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogPortal } from '
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Image, Video, FileAudio, FileText, X, ChevronLeft, ChevronRight, Check, Play, Pause, Maximize } from 'lucide-react';
+import { Image, Video, FileAudio, FileText, X, ChevronLeft, ChevronRight, Check, Play, Pause, Maximize, AtSign, Hash, FolderOpen, DollarSign, Edit } from 'lucide-react';
 import { useSidebar } from '@/components/Navigation';
 import { useProgressiveMediaLoading } from '@/hooks/useProgressiveMediaLoading';
 import { useIntersectionPreloader } from '@/hooks/useIntersectionPreloader';
 import { CustomAudioPlayer } from '@/components/CustomAudioPlayer';
 import { EnhancedVideoPlayer } from '@/components/EnhancedVideoPlayer';
 import { FullscreenImageViewer } from '@/components/FullscreenImageViewer';
+import { MentionsDialog } from './MentionsDialog';
+import { TagsDialog } from './TagsDialog';
+import { FolderSelectDialog } from './FolderSelectDialog';
+import { DescriptionDialog } from './DescriptionDialog';
+import { PriceDialog } from './PriceDialog';
+import { EditTitleDialog } from './EditTitleDialog';
 
 // Use the MediaItem interface from ContentLibrary
 interface MediaItem {
@@ -40,6 +46,8 @@ interface MediaPreviewDialogProps {
   onToggleSelection: (id: string) => void;
   onItemChange?: (item: MediaItem) => void;
   selecting?: boolean;
+  // Metadata props
+  onMetadataUpdate?: (itemId: string, field: string, value: any) => void;
 }
 
 export const MediaPreviewDialog = ({
@@ -51,6 +59,7 @@ export const MediaPreviewDialog = ({
   onToggleSelection,
   onItemChange,
   selecting,
+  onMetadataUpdate,
 }: MediaPreviewDialogProps) => {
   // Comprehensive debug logging
   console.log('🔍 MediaPreviewDialog render:', { 
@@ -67,6 +76,15 @@ export const MediaPreviewDialog = ({
   const [gifPlaying, setGifPlaying] = useState(true);
   const [gifNonce, setGifNonce] = useState(0);
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
+  
+  // Dialog states for metadata editing
+  const [mentionsDialogOpen, setMentionsDialogOpen] = useState(false);
+  const [tagsDialogOpen, setTagsDialogOpen] = useState(false);
+  const [foldersDialogOpen, setFoldersDialogOpen] = useState(false);
+  const [descriptionDialogOpen, setDescriptionDialogOpen] = useState(false);
+  const [priceDialogOpen, setPriceDialogOpen] = useState(false);
+  const [editTitleDialogOpen, setEditTitleDialogOpen] = useState(false);
+  
   const { 
     loadProgressiveMedia, 
     enhanceQuality, 
@@ -97,6 +115,13 @@ export const MediaPreviewDialog = ({
       onItemChange(previousItem);
       // Preload navigation items for instant switching
       preloadForNavigation(previousItem.id, 'both');
+      // Close all metadata dialogs when navigating
+      setMentionsDialogOpen(false);
+      setTagsDialogOpen(false);
+      setFoldersDialogOpen(false);
+      setDescriptionDialogOpen(false);
+      setPriceDialogOpen(false);
+      setEditTitleDialogOpen(false);
     }
   };
 
@@ -107,6 +132,13 @@ export const MediaPreviewDialog = ({
       onItemChange(nextItem);
       // Preload navigation items for instant switching
       preloadForNavigation(nextItem.id, 'both');
+      // Close all metadata dialogs when navigating
+      setMentionsDialogOpen(false);
+      setTagsDialogOpen(false);
+      setFoldersDialogOpen(false);
+      setDescriptionDialogOpen(false);
+      setPriceDialogOpen(false);
+      setEditTitleDialogOpen(false);
     }
   };
 
@@ -247,6 +279,32 @@ export const MediaPreviewDialog = ({
     return name.substring(0, maxLength) + '...';
   };
 
+  // Metadata handlers
+  const handleMetadataUpdate = (field: string, value: any) => {
+    if (onMetadataUpdate && item) {
+      onMetadataUpdate(item.id, field, value);
+    }
+  };
+
+  // Helper function to check if metadata exists
+  const hasMetadata = (field: string): boolean => {
+    if (!item) return false;
+    switch (field) {
+      case 'mentions': // Would need to check collaborators/mentions from DB
+        return false; // For now, always false as we don't have this data in MediaItem
+      case 'tags':
+        return item.tags && item.tags.length > 0;
+      case 'folders': // Would need folder data from DB  
+        return false; // For now, always false as we don't have this data in MediaItem
+      case 'description':
+        return item.notes && item.notes.trim().length > 0;
+      case 'price':
+        return item.suggested_price_cents && item.suggested_price_cents > 0;
+      default:
+        return false;
+    }
+  };
+
   if (!item) return null;
 
   const typeValue = getItemType(item);
@@ -288,21 +346,67 @@ export const MediaPreviewDialog = ({
 
           {/* Media Actions Bar */}
           <div className="flex flex-wrap gap-2 pb-4 border-b border-border">
-            <Button variant="outline" size="sm">
-              @ Mentions
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setMentionsDialogOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <AtSign className="h-4 w-4" />
+              Mentions
+              {hasMetadata('mentions') && <Check className="h-3 w-3 text-green-500" />}
             </Button>
-            <Button variant="outline" size="sm">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setTagsDialogOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Hash className="h-4 w-4" />
               Tags
+              {hasMetadata('tags') && <Check className="h-3 w-3 text-green-500" />}
             </Button>
-            <Button variant="outline" size="sm">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setFoldersDialogOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <FolderOpen className="h-4 w-4" />
               Folders
+              {hasMetadata('folders') && <Check className="h-3 w-3 text-green-500" />}
             </Button>
-            <Button variant="outline" size="sm">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setDescriptionDialogOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <FileText className="h-4 w-4" />
               Description
+              {hasMetadata('description') && <Check className="h-3 w-3 text-green-500" />}
             </Button>
-            <Button variant="outline" size="sm">
-              Price: ${(item.suggested_price_cents / 100).toFixed(2)}
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setPriceDialogOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <DollarSign className="h-4 w-4" />
+              Price: ${((item.suggested_price_cents || 0) / 100).toFixed(2)}
+              {hasMetadata('price') && <Check className="h-3 w-3 text-green-500" />}
             </Button>
+            {onMetadataUpdate && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setEditTitleDialogOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <Edit className="h-4 w-4" />
+                Edit Title
+              </Button>
+            )}
           </div>
 
           <div className="flex-1 flex items-center">
@@ -590,6 +694,61 @@ export const MediaPreviewDialog = ({
         imageUrl={getCurrentUrl() || ''}
         title={item.title || 'Media preview'}
       />
+
+      {/* Metadata Dialogs */}
+      {item && (
+        <>
+          <MentionsDialog
+            key={`mentions-${item.id}`}
+            open={mentionsDialogOpen}
+            onOpenChange={setMentionsDialogOpen}
+            mentions={[]} // Would need to fetch from DB
+            onMentionsChange={(mentions) => handleMetadataUpdate('mentions', mentions)}
+          />
+
+          <TagsDialog
+            key={`tags-${item.id}`}
+            open={tagsDialogOpen}
+            onOpenChange={setTagsDialogOpen}
+            tags={item.tags || []}
+            onTagsChange={(tags) => handleMetadataUpdate('tags', tags)}
+          />
+
+          <FolderSelectDialog
+            key={`folders-${item.id}`}
+            open={foldersDialogOpen}
+            onOpenChange={setFoldersDialogOpen}
+            selectedFolders={[]} // Would need to fetch from DB
+            onFoldersChange={(folders) => handleMetadataUpdate('folders', folders)}
+          />
+
+          <DescriptionDialog
+            key={`description-${item.id}`}
+            open={descriptionDialogOpen}
+            onOpenChange={setDescriptionDialogOpen}
+            description={item.notes || ''}
+            onDescriptionChange={(description) => handleMetadataUpdate('description', description)}
+          />
+
+          <PriceDialog
+            key={`price-${item.id}`}
+            open={priceDialogOpen}
+            onOpenChange={setPriceDialogOpen}
+            price={(item.suggested_price_cents || 0) / 100}
+            onPriceChange={(price) => handleMetadataUpdate('suggested_price_cents', Math.round((price || 0) * 100))}
+          />
+
+          {onMetadataUpdate && (
+            <EditTitleDialog
+              key={`title-${item.id}`}
+              open={editTitleDialogOpen}
+              onOpenChange={setEditTitleDialogOpen}
+              title={item.title || ''}
+              onTitleChange={(title) => handleMetadataUpdate('title', title)}
+            />
+          )}
+        </>
+      )}
     </Dialog>
   );
 };
