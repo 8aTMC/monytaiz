@@ -141,12 +141,24 @@ export const useInfiniteLibraryData = ({
         }
 
         if (simpleMediaResults.data) {
+          console.log('🔍 SIMPLE_MEDIA DEBUG - Raw data from database:', {
+            dataLength: simpleMediaResults.data.length,
+            sampleItem: simpleMediaResults.data[0] ? {
+              id: simpleMediaResults.data[0].id,
+              title: simpleMediaResults.data[0].title,
+              description: simpleMediaResults.data[0].description,
+              tags: simpleMediaResults.data[0].tags,
+              mentions: simpleMediaResults.data[0].mentions,
+              suggested_price_cents: simpleMediaResults.data[0].suggested_price_cents
+            } : 'no data'
+          });
+
           const convertedSimpleMedia = simpleMediaResults.data.map(item => {
             const isGif = item.mime_type === 'image/gif' || item.original_path?.toLowerCase().includes('.gif');
             const storagePath = isGif ? (item.original_path || item.processed_path) : (item.processed_path || item.original_path);
             const mediaType = isGif ? 'gif' : item.media_type;
             
-            return {
+            const convertedItem = {
               id: item.id,
               title: item.title || 'Untitled',
               type: mediaType,
@@ -169,6 +181,16 @@ export const useInfiniteLibraryData = ({
               width: item.width,
               height: item.height
             };
+            
+            console.log('🔍 CONVERTED ITEM DEBUG:', {
+              originalId: item.id,
+              originalTitle: item.title,
+              originalTags: item.tags,
+              originalDescription: item.description,
+              converted: convertedItem
+            });
+            
+            return convertedItem;
           });
 
           combinedData = [...combinedData, ...convertedSimpleMedia];

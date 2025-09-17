@@ -817,8 +817,16 @@ export const useFileUpload = () => {
         content_type: fileType
       });
 
+      // Debug: Log the metadata being used for database insert
+      console.log('🔍 METADATA DEBUG - About to insert to database:', {
+        fileId: item.id,
+        fileName: file.name,
+        itemMetadata: item.metadata,
+        metadataKeys: item.metadata ? Object.keys(item.metadata) : 'no metadata'
+      });
+
       const insertPayload = {
-        title: item.metadata?.description || file.name.replace(/\.[^/.]+$/, ""), // Clean title
+        title: item.metadata?.description || file.name.replace(/\.[^/.]+$/, ""), // Use description as title
         description: item.metadata?.description || null,
         tags: item.metadata?.tags || [],
         mentions: item.metadata?.mentions || [],
@@ -832,6 +840,8 @@ export const useFileUpload = () => {
         creator_id: userData.user.id,
         processing_status: 'processed', // Mark as processed since we're uploading directly
       };
+
+      console.log('🔍 DATABASE INSERT PAYLOAD:', insertPayload);
       
       
       const { data: insertData, error: dbError } = await supabase
@@ -852,9 +862,14 @@ export const useFileUpload = () => {
       }
       
 
-      // Add to folders if specified
+      // Add to folders if specified - with debug logging
       if (item.metadata?.folders && item.metadata.folders.length > 0 && insertData?.[0]?.id) {
         try {
+          console.log('🔍 FOLDER DEBUG - About to assign folders:', {
+            mediaId: insertData[0].id,
+            folders: item.metadata.folders,
+            folderCount: item.metadata.folders.length
+          });
 
           const folderAssignments = item.metadata.folders.map(folderId => ({
             media_id: insertData[0].id,
@@ -867,16 +882,23 @@ export const useFileUpload = () => {
             .insert(folderAssignments);
 
           if (folderError) {
-            console.error('Folder assignment failed:', {
+            console.error('❌ FOLDER ASSIGNMENT FAILED:', {
               error: folderError,
               assignments: folderAssignments
             });
           } else {
-            
+            console.log('✅ FOLDER ASSIGNMENT SUCCESS:', folderAssignments);
           }
         } catch (folderAssignError) {
-          console.error('Folder assignment error:', folderAssignError);
+          console.error('❌ Folder assignment exception:', folderAssignError);
         }
+      } else {
+        console.log('🔍 FOLDER DEBUG - No folders to assign:', {
+          hasMetadata: !!item.metadata,
+          hasFolders: !!item.metadata?.folders,
+          folderCount: item.metadata?.folders?.length || 0,
+          hasInsertData: !!insertData?.[0]?.id
+        });
       }
 
       // Post-process media for metadata extraction only (no video processing)
@@ -1180,12 +1202,25 @@ export const useFileUpload = () => {
   }, [uploadQueue, cancelUpload, toast, abortControllers]);
 
   const updateFileMetadata = useCallback((id: string, metadata: Partial<FileUploadItem['metadata']>) => {
-    setUploadQueue(prev => prev.map(item => 
-      item.id === id ? { 
-        ...item, 
-        metadata: { ...item.metadata, ...metadata } 
-      } : item
-    ));
+    console.log('📝 updateFileMetadata called:', { fileId: id, metadata });
+    setUploadQueue(prev => prev.map(item => {
+      if (item.id === id) {
+        const updatedItem = { 
+          ...item, 
+          metadata: { 
+            ...item.metadata, 
+            ...metadata 
+          } 
+        };
+        console.log('📝 Updated item metadata:', { 
+          fileId: id, 
+          oldMetadata: item.metadata, 
+          newMetadata: updatedItem.metadata 
+        });
+        return updatedItem;
+      }
+      return item;
+    }));
   }, []);
 
   // Selection management functions

@@ -292,7 +292,7 @@ useEffect(() => {
   };
   // Debug navigation values - only log when dialog opens
   useEffect(() => {
-    if (open) {
+    if (open && process.env.NODE_ENV === 'development') {
       console.log('FilePreviewDialog Navigation Debug:', {
         fileCount,
         currentIndex: internalCurrentIndex,

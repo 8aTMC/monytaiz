@@ -181,11 +181,8 @@ export const useOptimizedMediaDisplay = () => {
       // Check if this is a HEIC file - use fast-secure-media for format conversion
       const isHEIC = isHEICFile(bestPath);
       
-      console.log(`[DEBUG] Processing media item ${item.id}: isHEIC=${isHEIC}, bestPath=${bestPath}`);
-      
       if (isHEIC) {
         // For HEIC files, call fast-secure-media with format conversion
-        console.log(`[DEBUG HEIC] Calling fast-secure-media for HEIC file: ${bestPath}`);
         try {
           const { data: mediaData, error: mediaError } = await supabase.functions.invoke('fast-secure-media', {
             body: { 
@@ -197,16 +194,10 @@ export const useOptimizedMediaDisplay = () => {
             }
           });
 
-          console.log(`[DEBUG HEIC] fast-secure-media response:`, { mediaData, mediaError });
-
           if (!mediaError && mediaData?.url) {
             finalUrl = mediaData.url;
-            console.log(`[DEBUG HEIC] Successfully got URL from fast-secure-media: ${finalUrl}`);
-          } else {
-            console.log(`[DEBUG HEIC] fast-secure-media failed:`, mediaError);
           }
         } catch (error) {
-          console.log(`[DEBUG HEIC] fast-secure-media threw error:`, error);
           // If fast-secure-media fails, fall through to regular processing
         }
       }
@@ -229,7 +220,6 @@ export const useOptimizedMediaDisplay = () => {
         const isHEICFallback = isHEICFile(fallbackPath);
         
         if (isHEICFallback) {
-          console.log(`[DEBUG HEIC FALLBACK] Trying fallback path: ${fallbackPath}`);
           try {
             const { data: mediaData, error: mediaError } = await supabase.functions.invoke('fast-secure-media', {
               body: { 
@@ -241,14 +231,10 @@ export const useOptimizedMediaDisplay = () => {
               }
             });
 
-            console.log(`[DEBUG HEIC FALLBACK] fast-secure-media fallback response:`, { mediaData, mediaError });
-
             if (!mediaError && mediaData?.url) {
               finalUrl = mediaData.url;
-              console.log(`[DEBUG HEIC FALLBACK] Successfully got URL from fallback: ${finalUrl}`);
             }
           } catch (error) {
-            console.log(`[DEBUG HEIC FALLBACK] fast-secure-media fallback threw error:`, error);
             // If fast-secure-media fails, use regular signed URL
           }
         }
@@ -269,11 +255,8 @@ export const useOptimizedMediaDisplay = () => {
       if (abortControllerRef.current.signal.aborted) return;
 
       if (!finalUrl) {
-        console.log(`[DEBUG ERROR] Failed to generate media URL for item ${item.id}, bestPath: ${bestPath}`);
         throw new Error('Failed to generate media URL');
       }
-
-      console.log(`[DEBUG SUCCESS] Setting final URL for item ${item.id}: ${finalUrl}`);
 
       // Set the final URL
       setMediaState({
