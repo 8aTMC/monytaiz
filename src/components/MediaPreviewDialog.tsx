@@ -85,6 +85,16 @@ export const MediaPreviewDialog = ({
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
   const [editTitleDialogOpen, setEditTitleDialogOpen] = useState(false);
   
+  // Local metadata state for immediate visual feedback
+  const [currentMetadata, setCurrentMetadata] = useState({
+    mentions: [] as string[],
+    tags: [] as string[],
+    folders: [] as string[],
+    description: '',
+    suggestedPrice: 0,
+    title: ''
+  });
+  
   const { 
     loadProgressiveMedia, 
     enhanceQuality, 
@@ -232,6 +242,14 @@ export const MediaPreviewDialog = ({
     };
   }, [open, item?.id, item?.storage_path]); // Only depend on stable values
 
+  // Sync metadata when item changes (navigation) or dialog opens
+  useEffect(() => {
+    if (open && item) {
+      const latestMetadata = getCurrentMetadata();
+      setCurrentMetadata(latestMetadata);
+    }
+  }, [open, item?.id, item?.tags, item?.notes, item?.suggested_price_cents, item?.title]);
+
 
   // Dynamic overflow detection - only show scroll when content truly overflows
   useEffect(() => {
@@ -279,27 +297,57 @@ export const MediaPreviewDialog = ({
     return name.substring(0, maxLength) + '...';
   };
 
+  // Helper function to get current metadata from item
+  const getCurrentMetadata = () => {
+    if (!item) {
+      return {
+        mentions: [] as string[],
+        tags: [] as string[],
+        folders: [] as string[],
+        description: '',
+        suggestedPrice: 0,
+        title: ''
+      };
+    }
+    
+    return {
+      mentions: [] as string[], // TODO: Add mentions support
+      tags: item.tags || [],
+      folders: [] as string[], // TODO: Add folders support  
+      description: item.notes || '',
+      suggestedPrice: item.suggested_price_cents || 0,
+      title: item.title || ''
+    };
+  };
+
   // Metadata handlers
   const handleMetadataUpdate = (field: string, value: any) => {
-    if (onMetadataUpdate && item) {
+    if (!item) return;
+    
+    // Update metadata state optimistically for immediate visual feedback
+    setCurrentMetadata(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    if (onMetadataUpdate) {
       onMetadataUpdate(item.id, field, value);
     }
   };
 
-  // Helper function to check if metadata exists
+  // Helper function to check if metadata exists - using local state for immediate feedback
   const hasMetadata = (field: string): boolean => {
-    if (!item) return false;
     switch (field) {
-      case 'mentions': // Would need to check collaborators/mentions from DB
-        return false; // For now, always false as we don't have this data in MediaItem
+      case 'mentions':
+        return currentMetadata.mentions && currentMetadata.mentions.length > 0;
       case 'tags':
-        return item.tags && item.tags.length > 0;
-      case 'folders': // Would need folder data from DB  
-        return false; // For now, always false as we don't have this data in MediaItem
+        return currentMetadata.tags && currentMetadata.tags.length > 0;
+      case 'folders':
+        return currentMetadata.folders && currentMetadata.folders.length > 0;
       case 'description':
-        return item.notes && item.notes.trim().length > 0;
+        return currentMetadata.description && currentMetadata.description.trim().length > 0;
       case 'price':
-        return item.suggested_price_cents && item.suggested_price_cents > 0;
+        return currentMetadata.suggestedPrice && currentMetadata.suggestedPrice > 0;
       default:
         return false;
     }
@@ -393,7 +441,7 @@ export const MediaPreviewDialog = ({
               className="flex items-center gap-2"
             >
               <DollarSign className="h-4 w-4" />
-              Price: ${((item.suggested_price_cents || 0) / 100).toFixed(2)}
+              Price: ${((currentMetadata.suggestedPrice || 0) / 100).toFixed(2)}
               {hasMetadata('price') && <Check className="h-3 w-3 text-green-500" />}
             </Button>
             {onMetadataUpdate && (
@@ -702,7 +750,7 @@ export const MediaPreviewDialog = ({
             key={`mentions-${item.id}`}
             open={mentionsDialogOpen}
             onOpenChange={setMentionsDialogOpen}
-            mentions={[]} // Would need to fetch from DB
+            mentions={currentMetadata.mentions}
             onMentionsChange={(mentions) => handleMetadataUpdate('mentions', mentions)}
           />
 
@@ -710,7 +758,7 @@ export const MediaPreviewDialog = ({
             key={`tags-${item.id}`}
             open={tagsDialogOpen}
             onOpenChange={setTagsDialogOpen}
-            tags={item.tags || []}
+            tags={currentMetadata.tags}
             onTagsChange={(tags) => handleMetadataUpdate('tags', tags)}
           />
 
@@ -718,7 +766,7 @@ export const MediaPreviewDialog = ({
             key={`folders-${item.id}`}
             open={foldersDialogOpen}
             onOpenChange={setFoldersDialogOpen}
-            selectedFolders={[]} // Would need to fetch from DB
+            selectedFolders={currentMetadata.folders}
             onFoldersChange={(folders) => handleMetadataUpdate('folders', folders)}
           />
 
@@ -726,7 +774,7 @@ export const MediaPreviewDialog = ({
             key={`description-${item.id}`}
             open={descriptionDialogOpen}
             onOpenChange={setDescriptionDialogOpen}
-            description={item.notes || ''}
+            description={currentMetadata.description}
             onDescriptionChange={(description) => handleMetadataUpdate('description', description)}
           />
 
@@ -734,8 +782,8 @@ export const MediaPreviewDialog = ({
             key={`price-${item.id}`}
             open={priceDialogOpen}
             onOpenChange={setPriceDialogOpen}
-            price={(item.suggested_price_cents || 0) / 100}
-            onPriceChange={(price) => handleMetadataUpdate('suggested_price_cents', Math.round((price || 0) * 100))}
+            price={currentMetadata.suggestedPrice / 100}
+            onPriceChange={(price) => handleMetadataUpdate('suggestedPrice', Math.round((price || 0) * 100))}
           />
 
           {onMetadataUpdate && (
@@ -743,7 +791,7 @@ export const MediaPreviewDialog = ({
               key={`title-${item.id}`}
               open={editTitleDialogOpen}
               onOpenChange={setEditTitleDialogOpen}
-              title={item.title || ''}
+              title={currentMetadata.title}
               onTitleChange={(title) => handleMetadataUpdate('title', title)}
             />
           )}
