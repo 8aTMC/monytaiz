@@ -305,7 +305,7 @@ export const FolderSelectDialog = ({
                   {filteredFolders.map((folder) => (
                     <div
                       key={folder.id}
-                      className="flex items-center space-x-3 p-2 rounded-md hover:bg-accent cursor-pointer"
+                      className="flex items-center space-x-3 p-2 rounded-md hover:bg-primary/10 hover:text-foreground cursor-pointer"
                       onClick={() => toggleFolder(folder.id)}
                     >
                       <Checkbox

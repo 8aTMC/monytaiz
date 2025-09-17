@@ -147,6 +147,20 @@ export const MediaThumbnail = ({ item, className = "", isPublic = false, debug =
     const thumbnailSrc = thumbnailUrl || 
       (item.tiny_placeholder && item.tiny_placeholder !== 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==' ? item.tiny_placeholder : null);
     
+    // Show loading skeleton for videos while thumbnail is loading
+    if (thumbnailLoading && item.type === 'video') {
+      return (
+        <div 
+          className={`bg-muted rounded-xl relative overflow-hidden group ${className}`}
+          style={{ aspectRatio }}
+        >
+          <div className="w-full h-full flex items-center justify-center animate-pulse">
+            <Video className="w-8 h-8 text-muted-foreground" />
+          </div>
+        </div>
+      );
+    }
+    
     if (thumbnailSrc && !thumbnailLoading) {
       return (
         <div 

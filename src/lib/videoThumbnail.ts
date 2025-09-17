@@ -17,7 +17,7 @@ export const generateVideoThumbnail = (
   options: ThumbnailOptions = {}
 ): Promise<{ blob: Blob; dataUrl: string }> => {
   return new Promise((resolve, reject) => {
-    const TIMEOUT_MS = 10000; // 10 second timeout
+    const TIMEOUT_MS = 5000; // 5 second timeout for faster fallback
     let timeoutId: NodeJS.Timeout;
     const {
       width = 320,

@@ -657,6 +657,10 @@ export default function SimpleUpload() {
                 {/* Upload Controls - Show during upload */}
                 {uploading && (
                   <div className="flex items-center gap-3">
+                    {/* Compact upload counter */}
+                    <span className="text-sm text-muted-foreground font-medium">
+                      {files.filter(f => f.status === 'completed').length} out of {files.length} files uploaded. {files.filter(f => f.status === 'pending' || f.status === 'uploading').length} files remaining
+                    </span>
                     {isPaused ? (
                       <Button 
                         onClick={resumeAllUploads}
@@ -865,58 +869,6 @@ export default function SimpleUpload() {
                 </div>
               )}
 
-              {/* Enhanced Upload Progress */}
-              {uploading && (
-                <div className="space-y-4 mb-6">
-                  {/* Overall Progress Summary */}
-                  {files.length > 1 && (
-                    <Card className="p-4">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Upload className="w-4 h-4 text-primary" />
-                            <span className="font-medium">Upload Progress</span>
-                          </div>
-                          <span className="text-sm text-muted-foreground">
-                            {files.filter(f => f.status === 'completed').length} / {files.length} completed
-                          </span>
-                        </div>
-                        <Progress value={currentUploadProgress} className="h-2" />
-                        
-                  {/* Statistics - Remove compression stats since no processing */}
-                  <div className="grid grid-cols-2 gap-4 text-center">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Files</p>
-                      <p className="font-medium">{files.filter(f => f.status === 'completed').length}/{files.length}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Total Size</p>
-                      <p className="font-medium text-primary">
-                        {formatFileSize(files.reduce((acc, f) => {
-                          if (f.status === 'completed') {
-                            return acc + f.file.size;
-                          }
-                          return acc;
-                        }, 0))}
-                      </p>
-                    </div>
-                  </div>
-                      </div>
-                    </Card>
-                  )}
-
-                  {/* Current File Detailed Progress */}
-                  {uploadProgress.phase !== 'complete' && currentUploadingFile && (
-                    <DetailedUploadProgressBar
-                      fileName={files.find(f => f.id === currentUploadingFile)?.file.name || 'Processing...'}
-                      fileType={files.find(f => f.id === currentUploadingFile)?.file.type || ''}
-                      progress={uploadProgress as any}
-                      isActive={true}
-                    />
-                  )}
-
-                </div>
-              )}
 
               {/* Hidden file input for adding more files */}
               <input
