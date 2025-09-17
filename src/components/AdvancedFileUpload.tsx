@@ -947,6 +947,7 @@ export const AdvancedFileUpload = () => {
       </CardContent>
 
       <FilePreviewDialog
+        key={`preview-${previewIndex}-${uploadQueue.length}-${uploadQueue.map(item => `${item.id}-${JSON.stringify(item.metadata)}`).join('-')}`}
         file={previewIndex !== null ? uploadQueue[previewIndex]?.file : null}
         open={previewOpen}
         onOpenChange={closePreview}
