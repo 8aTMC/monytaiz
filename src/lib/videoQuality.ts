@@ -80,7 +80,14 @@ export function getVideoMetadataFromFile(file: File): Promise<VideoQualityInfo |
     const timeout = setTimeout(() => {
       try {
         (video as HTMLVideoElement).src = '';
-        URL.revokeObjectURL(url);
+        // Add delay to prevent ERR_FILE_NOT_FOUND during timeout cleanup
+        setTimeout(() => {
+          try {
+            URL.revokeObjectURL(url);
+          } catch (e) {
+            // Ignore revocation errors
+          }
+        }, 200);
       } catch (e) {
         // Ignore revocation errors
       }
@@ -92,7 +99,14 @@ export function getVideoMetadataFromFile(file: File): Promise<VideoQualityInfo |
       const metadata = getVideoMetadata(video);
       try {
         (video as HTMLVideoElement).src = '';
-        URL.revokeObjectURL(url);
+        // Add delay to prevent ERR_FILE_NOT_FOUND during src swap
+        setTimeout(() => {
+          try {
+            URL.revokeObjectURL(url);
+          } catch (e) {
+            // Ignore revocation errors
+          }
+        }, 200);
       } catch (e) {
         // Ignore revocation errors
       }
@@ -103,7 +117,14 @@ export function getVideoMetadataFromFile(file: File): Promise<VideoQualityInfo |
       clearTimeout(timeout);
       try {
         (video as HTMLVideoElement).src = '';
-        URL.revokeObjectURL(url);
+        // Add delay to prevent ERR_FILE_NOT_FOUND during cleanup
+        setTimeout(() => {
+          try {
+            URL.revokeObjectURL(url);
+          } catch (e) {
+            // Ignore revocation errors
+          }
+        }, 200);
       } catch (e) {
         // Ignore revocation errors
       }

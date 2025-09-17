@@ -92,7 +92,14 @@ async function generateVideoThumbnailOptimized(file: File, signal: AbortSignal):
     
     const cleanup = () => {
       if (blobUrl) {
-        URL.revokeObjectURL(blobUrl);
+        // Add delay to prevent ERR_FILE_NOT_FOUND during cleanup
+        setTimeout(() => {
+          try {
+            URL.revokeObjectURL(blobUrl);
+          } catch (e) {
+            // Ignore revocation errors
+          }
+        }, 200);
         blobUrl = null;
       }
       video.remove();

@@ -26,7 +26,7 @@ interface FileReviewRowProps {
 
 export function FileReviewRow({ file, files, currentIndex, onRemove, onMetadataChange, onSelectionChange, onNavigateToFile, formatFileSize }: FileReviewRowProps) {
   const [thumbnail, setThumbnail] = useState<string | null>(null);
-  const { createBlobUrl, revokeBlobUrl } = useBlobUrl();
+  const { createBlobUrl, safeRevokeBlobUrl } = useBlobUrl();
   
   // Dialog states
   const [mentionsDialogOpen, setMentionsDialogOpen] = useState(false);
@@ -112,7 +112,8 @@ export function FileReviewRow({ file, files, currentIndex, onRemove, onMetadataC
           video.pause();
           video.src = '';
           if (videoUrl) {
-            revokeBlobUrl(videoUrl);
+            // Use safe revocation with delay to prevent ERR_FILE_NOT_FOUND
+            safeRevokeBlobUrl(videoUrl, 300);
             videoUrl = null;
           }
           try {
@@ -129,7 +130,7 @@ export function FileReviewRow({ file, files, currentIndex, onRemove, onMetadataC
     }
 
     return cleanup;
-  }, [file.file, createBlobUrl, revokeBlobUrl]);
+  }, [file.file, createBlobUrl, safeRevokeBlobUrl]);
 
   const getFileIcon = (fileType: string) => {
     if (fileType.startsWith('image/')) return <FileImage className="w-6 h-6" />;

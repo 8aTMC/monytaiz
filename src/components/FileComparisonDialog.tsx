@@ -284,11 +284,14 @@ export const FileComparisonDialog = ({
         return () => {
           clearTimeout(timeout);
           video.src = '';
-          try { 
-            URL.revokeObjectURL(videoUrl); 
-          } catch (e) {
-            // Ignore revocation errors
-          }
+          // Add delay to prevent ERR_FILE_NOT_FOUND during src swap
+          setTimeout(() => {
+            try { 
+              URL.revokeObjectURL(videoUrl); 
+            } catch (e) {
+              // Ignore revocation errors
+            }
+          }, 300);
         };
       }
     }, [file, isImage, isVideo, videoThumbnailUrl]);
