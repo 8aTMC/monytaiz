@@ -252,7 +252,7 @@ export const FilePreviewDialog = ({
   // Update metadata state when navigation occurs
   useEffect(() => {
     setCurrentMetadata(getCurrentMetadata());
-  }, [internalCurrentIndex, currentFileId, getMetadataById, getMetadataByIndex, mentions, tags, folders, description, suggestedPrice]);
+  }, [internalCurrentIndex, currentFileId]);
   
   // Initialize client-side mounting
   useEffect(() => {
