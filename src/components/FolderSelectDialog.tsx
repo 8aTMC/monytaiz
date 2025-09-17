@@ -39,14 +39,28 @@ export const FolderSelectDialog = ({
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Fetch folders from database
-  const fetchFolders = async () => {
+  // Fetch folders from database with retry logic
+  const fetchFolders = async (retryCount = 0) => {
+    const maxRetries = 3;
     setLoading(true);
+    
     try {
+      // Check if user is authenticated
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      // Create abort controller for timeout
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), 10000); // 10 second timeout
+
       const { data, error } = await supabase
         .from('file_folders')
         .select('*')
-        .order('name');
+        .order('name')
+        .abortSignal(abortController.signal);
+
+      clearTimeout(timeoutId);
 
       if (error) {
         throw error;
@@ -62,11 +76,37 @@ export const FolderSelectDialog = ({
       setFolders(allFolders);
     } catch (error: any) {
       console.error('Error fetching folders:', error);
+      
+      // Retry with exponential backoff
+      if (retryCount < maxRetries && error.name !== 'AbortError') {
+        const delay = Math.min(1000 * Math.pow(2, retryCount), 5000);
+        console.log(`Retrying folder fetch in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})`);
+        
+        setTimeout(() => {
+          fetchFolders(retryCount + 1);
+        }, delay);
+        
+        return; // Don't show error toast yet, still retrying
+      }
+      
+      // Show appropriate error message
+      let errorMessage = "Failed to load folders. Please try again.";
+      
+      if (error.name === 'AbortError') {
+        errorMessage = "Request timed out. Please check your connection and try again.";
+      } else if (error.message?.includes('network')) {
+        errorMessage = "Network error. Please check your internet connection.";
+      } else if (error.message?.includes('not authenticated')) {
+        errorMessage = "Please sign in again to load folders.";
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to load folders. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
+      
+      setFolders([]); // Reset to empty state on final failure
     } finally {
       setLoading(false);
     }

@@ -183,19 +183,21 @@ export const FilePreviewDialog = ({
     // Convert price from cents to dollars for storage if needed
     const convertedValue = field === 'suggestedPrice' && typeof value === 'number' ? value / 100 : value;
     
+    // Update metadata state optimistically for immediate visual feedback
+    setCurrentMetadata(prev => ({
+      ...prev,
+      [field]: convertedValue
+    }));
+    
     // Try ID-based update first
     if (updateMetadataById && currentFileId) {
       updateMetadataById(currentFileId, { [field]: convertedValue });
-      // Immediately refresh metadata state
-      setCurrentMetadata(getCurrentMetadata());
       return;
     }
     
     // Try index-based update
     if (updateMetadataByIndex && safeFiles.length > 0) {
       updateMetadataByIndex(internalCurrentIndex, { [field]: convertedValue });
-      // Immediately refresh metadata state
-      setCurrentMetadata(getCurrentMetadata());
       return;
     }
     
@@ -217,8 +219,6 @@ export const FilePreviewDialog = ({
         onPriceChange?.(convertedValue);
         break;
     }
-    // Immediately refresh metadata state for legacy handlers as well
-    setCurrentMetadata(getCurrentMetadata());
   };
   // ===== EFFECTS =====
   
@@ -249,10 +249,18 @@ export const FilePreviewDialog = ({
     setEditTitleDialogOpen(false);
   }, [internalCurrentIndex]);
 
-  // Update metadata state when navigation occurs
+  // Update metadata state when navigation occurs or external metadata changes
   useEffect(() => {
     setCurrentMetadata(getCurrentMetadata());
-  }, [internalCurrentIndex, currentFileId]);
+  }, [internalCurrentIndex, currentFileId, mentions, tags, folders, description, suggestedPrice]);
+  
+  // Also sync metadata when external props change (for parent updates)
+  useEffect(() => {
+    if (open) {
+      const latestMetadata = getCurrentMetadata();
+      setCurrentMetadata(latestMetadata);
+    }
+  }, [open, mentions, tags, folders, description, suggestedPrice]);
   
   // Initialize client-side mounting
   useEffect(() => {
