@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -203,6 +203,9 @@ export const FolderSelectDialog = ({
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Select Folders</DialogTitle>
+          <DialogDescription>
+            Organize your content by selecting folders
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">

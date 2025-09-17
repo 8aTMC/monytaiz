@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -77,6 +77,9 @@ export function TagsDialog({ open, onOpenChange, tags, onTagsChange }: TagsDialo
             <Hash className="h-5 w-5" />
             Edit Tags
           </DialogTitle>
+          <DialogDescription>
+            Add tags to categorize and organize your content
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

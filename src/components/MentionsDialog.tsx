@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -99,6 +99,9 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
             <AtSign className="h-5 w-5" />
             Edit Mentions
           </DialogTitle>
+          <DialogDescription>
+            Tag collaborators and people in your content
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
