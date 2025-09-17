@@ -175,7 +175,8 @@ export const FilePreviewDialog = ({
     };
   };
 
-  const currentMetadata = getCurrentMetadata();
+  // Reactive metadata state that updates with navigation and changes
+  const [currentMetadata, setCurrentMetadata] = useState(() => getCurrentMetadata());
 
   // Create update handlers that route to appropriate updater
   const handleMetadataUpdate = (field: string, value: any) => {
@@ -185,12 +186,16 @@ export const FilePreviewDialog = ({
     // Try ID-based update first
     if (updateMetadataById && currentFileId) {
       updateMetadataById(currentFileId, { [field]: convertedValue });
+      // Immediately refresh metadata state
+      setCurrentMetadata(getCurrentMetadata());
       return;
     }
     
     // Try index-based update
     if (updateMetadataByIndex && safeFiles.length > 0) {
       updateMetadataByIndex(internalCurrentIndex, { [field]: convertedValue });
+      // Immediately refresh metadata state
+      setCurrentMetadata(getCurrentMetadata());
       return;
     }
     
@@ -212,6 +217,8 @@ export const FilePreviewDialog = ({
         onPriceChange?.(convertedValue);
         break;
     }
+    // Immediately refresh metadata state for legacy handlers as well
+    setCurrentMetadata(getCurrentMetadata());
   };
   // ===== EFFECTS =====
   
@@ -241,6 +248,11 @@ export const FilePreviewDialog = ({
     setPriceDialogOpen(false);
     setEditTitleDialogOpen(false);
   }, [internalCurrentIndex]);
+
+  // Update metadata state when navigation occurs
+  useEffect(() => {
+    setCurrentMetadata(getCurrentMetadata());
+  }, [internalCurrentIndex, currentFileId, getMetadataById, getMetadataByIndex, mentions, tags, folders, description, suggestedPrice]);
   
   // Initialize client-side mounting
   useEffect(() => {
