@@ -180,21 +180,13 @@ export const FilePreviewDialog = ({
     };
   };
 
-  // Reactive metadata state that updates with navigation and changes
-  const [currentMetadata, setCurrentMetadata] = useState(() => getCurrentMetadata());
+  // Derive metadata directly from parent to avoid stale local state
+  const currentMetadata = React.useMemo(() => getCurrentMetadata(), [internalCurrentIndex, currentFileId, metadataVersion, mentions, tags, folders, description, suggestedPrice]);
 
-  // Create update handlers that route to appropriate updater
+  // Update handlers route to appropriate updater (no local state)
   const handleMetadataUpdate = (field: string, value: any) => {
-    // Keep values as-is (price is in dollars)
     const newValue = value;
 
-    // Optimistic local update for immediate UI feedback
-    setCurrentMetadata(prev => ({
-      ...prev,
-      [field]: newValue
-    }));
-
-    // Propagate to parent (ID first, then index)
     if (updateMetadataById && currentFileId) {
       updateMetadataById(currentFileId, { [field]: newValue });
       return;
@@ -252,18 +244,7 @@ export const FilePreviewDialog = ({
     setEditTitleDialogOpen(false);
   }, [internalCurrentIndex]);
 
-// Update metadata state when navigation occurs or external metadata changes
-useEffect(() => {
-  setCurrentMetadata(getCurrentMetadata());
-}, [internalCurrentIndex, currentFileId, mentions, tags, folders, description, suggestedPrice, metadataVersion]);
-  
-// Also sync metadata when external props change (for parent updates)
-useEffect(() => {
-  if (open) {
-    const latestMetadata = getCurrentMetadata();
-    setCurrentMetadata(latestMetadata);
-  }
-}, [open, mentions, tags, folders, description, suggestedPrice, metadataVersion]);
+// Metadata derived via useMemo; no syncing effect needed
   
   // Initialize client-side mounting
   useEffect(() => {

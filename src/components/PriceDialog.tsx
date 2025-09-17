@@ -14,7 +14,7 @@ interface PriceDialogProps {
 }
 
 export function PriceDialog({ open, onOpenChange, price = 0, onPriceChange }: PriceDialogProps) {
-  const [inputValue, setInputValue] = useState((price / 100).toFixed(2));
+  const [inputValue, setInputValue] = useState((price ?? 0).toFixed(2));
   const { toast } = useToast();
   
   const MAX_PRICE = 10000; // $10,000 maximum
@@ -65,10 +65,10 @@ export function PriceDialog({ open, onOpenChange, price = 0, onPriceChange }: Pr
     onOpenChange(false);
   };
 
-  const handleCancel = () => {
-    setInputValue((price / 100).toFixed(2));
-    onOpenChange(false);
-  };
+const handleCancel = () => {
+  setInputValue((price ?? 0).toFixed(2));
+  onOpenChange(false);
+};
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
