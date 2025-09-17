@@ -743,7 +743,7 @@ export const FilePreviewDialog = ({
               <div className="flex flex-wrap gap-2">
                 {(onMentionsChange || updateMetadataById || updateMetadataByIndex) && (
                   <Button
-                    variant="outline"
+                    variant={currentMetadata.mentions.length > 0 ? "default" : "outline"}
                     size="sm"
                     onClick={() => setMentionsDialogOpen(true)}
                     className="text-xs"
@@ -755,7 +755,7 @@ export const FilePreviewDialog = ({
                 
                 {(onTagsChange || updateMetadataById || updateMetadataByIndex) && (
                   <Button
-                    variant="outline"
+                    variant={currentMetadata.tags.length > 0 ? "default" : "outline"}
                     size="sm"
                     onClick={() => setTagsDialogOpen(true)}
                     className="text-xs"
@@ -767,7 +767,7 @@ export const FilePreviewDialog = ({
                 
                 {(onFoldersChange || updateMetadataById || updateMetadataByIndex) && (
                   <Button
-                    variant="outline"
+                    variant={currentMetadata.folders.length > 0 ? "default" : "outline"}
                     size="sm"
                     onClick={() => setFoldersDialogOpen(true)}
                     className="text-xs"
@@ -779,7 +779,7 @@ export const FilePreviewDialog = ({
                 
                 {(onDescriptionChange || updateMetadataById || updateMetadataByIndex) && (
                   <Button
-                    variant="outline"
+                    variant={currentMetadata.description && currentMetadata.description.length > 0 ? "default" : "outline"}
                     size="sm"
                     onClick={() => setDescriptionDialogOpen(true)}
                     className="text-xs"
@@ -791,7 +791,7 @@ export const FilePreviewDialog = ({
                 
                 {(onPriceChange || updateMetadataById || updateMetadataByIndex) && (
                   <Button
-                    variant="outline"
+                    variant={currentMetadata.suggestedPrice && currentMetadata.suggestedPrice > 0 ? "default" : "outline"}
                     size="sm"
                     onClick={() => setPriceDialogOpen(true)}
                     className="text-xs"
