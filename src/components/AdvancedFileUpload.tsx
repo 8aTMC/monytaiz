@@ -96,11 +96,25 @@ export const AdvancedFileUpload = () => {
     allSelected
   } = useFileUpload();
 
-  // Stable files array using useMemo to prevent React reconciliation issues
-  const filesArray = useMemo(() => 
-    uploadQueue.map(item => item.file), 
-    [uploadQueue]
-  );
+// Stable files array using useMemo to prevent React reconciliation issues
+const filesArray = useMemo(() => 
+  uploadQueue.map(item => ({ id: item.id, file: item.file })), 
+  [uploadQueue]
+);
+
+// External version string to trigger re-syncs when metadata changes
+const metadataVersion = useMemo(() => {
+  return uploadQueue
+    .map(item => [
+      item.id,
+      item.metadata?.description || '',
+      (item.metadata?.tags || []).join(','),
+      (item.metadata?.mentions || []).join(','),
+      (item.metadata?.folders || []).join(','),
+      item.metadata?.suggestedPrice ?? ''
+    ].join('|'))
+    .join('||');
+}, [uploadQueue]);
 
   // Check if file is HEIC/HEIF
   const isHeicFile = useCallback((file: File): boolean => {
@@ -953,8 +967,9 @@ export const AdvancedFileUpload = () => {
         // Navigation props 
         files={filesArray}
         totalFiles={uploadQueue.length}
-        currentIndex={previewIndex}
+        currentIndex={previewIndex ?? undefined}
         onNavigate={(idx) => setPreviewIndex(idx)}
+        metadataVersion={metadataVersion}
         getMetadataByIndex={(index) => {
           const item = uploadQueue[index];
           if (!item) return null;

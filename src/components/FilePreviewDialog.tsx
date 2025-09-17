@@ -78,6 +78,8 @@ interface FilePreviewDialogProps {
   selectedFiles?: Set<string>;
   onToggleSelection?: (fileId: string) => void;
   fileId?: string;
+  // External signal to re-sync local metadata when parent updates
+  metadataVersion?: number | string;
 }
 
 export const FilePreviewDialog = ({
@@ -87,6 +89,7 @@ export const FilePreviewDialog = ({
   files = [],
   totalFiles = 0,
   currentIndex = 0,
+  onNavigate,
   mentions = [],
   tags = [],
   folders = [],
@@ -106,7 +109,8 @@ export const FilePreviewDialog = ({
   selecting = false,
   selectedFiles,
   onToggleSelection,
-  fileId
+  fileId,
+  metadataVersion,
 }: FilePreviewDialogProps) => {
   // ===== ALL STATE HOOKS MUST BE AT THE TOP (React Rules of Hooks) =====
   
@@ -248,18 +252,18 @@ export const FilePreviewDialog = ({
     setEditTitleDialogOpen(false);
   }, [internalCurrentIndex]);
 
-  // Update metadata state when navigation occurs or external metadata changes
-  useEffect(() => {
-    setCurrentMetadata(getCurrentMetadata());
-  }, [internalCurrentIndex, currentFileId, mentions, tags, folders, description, suggestedPrice]);
+// Update metadata state when navigation occurs or external metadata changes
+useEffect(() => {
+  setCurrentMetadata(getCurrentMetadata());
+}, [internalCurrentIndex, currentFileId, mentions, tags, folders, description, suggestedPrice, metadataVersion]);
   
-  // Also sync metadata when external props change (for parent updates)
-  useEffect(() => {
-    if (open) {
-      const latestMetadata = getCurrentMetadata();
-      setCurrentMetadata(latestMetadata);
-    }
-  }, [open, mentions, tags, folders, description, suggestedPrice]);
+// Also sync metadata when external props change (for parent updates)
+useEffect(() => {
+  if (open) {
+    const latestMetadata = getCurrentMetadata();
+    setCurrentMetadata(latestMetadata);
+  }
+}, [open, mentions, tags, folders, description, suggestedPrice, metadataVersion]);
   
   // Initialize client-side mounting
   useEffect(() => {
@@ -276,7 +280,10 @@ export const FilePreviewDialog = ({
   const handlePrevious = () => {
     if (hasPrevious && !isNavigating) {
       setIsNavigating(true);
-      setInternalCurrentIndex(prev => prev - 1);
+      const newIndex = internalCurrentIndex - 1;
+      // Notify parent first to keep indices in sync
+      if (onNavigate) onNavigate(newIndex);
+      setInternalCurrentIndex(newIndex);
       setTimeout(() => setIsNavigating(false), 300);
     }
   };
@@ -284,11 +291,13 @@ export const FilePreviewDialog = ({
   const handleNext = () => {
     if (hasNext && !isNavigating) {
       setIsNavigating(true);
-      setInternalCurrentIndex(prev => prev + 1);
+      const newIndex = internalCurrentIndex + 1;
+      // Notify parent first to keep indices in sync
+      if (onNavigate) onNavigate(newIndex);
+      setInternalCurrentIndex(newIndex);
       setTimeout(() => setIsNavigating(false), 300);
     }
   };
-
   // Debug navigation values - only log when dialog opens
   useEffect(() => {
     if (open) {
@@ -889,7 +898,7 @@ export const FilePreviewDialog = ({
               open={priceDialogOpen}
               onOpenChange={setPriceDialogOpen}
               price={currentMetadata.suggestedPrice || undefined}
-              onPriceChange={(price) => handleMetadataUpdate('suggestedPrice', price ? price * 100 : null)}
+              onPriceChange={(price) => handleMetadataUpdate('suggestedPrice', price ?? null)}
             />
           )}
 
