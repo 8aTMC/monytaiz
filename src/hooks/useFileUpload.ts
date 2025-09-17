@@ -817,20 +817,23 @@ export const useFileUpload = () => {
         content_type: fileType
       });
 
+      // Use the latest item snapshot from the queue to avoid stale metadata
+      const latestItem = queueRef.current.find(f => f.id === item.id) || item;
+
       // Debug: Log the metadata being used for database insert
       console.log('🔍 METADATA DEBUG - About to insert to database:', {
-        fileId: item.id,
+        fileId: latestItem.id,
         fileName: file.name,
-        itemMetadata: item.metadata,
-        metadataKeys: item.metadata ? Object.keys(item.metadata) : 'no metadata'
+        itemMetadata: latestItem.metadata,
+        metadataKeys: latestItem.metadata ? Object.keys(latestItem.metadata) : 'no metadata'
       });
 
       const insertPayload = {
-        title: item.metadata?.description || file.name.replace(/\.[^/.]+$/, ""), // Use description as title
-        description: item.metadata?.description || null,
-        tags: item.metadata?.tags || [],
-        mentions: item.metadata?.mentions || [],
-        suggested_price_cents: item.metadata?.suggestedPrice ? Math.round(item.metadata.suggestedPrice * 100) : 0,
+        title: latestItem.metadata?.description || file.name.replace(/\.[^/.]+$/, ''), // Use description as title
+        description: latestItem.metadata?.description || null,
+        tags: latestItem.metadata?.tags || [],
+        mentions: latestItem.metadata?.mentions || [],
+        suggested_price_cents: latestItem.metadata?.suggestedPrice ? Math.round(latestItem.metadata.suggestedPrice * 100) : 0,
         original_filename: file.name,
         original_path: data!.path,
         processed_path: data!.path, // Same as original for now
@@ -861,45 +864,8 @@ export const useFileUpload = () => {
         throw new Error(`Failed to save file metadata: ${dbError.message} (Code: ${dbError.code})`);
       }
       
-
-      // Add to folders if specified - with debug logging
-      if (item.metadata?.folders && item.metadata.folders.length > 0 && insertData?.[0]?.id) {
-        try {
-          console.log('🔍 FOLDER DEBUG - About to assign folders:', {
-            mediaId: insertData[0].id,
-            folders: item.metadata.folders,
-            folderCount: item.metadata.folders.length
-          });
-
-          const folderAssignments = item.metadata.folders.map(folderId => ({
-            media_id: insertData[0].id,
-            collection_id: folderId,
-            added_by: userData.user.id,
-          }));
-
-          const { error: folderError } = await supabase
-            .from('collection_items')
-            .insert(folderAssignments);
-
-          if (folderError) {
-            console.error('❌ FOLDER ASSIGNMENT FAILED:', {
-              error: folderError,
-              assignments: folderAssignments
-            });
-          } else {
-            console.log('✅ FOLDER ASSIGNMENT SUCCESS:', folderAssignments);
-          }
-        } catch (folderAssignError) {
-          console.error('❌ Folder assignment exception:', folderAssignError);
-        }
-      } else {
-        console.log('🔍 FOLDER DEBUG - No folders to assign:', {
-          hasMetadata: !!item.metadata,
-          hasFolders: !!item.metadata?.folders,
-          folderCount: item.metadata?.folders?.length || 0,
-          hasInsertData: !!insertData?.[0]?.id
-        });
-      }
+      // Folder assignment moved after media upsert to ensure correct media_id
+      console.log('📁 Folder assignment will be handled after media upsert');
 
       // Post-process media for metadata extraction only (no video processing)
       try {
@@ -951,10 +917,10 @@ export const useFileUpload = () => {
               width: postProcessData.width,
               height: postProcessData.height,
               tiny_placeholder: postProcessData.tiny_placeholder,
-              title: item.metadata?.description ? item.metadata.description : file.name.replace(/\.[^/.]+$/, ""),
-              notes: item.metadata?.description || null,
-              tags: item.metadata?.tags || [],
-              suggested_price_cents: item.metadata?.suggestedPrice ? Math.round(item.metadata.suggestedPrice * 100) : 0,
+              title: latestItem.metadata?.description ? latestItem.metadata.description : file.name.replace(/\.[^/.]+$/, ''),
+              notes: latestItem.metadata?.description || null,
+              tags: latestItem.metadata?.tags || [],
+              suggested_price_cents: latestItem.metadata?.suggestedPrice ? Math.round(latestItem.metadata.suggestedPrice * 100) : 0,
               creator_id: userData.user.id,
               created_by: userData.user.id,
               origin: 'upload'
@@ -968,6 +934,47 @@ export const useFileUpload = () => {
               console.warn('Media table insert failed:', mediaDbError);
             } else {
               console.log('Media table insert successful');
+
+              // After media upsert, fetch the media row id and assign to folders (collections)
+              try {
+                const { data: mediaRow, error: mediaSelectError } = await supabase
+                  .from('media')
+                  .select('id')
+                  .eq('bucket', 'content')
+                  .eq('path', data!.path)
+                  .single();
+
+                if (mediaSelectError) {
+                  console.warn('⚠️ Failed to fetch media id for folder assignment:', mediaSelectError);
+                } else if (mediaRow?.id && latestItem.metadata?.folders && latestItem.metadata.folders.length > 0) {
+                  const folderAssignments = latestItem.metadata.folders.map(folderId => ({
+                    media_id: mediaRow.id,
+                    collection_id: folderId,
+                    added_by: userData.user.id,
+                  }));
+
+                  const { error: folderError } = await supabase
+                    .from('collection_items')
+                    .insert(folderAssignments);
+
+                  if (folderError) {
+                    console.error('❌ FOLDER ASSIGNMENT FAILED:', {
+                      error: folderError,
+                      assignments: folderAssignments
+                    });
+                  } else {
+                    console.log('✅ FOLDER ASSIGNMENT SUCCESS:', folderAssignments);
+                  }
+                } else {
+                  console.log('📁 No folders to assign or missing media id', {
+                    hasFolders: !!latestItem.metadata?.folders,
+                    folderCount: latestItem.metadata?.folders?.length || 0,
+                    hasMediaId: !!mediaRow?.id
+                  });
+                }
+              } catch (folderAssignError) {
+                console.error('❌ Folder assignment exception:', folderAssignError);
+              }
             }
           }
         }
@@ -1203,24 +1210,31 @@ export const useFileUpload = () => {
 
   const updateFileMetadata = useCallback((id: string, metadata: Partial<FileUploadItem['metadata']>) => {
     console.log('📝 updateFileMetadata called:', { fileId: id, metadata });
-    setUploadQueue(prev => prev.map(item => {
-      if (item.id === id) {
-        const updatedItem = { 
-          ...item, 
-          metadata: { 
-            ...item.metadata, 
-            ...metadata 
-          } 
-        };
-        console.log('📝 Updated item metadata:', { 
-          fileId: id, 
-          oldMetadata: item.metadata, 
-          newMetadata: updatedItem.metadata 
-        });
-        return updatedItem;
-      }
-      return item;
-    }));
+    setUploadQueue(prev => {
+      const newQueue = prev.map(item => {
+        if (item.id === id) {
+          const updatedItem = {
+            ...item,
+            metadata: {
+              ...item.metadata,
+              ...metadata,
+            },
+          };
+          console.log('📝 Updated item metadata:', {
+            fileId: id,
+            oldMetadata: item.metadata,
+            newMetadata: updatedItem.metadata,
+          });
+          return updatedItem;
+        }
+        return item;
+      });
+      // Keep the ref in sync immediately to avoid stale snapshots during upload
+      try {
+        queueRef.current = newQueue;
+      } catch {}
+      return newQueue;
+    });
   }, []);
 
   // Selection management functions
