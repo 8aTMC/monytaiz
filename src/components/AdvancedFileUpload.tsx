@@ -16,6 +16,7 @@ import { useBatchDuplicateDetection, DuplicateMatch, QueueDuplicate } from '@/ho
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { HEICWarningDialog } from './HEICWarningDialog';
+import { CorruptedFilesDialog } from './CorruptedFilesDialog';
 import { logger } from '@/utils/logging';
 
 // Individual dialog states for stacked dialogs
@@ -45,6 +46,8 @@ export const AdvancedFileUpload = () => {
   const [unsupportedFiles, setUnsupportedFiles] = useState<{ id: string; name: string; size: number; type: 'image' | 'video' | 'audio' | 'gif' | 'unknown'; file: File }[]>([]);
   const [heicWarningOpen, setHeicWarningOpen] = useState(false);
   const [heicFiles, setHeicFiles] = useState<string[]>([]);
+  const [corruptedDialogOpen, setCorruptedDialogOpen] = useState(false);
+  const [corruptedFiles, setCorruptedFiles] = useState<{ id: string; name: string; size: number; file: File; error: string; errorType?: 'corruption' | 'format' | 'timeout' | 'metadata' }[]>([]);
   
   // Unified duplicate dialog state  
   const [unifiedDuplicateDialogOpen, setUnifiedDuplicateDialogOpen] = useState(false);
@@ -69,6 +72,11 @@ export const AdvancedFileUpload = () => {
   const showHeicWarning = useCallback((fileNames: string[]) => {
     setHeicFiles(fileNames);
     setHeicWarningOpen(true);
+  }, []);
+  
+  const showCorruptedDialog = useCallback((corrupted: { id: string; name: string; size: number; file: File; error: string; errorType?: 'corruption' | 'format' | 'timeout' | 'metadata' }[]) => {
+    setCorruptedFiles(corrupted);
+    setCorruptedDialogOpen(true);
   }, []);
   
   const {
@@ -228,7 +236,7 @@ const metadataVersion = useMemo(() => {
         const validationResults = validateFilesOnly(supportedFiles);
         
         // Add files to queue since no duplicates
-        addFiles(supportedFiles, showDuplicateDialog, showUnsupportedDialog, undefined, true);
+        addFiles(supportedFiles, showDuplicateDialog, showUnsupportedDialog, showCorruptedDialog, true);
         
         // Show remaining validation issues
         if (validationResults?.unsupportedFiles?.length > 0) {
@@ -274,6 +282,24 @@ const metadataVersion = useMemo(() => {
   const handleUnsupportedConfirm = useCallback(() => {
     setUnsupportedDialogOpen(false);
   }, []);
+
+  const handleCorruptedRemoveFiles = useCallback((fileIds: string[]) => {
+    setCorruptedFiles(prev => prev.filter(file => !fileIds.includes(file.id)));
+    
+    // Also remove from upload queue if they somehow got added
+    fileIds.forEach(fileId => {
+      const queueItem = uploadQueue.find(item => item.id === fileId);
+      if (queueItem) {
+        removeFile(fileId);
+      }
+    });
+  }, [uploadQueue, removeFile]);
+
+  const handleCorruptedRemoveAll = useCallback(() => {
+    const allCorruptedIds = corruptedFiles.map(file => file.id);
+    handleCorruptedRemoveFiles(allCorruptedIds);
+    setCorruptedDialogOpen(false);
+  }, [corruptedFiles, handleCorruptedRemoveFiles]);
 
   // Modified file handlers to use queue system
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -576,7 +602,7 @@ const metadataVersion = useMemo(() => {
     console.log('Keeping both versions of duplicates');
     
     // Add all staged files to queue
-    addFiles(stagedFiles, showDuplicateDialog, showUnsupportedDialog, undefined, true);
+    addFiles(stagedFiles, showDuplicateDialog, showUnsupportedDialog, showCorruptedDialog, true);
     
     // Wait for files to be added, then add duplicate tags
     setTimeout(() => {
@@ -627,7 +653,7 @@ const metadataVersion = useMemo(() => {
     
     // Add files to queue first if not already added
     if (files.length > 0) {
-      addFiles(files, showDuplicateDialog, showUnsupportedDialog, undefined, true);
+      addFiles(files, showDuplicateDialog, showUnsupportedDialog, showCorruptedDialog, true);
     }
     
     // Use validation-only function to prevent re-adding files to queue
@@ -1011,6 +1037,14 @@ const metadataVersion = useMemo(() => {
         open={heicWarningOpen}
         onOpenChange={setHeicWarningOpen}
         fileNames={heicFiles}
+      />
+      
+      <CorruptedFilesDialog
+        open={corruptedDialogOpen}
+        onOpenChange={setCorruptedDialogOpen}
+        corruptedFiles={corruptedFiles}
+        onRemoveFiles={handleCorruptedRemoveFiles}
+        onRemoveAll={handleCorruptedRemoveAll}
       />
       
       {/* Unified duplicate dialog */}
