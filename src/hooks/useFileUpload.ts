@@ -863,9 +863,46 @@ export const useFileUpload = () => {
         });
         throw new Error(`Failed to save file metadata: ${dbError.message} (Code: ${dbError.code})`);
       }
+
+      // Capture simple_media ID for folder assignment
+      const simpleMediaId = insertData?.[0]?.id;
+      console.log('📁 Simple media inserted with ID:', simpleMediaId);
       
-      // Folder assignment moved after media upsert to ensure correct media_id
-      console.log('📁 Folder assignment will be handled after media upsert');
+      // Immediate folder assignment for simple_media (for Simple Library)
+      if (simpleMediaId && latestItem.metadata?.folders && latestItem.metadata.folders.length > 0) {
+        console.log('📁 Assigning folders to simple_media:', {
+          simpleMediaId,
+          folders: latestItem.metadata.folders
+        });
+
+        const folderContentsAssignments = latestItem.metadata.folders.map(folderId => ({
+          media_id: simpleMediaId,
+          folder_id: folderId,
+          added_by: userData.user.id,
+        }));
+
+        const { error: folderContentsError } = await supabase
+          .from('file_folder_contents')
+          .insert(folderContentsAssignments);
+
+        if (folderContentsError) {
+          console.error('❌ SIMPLE_MEDIA FOLDER ASSIGNMENT FAILED:', {
+            error: folderContentsError,
+            assignments: folderContentsAssignments
+          });
+        } else {
+          console.log('✅ SIMPLE_MEDIA FOLDER ASSIGNMENT SUCCESS:', folderContentsAssignments);
+        }
+      } else {
+        console.log('📁 No folders to assign to simple_media', {
+          hasSimpleMediaId: !!simpleMediaId,
+          hasFolders: !!latestItem.metadata?.folders,
+          folderCount: latestItem.metadata?.folders?.length || 0
+        });
+      }
+      
+      // Additional folder assignment will be handled after media upsert for collections
+      console.log('📁 Collection folder assignment will be handled after media upsert');
 
       // Post-process media for metadata extraction only (no video processing)
       try {
