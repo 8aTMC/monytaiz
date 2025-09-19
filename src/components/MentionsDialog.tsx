@@ -143,7 +143,7 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
                   Add Collaborator
                 </Button>
               </div>
-              <ScrollArea className="max-h-[300px] scrollbar-default">
+              <div className="max-h-[300px] overflow-y-auto scrollbar-default">
                 <div className="space-y-2 pr-3">
                   {filteredCollaborators.map((collaborator) => (
                     <div
@@ -167,7 +167,7 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
                     </div>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
             </div>
           )}
 
@@ -209,7 +209,7 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
           {selectedCollaborators.length > 0 && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">Current Mentions:</Label>
-              <ScrollArea className="max-h-[300px] scrollbar-default">
+              <div className="max-h-[300px] overflow-y-auto scrollbar-default">
                 <div className="space-y-2 pr-3">
                   {selectedCollaborators.map((collaborator) => (
                     <div
@@ -240,7 +240,7 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
                     </div>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
             </div>
           )}
 
