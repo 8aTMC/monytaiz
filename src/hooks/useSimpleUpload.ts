@@ -65,8 +65,28 @@ export const useSimpleUpload = () => {
   const cancelledRef = useRef(false);
   const pausedRef = useRef(false);
 
-  const uploadFile = useCallback(async (file: File, onProgress?: (progress: UploadProgress) => void) => {
+  const uploadFile = useCallback(async (file: File, onProgress?: (progress: UploadProgress) => void, metadata?: {
+    mentions?: string[];
+    tags?: string[];
+    folders?: string[];
+    description?: string;
+    suggestedPrice?: number | null;
+    title?: string;
+  }) => {
     setUploading(true);
+    
+    // Debug: Log metadata being passed
+    if (metadata) {
+      console.log(`📝 Upload metadata for ${file.name}:`, {
+        tags: metadata.tags?.length || 0,
+        mentions: metadata.mentions?.length || 0,
+        folders: metadata.folders?.length || 0,
+        description: metadata.description ? 'Yes' : 'No',
+        suggestedPrice: metadata.suggestedPrice
+      });
+    } else {
+      console.log(`⚠️ No metadata provided for ${file.name}`);
+    }
     
     try {
       // Get current user
@@ -257,7 +277,8 @@ export const useSimpleUpload = () => {
         .insert({
           creator_id: user.id,
           original_filename: file.name,
-          title: file.name.split('.')[0],
+          title: metadata?.title || metadata?.description || file.name.split('.')[0],
+          description: metadata?.description || null,
           mime_type: isGif ? 'image/gif' : fileToUpload.type,
           original_size_bytes: originalSize,
           optimized_size_bytes: processedSize,
@@ -268,13 +289,43 @@ export const useSimpleUpload = () => {
           processing_status: 'processed',
           width: width,
           height: height,
-          tags: []
+          tags: metadata?.tags || [],
+          mentions: metadata?.mentions || [],
+          suggested_price_cents: metadata?.suggestedPrice ? Math.round(metadata.suggestedPrice * 100) : 0
         })
         .select()
         .single();
 
       if (dbError) {
         throw new Error(`Database error: ${dbError.message}`);
+      }
+
+      // Add to folders if specified
+      if (metadata?.folders && metadata.folders.length > 0 && mediaRecord?.id) {
+        console.log(`📁 Assigning media to ${metadata.folders.length} folder(s):`, metadata.folders);
+        try {
+          const folderAssignments = metadata.folders.map(folderId => ({
+            media_id: mediaRecord.id,
+            folder_id: folderId,
+            added_by: user.id,
+          }));
+
+          const { error: folderError } = await supabase
+            .from('file_folder_contents')
+            .insert(folderAssignments);
+          
+          if (folderError) {
+            console.warn('❌ Folder assignment error:', folderError);
+          } else {
+            console.log(`✅ Successfully assigned media to ${metadata.folders.length} folder(s)`);
+          }
+        } catch (folderAssignError) {
+          console.warn('❌ Folder assignment error:', folderAssignError);
+        }
+      } else if (metadata?.folders && metadata.folders.length === 0) {
+        console.log(`📁 No folders specified for ${file.name}`);
+      } else {
+        console.log(`📁 No folder metadata or media ID for ${file.name}`);
       }
 
       updateProgress({
@@ -316,15 +367,15 @@ export const useSimpleUpload = () => {
     }
   }, [toast, processFiles, canProcessVideo, processMedia]);
 
-  const uploadMultiple = useCallback(async (files: File[]) => {
+  const uploadMultiple = useCallback(async (files: Array<{ file: File; metadata?: any }>) => {
     const results = [];
     
-    for (const file of files) {
+    for (const fileItem of files) {
       try {
-        const result = await uploadFile(file);
+        const result = await uploadFile(fileItem.file, undefined, fileItem.metadata);
         results.push(result);
       } catch (error) {
-        logger.error('[UploadError] Failed to upload file', { name: file.name, error });
+        logger.error('[UploadError] Failed to upload file', { name: fileItem.file.name, error });
       }
     }
     
@@ -357,7 +408,7 @@ export const useSimpleUpload = () => {
     uploadQueueRef.current = files.map(f => f.id);
 
     try {
-      for (const { file, id } of files) {
+      for (const { file, id, metadata } of files) {
         if (cancelledRef.current) break;
         let currentState = newFileStates.get(id);
         if (!currentState || currentState.status === 'cancelled') continue;
@@ -373,7 +424,7 @@ export const useSimpleUpload = () => {
         onProgress?.(id, { phase: 'processing', progress: 0, message: 'Starting upload...' });
 
         try {
-          const result = await uploadFile(file, (progress) => onProgress?.(id, progress));
+          const result = await uploadFile(file, (progress) => onProgress?.(id, progress), metadata);
           newFileStates.set(id, { ...currentState, status: 'completed', progress: 100, message: 'Upload completed', result });
           setFileStates(new Map(newFileStates));
           onComplete?.(id, result);
