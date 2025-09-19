@@ -143,8 +143,8 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
                   Add Collaborator
                 </Button>
               </div>
-              <ScrollArea className="max-h-[200px]">
-                <div className="space-y-2">
+              <ScrollArea className="max-h-[300px] scrollbar-default">
+                <div className="space-y-2 pr-3">
                   {filteredCollaborators.map((collaborator) => (
                     <div
                       key={collaborator.id}
@@ -209,8 +209,8 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
           {selectedCollaborators.length > 0 && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">Current Mentions:</Label>
-              <ScrollArea className="max-h-[200px]">
-                <div className="space-y-2">
+              <ScrollArea className="max-h-[300px] scrollbar-default">
+                <div className="space-y-2 pr-3">
                   {selectedCollaborators.map((collaborator) => (
                     <div
                       key={collaborator.id}
