@@ -207,50 +207,101 @@ export const useLibraryData = ({
          console.log('🎛️ Filtering media with advanced filters:', filters);
          console.log('🎛️ Combined data before filtering:', combinedData.length, 'items');
          
-         // Filter by collaborators
-         if (filters.collaborators.length > 0) {
-           try {
-             // Get collaborator names from IDs
-             const { data: collaboratorData, error: collaboratorError } = await supabase
-               .from('collaborators')
-               .select('id, name')
-               .in('id', filters.collaborators);
-             
-             if (!collaboratorError && collaboratorData && collaboratorData.length > 0) {
-               const collaboratorNames = collaboratorData.map(c => c.name.toLowerCase());
-               
-               combinedData = combinedData.filter(item => {
-                 // Check mentions array (for simple_media)
-                 if (item.mentions && Array.isArray(item.mentions)) {
-                   const mentionMatch = item.mentions.some((mention: string) => 
-                     collaboratorNames.some(name => mention.toLowerCase().includes(name))
-                   );
-                   if (mentionMatch) return true;
-                 }
-                 
-                 // Check tags array for collaborator references
-                 if (item.tags && Array.isArray(item.tags)) {
-                   const tagMatch = item.tags.some((tag: string) => 
-                     collaboratorNames.some(name => 
-                       tag.toLowerCase().includes(name) || 
-                       (tag.startsWith('@') && tag.substring(1).toLowerCase().includes(name))
-                     )
-                   );
-                   if (tagMatch) return true;
-                 }
-                 
-                 // Check title, description, and notes as fallback
-                 const searchText = `${item.title || ''} ${item.description || ''} ${item.notes || ''}`.toLowerCase();
-                 const textMatch = collaboratorNames.some(name => searchText.includes(name));
-                 if (textMatch) return true;
-                 
-                 return false;
-               });
-             }
-           } catch (error) {
-             // Continue without collaborator filtering if there's an error
-           }
-         }
+          // Filter by collaborators
+          if (filters.collaborators.length > 0) {
+            const beforeCollaboratorFilter = combinedData.length;
+            console.log('👥 Filtering by collaborators:', filters.collaborators);
+            
+            try {
+              // Get collaborator names from IDs
+              const { data: collaboratorData, error: collaboratorError } = await supabase
+                .from('collaborators')
+                .select('id, name')
+                .in('id', filters.collaborators);
+              
+              console.log('👥 Collaborator lookup result:', { collaboratorData, collaboratorError });
+              
+              if (collaboratorError) {
+                console.error('👥 Error fetching collaborators:', collaboratorError);
+                return;
+              }
+              
+              if (!collaboratorData || collaboratorData.length === 0) {
+                console.warn('👥 No collaborators found for IDs:', filters.collaborators);
+                combinedData = []; // No matches if collaborators don't exist
+              } else {
+                const collaboratorNames = collaboratorData.map(c => c.name.toLowerCase());
+                console.log('👥 Looking for collaborator names:', collaboratorNames);
+                console.log('👥 Sample media data to check:', combinedData.slice(0, 3).map(item => ({ 
+                  id: item.id, 
+                  title: item.title,
+                  mentions: item.mentions, 
+                  tags: item.tags 
+                })));
+                
+                combinedData = combinedData.filter(item => {
+                  let hasMatch = false;
+                  let matchReason = '';
+                  
+                  // Check mentions array (for simple_media)
+                  if (item.mentions && Array.isArray(item.mentions)) {
+                    const mentionMatch = item.mentions.some((mention: string) => {
+                      const match = collaboratorNames.some(name => mention.toLowerCase().includes(name));
+                      if (match) {
+                        matchReason = `mention: "${mention}"`;
+                        console.log(`👥 Found mention match for ${item.id}: "${mention}" contains collaborator name`);
+                      }
+                      return match;
+                    });
+                    if (mentionMatch) hasMatch = true;
+                  }
+                  
+                  // Check tags array for collaborator references
+                  if (!hasMatch && item.tags && Array.isArray(item.tags)) {
+                    const tagMatch = item.tags.some((tag: string) => {
+                      const match = collaboratorNames.some(name => 
+                        tag.toLowerCase().includes(name) || 
+                        (tag.startsWith('@') && tag.substring(1).toLowerCase().includes(name))
+                      );
+                      if (match) {
+                        matchReason = `tag: "${tag}"`;
+                        console.log(`👥 Found tag match for ${item.id}: "${tag}" contains collaborator name`);
+                      }
+                      return match;
+                    });
+                    if (tagMatch) hasMatch = true;
+                  }
+                  
+                  // Check title, description, and notes as fallback
+                  if (!hasMatch) {
+                    const searchText = `${item.title || ''} ${item.description || ''} ${item.notes || ''}`.toLowerCase();
+                    const textMatch = collaboratorNames.some(name => {
+                      const match = searchText.includes(name);
+                      if (match) {
+                        matchReason = `text: "${searchText.substring(0, 100)}"`;
+                        console.log(`👥 Found text match for ${item.id}: text contains collaborator name`);
+                      }
+                      return match;
+                    });
+                    if (textMatch) hasMatch = true;
+                  }
+                  
+                  if (hasMatch) {
+                    console.log(`👥 ✅ Item ${item.id} matches via ${matchReason}`);
+                  } else {
+                    console.log(`👥 ❌ Item ${item.id} doesn't match - mentions:`, item.mentions, 'tags:', item.tags);
+                  }
+                  
+                  return hasMatch;
+                });
+              }
+            } catch (error) {
+              console.error('👥 Error in collaborator filtering:', error);
+              // Continue without collaborator filtering if there's an error
+            }
+            
+            console.log(`👥 Filtered ${beforeCollaboratorFilter} items down to ${combinedData.length} items`);
+          }
 
          // Filter by tags
          if (filters.tags.length > 0) {
