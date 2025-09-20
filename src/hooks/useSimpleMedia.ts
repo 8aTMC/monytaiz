@@ -240,17 +240,17 @@ export const useSimpleMedia = () => {
       
       // First remove existing folder assignments for this media
       await supabase
-        .from('collection_items')
+        .from('file_folder_contents')
         .delete()
         .eq('media_id', mediaId);
 
       // Add new folder assignments
       if (folderIds.length > 0 && user?.id) {
         const { error: insertError } = await supabase
-          .from('collection_items')
+          .from('file_folder_contents')
           .insert(
             folderIds.map(folderId => ({
-              collection_id: folderId,
+              folder_id: folderId,
               media_id: mediaId,
               added_by: user.id
             }))
@@ -283,15 +283,15 @@ export const useSimpleMedia = () => {
   const getMediaFolders = useCallback(async (mediaId: string): Promise<string[]> => {
     try {
       const { data, error } = await supabase
-        .from('collection_items')
-        .select('collection_id')
+        .from('file_folder_contents')
+        .select('folder_id')
         .eq('media_id', mediaId);
 
       if (error) {
         throw error;
       }
 
-      return data.map(item => item.collection_id);
+      return data.map(item => item.folder_id);
     } catch (err) {
       console.error('Error fetching media folders:', err);
       return [];
