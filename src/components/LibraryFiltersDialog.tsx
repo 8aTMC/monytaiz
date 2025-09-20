@@ -282,7 +282,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl bg-card/95 backdrop-blur-md border-border/50 z-[200]">
+      <DialogContent className="max-w-2xl bg-card/95 border-border/50 z-[200]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Filter className="h-5 w-5" />
