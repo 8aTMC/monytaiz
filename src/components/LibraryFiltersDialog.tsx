@@ -100,70 +100,56 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
         // Load collaborators
         await loadCollaborators();
 
-        console.log('🏷️ Loading tags...');
+        console.log('🏷️ Loading tags from actual media files...');
         
-        // First try saved_tags table (requires management permissions)
-        const { data: savedTags, error: savedTagsError } = await supabase
-          .from('saved_tags')
-          .select('tag_name, usage_count')
-          .order('usage_count', { ascending: false });
-
-        console.log('🏷️ Saved tags response:', { data: savedTags, error: savedTagsError });
-
-        let allTags: Array<{tag_name: string, usage_count: number}> = [];
-
-        if (savedTags && savedTags.length > 0) {
-          console.log('🏷️ Using saved_tags data');
-          allTags = savedTags;
-        } else {
-          console.log('🏷️ Falling back to media tags');
-          // Fallback: Get tags from media tables directly
-          const { data: mediaTags, error: mediaError } = await supabase
-            .from('media')
-            .select('tags')
-            .not('tags', 'is', null);
-            
-          const { data: simpleMediaTags, error: simpleError } = await supabase
-            .from('simple_media')
-            .select('tags')
-            .not('tags', 'is', null);
-
-          console.log('🏷️ Media tags:', { mediaTags, mediaError, simpleMediaTags, simpleError });
-
-          // Combine and count tags from both sources
-          const tagCounts: Record<string, number> = {};
+        // Always get tags from actual media files to ensure they exist
+        console.log('🏷️ Fetching tags from media tables');
+        // Get tags from media tables directly
+        const { data: mediaTags, error: mediaError } = await supabase
+          .from('media')
+          .select('tags')
+          .not('tags', 'is', null);
           
-          // Process media tags
-          if (mediaTags) {
-            mediaTags.forEach(item => {
-              if (item.tags && Array.isArray(item.tags)) {
-                item.tags.forEach(tag => {
-                  if (tag && typeof tag === 'string') {
-                    tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-                  }
-                });
-              }
-            });
-          }
+        const { data: simpleMediaTags, error: simpleError } = await supabase
+          .from('simple_media')
+          .select('tags')
+          .not('tags', 'is', null);
 
-          // Process simple_media tags
-          if (simpleMediaTags) {
-            simpleMediaTags.forEach(item => {
-              if (item.tags && Array.isArray(item.tags)) {
-                item.tags.forEach(tag => {
-                  if (tag && typeof tag === 'string') {
-                    tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-                  }
-                });
-              }
-            });
-          }
+        console.log('🏷️ Media tags:', { mediaTags, mediaError, simpleMediaTags, simpleError });
 
-          // Convert to format expected by the rest of the function
-          allTags = Object.entries(tagCounts)
-            .map(([tag_name, usage_count]) => ({ tag_name, usage_count }))
-            .sort((a, b) => b.usage_count - a.usage_count);
+        // Combine and count tags from both sources
+        const tagCounts: Record<string, number> = {};
+        
+        // Process media tags
+        if (mediaTags) {
+          mediaTags.forEach(item => {
+            if (item.tags && Array.isArray(item.tags)) {
+              item.tags.forEach(tag => {
+                if (tag && typeof tag === 'string') {
+                  tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+                }
+              });
+            }
+          });
         }
+
+        // Process simple_media tags
+        if (simpleMediaTags) {
+          simpleMediaTags.forEach(item => {
+            if (item.tags && Array.isArray(item.tags)) {
+              item.tags.forEach(tag => {
+                if (tag && typeof tag === 'string') {
+                  tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+                }
+              });
+            }
+          });
+        }
+
+        // Convert to format expected by the rest of the function
+        const allTags = Object.entries(tagCounts)
+          .map(([tag_name, usage_count]) => ({ tag_name, usage_count }))
+          .sort((a, b) => b.usage_count - a.usage_count);
 
         console.log('🏷️ All tags processed:', allTags);
 
@@ -186,20 +172,21 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
           console.log('🏷️ Final tag options:', tagOptions);
           setTagOptions(tagOptions);
         } else if (isMounted) {
-          console.log('🏷️ No tags found anywhere');
-          setTagOptions([]);
+            if (isMounted) {
+              setTagOptions([]);
+            }
+          }
+        } catch (error) {
+          console.error('💥 Error loading filter options:', error);
+          if (isMounted) {
+            setTagOptions([]);
+            setCollaboratorOptions([]);
+          }
+        } finally {
+          if (isMounted) {
+            setLoading(false);
+          }
         }
-      } catch (error) {
-        console.error('💥 Error loading filter options:', error);
-        if (isMounted) {
-          setTagOptions([]);
-          setCollaboratorOptions([]);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
     };
 
     if (open) {

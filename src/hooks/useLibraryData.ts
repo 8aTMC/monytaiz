@@ -204,6 +204,9 @@ export const useLibraryData = ({
 
        // Apply advanced filters
        if (filters && combinedData.length > 0) {
+         console.log('🎛️ Filtering media with advanced filters:', filters);
+         console.log('🎛️ Combined data before filtering:', combinedData.length, 'items');
+         
          // Filter by collaborators
          if (filters.collaborators.length > 0) {
            try {
@@ -251,13 +254,25 @@ export const useLibraryData = ({
 
          // Filter by tags
          if (filters.tags.length > 0) {
+           const beforeTagFilter = combinedData.length;
+           console.log('🏷️ Filtering by tags:', filters.tags);
+           console.log('🏷️ Sample media tags:', combinedData.slice(0, 3).map(item => ({ id: item.id, tags: item.tags })));
+           
            combinedData = combinedData.filter(item => {
              if (!item.tags || !Array.isArray(item.tags) || item.tags.length === 0) return false;
              
-             return filters.tags.some(filterTag => 
+             const hasMatchingTag = filters.tags.some(filterTag => 
                item.tags.some(itemTag => itemTag.toLowerCase().includes(filterTag.toLowerCase()))
              );
+             
+             if (hasMatchingTag) {
+               console.log('🏷️ Match found:', item.id, 'tags:', item.tags, 'matched filter:', filters.tags);
+             }
+             
+             return hasMatchingTag;
            });
+           
+           console.log(`🏷️ Filtered ${beforeTagFilter} items down to ${combinedData.length} items`);
          }
 
          // Filter by price range

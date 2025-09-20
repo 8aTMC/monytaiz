@@ -653,20 +653,61 @@ const ContentLibrary = () => {
 
           {/* Enhanced Content Area */}
           <div ref={contentAreaRef} className="flex-1 min-h-0 p-6 pt-4 overflow-hidden">
+            {/* No results message when filters are applied */}
+            {content.length === 0 && !loadingContent && hasActiveFilters && (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <Filter className="h-16 w-16 text-muted-foreground mb-4" />
+                <h3 className="text-xl font-semibold text-foreground mb-2">No matching content found</h3>
+                <p className="text-muted-foreground mb-4 max-w-md">
+                  Your current filters didn't match any content. Try adjusting your filters or check if the tags exist on your media files.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => setFiltersDialogOpen(true)}
+                  className="mr-2"
+                >
+                  Adjust Filters
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => handleFiltersChange({
+                    collaborators: [],
+                    tags: [],
+                    priceRange: [0, 1000000]
+                  })}
+                >
+                  Clear All Filters
+                </Button>
+              </div>
+            )}
+            
+            {/* Regular empty state */}
+            {content.length === 0 && !loadingContent && !hasActiveFilters && (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <Grid className="h-16 w-16 text-muted-foreground mb-4" />
+                <h3 className="text-xl font-semibold text-foreground mb-2">No content yet</h3>
+                <p className="text-muted-foreground">
+                  Upload your first files to get started with your content library.
+                </p>
+              </div>
+            )}
+
             {/* Virtualized grid with infinite scrolling */}
-            <VirtualizedLibraryGrid
-              items={content}
-              selectedItems={selectedItems}
-              selecting={selecting}
-              onItemClick={handleCardClick}
-              onCheckboxClick={handleCheckboxClick}
-              onLoadMore={loadMore}
-              hasNextPage={hasNextPage}
-              isLoadingMore={isLoadingMore}
-              loading={loadingContent}
-              height={Math.max(240, contentHeight)}
-              debug={false}
-            />
+            {content.length > 0 && (
+              <VirtualizedLibraryGrid
+                items={content}
+                selectedItems={selectedItems}
+                selecting={selecting}
+                onItemClick={handleCardClick}
+                onCheckboxClick={handleCheckboxClick}
+                onLoadMore={loadMore}
+                hasNextPage={hasNextPage}
+                isLoadingMore={isLoadingMore}
+                loading={loadingContent}
+                height={Math.max(240, contentHeight)}
+                debug={false}
+              />
+            )}
           </div>
         </div>
         
