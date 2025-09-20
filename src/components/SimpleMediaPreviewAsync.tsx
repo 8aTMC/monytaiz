@@ -698,15 +698,15 @@ export const SimpleMediaPreviewAsync: React.FC<SimpleMediaPreviewAsyncProps> = (
                     Tags {(item.tags?.length || 0) > 0 && `(${item.tags?.length})`}
                   </Button>
                   
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setFoldersDialogOpen(true)}
-                    className="text-xs"
-                  >
-                    <FolderOpen className="w-3 h-3 mr-1" />
-                    Folders
-                  </Button>
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     onClick={() => setFoldersDialogOpen(true)}
+                     className="text-xs"
+                   >
+                     <FolderOpen className="w-3 h-3 mr-1" />
+                     Folders {selectedFolders.length > 0 && `(${selectedFolders.length})`}
+                   </Button>
                   
                   <Button
                     variant="outline"
