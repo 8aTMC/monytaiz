@@ -11,6 +11,7 @@ interface MediaItem {
   type: 'image' | 'video' | 'audio' | 'gif';
   size_bytes: number;
   tags: string[];
+  mentions: string[];
   suggested_price_cents: number;
   revenue_generated_cents?: number;
   notes: string | null;
@@ -348,10 +349,38 @@ export const useLibraryData = ({
              return hasMatchingTag;
            });
            
-           console.log(`🏷️ Filtered ${beforeTagFilter} items down to ${combinedData.length} items`);
-         }
+            console.log(`🏷️ Filtered ${beforeTagFilter} items down to ${combinedData.length} items`);
+          }
 
-         // Filter by price range
+          // Filter by mentions
+          if (filters.mentions && filters.mentions.length > 0) {
+            const beforeMentionFilter = combinedData.length;
+            console.log('🗣️ Filtering by mentions:', filters.mentions);
+            console.log('🗣️ Sample media mentions:', combinedData.slice(0, 3).map(item => ({ id: item.id, mentions: item.mentions })));
+            
+            combinedData = combinedData.filter(item => {
+              if (!item.mentions || !Array.isArray(item.mentions) || item.mentions.length === 0) return false;
+              
+              const hasMatchingMention = filters.mentions.some(filterMention => 
+                item.mentions.some(itemMention => {
+                  // Handle both @mention and mention formats
+                  const normalizedFilter = filterMention.replace(/^@/, '').toLowerCase();
+                  const normalizedItem = itemMention.replace(/^@/, '').toLowerCase();
+                  return normalizedItem.includes(normalizedFilter) || normalizedFilter.includes(normalizedItem);
+                })
+              );
+              
+              if (hasMatchingMention) {
+                console.log('🗣️ Mention match found:', item.id, 'mentions:', item.mentions, 'matched filter:', filters.mentions);
+              }
+              
+              return hasMatchingMention;
+            });
+            
+            console.log(`🗣️ Filtered ${beforeMentionFilter} items down to ${combinedData.length} items`);
+          }
+
+          // Filter by price range
          if (filters.priceRange[0] > 0 || filters.priceRange[1] < 1000000) {
            combinedData = combinedData.filter(item => {
              const price = item.suggested_price_cents || 0;
@@ -388,6 +417,7 @@ export const useLibraryData = ({
           suggested_price_cents: item.suggested_price_cents || 0,
           revenue_generated_cents: item.revenue_generated_cents || 0,
           tags: item.tags || [],
+          mentions: item.mentions || [],
           notes: item.notes || null,
           mime: item.mime || '',
           creator_id: item.creator_id,
