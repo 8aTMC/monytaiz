@@ -31,12 +31,18 @@ export interface SimpleMediaItem {
   updated_at: string;
 }
 
-export const useSimpleMedia = () => {
+interface UseSimpleMediaOptions {
+  onFoldersChanged?: () => void;
+  onMediaRefreshNeeded?: () => void;
+}
+
+export const useSimpleMedia = (options?: UseSimpleMediaOptions) => {
   const [media, setMedia] = useState<SimpleMediaItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { getSecureMediaUrl } = usePersistentMediaCache();
+  const { onFoldersChanged, onMediaRefreshNeeded } = options || {};
 
   const fetchMedia = useCallback(async () => {
     setLoading(true);
@@ -265,6 +271,14 @@ export const useSimpleMedia = () => {
         title: "Success",
         description: "Media folders updated successfully",
       });
+
+      // Trigger callbacks for instant updates
+      if (onFoldersChanged) {
+        onFoldersChanged();
+      }
+      if (onMediaRefreshNeeded) {
+        onMediaRefreshNeeded();
+      }
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update media folders';

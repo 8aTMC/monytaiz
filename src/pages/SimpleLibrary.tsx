@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useSimpleMedia, SimpleMediaItem } from '@/hooks/useSimpleMedia';
 import { SimpleMediaPreviewAsync } from '@/components/SimpleMediaPreviewAsync';
 import { LibrarySidebar } from '@/components/LibrarySidebar';
@@ -18,7 +18,14 @@ import { useToast } from '@/hooks/use-toast';
 import { useMediaOperations } from '@/hooks/useMediaOperations';
 
 export default function SimpleLibrary() {
-  const { media, loading, error, fetchMedia, getFullUrlAsync, updateMediaMetadata, addToFolders } = useSimpleMedia();
+  // Callback refs to avoid TDZ issues
+  const refreshFolderCountsRef = useRef<(() => void) | null>(null);
+  const fetchMediaRef = useRef<(() => void) | null>(null);
+
+  const { media, loading, error, fetchMedia, getFullUrlAsync, updateMediaMetadata, addToFolders } = useSimpleMedia({
+    onFoldersChanged: () => refreshFolderCountsRef.current?.(),
+    onMediaRefreshNeeded: () => fetchMediaRef.current?.()
+  });
   const [selectedItem, setSelectedItem] = useState<SimpleMediaItem | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -171,6 +178,12 @@ export default function SimpleLibrary() {
       // Any upload components will get fresh data on next duplicate check
     }
   });
+
+  useEffect(() => {
+    // Set refs for callbacks
+    refreshFolderCountsRef.current = refreshFolderCounts;
+    fetchMediaRef.current = fetchMedia;
+  }, [refreshFolderCounts, fetchMedia]);
 
   useEffect(() => {
     fetchMedia();
