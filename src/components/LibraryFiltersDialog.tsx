@@ -22,6 +22,7 @@ import { useRefreshCollaborators } from "@/hooks/useRefreshCollaborators";
 interface FilterState {
   collaborators: string[];
   tags: string[];
+  mentions: string[];
   priceRange: [number, number];
 }
 
@@ -30,6 +31,7 @@ interface LibraryFiltersDialogProps {
   onOpenChange: (open: boolean) => void;
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
+  selectedCategory?: string;
 }
 
 interface CollaboratorOption {
@@ -47,16 +49,24 @@ interface TagOption {
   description?: string;
 }
 
+interface MentionOption {
+  value: string;
+  label: string;
+  description?: string;
+}
+
 export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
   open,
   onOpenChange,
   filters,
   onFiltersChange,
+  selectedCategory = 'all-files',
 }) => {
   const { t } = useTranslation();
   const { refreshCollaborators, isRefreshing } = useRefreshCollaborators();
   const [collaboratorOptions, setCollaboratorOptions] = useState<CollaboratorOption[]>([]);
   const [tagOptions, setTagOptions] = useState<TagOption[]>([]);
+  const [mentionOptions, setMentionOptions] = useState<MentionOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [localFilters, setLocalFilters] = useState<FilterState>(filters);
   const [manualPriceMin, setManualPriceMin] = useState('');
@@ -100,6 +110,63 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
       }
     };
 
+    const loadContextualData = async () => {
+      console.log('🎯 Loading contextual data for category:', selectedCategory);
+      
+      try {
+        let mediaData: any[] = [];
+        let simpleMediaData: any[] = [];
+
+        if (selectedCategory === 'all-files') {
+          // Fetch from all tables
+          const mediaResult = await supabase.from('media').select('tags, mentions').not('tags', 'is', null);
+          const simpleResult = await supabase.from('simple_media').select('tags, mentions').not('tags', 'is', null);
+          mediaData = mediaResult.data || [];
+          simpleMediaData = simpleResult.data || [];
+        } else if (selectedCategory === 'messages') {
+          // Fetch only message-related media
+          const mediaResult = await supabase.from('media').select('tags, mentions').eq('origin', 'message').not('tags', 'is', null);
+          const simpleResult = await supabase.from('simple_media').select('tags, mentions').eq('origin', 'message').not('tags', 'is', null);
+          mediaData = mediaResult.data || [];
+          simpleMediaData = simpleResult.data || [];
+        } else if (selectedCategory.startsWith('folder_')) {
+          // Fetch from specific folder
+          const folderId = selectedCategory.replace('folder_', '');
+          const { data: folderContents } = await supabase
+            .from('file_folder_contents')
+            .select('media_id')
+            .eq('folder_id', folderId);
+          
+          if (folderContents && folderContents.length > 0) {
+            const mediaIds = folderContents.map(fc => fc.media_id);
+            const mediaResult = await supabase.from('media').select('tags, mentions').in('id', mediaIds);
+            const simpleResult = await supabase.from('simple_media').select('tags, mentions').in('id', mediaIds);
+            mediaData = mediaResult.data || [];
+            simpleMediaData = simpleResult.data || [];
+          }
+        } else {
+          // Custom collection
+          const { data: collectionItems } = await supabase
+            .from('collection_items')
+            .select('media_id')
+            .eq('collection_id', selectedCategory);
+          
+          if (collectionItems && collectionItems.length > 0) {
+            const mediaIds = collectionItems.map(ci => ci.media_id);
+            const mediaResult = await supabase.from('media').select('tags, mentions').in('id', mediaIds);
+            const simpleResult = await supabase.from('simple_media').select('tags, mentions').in('id', mediaIds);
+            mediaData = mediaResult.data || [];
+            simpleMediaData = simpleResult.data || [];
+          }
+        }
+
+        return { mediaData, simpleMediaData, errors: [] };
+      } catch (error) {
+        console.error('Error loading contextual data:', error);
+        return { mediaData: [], simpleMediaData: [], errors: [error] };
+      }
+    };
+
     const loadOptions = async () => {
       if (isMounted) {
         setLoading(true);
@@ -109,86 +176,78 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
         // Load collaborators
         await loadCollaborators();
 
-        console.log('🏷️ Loading tags from actual media files...');
+        console.log('🏷️ Loading tags and mentions from contextual media files...');
         
-        // Always get tags from actual media files to ensure they exist
-        console.log('🏷️ Fetching tags from media tables');
-        // Get tags from media tables directly
-        const { data: mediaTags, error: mediaError } = await supabase
-          .from('media')
-          .select('tags')
-          .not('tags', 'is', null);
-          
-        const { data: simpleMediaTags, error: simpleError } = await supabase
-          .from('simple_media')
-          .select('tags')
-          .not('tags', 'is', null);
+        // Get contextual data based on selected category
+        const { mediaData, simpleMediaData, errors } = await loadContextualData();
+        
+        if (errors.length > 0) {
+          console.error('🏷️ Errors loading contextual data:', errors);
+        }
 
-        console.log('🏷️ Media tags:', { mediaTags, mediaError, simpleMediaTags, simpleError });
+        console.log('🏷️ Contextual data:', { mediaData, simpleMediaData });
 
-        // Combine and count tags from both sources
+        // Combine and count tags and mentions from both sources
         const tagCounts: Record<string, number> = {};
+        const mentionCounts: Record<string, number> = {};
         
-        // Process media tags
-        if (mediaTags) {
-          mediaTags.forEach(item => {
-            if (item.tags && Array.isArray(item.tags)) {
-              item.tags.forEach(tag => {
-                if (tag && typeof tag === 'string') {
-                  tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-                }
-              });
-            }
-          });
-        }
+        // Process data from both media and simple_media tables
+        const allData = [...(mediaData || []), ...(simpleMediaData || [])];
+        
+        allData.forEach(item => {
+          // Process tags
+          if (item.tags && Array.isArray(item.tags)) {
+            item.tags.forEach(tag => {
+              if (tag && typeof tag === 'string') {
+                tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+              }
+            });
+          }
+          
+          // Process mentions
+          if (item.mentions && Array.isArray(item.mentions)) {
+            item.mentions.forEach(mention => {
+              if (mention && typeof mention === 'string') {
+                mentionCounts[mention] = (mentionCounts[mention] || 0) + 1;
+              }
+            });
+          }
+        });
 
-        // Process simple_media tags
-        if (simpleMediaTags) {
-          simpleMediaTags.forEach(item => {
-            if (item.tags && Array.isArray(item.tags)) {
-              item.tags.forEach(tag => {
-                if (tag && typeof tag === 'string') {
-                  tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-                }
-              });
-            }
-          });
-        }
-
-        // Convert to format expected by the rest of the function
+        // Convert to options format
         const allTags = Object.entries(tagCounts)
           .map(([tag_name, usage_count]) => ({ tag_name, usage_count }))
           .sort((a, b) => b.usage_count - a.usage_count);
 
-        console.log('🏷️ All tags processed:', allTags);
+        const allMentions = Object.entries(mentionCounts)
+          .map(([mention_name, usage_count]) => ({ mention_name, usage_count }))
+          .sort((a, b) => b.usage_count - a.usage_count);
 
-        if (allTags.length > 0 && isMounted) {
-          // Remove duplicates by tag_name - use tag name directly as value
-          const uniqueTags = allTags.reduce((acc, tag) => {
-            const existing = acc.find(t => t.tag_name === tag.tag_name);
-            if (!existing || tag.usage_count > existing.usage_count) {
-              return [...acc.filter(t => t.tag_name !== tag.tag_name), tag];
-            }
-            return acc;
-          }, [] as typeof allTags);
-          
-          const tagOptions = uniqueTags.map(t => ({
-            value: t.tag_name, // Use tag name directly as value
+        console.log('🏷️ Processed tags:', allTags);
+        console.log('🏷️ Processed mentions:', allMentions);
+
+        if (isMounted) {
+          // Set tag options
+          const tagOptions = allTags.map(t => ({
+            value: t.tag_name,
             label: t.tag_name,
             description: `Used ${t.usage_count} times`
           }));
-          
-          console.log('🏷️ Final tag options:', tagOptions);
           setTagOptions(tagOptions);
-        } else if (isMounted) {
-            if (isMounted) {
-              setTagOptions([]);
-            }
-          }
+
+          // Set mention options
+          const mentionOptions = allMentions.map(m => ({
+            value: m.mention_name,
+            label: m.mention_name,
+            description: `Mentioned ${m.usage_count} times`
+          }));
+          setMentionOptions(mentionOptions);
+        }
         } catch (error) {
           console.error('💥 Error loading filter options:', error);
           if (isMounted) {
             setTagOptions([]);
+            setMentionOptions([]);
             setCollaboratorOptions([]);
           }
         } finally {
@@ -205,7 +264,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
     return () => {
       isMounted = false; // Cleanup to prevent state updates after unmount
     };
-  }, [open]);
+  }, [open, selectedCategory]);
 
   // Update local state when external filters change
   useEffect(() => {
@@ -221,8 +280,12 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
 
   const handleTagChange = (tags: string[]) => {
     console.log('🏷️ Tag change:', tags);
-    // Tags are now simple strings, no need for complex mapping
     setLocalFilters(prev => ({ ...prev, tags }));
+  };
+
+  const handleMentionChange = (mentions: string[]) => {
+    console.log('🗣️ Mention change:', mentions);
+    setLocalFilters(prev => ({ ...prev, mentions }));
   };
 
   const handlePriceRangeChange = (range: number[]) => {
@@ -253,6 +316,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
     const clearedFilters: FilterState = {
       collaborators: [],
       tags: [],
+      mentions: [],
       priceRange: [0, 1000000] // $0 to $10,000
     };
     setLocalFilters(clearedFilters);
@@ -269,6 +333,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
   const hasActiveFilters = 
     localFilters.collaborators.length > 0 || 
     localFilters.tags.length > 0 || 
+    localFilters.mentions.length > 0 || 
     localFilters.priceRange[0] > 0 || 
     localFilters.priceRange[1] < 1000000;
 
@@ -334,6 +399,15 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
                     />
                   </Badge>
                 ))}
+                {localFilters.mentions.map((mention, index) => (
+                  <Badge key={`mention-${mention}-${index}`} variant="secondary" className="bg-primary/10 text-primary">
+                    Mention: {mention}
+                    <X
+                      className="ml-1 h-3 w-3 cursor-pointer"
+                      onClick={() => handleMentionChange(localFilters.mentions.filter(m => m !== mention))}
+                    />
+                  </Badge>
+                ))}
                 {(localFilters.priceRange[0] > 0 || localFilters.priceRange[1] < 1000000) && (
                   <Badge variant="secondary" className="bg-primary/10 text-primary">
                     Price: {formatCurrency(localFilters.priceRange[0])} - {formatCurrency(localFilters.priceRange[1])}
@@ -389,7 +463,23 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
                 value={localFilters.tags || []}
                 onChange={handleTagChange}
                 placeholder="Select tags..."
-                emptyMessage="No tags found."
+                emptyMessage="No tags found in current directory."
+                loading={loading}
+              />
+            </div>
+          </div>
+
+          {/* Mentions Filter */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Filter by Mentions</Label>
+            <div className="relative">
+              <MultiSelect
+                key={`mentions-${open}`}
+                options={mentionOptions || []}
+                value={localFilters.mentions || []}
+                onChange={handleMentionChange}
+                placeholder="Select mentions..."
+                emptyMessage="No mentions found in current directory."
                 loading={loading}
               />
             </div>

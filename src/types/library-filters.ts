@@ -1,6 +1,7 @@
 export interface LibraryFilterState {
   collaborators: string[];
   tags: string[];
+  mentions: string[];
   priceRange: [number, number]; // in cents
 }
 

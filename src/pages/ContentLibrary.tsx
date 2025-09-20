@@ -204,6 +204,7 @@ const ContentLibrary = () => {
       const categoryFilters = saved ? JSON.parse(saved) : {
         collaborators: [],
         tags: [],
+        mentions: [],
         priceRange: [0, 1000000] as [number, number]
       };
       setAdvancedFilters(categoryFilters);
@@ -211,6 +212,7 @@ const ContentLibrary = () => {
       setAdvancedFilters({
         collaborators: [],
         tags: [],
+        mentions: [],
         priceRange: [0, 1000000] as [number, number]
       });
     }
@@ -673,6 +675,7 @@ const ContentLibrary = () => {
                   onClick={() => handleFiltersChange({
                     collaborators: [],
                     tags: [],
+                    mentions: [],
                     priceRange: [0, 1000000]
                   })}
                 >
@@ -746,6 +749,7 @@ const ContentLibrary = () => {
           onOpenChange={setFiltersDialogOpen}
           filters={advancedFilters}
           onFiltersChange={handleFiltersChange}
+          selectedCategory={selectedCategory}
         />
       </div>
     </LibraryErrorBoundary>

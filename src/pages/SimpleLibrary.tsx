@@ -566,6 +566,7 @@ export default function SimpleLibrary() {
       setAdvancedFilters({
         collaborators: [],
         tags: [],
+        mentions: [],
         priceRange: [0, 1000000]
       });
     }
@@ -912,6 +913,7 @@ export default function SimpleLibrary() {
         onOpenChange={setFiltersDialogOpen}
         filters={advancedFilters}
         onFiltersChange={handleFiltersChange}
+        selectedCategory={selectedCategory}
       />
     </>
   );
