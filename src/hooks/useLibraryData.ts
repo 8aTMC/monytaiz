@@ -223,13 +223,23 @@ export const useLibraryData = ({
               console.log('👥 Media collaborators mapping result:', { mappedCollaborators, mappingError });
 
               if (!mappingError && mappedCollaborators && mappedCollaborators.length > 0) {
-                // Use canonical mapping
-                const mappedMediaIds = new Set(mappedCollaborators.map(mc => mc.media_id));
-                console.log('👥 Found mapped media IDs:', Array.from(mappedMediaIds));
+                // Use canonical mapping with normalized ID comparison
+                const rawMappedIds = mappedCollaborators.map(mc => mc.media_id);
+                console.log('👥 Raw mapped media IDs from DB:', rawMappedIds, 'types:', rawMappedIds.map(id => typeof id));
+                
+                // Normalize IDs to strings and create Set
+                const mappedMediaIds = new Set(rawMappedIds.map(id => String(id).toLowerCase().trim()));
+                console.log('👥 Normalized mapped media IDs:', Array.from(mappedMediaIds));
+                console.log('👥 Sample combinedData IDs:', combinedData.slice(0, 3).map(item => ({ 
+                  id: item.id, 
+                  type: typeof item.id, 
+                  normalized: String(item.id).toLowerCase().trim() 
+                })));
                 
                 combinedData = combinedData.filter(item => {
-                  const hasMapping = mappedMediaIds.has(item.id);
-                  console.log(`👥 ${hasMapping ? '✅' : '❌'} Item ${item.id} ${hasMapping ? 'has' : 'lacks'} collaborator mapping`);
+                  const normalizedItemId = String(item.id).toLowerCase().trim();
+                  const hasMapping = mappedMediaIds.has(normalizedItemId);
+                  console.log(`👥 ${hasMapping ? '✅' : '❌'} Item ${item.id} (normalized: ${normalizedItemId}) ${hasMapping ? 'has' : 'lacks'} collaborator mapping`);
                   return hasMapping;
                 });
               } else {
