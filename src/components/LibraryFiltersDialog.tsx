@@ -94,21 +94,38 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
           // Get media counts for each collaborator
           const collaboratorOptions = await Promise.all(
             collaborators.map(async (c) => {
-              // Get count from media_collaborators table (populated by migration)
-              const { count } = await supabase
-                .from('media_collaborators')
-                .select('*', { count: 'exact', head: true })
-                .eq('collaborator_id', c.id);
-              
-              const mediaCount = count || 0;
-              return {
-                value: c.id,
-                label: c.username ? `${c.name} (@${c.username})` : c.name,
-                description: `${mediaCount} media file${mediaCount !== 1 ? 's' : ''}`,
-                avatar: c.profile_picture_url || undefined,
-                initials: getInitials(c.name),
-                username: c.username || undefined
-              };
+              // Get count from media_collaborators table (safer query without head: true)
+              try {
+                const { data, error } = await supabase
+                  .from('media_collaborators')
+                  .select('id')
+                  .eq('collaborator_id', c.id);
+                
+                if (error) {
+                  console.warn(`Failed to get media count for collaborator ${c.id}:`, error);
+                }
+                
+                const mediaCount = data ? data.length : 0;
+                
+                return {
+                  value: c.id,
+                  label: c.username ? `${c.name} (@${c.username})` : c.name,
+                  description: `${mediaCount} media file${mediaCount !== 1 ? 's' : ''}`,
+                  avatar: c.profile_picture_url || undefined,
+                  initials: getInitials(c.name),
+                  username: c.username || undefined
+                };
+              } catch (error) {
+                console.warn(`Error fetching media count for collaborator ${c.id}:`, error);
+                return {
+                  value: c.id,
+                  label: c.username ? `${c.name} (@${c.username})` : c.name,
+                  description: '0 media files',
+                  avatar: c.profile_picture_url || undefined,
+                  initials: getInitials(c.name),
+                  username: c.username || undefined
+                };
+              }
             })
           );
 
