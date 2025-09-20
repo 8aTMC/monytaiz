@@ -1,30 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Settings } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface SettingsDialogProps {
   children: React.ReactNode;
 }
 
 export const SettingsDialog = ({ children }: SettingsDialogProps) => {
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const { resolvedTheme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
-    if (savedTheme) {
-      setTheme(savedTheme);
-    } else {
-      setTheme('dark');
-    }
-  }, []);
 
   const handleThemeChange = (newTheme: 'light' | 'dark') => {
     setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
 
   return (
@@ -46,7 +36,7 @@ export const SettingsDialog = ({ children }: SettingsDialogProps) => {
             <Label className="text-sm font-medium">Theme</Label>
             <div className="flex gap-3">
               <Button
-                variant={theme === 'light' ? 'default' : 'outline'}
+                variant={resolvedTheme === 'light' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => handleThemeChange('light')}
                 className="flex-1 flex items-center gap-2"
@@ -55,7 +45,7 @@ export const SettingsDialog = ({ children }: SettingsDialogProps) => {
                 Light
               </Button>
               <Button
-                variant={theme === 'dark' ? 'default' : 'outline'}
+                variant={resolvedTheme === 'dark' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => handleThemeChange('dark')}
                 className="flex-1 flex items-center gap-2"

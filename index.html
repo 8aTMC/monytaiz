@@ -28,6 +28,35 @@
   </head>
 
   <body>
+    <!-- Theme initialization script to prevent FOUC -->
+    <script>
+      (function() {
+        try {
+          const savedTheme = localStorage.getItem('theme');
+          const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          
+          let theme = 'dark'; // default
+          if (savedTheme && ['light', 'dark', 'system'].includes(savedTheme)) {
+            if (savedTheme === 'system') {
+              theme = systemPrefersDark ? 'dark' : 'light';
+            } else {
+              theme = savedTheme;
+            }
+          } else if (!savedTheme) {
+            theme = systemPrefersDark ? 'dark' : 'light';
+            localStorage.setItem('theme', theme);
+          }
+          
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) {
+          // Fallback to dark theme if anything fails
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+    
     <div id="root"></div>
     
     <script type="module" src="/src/main.tsx"></script>

@@ -1,32 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export const ThemeToggle = () => {
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
-    
-    if (savedTheme) {
-      setTheme(savedTheme);
-      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-    } else {
-      setTheme('dark');
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    }
-  }, []);
+  const { resolvedTheme, setTheme } = useTheme();
 
   const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
+    const newTheme = resolvedTheme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-    
-    // Dispatch custom event so Navigation component can detect theme changes
-    window.dispatchEvent(new Event('themeChange'));
   };
 
-  const isLight = theme === 'light';
+  const isLight = resolvedTheme === 'light';
 
   return (
     <div>
