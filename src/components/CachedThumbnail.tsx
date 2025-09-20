@@ -1,6 +1,7 @@
 import { useOptimizedThumbnail } from '@/hooks/useOptimizedThumbnail';
 import { Music, Video, Image, FileX } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MediaErrorBoundary } from './MediaErrorBoundary';
 
 interface CachedThumbnailProps {
   file: File;
@@ -57,8 +58,16 @@ export const CachedThumbnail = ({ file, className }: CachedThumbnailProps) => {
   };
 
   return (
-    <div className={cn("rounded-md overflow-hidden border", className)}>
-      {renderContent()}
-    </div>
+    <MediaErrorBoundary
+      fallback={
+        <div className={cn("rounded-md overflow-hidden border bg-muted/20 flex items-center justify-center", className)}>
+          <FileX className="w-6 h-6 text-muted-foreground" />
+        </div>
+      }
+    >
+      <div className={cn("rounded-md overflow-hidden border", className)}>
+        {renderContent()}
+      </div>
+    </MediaErrorBoundary>
   );
 };

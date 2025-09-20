@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,31 +11,32 @@ interface EditTitleDialogProps {
   onTitleChange: (title: string) => void;
 }
 
-export const EditTitleDialog: React.FC<EditTitleDialogProps> = ({
+export const EditTitleDialog = memo<EditTitleDialogProps>(({
   open,
   onOpenChange,
   title,
   onTitleChange,
 }) => {
-  console.log('EditTitleDialog render - open:', open, 'title:', title);
   const [localTitle, setLocalTitle] = useState(title || '');
   const maxLength = 50;
 
   useEffect(() => {
-    setLocalTitle(title || '');
-  }, [title]);
+    if (open) {
+      setLocalTitle(title || '');
+    }
+  }, [title, open]);
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     if (localTitle.trim() && localTitle.length <= maxLength) {
       onTitleChange(localTitle.trim());
       onOpenChange(false);
     }
-  };
+  }, [localTitle, maxLength, onTitleChange, onOpenChange]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     setLocalTitle(title || '');
     onOpenChange(false);
-  };
+  }, [title, onOpenChange]);
 
   const isOverLimit = localTitle.length > maxLength;
   const canSave = localTitle.trim() && !isOverLimit;
@@ -76,4 +77,4 @@ export const EditTitleDialog: React.FC<EditTitleDialogProps> = ({
       </DialogContent>
     </Dialog>
   );
-};
+});

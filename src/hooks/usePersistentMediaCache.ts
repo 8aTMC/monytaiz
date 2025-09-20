@@ -54,13 +54,19 @@ const saveCache = () => {
   }
 };
 
-// Clean up blob URLs on page unload
+// Clean up blob URLs on page unload with delay to prevent race conditions
 window.addEventListener('beforeunload', () => {
-  Object.values(memoryCache).forEach(cached => {
-    if (cached.blobUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(cached.blobUrl);
-    }
-  });
+  setTimeout(() => {
+    Object.values(memoryCache).forEach(cached => {
+      if (cached.blobUrl && cached.blobUrl.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(cached.blobUrl);
+        } catch (e) {
+          // Ignore errors during cleanup
+        }
+      }
+    });
+  }, 100);
 });
 
 export const usePersistentMediaCache = () => {
@@ -82,17 +88,33 @@ export const usePersistentMediaCache = () => {
       const now = Date.now();
       // Check if cache is still valid
       if ((now - cached.cached_at) < CACHE_DURATION) {
-        // Verify blob URL is still valid
-        if (cached.blobUrl.startsWith('blob:')) {
-          return cached.blobUrl;
+        // Verify blob URL is still valid and accessible
+        if (cached.blobUrl && cached.blobUrl.startsWith('blob:')) {
+          try {
+            // Quick validation - create an image to test blob URL validity
+            const testImg = new Image();
+            testImg.src = cached.blobUrl;
+            return cached.blobUrl;
+          } catch (e) {
+            // Blob URL is invalid, continue to other options
+          }
         }
         // If signed URL is still valid, use it
-        const expiresAt = new Date(cached.expires_at);
-        if (expiresAt.getTime() > now) {
-          return cached.url;
+        if (cached.url && cached.expires_at) {
+          const expiresAt = new Date(cached.expires_at);
+          if (expiresAt.getTime() > now) {
+            return cached.url;
+          }
         }
       }
-      // Clean up expired cache
+      // Clean up expired or invalid cache
+      if (cached.blobUrl && cached.blobUrl.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(cached.blobUrl);
+        } catch (e) {
+          // Ignore revocation errors
+        }
+      }
       delete memoryCache[cacheKey];
     }
 
@@ -137,23 +159,40 @@ export const usePersistentMediaCache = () => {
 
         // Fetch the actual media and create blob URL for persistent caching
         try {
-          const mediaResponse = await fetch(result.url);
-          if (mediaResponse.ok) {
+          const mediaResponse = await fetch(result.url, {
+            headers: {
+              'Accept': '*/*',
+            }
+          });
+          if (mediaResponse.ok && mediaResponse.status === 200) {
             const blob = await mediaResponse.blob();
-            const blobUrl = URL.createObjectURL(blob);
-            
-            // Cache both the signed URL and blob URL
-            memoryCache[cacheKey] = {
-              url: result.url,
-              blobUrl: blobUrl,
-              expires_at: result.expires_at,
-              cached_at: Date.now()
-            };
-            
-            // Save to localStorage
-            saveCache();
-            
-            return blobUrl;
+            // Validate blob before creating URL
+            if (blob && blob.size > 0) {
+              const blobUrl = URL.createObjectURL(blob);
+              
+              // Cache both the signed URL and blob URL
+              memoryCache[cacheKey] = {
+                url: result.url,
+                blobUrl: blobUrl,
+                expires_at: result.expires_at,
+                cached_at: Date.now()
+              };
+              
+              // Save to localStorage (without blob URLs to avoid issues)
+              try {
+                const cacheForStorage = { ...memoryCache };
+                Object.values(cacheForStorage).forEach(item => {
+                  if (item.blobUrl && item.blobUrl.startsWith('blob:')) {
+                    item.blobUrl = item.url; // Store signed URL instead
+                  }
+                });
+                localStorage.setItem(CACHE_KEY, JSON.stringify(cacheForStorage));
+              } catch (e) {
+                console.warn('Failed to save to localStorage:', e);
+              }
+              
+              return blobUrl;
+            }
           }
         } catch (blobError) {
           console.warn('Failed to create blob URL, using signed URL:', blobError);
@@ -212,12 +251,20 @@ export const usePersistentMediaCache = () => {
   // Clear cache function
   const clearCache = useCallback(() => {
     Object.values(memoryCache).forEach(cached => {
-      if (cached.blobUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(cached.blobUrl);
+      if (cached.blobUrl && cached.blobUrl.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(cached.blobUrl);
+        } catch (e) {
+          // Ignore revocation errors
+        }
       }
     });
     memoryCache = {};
-    localStorage.removeItem(CACHE_KEY);
+    try {
+      localStorage.removeItem(CACHE_KEY);
+    } catch (e) {
+      // Ignore localStorage errors
+    }
   }, []);
 
   return { 
