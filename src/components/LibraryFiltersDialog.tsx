@@ -409,7 +409,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
                     />
                   </Badge>
                 ))}
-                {localFilters.mentions.map((mention, index) => (
+                {(localFilters.mentions || []).map((mention, index) => (
                   <Badge key={`mention-${mention}-${index}`} variant="secondary" className="bg-primary/10 text-primary">
                     Mention: {mention}
                     <X

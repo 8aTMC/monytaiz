@@ -64,12 +64,14 @@ const ContentLibrary = () => {
       return saved ? JSON.parse(saved) : {
         collaborators: [],
         tags: [],
+        mentions: [],
         priceRange: [0, 1000000] as [number, number]
       };
     } catch {
       return {
         collaborators: [],
         tags: [],
+        mentions: [],
         priceRange: [0, 1000000] as [number, number]
       };
     }

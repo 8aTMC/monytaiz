@@ -47,6 +47,7 @@ export default function SimpleLibrary() {
     return saved ? JSON.parse(saved) : {
       collaborators: [],
       tags: [],
+      mentions: [],
       priceRange: [0, 1000000] // $0 to $10,000 in cents
     };
   });
