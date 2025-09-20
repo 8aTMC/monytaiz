@@ -289,32 +289,27 @@ export const useInfiniteLibraryData = ({
             if (!mappingError && mappedCollaborators && mappedCollaborators.length > 0) {
               console.log('👥 Found collaborator mappings:', mappedCollaborators);
               
-              // Group mappings by media table
-              const mappingsByTable = mappedCollaborators.reduce((acc, mapping) => {
-                if (!acc[mapping.media_table]) {
-                  acc[mapping.media_table] = new Set();
-                }
-                acc[mapping.media_table].add(mapping.media_id);
-                return acc;
-              }, {} as Record<string, Set<string>>);
+              // Normalize mappings by media_id only (ignore media_table/origin mismatches)
+              const rawMappedIds = mappedCollaborators.map(mc => mc.media_id);
+              console.log('👥 Raw mapped media IDs from DB:', rawMappedIds, 'types:', rawMappedIds.map(id => typeof id));
 
-              console.log('👥 Mappings by table:', Object.keys(mappingsByTable).map(table => ({
-                table,
-                count: mappingsByTable[table].size
+              const mappedMediaIds = new Set(rawMappedIds.map(id => String(id).toLowerCase().trim()));
+              console.log('👥 Using normalized mapped media IDs:', Array.from(mappedMediaIds).slice(0, 10));
+              console.log('👥 Sample combinedData IDs before filter:', combinedData.slice(0, 5).map(item => ({
+                id: item.id,
+                normalized: String(item.id).toLowerCase().trim()
               })));
 
-              // Filter items based on their origin and matching media IDs
               combinedData = combinedData.filter(item => {
-                const mediaTableName = item.origin === 'simple_media' ? 'simple_media' : 
-                                     item.origin === 'content_files' ? 'content_files' : 'media';
-                
-                const relevantMappings = mappingsByTable[mediaTableName];
-                const hasMapping = relevantMappings && relevantMappings.has(item.id);
-                
+                const normalizedItemId = String(item.id).toLowerCase().trim();
+                const hasMapping = mappedMediaIds.has(normalizedItemId);
+                if (!hasMapping) {
+                  console.log(`👥 ❌ No mapping for item ${item.id} (normalized: ${normalizedItemId})`);
+                }
                 return hasMapping;
               });
               
-              console.log(`👥 Collaborator filter (database): ${beforeCollaboratorFilter} → ${combinedData.length} items`);
+              console.log(`👥 Collaborator filter (database normalized): ${beforeCollaboratorFilter} → ${combinedData.length} items`);
             } else {
               // No database mappings found, set to empty (no results)
               console.log('👥 No collaborator mappings found in database');
