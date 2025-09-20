@@ -60,28 +60,34 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
   const [manualPriceMin, setManualPriceMin] = useState('');
   const [manualPriceMax, setManualPriceMax] = useState('');
 
-  // Load available collaborators and tags
+  // Load available collaborators and tags with counts
   useEffect(() => {
     let isMounted = true; // Prevent state updates on unmounted component
 
     const loadCollaborators = async () => {
       try {
-        // Load all collaborators, ordered by name alphabetically
-        const { data: collaborators } = await supabase
+        // Load collaborators with media counts
+        const { data: collaboratorsWithCounts } = await supabase
           .from('collaborators')
-          .select('id, name, description, profile_picture_url, username')
+          .select(`
+            id, name, description, profile_picture_url, username,
+            media_collaborators(count)
+          `)
           .order('name', { ascending: true });
 
-        if (collaborators && isMounted) {
+        if (collaboratorsWithCounts && isMounted) {
           setCollaboratorOptions(
-            collaborators.map(c => ({
-              value: c.id,
-              label: c.username ? `${c.name} (@${c.username})` : c.name,
-              description: c.description || undefined,
-              avatar: c.profile_picture_url || undefined,
-              initials: getInitials(c.name),
-              username: c.username || undefined
-            }))
+            collaboratorsWithCounts.map(c => {
+              const mediaCount = Array.isArray(c.media_collaborators) ? c.media_collaborators.length : 0;
+              return {
+                value: c.id,
+                label: c.username ? `${c.name} (@${c.username})` : c.name,
+                description: `${mediaCount} media file${mediaCount !== 1 ? 's' : ''}`,
+                avatar: c.profile_picture_url || undefined,
+                initials: getInitials(c.name),
+                username: c.username || undefined
+              };
+            })
           );
         }
       } catch (error) {
