@@ -501,10 +501,13 @@ const ContentLibrary = () => {
             totalCount={content.length}
             currentView={categoryLabel}
             isCustomFolder={isCustomFolder}
+            selectedMediaIds={Array.from(selectedItems)}
             onClearSelection={handleClearSelection}
             onSelectAll={handleSelectAll}
             onCopy={handleCopy}
             onDelete={handleDelete}
+            onUpdateMentions={() => {}} // Not implemented in ContentLibrary
+            onUpdateTags={() => {}} // Not implemented in ContentLibrary
             disabled={operationLoading || loadingContent}
           />
         )}

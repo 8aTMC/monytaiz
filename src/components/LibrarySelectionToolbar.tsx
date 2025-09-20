@@ -1,18 +1,23 @@
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Check, X, Copy, Trash2 } from 'lucide-react'
+import { Check, X, Copy, Trash2, AtSign, Hash } from 'lucide-react'
 import { CopyToCollectionDialog } from './CopyToCollectionDialog'
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog'
+import { MentionsDialog } from './MentionsDialog'
+import { TagsDialog } from './TagsDialog'
 
 interface LibrarySelectionToolbarProps {
   selectedCount: number
   totalCount: number
   currentView: string
   isCustomFolder: boolean
+  selectedMediaIds: string[]
   onClearSelection: () => void
   onSelectAll: () => void
   onCopy: (collectionIds: string[]) => void
   onDelete: () => void
+  onUpdateMentions: (mentions: string[]) => void
+  onUpdateTags: (tags: string[]) => void
   disabled?: boolean
   onFolderCreated?: () => void
 }
@@ -22,15 +27,20 @@ export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = (
   totalCount,
   currentView,
   isCustomFolder,
+  selectedMediaIds,
   onClearSelection,
   onSelectAll,
   onCopy,
   onDelete,
+  onUpdateMentions,
+  onUpdateTags,
   disabled = false,
   onFolderCreated
 }) => {
   const [copyDialogOpen, setCopyDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [mentionsDialogOpen, setMentionsDialogOpen] = useState(false)
+  const [tagsDialogOpen, setTagsDialogOpen] = useState(false)
 
   const handleCopy = () => {
     setCopyDialogOpen(true)
@@ -48,6 +58,24 @@ export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = (
   const handleDeleteConfirm = () => {
     onDelete()
     setDeleteDialogOpen(false)
+  }
+
+  const handleMentions = () => {
+    setMentionsDialogOpen(true)
+  }
+
+  const handleMentionsConfirm = (mentions: string[]) => {
+    onUpdateMentions(mentions)
+    setMentionsDialogOpen(false)
+  }
+
+  const handleTags = () => {
+    setTagsDialogOpen(true)
+  }
+
+  const handleTagsConfirm = (tags: string[]) => {
+    onUpdateTags(tags)
+    setTagsDialogOpen(false)
   }
 
   const hasSelection = selectedCount > 0
@@ -79,6 +107,28 @@ export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = (
           >
             <Check className="h-4 w-4 mr-2" />
             {allSelected ? "Deselect All" : "Select All"}
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleMentions}
+            disabled={!hasSelection || disabled}
+            className="hover:bg-gradient-glass transition-all duration-300"
+          >
+            <AtSign className="h-4 w-4 mr-2" />
+            @
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleTags}
+            disabled={!hasSelection || disabled}
+            className="hover:bg-gradient-glass transition-all duration-300"
+          >
+            <Hash className="h-4 w-4 mr-2" />
+            #
           </Button>
 
           <Button
@@ -124,6 +174,20 @@ export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = (
         isCustomFolder={isCustomFolder}
         currentView={currentView}
         selectedCount={selectedCount}
+      />
+
+      <MentionsDialog
+        open={mentionsDialogOpen}
+        onOpenChange={setMentionsDialogOpen}
+        mentions={[]}
+        onMentionsChange={handleMentionsConfirm}
+      />
+
+      <TagsDialog
+        open={tagsDialogOpen}
+        onOpenChange={setTagsDialogOpen}
+        tags={[]}
+        onTagsChange={handleTagsConfirm}
       />
     </>
   )

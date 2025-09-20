@@ -22,7 +22,7 @@ export default function SimpleLibrary() {
   const refreshFolderCountsRef = useRef<(() => void) | null>(null);
   const fetchMediaRef = useRef<(() => void) | null>(null);
 
-  const { media, loading, error, fetchMedia, getFullUrlAsync, updateMediaMetadata, addToFolders } = useSimpleMedia({
+  const { media, loading, error, fetchMedia, getFullUrlAsync, updateMediaMetadata, updateBatchMetadata, addToFolders } = useSimpleMedia({
     onFoldersChanged: () => refreshFolderCountsRef.current?.(),
     onMediaRefreshNeeded: () => fetchMediaRef.current?.()
   });
@@ -617,6 +617,46 @@ export default function SimpleLibrary() {
     }
   }, [selectedItems, addToFoldersOperation, handleClearSelection, toast, refreshFolderCounts, customFolders, selectedCategory, fetchFolderContent]);
 
+  // Handle batch mentions update
+  const handleBatchMentionsUpdate = useCallback(async (mentions: string[]) => {
+    if (!updateBatchMetadata || selectedItems.size === 0) return;
+    
+    try {
+      const itemIds = Array.from(selectedItems);
+      const updatedCount = await updateBatchMetadata(itemIds, { mentions });
+      
+      if (updatedCount > 0) {
+        handleClearSelection();
+        toast({
+          title: "Success",
+          description: `Added mentions to ${updatedCount} files`,
+        });
+      }
+    } catch (error) {
+      console.error('Batch mentions update error:', error);
+    }
+  }, [updateBatchMetadata, selectedItems, handleClearSelection, toast]);
+
+  // Handle batch tags update
+  const handleBatchTagsUpdate = useCallback(async (tags: string[]) => {
+    if (!updateBatchMetadata || selectedItems.size === 0) return;
+    
+    try {
+      const itemIds = Array.from(selectedItems);
+      const updatedCount = await updateBatchMetadata(itemIds, { tags });
+      
+      if (updatedCount > 0) {
+        handleClearSelection();
+        toast({
+          title: "Success", 
+          description: `Added tags to ${updatedCount} files`,
+        });
+      }
+    } catch (error) {
+      console.error('Batch tags update error:', error);
+    }
+  }, [updateBatchMetadata, selectedItems, handleClearSelection, toast]);
+
   const handleDelete = useCallback(async () => {
     if (!selectedItems.size) return;
     
@@ -769,10 +809,13 @@ export default function SimpleLibrary() {
               totalCount={filteredMedia.length}
               currentView={selectedCategory}
               isCustomFolder={customFolders.some(folder => folder.id === selectedCategory)}
+              selectedMediaIds={Array.from(selectedItems)}
               onClearSelection={handleClearSelection}
               onSelectAll={handleSelectAll}
               onCopy={handleCopy}
               onDelete={handleDelete}
+              onUpdateMentions={handleBatchMentionsUpdate}
+              onUpdateTags={handleBatchTagsUpdate}
               onFolderCreated={handleFolderCreated}
             />
           )}

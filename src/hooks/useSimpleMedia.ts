@@ -312,6 +312,100 @@ export const useSimpleMedia = (options?: UseSimpleMediaOptions) => {
     }
   }, []);
 
+  // Batch update media metadata for multiple items
+  const updateBatchMetadata = useCallback(async (
+    mediaIds: string[],
+    metadata: Partial<Pick<SimpleMediaItem, 'tags' | 'mentions'>>
+  ) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      let updatedCount = 0;
+
+      // Process each media item
+      const updatePromises = mediaIds.map(async (mediaId) => {
+        // Get current media item
+        const currentItem = media.find(item => item.id === mediaId);
+        if (!currentItem) return;
+
+        // Prepare updated metadata with duplicate prevention
+        const updatedMetadata: any = {};
+        
+        if (metadata.tags) {
+          const existingTags = new Set(currentItem.tags || []);
+          const newTags = [...existingTags, ...metadata.tags];
+          const uniqueTags = [...new Set(newTags)];
+          
+          // Only update if there are actual changes
+          if (uniqueTags.length !== existingTags.size || !uniqueTags.every(tag => existingTags.has(tag))) {
+            updatedMetadata.tags = uniqueTags;
+          }
+        }
+
+        if (metadata.mentions) {
+          const existingMentions = new Set(currentItem.mentions || []);
+          const newMentions = [...existingMentions, ...metadata.mentions];
+          const uniqueMentions = [...new Set(newMentions)];
+          
+          // Only update if there are actual changes
+          if (uniqueMentions.length !== existingMentions.size || !uniqueMentions.every(mention => existingMentions.has(mention))) {
+            updatedMetadata.mentions = uniqueMentions;
+          }
+        }
+
+        // Skip if no changes needed
+        if (Object.keys(updatedMetadata).length === 0) {
+          return;
+        }
+
+        // Update in database
+        const { error: updateError } = await supabase
+          .from('simple_media')
+          .update(updatedMetadata)
+          .eq('id', mediaId);
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        // Update local state
+        setMedia(prevMedia => 
+          prevMedia.map(item => 
+            item.id === mediaId ? { 
+              ...item, 
+              ...updatedMetadata
+            } : item
+          )
+        );
+
+        updatedCount++;
+      });
+
+      await Promise.all(updatePromises);
+
+      toast({
+        title: "Success",
+        description: `Updated ${updatedCount} files successfully`,
+      });
+
+      return updatedCount;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update media metadata';
+      setError(errorMessage);
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [media, toast]);
+
   return {
     media,
     loading,
@@ -322,6 +416,7 @@ export const useSimpleMedia = (options?: UseSimpleMediaOptions) => {
     getThumbnailUrlAsync,
     getFullUrlAsync,
     updateMediaMetadata,
+    updateBatchMetadata,
     addToFolders,
     getMediaFolders,
   };
