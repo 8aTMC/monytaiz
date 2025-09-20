@@ -884,6 +884,50 @@ export type Database = {
           },
         ]
       }
+      media_collaborators: {
+        Row: {
+          assigned_by: string | null
+          collaborator_id: string
+          created_at: string
+          creator_id: string
+          id: string
+          media_id: string
+          media_table: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          collaborator_id: string
+          created_at?: string
+          creator_id: string
+          id?: string
+          media_id: string
+          media_table: string
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_by?: string | null
+          collaborator_id?: string
+          created_at?: string
+          creator_id?: string
+          id?: string
+          media_id?: string
+          media_table?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_collaborators_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string

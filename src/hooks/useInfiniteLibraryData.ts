@@ -242,74 +242,111 @@ export const useInfiniteLibraryData = ({
         combinedData = combinedData.filter(item => item.type === filter);
       }
 
-      // Apply advanced filters (same logic as original)
+      // Apply advanced filters
       if (filters && combinedData.length > 0) {
+        console.log('🎛️ Filtering media with advanced filters:', filters);
+        
         if (filters.collaborators.length > 0) {
+          const beforeCollaboratorFilter = combinedData.length;
+          console.log('👥 Filtering by collaborators:', filters.collaborators);
+          
           try {
-            const { data: collaboratorData, error: collaboratorError } = await supabase
-              .from('collaborators')
-              .select('id, name, username')
-              .in('id', filters.collaborators);
+            // Primary method: Use media_collaborators join table for canonical mapping
+            const mediaIdsByTable = {
+              simple_media: combinedData.filter(item => item.mentions || item.tags).map(item => item.id),
+              media: combinedData.filter(item => !item.mentions && item.tags).map(item => item.id),
+              content_files: combinedData.filter(item => !item.mentions && !item.tags).map(item => item.id)
+            };
 
-            if (collaboratorError) {
-              console.error('Collaborator lookup error:', collaboratorError);
-            } else if (collaboratorData && collaboratorData.length > 0) {
-              const normalize = (s: string) => s
-                .toLowerCase()
-                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-                .replace(/\s+/g, ' ')
-                .trim();
+            const { data: mappedCollaborators, error: mappingError } = await supabase
+              .from('media_collaborators')
+              .select('media_id, media_table')
+              .in('collaborator_id', filters.collaborators);
 
-              const buildKeys = (name?: string | null, username?: string | null) => {
-                const raw: string[] = [];
-                if (name) raw.push(name);
-                if (username) raw.push(username);
-                const keys = new Set<string>();
-                raw.forEach(r => {
-                  const n = normalize(r);
-                  if (!n) return;
-                  keys.add(n);
-                  keys.add(n.replace(/\s+/g, ''));
-                  keys.add(n.replace(/[@#]/g, ''));
-                });
-                // Include @username variants
-                raw.forEach(r => {
-                  const n = normalize(r).replace(/^@/, '');
-                  if (n) keys.add(`@${n}`);
-                });
-                return Array.from(keys);
-              };
+            console.log('👥 Media collaborators mapping result:', { mappedCollaborators, mappingError });
 
-              const collaboratorKeys = collaboratorData.flatMap(c => buildKeys(c.name, (c as any).username));
-
+            if (!mappingError && mappedCollaborators && mappedCollaborators.length > 0) {
+              // Use canonical mapping
+              const mappedMediaIds = new Set(mappedCollaborators.map(mc => mc.media_id));
+              console.log('👥 Found mapped media IDs:', Array.from(mappedMediaIds));
+              
               combinedData = combinedData.filter(item => {
-                const normArray = (arr?: string[]) =>
-                  Array.isArray(arr) ? arr.map(v => normalize(v).replace(/^@/, '')) : [];
-
-                const mentions = normArray(item.mentions);
-                const tags = normArray(item.tags);
-                const text = normalize(`${item.title || ''} ${item.description || ''} ${item.notes || ''}`);
-
-                const arrayMatch = (arr: string[]) =>
-                  arr.some(val =>
-                    collaboratorKeys.some(k =>
-                      val.includes(k.replace(/^@/, '')) || (`@${val}`).includes(k)
-                    )
-                  );
-
-                if (mentions.length && arrayMatch(mentions)) return true;
-                if (tags.length && arrayMatch(tags)) return true;
-                if (text && collaboratorKeys.some(k => text.includes(k.replace(/^@/, '')))) return true;
-
-                return false;
+                const hasMapping = mappedMediaIds.has(item.id);
+                console.log(`👥 ${hasMapping ? '✅' : '❌'} Item ${item.id} ${hasMapping ? 'has' : 'lacks'} collaborator mapping`);
+                return hasMapping;
               });
             } else {
-              console.warn('No collaborators found for IDs:', filters.collaborators);
+              console.log('👥 No canonical mapping found, falling back to fuzzy matching');
+              
+              // Fallback: Fuzzy matching like before
+              const { data: collaboratorData, error: collaboratorError } = await supabase
+                .from('collaborators')
+                .select('id, name, username')
+                .in('id', filters.collaborators);
+
+              if (collaboratorError) {
+                console.error('👥 Collaborator lookup error:', collaboratorError);
+              } else if (collaboratorData && collaboratorData.length > 0) {
+                const normalize = (s: string) => s
+                  .toLowerCase()
+                  .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                  .replace(/\s+/g, ' ')
+                  .trim();
+
+                const buildKeys = (name?: string | null, username?: string | null) => {
+                  const raw: string[] = [];
+                  if (name) raw.push(name);
+                  if (username) raw.push(username);
+                  const keys = new Set<string>();
+                  raw.forEach(r => {
+                    const n = normalize(r);
+                    if (!n) return;
+                    keys.add(n);
+                    keys.add(n.replace(/\s+/g, ''));
+                    keys.add(n.replace(/[@#]/g, ''));
+                  });
+                  raw.forEach(r => {
+                    const n = normalize(r).replace(/^@/, '');
+                    if (n) keys.add(`@${n}`);
+                  });
+                  return Array.from(keys);
+                };
+
+                const collaboratorKeys = collaboratorData.flatMap(c => buildKeys(c.name, (c as any).username));
+                console.log('👥 Fallback: Using fuzzy matching with keys:', collaboratorKeys);
+
+                combinedData = combinedData.filter(item => {
+                  const normArray = (arr?: string[]) =>
+                    Array.isArray(arr) ? arr.map(v => normalize(v).replace(/^@/, '')) : [];
+
+                  const mentions = normArray(item.mentions);
+                  const tags = normArray(item.tags);
+                  const text = normalize(`${item.title || ''} ${item.description || ''} ${item.notes || ''}`);
+
+                  const arrayMatch = (arr: string[]) =>
+                    arr.some(val =>
+                      collaboratorKeys.some(k =>
+                        val.includes(k.replace(/^@/, '')) || (`@${val}`).includes(k)
+                      )
+                    );
+
+                  let hasMatch = false;
+                  if (mentions.length && arrayMatch(mentions)) hasMatch = true;
+                  if (!hasMatch && tags.length && arrayMatch(tags)) hasMatch = true;
+                  if (!hasMatch && text && collaboratorKeys.some(k => text.includes(k.replace(/^@/, '')))) hasMatch = true;
+
+                  console.log(`👥 ${hasMatch ? '✅' : '❌'} Item ${item.id} fuzzy match result`);
+                  return hasMatch;
+                });
+              } else {
+                console.warn('👥 No collaborators found for IDs:', filters.collaborators);
+              }
             }
           } catch (error) {
-            console.error('Error in collaborator filtering:', error);
-            // continue without filtering
+            console.error('👥 Error in collaborator filtering:', error);
           }
+          
+          console.log(`👥 Filtered ${beforeCollaboratorFilter} items down to ${combinedData.length} items`);
         }
 
         if (filters.tags.length > 0) {

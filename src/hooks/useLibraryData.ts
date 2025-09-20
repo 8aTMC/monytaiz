@@ -213,94 +213,116 @@ export const useLibraryData = ({
             console.log('👥 Filtering by collaborators:', filters.collaborators);
             
             try {
-              const { data: collaboratorData, error: collaboratorError } = await supabase
-                .from('collaborators')
-                .select('id, name, username')
-                .in('id', filters.collaborators);
-              
-              console.log('👥 Collaborator lookup result:', { collaboratorData, collaboratorError });
-              
-              if (collaboratorError) {
-                console.error('👥 Error fetching collaborators:', collaboratorError);
-              } else if (!collaboratorData || collaboratorData.length === 0) {
-                console.warn('👥 No collaborators found for IDs:', filters.collaborators);
-              } else {
-                const normalize = (s: string) => s
-                  .toLowerCase()
-                  .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-                  .replace(/\s+/g, ' ')
-                  .trim();
+              // Primary method: Use media_collaborators join table for canonical mapping
+              const { data: mappedCollaborators, error: mappingError } = await supabase
+                .from('media_collaborators')
+                .select('media_id, media_table')
+                .in('collaborator_id', filters.collaborators);
 
-                const buildKeys = (name?: string | null, username?: string | null) => {
-                  const raw: string[] = [];
-                  if (name) raw.push(name);
-                  if (username) raw.push(username);
-                  const keys = new Set<string>();
-                  raw.forEach(r => {
-                    const n = normalize(r);
-                    if (!n) return;
-                    keys.add(n);
-                    keys.add(n.replace(/\s+/g, ''));
-                    keys.add(n.replace(/[@#]/g, ''));
-                  });
-                  raw.forEach(r => {
-                    const n = normalize(r).replace(/^@/, '');
-                    if (n) keys.add(`@${n}`);
-                  });
-                  return Array.from(keys);
-                };
+              console.log('👥 Media collaborators mapping result:', { mappedCollaborators, mappingError });
 
-                const collaboratorKeys = collaboratorData.flatMap(c => buildKeys(c.name, (c as any).username));
-                console.log('👥 Searching with keys:', collaboratorKeys);
-                console.log('👥 Sample media data to check:', combinedData.slice(0, 3).map(item => ({ 
-                  id: item.id, 
-                  title: item.title,
-                  mentions: item.mentions, 
-                  tags: item.tags 
-                })));
+              if (!mappingError && mappedCollaborators && mappedCollaborators.length > 0) {
+                // Use canonical mapping
+                const mappedMediaIds = new Set(mappedCollaborators.map(mc => mc.media_id));
+                console.log('👥 Found mapped media IDs:', Array.from(mappedMediaIds));
                 
                 combinedData = combinedData.filter(item => {
-                  let hasMatch = false;
-                  let matchReason = '';
-
-                  const normArray = (arr?: string[]) =>
-                    Array.isArray(arr) ? arr.map(v => normalize(v).replace(/^@/, '')) : [];
-
-                  const mentions = normArray(item.mentions);
-                  const tags = normArray(item.tags);
-                  const text = normalize(`${item.title || ''} ${item.description || ''} ${item.notes || ''}`);
-
-                  const arrayMatch = (arr: string[], arrName: string) =>
-                    arr.some(val =>
-                      collaboratorKeys.some(k => {
-                        const match = val.includes(k.replace(/^@/, '')) || (`@${val}`).includes(k);
-                        if (match && !hasMatch) {
-                          matchReason = `${arrName}: "${val}"`;
-                          console.log(`👥 Found ${arrName} match for ${item.id}: "${val}" ~ ${k}`);
-                        }
-                        return match;
-                      })
-                    );
-
-                  if (mentions.length && arrayMatch(mentions, 'mention')) hasMatch = true;
-                  if (!hasMatch && tags.length && arrayMatch(tags, 'tag')) hasMatch = true;
-                  if (!hasMatch && text && collaboratorKeys.some(k => text.includes(k.replace(/^@/, '')))) {
-                    matchReason = `text`;
-                    hasMatch = true;
-                  }
-
-                  if (hasMatch) {
-                    console.log(`👥 ✅ Item ${item.id} matches via ${matchReason}`);
-                  } else {
-                    console.log(`👥 ❌ Item ${item.id} doesn't match - mentions:`, item.mentions, 'tags:', item.tags);
-                  }
-                  
-                  return hasMatch;
+                  const hasMapping = mappedMediaIds.has(item.id);
+                  console.log(`👥 ${hasMapping ? '✅' : '❌'} Item ${item.id} ${hasMapping ? 'has' : 'lacks'} collaborator mapping`);
+                  return hasMapping;
                 });
+              } else {
+                console.log('👥 No canonical mapping found, falling back to fuzzy matching');
+                
+                // Fallback: Fuzzy matching like before
+                const { data: collaboratorData, error: collaboratorError } = await supabase
+                  .from('collaborators')
+                  .select('id, name, username')
+                  .in('id', filters.collaborators);
+                
+                console.log('👥 Collaborator lookup result:', { collaboratorData, collaboratorError });
+                
+                if (collaboratorError) {
+                  console.error('👥 Error fetching collaborators:', collaboratorError);
+                } else if (!collaboratorData || collaboratorData.length === 0) {
+                  console.warn('👥 No collaborators found for IDs:', filters.collaborators);
+                } else {
+                  const normalize = (s: string) => s
+                    .toLowerCase()
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+
+                  const buildKeys = (name?: string | null, username?: string | null) => {
+                    const raw: string[] = [];
+                    if (name) raw.push(name);
+                    if (username) raw.push(username);
+                    const keys = new Set<string>();
+                    raw.forEach(r => {
+                      const n = normalize(r);
+                      if (!n) return;
+                      keys.add(n);
+                      keys.add(n.replace(/\s+/g, ''));
+                      keys.add(n.replace(/[@#]/g, ''));
+                    });
+                    raw.forEach(r => {
+                      const n = normalize(r).replace(/^@/, '');
+                      if (n) keys.add(`@${n}`);
+                    });
+                    return Array.from(keys);
+                  };
+
+                  const collaboratorKeys = collaboratorData.flatMap(c => buildKeys(c.name, (c as any).username));
+                  console.log('👥 Fallback: Using fuzzy matching with keys:', collaboratorKeys);
+                  console.log('👥 Sample media data to check:', combinedData.slice(0, 3).map(item => ({ 
+                    id: item.id, 
+                    title: item.title,
+                    mentions: item.mentions, 
+                    tags: item.tags 
+                  })));
+                  
+                  combinedData = combinedData.filter(item => {
+                    let hasMatch = false;
+                    let matchReason = '';
+
+                    const normArray = (arr?: string[]) =>
+                      Array.isArray(arr) ? arr.map(v => normalize(v).replace(/^@/, '')) : [];
+
+                    const mentions = normArray(item.mentions);
+                    const tags = normArray(item.tags);
+                    const text = normalize(`${item.title || ''} ${item.description || ''} ${item.notes || ''}`);
+
+                    const arrayMatch = (arr: string[], arrName: string) =>
+                      arr.some(val =>
+                        collaboratorKeys.some(k => {
+                          const match = val.includes(k.replace(/^@/, '')) || (`@${val}`).includes(k);
+                          if (match && !hasMatch) {
+                            matchReason = `${arrName}: "${val}"`;
+                            console.log(`👥 Found ${arrName} match for ${item.id}: "${val}" ~ ${k}`);
+                          }
+                          return match;
+                        })
+                      );
+
+                    if (mentions.length && arrayMatch(mentions, 'mention')) hasMatch = true;
+                    if (!hasMatch && tags.length && arrayMatch(tags, 'tag')) hasMatch = true;
+                    if (!hasMatch && text && collaboratorKeys.some(k => text.includes(k.replace(/^@/, '')))) {
+                      matchReason = `text`;
+                      hasMatch = true;
+                    }
+
+                    if (hasMatch) {
+                      console.log(`👥 ✅ Item ${item.id} matches via ${matchReason}`);
+                    } else {
+                      console.log(`👥 ❌ Item ${item.id} doesn't match - mentions:`, item.mentions, 'tags:', item.tags);
+                    }
+                    
+                    return hasMatch;
+                  });
+                }
               }
             } catch (error) {
               console.error('👥 Error in collaborator filtering:', error);
-              // Continue without collaborator filtering if there's an error
             }
             
             console.log(`👥 Filtered ${beforeCollaboratorFilter} items down to ${combinedData.length} items`);
