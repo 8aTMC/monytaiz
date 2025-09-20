@@ -213,25 +213,45 @@ export const useLibraryData = ({
             console.log('👥 Filtering by collaborators:', filters.collaborators);
             
             try {
-              // Get collaborator names from IDs
               const { data: collaboratorData, error: collaboratorError } = await supabase
                 .from('collaborators')
-                .select('id, name')
+                .select('id, name, username')
                 .in('id', filters.collaborators);
               
               console.log('👥 Collaborator lookup result:', { collaboratorData, collaboratorError });
               
               if (collaboratorError) {
                 console.error('👥 Error fetching collaborators:', collaboratorError);
-                return;
-              }
-              
-              if (!collaboratorData || collaboratorData.length === 0) {
+              } else if (!collaboratorData || collaboratorData.length === 0) {
                 console.warn('👥 No collaborators found for IDs:', filters.collaborators);
-                combinedData = []; // No matches if collaborators don't exist
               } else {
-                const collaboratorNames = collaboratorData.map(c => c.name.toLowerCase());
-                console.log('👥 Looking for collaborator names:', collaboratorNames);
+                const normalize = (s: string) => s
+                  .toLowerCase()
+                  .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                  .replace(/\s+/g, ' ')
+                  .trim();
+
+                const buildKeys = (name?: string | null, username?: string | null) => {
+                  const raw: string[] = [];
+                  if (name) raw.push(name);
+                  if (username) raw.push(username);
+                  const keys = new Set<string>();
+                  raw.forEach(r => {
+                    const n = normalize(r);
+                    if (!n) return;
+                    keys.add(n);
+                    keys.add(n.replace(/\s+/g, ''));
+                    keys.add(n.replace(/[@#]/g, ''));
+                  });
+                  raw.forEach(r => {
+                    const n = normalize(r).replace(/^@/, '');
+                    if (n) keys.add(`@${n}`);
+                  });
+                  return Array.from(keys);
+                };
+
+                const collaboratorKeys = collaboratorData.flatMap(c => buildKeys(c.name, (c as any).username));
+                console.log('👥 Searching with keys:', collaboratorKeys);
                 console.log('👥 Sample media data to check:', combinedData.slice(0, 3).map(item => ({ 
                   id: item.id, 
                   title: item.title,
@@ -242,50 +262,33 @@ export const useLibraryData = ({
                 combinedData = combinedData.filter(item => {
                   let hasMatch = false;
                   let matchReason = '';
-                  
-                  // Check mentions array (for simple_media)
-                  if (item.mentions && Array.isArray(item.mentions)) {
-                    const mentionMatch = item.mentions.some((mention: string) => {
-                      const match = collaboratorNames.some(name => mention.toLowerCase().includes(name));
-                      if (match) {
-                        matchReason = `mention: "${mention}"`;
-                        console.log(`👥 Found mention match for ${item.id}: "${mention}" contains collaborator name`);
-                      }
-                      return match;
-                    });
-                    if (mentionMatch) hasMatch = true;
+
+                  const normArray = (arr?: string[]) =>
+                    Array.isArray(arr) ? arr.map(v => normalize(v).replace(/^@/, '')) : [];
+
+                  const mentions = normArray(item.mentions);
+                  const tags = normArray(item.tags);
+                  const text = normalize(`${item.title || ''} ${item.description || ''} ${item.notes || ''}`);
+
+                  const arrayMatch = (arr: string[], arrName: string) =>
+                    arr.some(val =>
+                      collaboratorKeys.some(k => {
+                        const match = val.includes(k.replace(/^@/, '')) || (`@${val}`).includes(k);
+                        if (match && !hasMatch) {
+                          matchReason = `${arrName}: "${val}"`;
+                          console.log(`👥 Found ${arrName} match for ${item.id}: "${val}" ~ ${k}`);
+                        }
+                        return match;
+                      })
+                    );
+
+                  if (mentions.length && arrayMatch(mentions, 'mention')) hasMatch = true;
+                  if (!hasMatch && tags.length && arrayMatch(tags, 'tag')) hasMatch = true;
+                  if (!hasMatch && text && collaboratorKeys.some(k => text.includes(k.replace(/^@/, '')))) {
+                    matchReason = `text`;
+                    hasMatch = true;
                   }
-                  
-                  // Check tags array for collaborator references
-                  if (!hasMatch && item.tags && Array.isArray(item.tags)) {
-                    const tagMatch = item.tags.some((tag: string) => {
-                      const match = collaboratorNames.some(name => 
-                        tag.toLowerCase().includes(name) || 
-                        (tag.startsWith('@') && tag.substring(1).toLowerCase().includes(name))
-                      );
-                      if (match) {
-                        matchReason = `tag: "${tag}"`;
-                        console.log(`👥 Found tag match for ${item.id}: "${tag}" contains collaborator name`);
-                      }
-                      return match;
-                    });
-                    if (tagMatch) hasMatch = true;
-                  }
-                  
-                  // Check title, description, and notes as fallback
-                  if (!hasMatch) {
-                    const searchText = `${item.title || ''} ${item.description || ''} ${item.notes || ''}`.toLowerCase();
-                    const textMatch = collaboratorNames.some(name => {
-                      const match = searchText.includes(name);
-                      if (match) {
-                        matchReason = `text: "${searchText.substring(0, 100)}"`;
-                        console.log(`👥 Found text match for ${item.id}: text contains collaborator name`);
-                      }
-                      return match;
-                    });
-                    if (textMatch) hasMatch = true;
-                  }
-                  
+
                   if (hasMatch) {
                     console.log(`👥 ✅ Item ${item.id} matches via ${matchReason}`);
                   } else {

@@ -37,6 +37,7 @@ interface CollaboratorOption {
   description?: string;
   avatar?: string;
   initials?: string;
+  username?: string;
 }
 
 interface TagOption {
@@ -75,7 +76,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
           setCollaboratorOptions(
             collaborators.map(c => ({
               value: c.id,
-              label: c.name,
+              label: c.username ? `${c.name} (@${c.username})` : c.name,
               description: c.description || undefined,
               avatar: c.profile_picture_url || undefined,
               initials: getInitials(c.name),

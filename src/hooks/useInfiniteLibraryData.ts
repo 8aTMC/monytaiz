@@ -248,39 +248,67 @@ export const useInfiniteLibraryData = ({
           try {
             const { data: collaboratorData, error: collaboratorError } = await supabase
               .from('collaborators')
-              .select('id, name')
+              .select('id, name, username')
               .in('id', filters.collaborators);
-            
-            if (!collaboratorError && collaboratorData && collaboratorData.length > 0) {
-              const collaboratorNames = collaboratorData.map(c => c.name.toLowerCase());
-              
+
+            if (collaboratorError) {
+              console.error('Collaborator lookup error:', collaboratorError);
+            } else if (collaboratorData && collaboratorData.length > 0) {
+              const normalize = (s: string) => s
+                .toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+              const buildKeys = (name?: string | null, username?: string | null) => {
+                const raw: string[] = [];
+                if (name) raw.push(name);
+                if (username) raw.push(username);
+                const keys = new Set<string>();
+                raw.forEach(r => {
+                  const n = normalize(r);
+                  if (!n) return;
+                  keys.add(n);
+                  keys.add(n.replace(/\s+/g, ''));
+                  keys.add(n.replace(/[@#]/g, ''));
+                });
+                // Include @username variants
+                raw.forEach(r => {
+                  const n = normalize(r).replace(/^@/, '');
+                  if (n) keys.add(`@${n}`);
+                });
+                return Array.from(keys);
+              };
+
+              const collaboratorKeys = collaboratorData.flatMap(c => buildKeys(c.name, (c as any).username));
+
               combinedData = combinedData.filter(item => {
-                if (item.mentions && Array.isArray(item.mentions)) {
-                  const mentionMatch = item.mentions.some((mention: string) => 
-                    collaboratorNames.some(name => mention.toLowerCase().includes(name))
-                  );
-                  if (mentionMatch) return true;
-                }
-                
-                if (item.tags && Array.isArray(item.tags)) {
-                  const tagMatch = item.tags.some((tag: string) => 
-                    collaboratorNames.some(name => 
-                      tag.toLowerCase().includes(name) || 
-                      (tag.startsWith('@') && tag.substring(1).toLowerCase().includes(name))
+                const normArray = (arr?: string[]) =>
+                  Array.isArray(arr) ? arr.map(v => normalize(v).replace(/^@/, '')) : [];
+
+                const mentions = normArray(item.mentions);
+                const tags = normArray(item.tags);
+                const text = normalize(`${item.title || ''} ${item.description || ''} ${item.notes || ''}`);
+
+                const arrayMatch = (arr: string[]) =>
+                  arr.some(val =>
+                    collaboratorKeys.some(k =>
+                      val.includes(k.replace(/^@/, '')) || (`@${val}`).includes(k)
                     )
                   );
-                  if (tagMatch) return true;
-                }
-                
-                const searchText = `${item.title || ''} ${item.description || ''} ${item.notes || ''}`.toLowerCase();
-                const textMatch = collaboratorNames.some(name => searchText.includes(name));
-                if (textMatch) return true;
-                
+
+                if (mentions.length && arrayMatch(mentions)) return true;
+                if (tags.length && arrayMatch(tags)) return true;
+                if (text && collaboratorKeys.some(k => text.includes(k.replace(/^@/, '')))) return true;
+
                 return false;
               });
+            } else {
+              console.warn('No collaborators found for IDs:', filters.collaborators);
             }
           } catch (error) {
-            // Continue without collaborator filtering if there's an error
+            console.error('Error in collaborator filtering:', error);
+            // continue without filtering
           }
         }
 
