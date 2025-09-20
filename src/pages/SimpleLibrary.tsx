@@ -186,6 +186,18 @@ export default function SimpleLibrary() {
     fetchMediaRef.current = fetchMedia;
   }, [refreshFolderCounts, fetchMedia]);
 
+  // Clear filters on component unmount (page leave)
+  useEffect(() => {
+    return () => {
+      console.log('🧹 SimpleLibrary: Clearing all filters on page leave');
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('library-filters-')) {
+          localStorage.removeItem(key);
+        }
+      });
+    };
+  }, []);
+
   useEffect(() => {
     fetchMedia();
     fetchFolders();
@@ -559,25 +571,35 @@ export default function SimpleLibrary() {
     // Clear folder content first to avoid showing wrong content
     setFolderContent([]);
     
-    // Load category-specific filters
-    const saved = localStorage.getItem(`library-filters-${categoryId}`);
-    if (saved) {
-      setAdvancedFilters(JSON.parse(saved));
-    } else {
-      setAdvancedFilters({
-        collaborators: [],
-        tags: [],
-        mentions: [],
-        priceRange: [0, 1000000]
-      });
-    }
+    // Clear all filters when changing categories for fresh start
+    console.log('🧹 SimpleLibrary: Clearing filters on category change to:', categoryId);
+    const defaultFilters = {
+      collaborators: [],
+      tags: [],
+      mentions: [],
+      priceRange: [0, 1000000] as [number, number]
+    };
+    setAdvancedFilters(defaultFilters);
+    
+    // Remove saved filters for all categories
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('library-filters-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    // Show notification
+    toast({
+      title: "Filters cleared",
+      description: "Starting fresh with no active filters"
+    });
     
     // If selecting a custom folder, fetch its content
     const isCustomFolder = customFolders.some(folder => folder.id === categoryId);
     if (isCustomFolder) {
       fetchFolderContent(categoryId);
     }
-  }, [handleClearSelection, customFolders, fetchFolderContent]);
+  }, [handleClearSelection, customFolders, fetchFolderContent, toast]);
 
   const handleCopy = useCallback(async (folderIds: string[]) => {
     if (selectedItems.size === 0 || folderIds.length === 0) {

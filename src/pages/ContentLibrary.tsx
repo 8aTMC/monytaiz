@@ -200,25 +200,29 @@ const ContentLibrary = () => {
     setSelecting(false);
     setSelectedItems(new Set());
     
-    // Clear filters when changing categories and load category-specific filters
-    try {
-      const saved = localStorage.getItem(`library-filters-${categoryId}`);
-      const categoryFilters = saved ? JSON.parse(saved) : {
-        collaborators: [],
-        tags: [],
-        mentions: [],
-        priceRange: [0, 1000000] as [number, number]
-      };
-      setAdvancedFilters(categoryFilters);
-    } catch {
-      setAdvancedFilters({
-        collaborators: [],
-        tags: [],
-        mentions: [],
-        priceRange: [0, 1000000] as [number, number]
-      });
-    }
-  }, [setSearchParams]);
+    // Clear all filters when changing categories for fresh start
+    console.log('🧹 ContentLibrary: Clearing filters on category change to:', categoryId);
+    const defaultFilters = {
+      collaborators: [],
+      tags: [],
+      mentions: [],
+      priceRange: [0, 1000000] as [number, number]
+    };
+    setAdvancedFilters(defaultFilters);
+    
+    // Remove saved filters for all categories
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('library-filters-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    // Show notification
+    toast({
+      title: "Filters cleared",
+      description: "Starting fresh with no active filters"
+    });
+  }, [setSearchParams, toast]);
 
   // Metadata update handler
   const handleMetadataUpdate = useCallback(async (itemId: string, field: string, value: any) => {
@@ -410,6 +414,18 @@ const ContentLibrary = () => {
       }
     });
   }, [content, preloadMultiResolution, preloadImage]);
+
+  // Clear filters on component unmount (page leave)
+  useEffect(() => {
+    return () => {
+      console.log('🧹 ContentLibrary: Clearing all filters on page leave');
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('library-filters-')) {
+          localStorage.removeItem(key);
+        }
+      });
+    };
+  }, []);
 
   // Auth setup
   useEffect(() => {

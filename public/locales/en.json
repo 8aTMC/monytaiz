@@ -38,7 +38,13 @@
     },
     "library": {
       "showDefault": "Show default folders",
-      "hideDefault": "Hide default folders"
+      "hideDefault": "Hide default folders",
+      "filters": {
+        "cleared": "Filters cleared",
+        "clearedDescription": "Starting fresh with no active filters",
+        "autoCleared": "Filters automatically cleared",
+        "autoClearedDescription": "Filters reset for better navigation experience"
+      }
     },
     "auth": {
       "signIn": "Sign In",
