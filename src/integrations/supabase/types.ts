@@ -2125,6 +2125,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      populate_media_collaborators: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       recreate_storage_folders: {
         Args: Record<PropertyKey, never>
         Returns: Json

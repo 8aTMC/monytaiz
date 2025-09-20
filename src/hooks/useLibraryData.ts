@@ -294,16 +294,20 @@ export const useLibraryData = ({
                     const text = normalize(`${item.title || ''} ${item.description || ''} ${item.notes || ''}`);
 
                     const arrayMatch = (arr: string[], arrName: string) =>
-                      arr.some(val =>
-                        collaboratorKeys.some(k => {
-                          const match = val.includes(k.replace(/^@/, '')) || (`@${val}`).includes(k);
+                      arr.some(val => {
+                        const normalizedVal = normalize(val).replace(/^@/, '');
+                        return collaboratorKeys.some(k => {
+                          const normalizedKey = normalize(k).replace(/^@/, '');
+                          const match = normalizedVal === normalizedKey || 
+                                       normalizedVal.includes(normalizedKey) ||
+                                       normalizedKey.includes(normalizedVal);
                           if (match && !hasMatch) {
                             matchReason = `${arrName}: "${val}"`;
                             console.log(`👥 Found ${arrName} match for ${item.id}: "${val}" ~ ${k}`);
                           }
                           return match;
-                        })
-                      );
+                        });
+                      });
 
                     if (mentions.length && arrayMatch(mentions, 'mention')) hasMatch = true;
                     if (!hasMatch && tags.length && arrayMatch(tags, 'tag')) hasMatch = true;

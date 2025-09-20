@@ -94,6 +94,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
           // Get media counts for each collaborator
           const collaboratorOptions = await Promise.all(
             collaborators.map(async (c) => {
+              // Get count from media_collaborators table (populated by migration)
               const { count } = await supabase
                 .from('media_collaborators')
                 .select('*', { count: 'exact', head: true })
