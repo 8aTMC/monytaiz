@@ -257,7 +257,7 @@ export const useInfiniteLibraryData = ({
             
             return filters.tags.some(filterTag => 
               item.tags.some(itemTag => 
-                itemTag.toLowerCase().includes(filterTag.toLowerCase())
+                itemTag.toLowerCase().trim() === filterTag.toLowerCase().trim()
               )
             );
           });
@@ -287,9 +287,33 @@ export const useInfiniteLibraryData = ({
               .in('collaborator_id', filters.collaborators);
 
             if (!mappingError && mappedCollaborators && mappedCollaborators.length > 0) {
-              // Filter by mapped media IDs
-              const mappedMediaIds = new Set(mappedCollaborators.map(mc => mc.media_id));
-              combinedData = combinedData.filter(item => mappedMediaIds.has(item.id));
+              console.log('👥 Found collaborator mappings:', mappedCollaborators);
+              
+              // Group mappings by media table
+              const mappingsByTable = mappedCollaborators.reduce((acc, mapping) => {
+                if (!acc[mapping.media_table]) {
+                  acc[mapping.media_table] = new Set();
+                }
+                acc[mapping.media_table].add(mapping.media_id);
+                return acc;
+              }, {} as Record<string, Set<string>>);
+
+              console.log('👥 Mappings by table:', Object.keys(mappingsByTable).map(table => ({
+                table,
+                count: mappingsByTable[table].size
+              })));
+
+              // Filter items based on their origin and matching media IDs
+              combinedData = combinedData.filter(item => {
+                const mediaTableName = item.origin === 'simple_media' ? 'simple_media' : 
+                                     item.origin === 'content_files' ? 'content_files' : 'media';
+                
+                const relevantMappings = mappingsByTable[mediaTableName];
+                const hasMapping = relevantMappings && relevantMappings.has(item.id);
+                
+                return hasMapping;
+              });
+              
               console.log(`👥 Collaborator filter (database): ${beforeCollaboratorFilter} → ${combinedData.length} items`);
             } else {
               // No database mappings found, set to empty (no results)
