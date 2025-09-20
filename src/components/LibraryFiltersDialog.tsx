@@ -124,11 +124,10 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
           mediaData = mediaResult.data || [];
           simpleMediaData = simpleResult.data || [];
         } else if (selectedCategory === 'messages') {
-          // Fetch only message-related media
+          // Fetch only message-related media (simple_media doesn't have origin column)
           const mediaResult = await supabase.from('media').select('tags, mentions').eq('origin', 'message').not('tags', 'is', null);
-          const simpleResult = await supabase.from('simple_media').select('tags, mentions').eq('origin', 'message').not('tags', 'is', null);
           mediaData = mediaResult.data || [];
-          simpleMediaData = simpleResult.data || [];
+          simpleMediaData = []; // Skip simple_media for messages since it doesn't have origin
         } else if (selectedCategory.startsWith('folder_')) {
           // Fetch from specific folder
           const folderId = selectedCategory.replace('folder_', '');
