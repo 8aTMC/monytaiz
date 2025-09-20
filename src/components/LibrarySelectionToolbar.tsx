@@ -154,7 +154,7 @@ export const LibrarySelectionToolbar: React.FC<LibrarySelectionToolbarProps> = (
           </Button>
         </div>
 
-        <div className="text-sm font-medium">
+        <div className="text-sm font-medium ml-auto px-3 py-1.5 bg-muted/30 rounded-md border">
           <span className="text-primary">{selectedCount}</span>
           <span className="text-muted-foreground"> of {totalCount} selected</span>
         </div>
