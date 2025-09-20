@@ -169,7 +169,7 @@ const LibraryGridComponent = ({
                 {item.folders && item.folders.length > 0 && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="flex items-center gap-1 text-xs bg-blue-600/80 backdrop-blur-sm rounded-lg px-2 py-1 truncate font-medium cursor-pointer text-white">
+                      <div className="flex items-center gap-1 text-xs bg-primary/80 backdrop-blur-sm rounded-lg px-2 py-1 truncate font-medium cursor-pointer text-white">
                         <Folder className="h-3 w-3 flex-shrink-0" />
                         <span className="truncate">
                           {item.folders.length === 1 ? item.folders[0] : `${item.folders.length} folders`}

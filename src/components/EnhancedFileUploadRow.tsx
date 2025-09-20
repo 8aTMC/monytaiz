@@ -102,7 +102,7 @@ export function EnhancedFileUploadRow({
     if (item.selected && hasMetadata) return "bg-green-100 border-green-300 dark:bg-green-950 dark:border-green-700";
     if (item.selected) return "bg-primary/10 border-primary";
     if (hasMetadata) return "bg-green-50 border-green-200 dark:bg-green-950/50 dark:border-green-800";
-    if (hasDetails) return "bg-blue-50 border-blue-200 dark:bg-blue-950/50 dark:border-blue-800";
+    if (hasDetails) return "bg-primary/10 border-primary/20 dark:bg-primary/5 dark:border-primary/20";
     return "hover:bg-muted/50";
   };
 

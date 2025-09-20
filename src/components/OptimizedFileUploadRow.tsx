@@ -102,7 +102,7 @@ export const OptimizedFileUploadRow = ({
       <div 
         className={cn(
           "flex flex-col gap-3 p-4 rounded-lg border transition-all hover:bg-muted/20 cursor-pointer",
-          index === currentUploadIndex && isUploading && "bg-blue-50 border-blue-200"
+          index === currentUploadIndex && isUploading && "bg-primary/10 border-primary/20"
         )}
         onDoubleClick={handleDoubleClick}
       >
@@ -176,7 +176,7 @@ export const OptimizedFileUploadRow = ({
                 <div className="flex justify-between text-xs text-muted-foreground mt-1">
                   <span>{item.progress}% complete</span>
                   {index === currentUploadIndex && isUploading && (
-                    <span className="text-blue-600">Processing...</span>
+                    <span className="text-primary">Processing...</span>
                   )}
                 </div>
               </div>

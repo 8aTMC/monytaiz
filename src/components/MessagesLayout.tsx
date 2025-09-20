@@ -585,13 +585,13 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   const actionButtons = [
     { icon: Bot, label: 'AI', color: 'text-purple-500' },
     { icon: Smile, label: 'Emoji', color: 'text-amber-500' },
-    { icon: Library, label: 'Library', color: 'text-blue-500' },
+    { icon: Library, label: 'Library', color: 'text-primary' },
     { icon: Mic, label: 'Voice', color: 'text-purple-500' },
     // Only show tip button for fans, not for creators/admin
     ...(!isCreator ? [{ icon: Gift, label: 'Tip', color: 'text-yellow-500' }] : []),
     { icon: DollarSign, label: 'Price', color: 'text-emerald-500' },
     { icon: FileText, label: 'Scripts', color: 'text-orange-500' },
-    { icon: AtSign, label: 'Tag Creator', color: 'text-blue-600' },
+    { icon: AtSign, label: 'Tag Creator', color: 'text-primary' },
   ];
 
   if (loading) {

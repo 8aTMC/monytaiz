@@ -363,7 +363,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
             <Smile className="h-4 w-4 text-amber-500" />
           </Button>
           <Button variant="ghost" size="sm" className="h-8 px-3" title="Library">
-            <Library className="h-4 w-4 text-blue-500" />
+            <Library className="h-4 w-4 text-primary" />
           </Button>
           <Button variant="ghost" size="sm" className="h-8 px-3" title="Voice">
             <Mic className="h-4 w-4 text-purple-500" />
@@ -378,7 +378,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
             <FileText className="h-4 w-4 text-orange-500" />
           </Button>
           <Button variant="ghost" size="sm" className="h-8 px-3" title="Tag Creator">
-            <AtSign className="h-4 w-4 text-blue-600" />
+            <AtSign className="h-4 w-4 text-primary" />
           </Button>
         </div>
         

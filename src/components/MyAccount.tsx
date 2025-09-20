@@ -478,7 +478,7 @@ export const MyAccount = () => {
       'admin': 'bg-red-100 text-red-800 border-red-200',
       'superadmin': 'bg-red-100 text-red-800 border-red-200',
       'moderator': 'bg-orange-100 text-orange-800 border-orange-200',
-      'manager': 'bg-blue-100 text-blue-800 border-blue-200',
+      'manager': 'bg-primary/10 text-primary border-primary/20',
       'chatter': 'bg-green-100 text-green-800 border-green-200',
       'agency': 'bg-yellow-100 text-yellow-800 border-yellow-200',
       'fan': 'bg-gray-100 text-gray-800 border-gray-200'
@@ -579,7 +579,7 @@ export const MyAccount = () => {
             <CardContent className="p-6">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
+                  <div className="h-2 w-2 bg-primary rounded-full"></div>
                   <label className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                     {t('account.username', 'Username')}
                   </label>
@@ -798,7 +798,7 @@ export const MyAccount = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-3">
               <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
+                <div className="h-2 w-2 bg-primary rounded-full"></div>
                 {t('account.username', 'Username')}
               </label>
               <Input

@@ -28,7 +28,7 @@ export const ConversionStatusBadge = ({
   const getStatusColor = () => {
     switch (status) {
       case 'completed': return 'text-green-600 bg-green-50 border-green-200';
-      case 'uploading': return 'text-blue-600 bg-blue-50 border-blue-200';
+      case 'uploading': return 'text-primary bg-primary/10 border-primary/20';
       case 'error': return 'text-red-600 bg-red-50 border-red-200';
       default: return 'text-amber-600 bg-amber-50 border-amber-200';
     }

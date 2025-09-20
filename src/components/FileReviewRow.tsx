@@ -155,7 +155,7 @@ export function FileReviewRow({ file, files, currentIndex, onRemove, onMetadataC
   } else if (hasMetadata) {
     cardClassName = "p-4 transition-colors cursor-pointer relative bg-green-50 border-green-200 hover:bg-green-100";
   } else if (hasContentData) {
-    cardClassName = "p-4 transition-colors cursor-pointer relative bg-blue-50 border-blue-200 hover:bg-blue-100";
+    cardClassName = "p-4 transition-colors cursor-pointer relative bg-primary/10 border-primary/20 hover:bg-primary/20";
   }
 
   return (

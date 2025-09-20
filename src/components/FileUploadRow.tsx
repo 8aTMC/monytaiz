@@ -78,7 +78,7 @@ export const FileUploadRow = ({
         key={item.id}
         className={cn(
           "flex items-start gap-3 p-4 rounded-lg border transition-all hover:bg-muted/20 cursor-pointer",
-          index === currentUploadIndex && isUploading && "bg-blue-50 border-blue-200"
+          index === currentUploadIndex && isUploading && "bg-primary/10 border-primary/20"
         )}
         onDoubleClick={handleDoubleClick}
       >
@@ -285,7 +285,7 @@ export const FileUploadRow = ({
                   )}
                 </span>
                 {item.status === 'uploading' && index === currentUploadIndex && (
-                  <span className="text-blue-600">Uploading...</span>
+                  <span className="text-primary">Uploading...</span>
                 )}
                 {item.status === 'paused' && (
                   <span className="text-orange-600">Paused</span>
