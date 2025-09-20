@@ -78,19 +78,28 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
 
     const loadCollaborators = async () => {
       try {
-        // Load collaborators with media counts
-        const { data: collaboratorsWithCounts } = await supabase
+        // Load collaborators
+        const { data: collaborators, error: collaboratorsError } = await supabase
           .from('collaborators')
-          .select(`
-            id, name, description, profile_picture_url, username,
-            media_collaborators(count)
-          `)
+          .select('id, name, description, profile_picture_url, username')
           .order('name', { ascending: true });
 
-        if (collaboratorsWithCounts && isMounted) {
-          setCollaboratorOptions(
-            collaboratorsWithCounts.map(c => {
-              const mediaCount = Array.isArray(c.media_collaborators) ? c.media_collaborators.length : 0;
+        if (collaboratorsError) {
+          console.error('Error loading collaborators:', collaboratorsError);
+          if (isMounted) setCollaboratorOptions([]);
+          return;
+        }
+
+        if (collaborators && isMounted) {
+          // Get media counts for each collaborator
+          const collaboratorOptions = await Promise.all(
+            collaborators.map(async (c) => {
+              const { count } = await supabase
+                .from('media_collaborators')
+                .select('*', { count: 'exact', head: true })
+                .eq('collaborator_id', c.id);
+              
+              const mediaCount = count || 0;
               return {
                 value: c.id,
                 label: c.username ? `${c.name} (@${c.username})` : c.name,
@@ -101,6 +110,8 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
               };
             })
           );
+
+          setCollaboratorOptions(collaboratorOptions);
         }
       } catch (error) {
         console.error('Error loading collaborators:', error);
