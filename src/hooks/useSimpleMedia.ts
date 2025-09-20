@@ -10,6 +10,7 @@ export interface SimpleMediaItem {
   description?: string;
   tags: string[];
   mentions?: string[];
+  folders?: string[]; // Folder names the media belongs to
   suggested_price_cents?: number;
   revenue_generated_cents?: number;
   original_filename: string;
@@ -42,9 +43,15 @@ export const useSimpleMedia = () => {
     setError(null);
     
     try {
+      // Query to get media with folder information
       const { data, error } = await supabase
         .from('simple_media')
-        .select('*')
+        .select(`
+          *,
+          folder_contents:file_folder_contents(
+            folder:file_folders(name)
+          )
+        `)
         .or('processing_status.eq.processed,and(processing_status.eq.pending,created_at.lt.' + new Date(Date.now() - 5 * 60 * 1000).toISOString() + ')')
         .order('created_at', { ascending: false });
 
@@ -52,17 +59,25 @@ export const useSimpleMedia = () => {
         throw error;
       }
       
-      // Type cast and validate fields
-      const validatedMedia = (data || []).map(item => ({
-        ...item,
-        media_type: (item.media_type === 'image' || item.media_type === 'video' || item.media_type === 'audio' || item.media_type === 'gif') 
-          ? item.media_type as 'image' | 'video' | 'audio' | 'gif'
-          : 'image' as const,
-        processing_status: (item.processing_status === 'pending' || item.processing_status === 'processing' || 
-                           item.processing_status === 'processed' || item.processing_status === 'failed')
-          ? item.processing_status as 'pending' | 'processing' | 'processed' | 'failed'
-          : 'processed' as const
-      }));
+      // Type cast and validate fields, including folder names
+      const validatedMedia = (data || []).map(item => {
+        // Extract folder names from the joined data
+        const folders = (item.folder_contents || [])
+          .map((fc: any) => fc.folder?.name)
+          .filter(Boolean) as string[];
+
+        return {
+          ...item,
+          folders, // Add folder names to the media item
+          media_type: (item.media_type === 'image' || item.media_type === 'video' || item.media_type === 'audio' || item.media_type === 'gif') 
+            ? item.media_type as 'image' | 'video' | 'audio' | 'gif'
+            : 'image' as const,
+          processing_status: (item.processing_status === 'pending' || item.processing_status === 'processing' || 
+                             item.processing_status === 'processed' || item.processing_status === 'failed')
+            ? item.processing_status as 'pending' | 'processing' | 'processed' | 'failed'
+            : 'processed' as const
+        };
+      });
       
       setMedia(validatedMedia);
     } catch (err) {

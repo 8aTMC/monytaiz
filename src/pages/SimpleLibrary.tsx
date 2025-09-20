@@ -241,6 +241,7 @@ export default function SimpleLibrary() {
       type: item.media_type as 'image' | 'video' | 'audio',
       size_bytes: item.optimized_size_bytes || item.original_size_bytes,
       tags: item.tags || [],
+      folders: item.folders || [], // Include folder information
       suggested_price_cents: item.suggested_price_cents || 0, // Use actual price from source
       mentions: item.mentions || [], // Pre-compute mentions for filtering
       notes: item.description || null,

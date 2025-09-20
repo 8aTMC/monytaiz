@@ -1,7 +1,7 @@
 import React from 'react';
 import { useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Check } from 'lucide-react';
+import { Check, Folder } from 'lucide-react';
 import { MediaThumbnail } from '@/components/MediaThumbnail';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -14,6 +14,7 @@ interface MediaItem {
   type: 'image' | 'video' | 'audio' | 'gif';
   size_bytes: number;
   tags: string[];
+  folders?: string[]; // Folder names the media belongs to
   suggested_price_cents: number;
   notes: string | null;
   creator_id: string;
@@ -162,8 +163,28 @@ const LibraryGridComponent = ({
                 forceSquare={true}
               />
               
-              {/* Enhanced Categories with improved styling */}
-              <div className="absolute bottom-3 left-3 right-10 z-10">
+              {/* Enhanced Categories and Folders with improved styling */}
+              <div className="absolute bottom-3 left-3 right-10 z-10 space-y-1">
+                {/* Folders */}
+                {item.folders && item.folders.length > 0 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1 text-xs bg-blue-600/80 backdrop-blur-sm rounded-lg px-2 py-1 truncate font-medium cursor-pointer text-white">
+                        <Folder className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">
+                          {item.folders.length === 1 ? item.folders[0] : `${item.folders.length} folders`}
+                        </span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs break-words">
+                        <strong>Folders:</strong> {item.folders.join(', ')}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                
+                {/* Tags */}
                 {(() => {
                   const defaultTags = ['upload', 'story', 'livestream', 'message'];
                   const customTags = item.tags.filter(tag => 
@@ -184,7 +205,9 @@ const LibraryGridComponent = ({
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p className="max-w-xs break-words">{tooltipContent}</p>
+                        <p className="max-w-xs break-words">
+                          <strong>Tags:</strong> {tooltipContent}
+                        </p>
                       </TooltipContent>
                     </Tooltip>
                   );
