@@ -15,8 +15,9 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import { useTranslation } from "@/hooks/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { X, Filter } from "lucide-react";
+import { X, Filter, RefreshCw } from "lucide-react";
 import { getInitials } from "@/lib/initials";
+import { useRefreshCollaborators } from "@/hooks/useRefreshCollaborators";
 
 interface FilterState {
   collaborators: string[];
@@ -53,6 +54,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
   onFiltersChange,
 }) => {
   const { t } = useTranslation();
+  const { refreshCollaborators, isRefreshing } = useRefreshCollaborators();
   const [collaboratorOptions, setCollaboratorOptions] = useState<CollaboratorOption[]>([]);
   const [tagOptions, setTagOptions] = useState<TagOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -343,7 +345,19 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
 
           {/* Collaborators Filter */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium">Filter by Collaborators</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Filter by Collaborators</Label>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={refreshCollaborators}
+                disabled={isRefreshing}
+                className="h-7 text-xs"
+              >
+                <RefreshCw className={`h-3 w-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
+              </Button>
+            </div>
             <div className="relative">
               <MultiSelect
                 key={`collaborators-${open}`}
@@ -358,9 +372,10 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
               />
             </div>
             {collaboratorOptions.length === 0 && !loading && (
-              <p className="text-xs text-muted-foreground">
-                No collaborators found. Try adding collaborators first.
-              </p>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p>No collaborators found with media associations.</p>
+                <p>Click "Refresh" to update collaborator mappings or add collaborators first.</p>
+              </div>
             )}
           </div>
 
