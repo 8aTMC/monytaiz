@@ -27,7 +27,7 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
   currentView,
   selectedCount
 }) => {
-  const isDefaultView = ['All Files', 'Stories', 'LiveStreams', 'Messages'].includes(currentView)
+  const isDefaultView = ['All Files', 'Stories', 'Messages'].includes(currentView)
 
   const title = isCustomFolder 
     ? 'Remove from this folder?' 

@@ -106,7 +106,6 @@ const ContentLibrary = () => {
   const defaultCategories = useMemo(() => [
     { id: 'all-files', label: 'All Files', icon: Grid, description: 'All uploaded content', isDefault: true },
     { id: 'stories', label: 'Stories', icon: BookOpen, description: 'Content uploaded to stories', isDefault: true },
-    { id: 'livestreams', label: 'LiveStreams', icon: Zap, description: 'Past live stream videos', isDefault: true },
     { id: 'messages', label: 'Messages', icon: MessageSquare, description: 'Content sent in messages', isDefault: true },
   ], []);
 
@@ -342,7 +341,7 @@ const ContentLibrary = () => {
   const handleDelete = useCallback(async () => {
     try {
       const selectedItemsArray = Array.from(selectedItems);
-      const isCustomFolder = !['all-files', 'stories', 'livestreams', 'messages'].includes(selectedCategory);
+      const isCustomFolder = !['all-files', 'stories', 'messages'].includes(selectedCategory);
       
       if (isCustomFolder) {
         await removeFromCollection(selectedCategory, selectedItemsArray);
@@ -459,7 +458,7 @@ const ContentLibrary = () => {
   // Memoized computed values
   const isCustomFolder = useMemo(() => 
     selectedCategory !== 'all-files' && 
-    !['stories', 'livestreams', 'messages'].includes(selectedCategory),
+    !['stories', 'messages'].includes(selectedCategory),
     [selectedCategory]
   );
 

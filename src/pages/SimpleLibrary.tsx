@@ -488,13 +488,6 @@ export default function SimpleLibrary() {
       isDefault: true
     },
     {
-      id: 'livestreams',
-      label: 'LiveStreams',
-      icon: Zap,
-      description: 'Past live stream videos',
-      isDefault: true
-    },
-    {
       id: 'messages',
       label: 'Messages',
       icon: MessageSquare,

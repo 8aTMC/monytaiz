@@ -207,7 +207,7 @@ export const useInfiniteLibraryData = ({
         if (mediaResults) {
           combinedData = [...mediaResults];
         }
-      } else if (!['stories', 'livestreams'].includes(category)) {
+      } else if (!['stories'].includes(category)) {
         // Custom folder
         const { data: collectionItems } = await supabase
           .from('collection_items')
@@ -413,7 +413,6 @@ export const useInfiniteLibraryData = ({
       
       counts['messages'] = messagesCount || 0;
       counts['stories'] = 0;
-      counts['livestreams'] = 0;
       
       setCategoryCounts(counts);
     } catch (error) {
