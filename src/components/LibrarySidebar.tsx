@@ -249,7 +249,7 @@ export const LibrarySidebar = ({
               variant="ghost"
               size="sm"
               onClick={() => setShowDefaultFolders(!showDefaultFolders)}
-              className="absolute top-7 right-0 text-xs px-2 h-7 hover:bg-gradient-glass transition flex items-center gap-1"
+              className="absolute top-[23px] right-0 text-xs px-2 h-7 hover:bg-gradient-glass transition flex items-center gap-1"
               title={showDefaultFolders ? t('platform.library.hideDefault') : t('platform.library.showDefault')}
             >
               <span className="text-xs">{showDefaultFolders ? 'Hide' : 'Show'}</span>
