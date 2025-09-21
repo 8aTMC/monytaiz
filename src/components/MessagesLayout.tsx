@@ -760,7 +760,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
         {activeConversation ? (
           <>
             {/* Chat Header - Fixed */}
-            <div className="flex-none h-[73px] p-4 border-b border-border bg-background flex items-center justify-between">
+            <div className="flex-none h-16 p-4 border-b border-border bg-background flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10">
                   <AvatarImage src={getProfileForConversation(activeConversation)?.avatar_url} />
