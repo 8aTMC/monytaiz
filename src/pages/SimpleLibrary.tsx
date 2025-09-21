@@ -13,13 +13,13 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Database, MessageSquare, Zap, FileImage, Search, Folder, Filter, Grid3X3, Image, Video, Music, ChevronDown } from 'lucide-react';
+
+import { Database, MessageSquare, Zap, FileImage, Search, Folder, Filter, Grid3X3, Image, Video, Music } from 'lucide-react';
 import { LibraryFilterState } from '@/types/library-filters';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMediaOperations } from '@/hooks/useMediaOperations';
-import { useSavedTags } from '@/hooks/useSavedTags';
+
 
 export default function SimpleLibrary() {
   // Callback refs to avoid TDZ issues
@@ -56,7 +56,6 @@ export default function SimpleLibrary() {
     };
   });
   const [filtersDialogOpen, setFiltersDialogOpen] = useState(false);
-  const [showAllTags, setShowAllTags] = useState(false);
   
   // Folders state
   const [customFolders, setCustomFolders] = useState<any[]>([]);
@@ -67,8 +66,6 @@ export default function SimpleLibrary() {
   const [collabMediaSet, setCollabMediaSet] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   
-  // Tags functionality
-  const { savedTags, getRecentTags } = useSavedTags();
 
   // Fetch folders from database
   const fetchFolders = useCallback(async () => {
@@ -351,16 +348,6 @@ export default function SimpleLibrary() {
     localStorage.setItem(`library-filters-${selectedCategory}`, JSON.stringify(newFilters));
   }, [selectedCategory]);
 
-  // Tag selection handler
-  const handleTagClick = useCallback((tagName: string) => {
-    const isSelected = advancedFilters.tags.includes(tagName);
-    const newTags = isSelected 
-      ? advancedFilters.tags.filter(tag => tag !== tagName)
-      : [...advancedFilters.tags, tagName];
-    
-    const newFilters = { ...advancedFilters, tags: newTags };
-    handleFiltersChange(newFilters);
-  }, [advancedFilters, handleFiltersChange]);
 
   const hasActiveFilters = useMemo(() => {
     return advancedFilters.collaborators.length > 0 || 
@@ -858,52 +845,6 @@ export default function SimpleLibrary() {
                   />
                 </div>
 
-                {/* Tags Section */}
-                {savedTags.length > 0 && (
-                  <div className="flex flex-col gap-2 w-full">
-                    {/* Recent Tags (First 10) */}
-                    <div className="flex flex-wrap gap-1">
-                      {getRecentTags(10).map((tag) => (
-                        <Badge
-                          key={tag.id}
-                          variant={advancedFilters.tags.includes(tag.tag_name) ? "default" : "outline"}
-                          className="cursor-pointer hover:bg-primary/10 transition-colors text-xs"
-                          onClick={() => handleTagClick(tag.tag_name)}
-                        >
-                          {tag.tag_name}
-                        </Badge>
-                      ))}
-                    </div>
-                    
-                    {/* All Tags - Collapsible if more than 10 */}
-                    {savedTags.length > 10 && (
-                      <Collapsible open={showAllTags} onOpenChange={setShowAllTags}>
-                        <CollapsibleTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-6 text-xs text-muted-foreground">
-                            <ChevronDown className={`h-3 w-3 mr-1 transition-transform ${showAllTags ? 'rotate-180' : ''}`} />
-                            {showAllTags ? 'Show less' : `Show ${savedTags.length - 10} more tags`}
-                          </Button>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="space-y-2">
-                          <ScrollArea className="h-24">
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-1 pr-4">
-                              {savedTags.slice(10).map((tag) => (
-                                <Badge
-                                  key={tag.id}
-                                  variant={advancedFilters.tags.includes(tag.tag_name) ? "default" : "outline"}
-                                  className="cursor-pointer hover:bg-primary/10 transition-colors text-xs justify-center"
-                                  onClick={() => handleTagClick(tag.tag_name)}
-                                >
-                                  {tag.tag_name}
-                                </Badge>
-                              ))}
-                            </div>
-                          </ScrollArea>
-                        </CollapsibleContent>
-                      </Collapsible>
-                    )}
-                  </div>
-                )}
 
                 {/* Advanced Filters Button */}
                 <Button
