@@ -22,96 +22,103 @@ export async function uploadWithProgress(
 ): Promise<UploadWithProgressResult> {
   return new Promise(async (resolve) => {
     try {
-      // Get auth session
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        resolve({ error: { message: 'No auth session' } });
-        return;
-      }
-
-      // Prepare the upload URL
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://alzyzfjzwvofmjccirjq.supabase.co";
-      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsenl6Zmp6d3ZvZm1qY2NpcmpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyODkxNjMsImV4cCI6MjA3MDg2NTE2M30.DlmPO0LWTM0T4bMXJheMXdtftCVJZ5V961CUW-fEXmk";
-      
-      const uploadUrl = `${supabaseUrl}/storage/v1/object/${bucket}/${path}`;
-
-      // Create XMLHttpRequest for progress tracking
-      const xhr = new XMLHttpRequest();
       const startTime = Date.now();
       let lastProgressTime = startTime;
       let lastUploadedBytes = 0;
 
       // Handle abort
       const onAbort = () => {
-        xhr.abort();
         resolve({ error: { message: 'Upload cancelled' } });
       };
       abortController.signal.addEventListener('abort', onAbort);
 
-      // Track upload progress
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
+      // Simulate progress tracking since Supabase SDK doesn't provide native progress events
+      const simulateProgress = () => {
+        const fileSize = file.size;
+        let uploadedBytes = 0;
+        const chunkSize = Math.max(fileSize * 0.01, 8192); // 1% of file size or 8KB minimum
+        
+        const progressInterval = setInterval(() => {
+          if (abortController.signal.aborted) {
+            clearInterval(progressInterval);
+            return;
+          }
+
+          uploadedBytes = Math.min(uploadedBytes + chunkSize, fileSize * 0.95); // Cap at 95% until actual completion
           const now = Date.now();
-          const timeElapsed = (now - lastProgressTime) / 1000; // seconds
-          const bytesThisInterval = event.loaded - lastUploadedBytes;
+          const timeElapsed = (now - lastProgressTime) / 1000;
+          const bytesThisInterval = uploadedBytes - lastUploadedBytes;
           
-          // Calculate upload speed (smoothed)
+          // Calculate upload speed
           const currentSpeed = timeElapsed > 0 ? bytesThisInterval / timeElapsed : 0;
           const totalTimeElapsed = (now - startTime) / 1000;
-          const averageSpeed = totalTimeElapsed > 0 ? event.loaded / totalTimeElapsed : 0;
+          const averageSpeed = totalTimeElapsed > 0 ? uploadedBytes / totalTimeElapsed : 0;
           
-          // Use a blend of current and average speed for smoother display
           const uploadSpeed = totalTimeElapsed < 5 ? averageSpeed : (currentSpeed * 0.3 + averageSpeed * 0.7);
           
           // Calculate ETA
-          const remainingBytes = event.total - event.loaded;
+          const remainingBytes = fileSize - uploadedBytes;
           const eta = uploadSpeed > 0 ? remainingBytes / uploadSpeed : 0;
           
           onProgress({
-            bytesUploaded: event.loaded,
-            totalBytes: event.total,
-            progress: (event.loaded / event.total) * 100,
+            bytesUploaded: uploadedBytes,
+            totalBytes: fileSize,
+            progress: (uploadedBytes / fileSize) * 100,
             uploadSpeed: Math.max(0, uploadSpeed),
             eta: Math.max(0, eta)
           });
 
           lastProgressTime = now;
-          lastUploadedBytes = event.loaded;
-        }
+          lastUploadedBytes = uploadedBytes;
+
+          // Stop simulation when we reach 95%
+          if (uploadedBytes >= fileSize * 0.95) {
+            clearInterval(progressInterval);
+          }
+        }, 100); // Update every 100ms
+
+        return () => clearInterval(progressInterval);
       };
 
-      xhr.onload = () => {
+      // Start progress simulation
+      const stopProgress = simulateProgress();
+
+      try {
+        // Use Supabase SDK for actual upload (avoids CORS issues)
+        const { data, error } = await supabase.storage
+          .from(bucket)
+          .upload(path, file, {
+            cacheControl: '3600',
+            upsert: true
+          });
+
+        // Stop progress simulation
+        stopProgress();
         abortController.signal.removeEventListener('abort', onAbort);
-        if (xhr.status >= 200 && xhr.status < 300) {
-          resolve({ data: { path } });
+
+        if (error) {
+          resolve({ error: { message: error.message } });
         } else {
-          resolve({ error: { message: `Upload failed with status ${xhr.status}` } });
+          // Complete progress to 100%
+          onProgress({
+            bytesUploaded: file.size,
+            totalBytes: file.size,
+            progress: 100,
+            uploadSpeed: 0,
+            eta: 0
+          });
+
+          resolve({ data: { path: data.path } });
         }
-      };
-
-      xhr.onerror = () => {
+      } catch (uploadError) {
+        stopProgress();
         abortController.signal.removeEventListener('abort', onAbort);
-        resolve({ error: { message: 'Upload failed due to network error' } });
-      };
-
-      xhr.ontimeout = () => {
-        abortController.signal.removeEventListener('abort', onAbort);
-        resolve({ error: { message: 'Upload timed out' } });
-      };
-
-      // Configure request
-      xhr.open('POST', uploadUrl);
-      xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
-      xhr.setRequestHeader('apikey', anonKey);
-      xhr.setRequestHeader('x-upsert', 'true');
-      xhr.timeout = 300000; // 5 minutes timeout
-
-      // Prepare form data
-      const formData = new FormData();
-      formData.append('', file); // Supabase expects empty key for file content
-
-      // Start upload
-      xhr.send(formData);
+        resolve({ 
+          error: { 
+            message: uploadError instanceof Error ? uploadError.message : 'Upload failed' 
+          } 
+        });
+      }
 
     } catch (error) {
       resolve({ 
