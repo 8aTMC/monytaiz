@@ -22,7 +22,6 @@ import { useRefreshCollaborators } from "@/hooks/useRefreshCollaborators";
 interface FilterState {
   collaborators: string[];
   tags: string[];
-  mentions: string[];
   priceRange: [number, number];
 }
 
@@ -49,11 +48,6 @@ interface TagOption {
   description?: string;
 }
 
-interface MentionOption {
-  value: string;
-  label: string;
-  description?: string;
-}
 
 export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
   open,
@@ -66,12 +60,8 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
   const { refreshCollaborators, isRefreshing } = useRefreshCollaborators();
   const [collaboratorOptions, setCollaboratorOptions] = useState<CollaboratorOption[]>([]);
   const [tagOptions, setTagOptions] = useState<TagOption[]>([]);
-  const [mentionOptions, setMentionOptions] = useState<MentionOption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [localFilters, setLocalFilters] = useState<FilterState>({
-    ...filters,
-    mentions: filters.mentions || [], // Ensure mentions array is always initialized
-  });
+  const [localFilters, setLocalFilters] = useState<FilterState>(filters);
   const [manualPriceMin, setManualPriceMin] = useState('');
   const [manualPriceMax, setManualPriceMax] = useState('');
 
@@ -219,9 +209,8 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
 
         console.log('🏷️ Contextual data:', { mediaData, simpleMediaData });
 
-        // Combine and count tags and mentions from both sources
+        // Combine and count tags from both sources
         const tagCounts: Record<string, number> = {};
-        const mentionCounts: Record<string, number> = {};
         
         // Process data from both media and simple_media tables
         const allData = [...(mediaData || []), ...(simpleMediaData || [])];
@@ -235,15 +224,6 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
               }
             });
           }
-          
-          // Process mentions
-          if (item.mentions && Array.isArray(item.mentions)) {
-            item.mentions.forEach(mention => {
-              if (mention && typeof mention === 'string') {
-                mentionCounts[mention] = (mentionCounts[mention] || 0) + 1;
-              }
-            });
-          }
         });
 
         // Convert to options format
@@ -251,12 +231,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
           .map(([tag_name, usage_count]) => ({ tag_name, usage_count }))
           .sort((a, b) => b.usage_count - a.usage_count);
 
-        const allMentions = Object.entries(mentionCounts)
-          .map(([mention_name, usage_count]) => ({ mention_name, usage_count }))
-          .sort((a, b) => b.usage_count - a.usage_count);
-
         console.log('🏷️ Processed tags:', allTags);
-        console.log('🏷️ Processed mentions:', allMentions);
 
         if (isMounted) {
           // Set tag options
@@ -266,20 +241,11 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
             description: `Used ${t.usage_count} times`
           }));
           setTagOptions(tagOptions);
-
-          // Set mention options
-          const mentionOptions = allMentions.map(m => ({
-            value: m.mention_name,
-            label: m.mention_name,
-            description: `Mentioned ${m.usage_count} times`
-          }));
-          setMentionOptions(mentionOptions);
         }
         } catch (error) {
           console.error('💥 Error loading filter options:', error);
           if (isMounted) {
             setTagOptions([]);
-            setMentionOptions([]);
             setCollaboratorOptions([]);
           }
         } finally {
@@ -300,10 +266,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
 
   // Update local state when external filters change
   useEffect(() => {
-    setLocalFilters({
-      ...filters,
-      mentions: filters.mentions || [], // Ensure mentions array is always initialized
-    });
+    setLocalFilters(filters);
     setManualPriceMin((filters.priceRange[0] / 100).toString());
     setManualPriceMax((filters.priceRange[1] / 100).toString());
   }, [filters]);
@@ -318,14 +281,6 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
     setLocalFilters(prev => ({ ...prev, tags }));
   };
 
-  const handleMentionChange = (mentions: string[]) => {
-    console.log('🗣️ Mention change:', mentions);
-    setLocalFilters(prev => {
-      const updated = { ...prev, mentions };
-      console.log('🗣️ Updated local filters state:', updated);
-      return updated;
-    });
-  };
 
   const handlePriceRangeChange = (range: number[]) => {
     setLocalFilters(prev => ({ ...prev, priceRange: [range[0], range[1]] }));
@@ -346,7 +301,6 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
     console.log('🎛️ Applying filters:', localFilters);
     console.log('🎛️ Collaborator IDs selected:', localFilters.collaborators);
     console.log('🎛️ Tags selected:', localFilters.tags);
-    console.log('🎛️ Mentions selected:', localFilters.mentions || []);
     console.log('🎛️ Price range:', localFilters.priceRange);
     onFiltersChange(localFilters);
     onOpenChange(false);
@@ -356,7 +310,6 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
     const clearedFilters: FilterState = {
       collaborators: [],
       tags: [],
-      mentions: [],
       priceRange: [0, 1000000] // $0 to $10,000
     };
     setLocalFilters(clearedFilters);
@@ -373,7 +326,6 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
   const hasActiveFilters = 
     localFilters.collaborators.length > 0 || 
     localFilters.tags.length > 0 || 
-    localFilters.mentions.length > 0 || 
     localFilters.priceRange[0] > 0 || 
     localFilters.priceRange[1] < 1000000;
 
@@ -439,15 +391,6 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
                     />
                   </Badge>
                 ))}
-                {(localFilters.mentions || []).map((mention, index) => (
-                  <Badge key={`mention-${mention}-${index}`} variant="secondary" className="bg-primary/10 text-primary">
-                    Mention: {mention}
-                    <X
-                      className="ml-1 h-3 w-3 cursor-pointer"
-                      onClick={() => handleMentionChange(localFilters.mentions.filter(m => m !== mention))}
-                    />
-                  </Badge>
-                ))}
                 {(localFilters.priceRange[0] > 0 || localFilters.priceRange[1] < 1000000) && (
                   <Badge variant="secondary" className="bg-primary/10 text-primary">
                     Price: {formatCurrency(localFilters.priceRange[0])} - {formatCurrency(localFilters.priceRange[1])}
@@ -504,22 +447,6 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
                 onChange={handleTagChange}
                 placeholder="Select tags..."
                 emptyMessage="No tags found in current directory."
-                loading={loading}
-              />
-            </div>
-          </div>
-
-          {/* Mentions Filter */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Filter by Mentions</Label>
-            <div className="relative">
-              <MultiSelect
-                key={`mentions-${open}`}
-                options={mentionOptions || []}
-                value={localFilters.mentions || []}
-                onChange={handleMentionChange}
-                placeholder="Select mentions..."
-                emptyMessage="No mentions found in current directory."
                 loading={loading}
               />
             </div>

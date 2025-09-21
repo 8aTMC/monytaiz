@@ -51,7 +51,6 @@ export default function SimpleLibrary() {
     return saved ? JSON.parse(saved) : {
       collaborators: [],
       tags: [],
-      mentions: [],
       priceRange: [0, 1000000] // $0 to $10,000 in cents
     };
   });
@@ -275,7 +274,6 @@ export default function SimpleLibrary() {
       tags: item.tags || [],
       folders: item.folders || [], // Include folder information
       suggested_price_cents: item.suggested_price_cents || 0, // Use actual price from source
-      mentions: item.mentions || [], // Pre-compute mentions for filtering
       notes: item.description || null,
       creator_id: '',
       created_at: item.created_at,
@@ -352,7 +350,6 @@ export default function SimpleLibrary() {
   const hasActiveFilters = useMemo(() => {
     return advancedFilters.collaborators.length > 0 || 
            advancedFilters.tags.length > 0 || 
-           advancedFilters.mentions.length > 0 ||
            advancedFilters.priceRange[0] > 0 || 
            advancedFilters.priceRange[1] < 1000000;
   }, [advancedFilters]);
@@ -415,18 +412,6 @@ export default function SimpleLibrary() {
         console.log('🎯 Filtering by collaborators, media set size:', collabMediaSet.size);
         filtered = filtered.filter(item => collabMediaSet.has(item.id));
         console.log('📋 After collaborator filter:', filtered.length, 'items remain');
-      }
-
-      // Filter by mentions
-      if (advancedFilters.mentions.length > 0) {
-        const mentionSet = new Set(advancedFilters.mentions);
-        console.log('🗣️ Filtering by mentions:', advancedFilters.mentions);
-        filtered = filtered.filter(item => {
-          const itemMentions = (item as any).mentions || [];
-          const hasMatch = itemMentions.some((mention: string) => mentionSet.has(mention));
-          return hasMatch;
-        });
-        console.log('📋 After mentions filter:', filtered.length, 'items remain');
       }
 
       // Filter by tags
@@ -622,7 +607,6 @@ export default function SimpleLibrary() {
     const defaultFilters = {
       collaborators: [],
       tags: [],
-      mentions: [],
       priceRange: [0, 1000000] as [number, number]
     };
     setAdvancedFilters(defaultFilters);

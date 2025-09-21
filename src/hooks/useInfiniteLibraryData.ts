@@ -101,7 +101,7 @@ export const useInfiniteLibraryData = ({
             .abortSignal(abortControllerRef.current.signal),
           supabase
             .from('simple_media')
-            .select('id, original_path, processed_path, thumbnail_path, mime_type, media_type, original_size_bytes, title, description, tags, mentions, suggested_price_cents, revenue_generated_cents, creator_id, created_at, updated_at, width, height, processing_status')
+            .select('id, original_path, processed_path, thumbnail_path, mime_type, media_type, original_size_bytes, title, description, tags, suggested_price_cents, revenue_generated_cents, creator_id, created_at, updated_at, width, height, processing_status')
             .eq('processing_status', 'processed')
             .order('created_at', { ascending: sort === 'oldest' })
             .range(Math.floor(offset / 2), Math.floor(offset / 2) + Math.floor(pageSize / 2) - 1)
@@ -148,7 +148,6 @@ export const useInfiniteLibraryData = ({
               title: simpleMediaResults.data[0].title,
               description: simpleMediaResults.data[0].description,
               tags: simpleMediaResults.data[0].tags,
-              mentions: simpleMediaResults.data[0].mentions,
               suggested_price_cents: simpleMediaResults.data[0].suggested_price_cents
             } : 'no data'
           });
@@ -170,7 +169,6 @@ export const useInfiniteLibraryData = ({
               suggested_price_cents: item.suggested_price_cents || 0,
               revenue_generated_cents: item.revenue_generated_cents || 0,
               tags: item.tags || [],
-              mentions: item.mentions || [],
               notes: item.description || null,
               creator_id: item.creator_id,
               created_at: item.created_at,
