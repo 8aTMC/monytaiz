@@ -97,11 +97,6 @@ export const BatchMetadataToolbar = ({
         onMentionsChange={(mentions) => {
           onUpdateMetadata({ mentions });
           setMentionsDialogOpen(false);
-          toast({
-            title: "Mentions added",
-            description: `Mentions updated for ${selectedCount} selected files`,
-            variant: "success",
-          });
         }}
       />
       
@@ -112,11 +107,6 @@ export const BatchMetadataToolbar = ({
         onTagsChange={(tags) => {
           onUpdateMetadata({ tags });
           setTagsDialogOpen(false);
-          toast({
-            title: "Tags added",
-            description: `Tags updated for ${selectedCount} selected files`,
-            variant: "success",
-          });
         }}
       />
       
@@ -127,11 +117,6 @@ export const BatchMetadataToolbar = ({
         onFoldersChange={(folders) => {
           onUpdateMetadata({ folders });
           setFoldersDialogOpen(false);
-          toast({
-            title: "Folders updated",
-            description: `Folders updated for ${selectedCount} selected files`,
-            variant: "success",
-          });
         }}
       />
     </>

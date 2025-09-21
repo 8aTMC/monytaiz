@@ -512,11 +512,6 @@ export default function SimpleUpload() {
           
           return updatedFiles;
         });
-        
-        toast({
-          title: "File uploaded",
-          description: `${result.original_filename} uploaded successfully`,
-        });
       },
       (fileId, error) => {
         // Handle upload error
