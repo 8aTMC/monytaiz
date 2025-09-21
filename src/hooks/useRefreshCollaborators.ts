@@ -26,10 +26,6 @@ export const useRefreshCollaborators = () => {
       }
 
       console.log('✅ Collaborator mapping refresh successful:', data);
-      toast({
-        title: "Success",
-        description: `Successfully refreshed collaborator mappings. ${data?.mappings_created || 0} mappings created.`,
-      });
       
       return true;
     } catch (error) {
