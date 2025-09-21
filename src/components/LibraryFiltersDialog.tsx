@@ -91,45 +91,34 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
         }
 
         if (collaborators && isMounted) {
-          // Get media counts for each collaborator
-          const collaboratorOptions = await Promise.all(
-            collaborators.map(async (c) => {
-              // Get count from media_collaborators table (safer query without head: true)
-              try {
-                const { data, error } = await supabase
-                  .from('media_collaborators')
-                  .select('id')
-                  .eq('collaborator_id', c.id);
-                
-                if (error) {
-                  console.warn(`Failed to get media count for collaborator ${c.id}:`, error);
-                }
-                
-                const mediaCount = data ? data.length : 0;
-                
-                return {
-                  value: c.id,
-                  label: c.username ? `${c.name} (@${c.username})` : c.name,
-                  description: `${mediaCount} media file${mediaCount !== 1 ? 's' : ''}`,
-                  avatar: c.profile_picture_url || undefined,
-                  initials: getInitials(c.name),
-                  username: c.username || undefined
-                };
-              } catch (error) {
-                console.warn(`Error fetching media count for collaborator ${c.id}:`, error);
-                return {
-                  value: c.id,
-                  label: c.username ? `${c.name} (@${c.username})` : c.name,
-                  description: '0 media files',
-                  avatar: c.profile_picture_url || undefined,
-                  initials: getInitials(c.name),
-                  username: c.username || undefined
-                };
-              }
-            })
-          );
+          // Fetch all media_collaborators once and count per collaborator
+          const { data: mcRows, error: mcError } = await supabase
+            .from('media_collaborators')
+            .select('collaborator_id');
 
-          setCollaboratorOptions(collaboratorOptions);
+          if (mcError) {
+            console.warn('Failed to load media collaborator counts:', mcError);
+          }
+
+          const counts = new Map<string, number>();
+          (mcRows || []).forEach((r: any) => {
+            const id = r?.collaborator_id;
+            if (id) counts.set(id, (counts.get(id) || 0) + 1);
+          });
+
+          const options: CollaboratorOption[] = collaborators.map((c) => {
+            const mediaCount = counts.get(c.id) || 0;
+            return {
+              value: c.id,
+              label: c.username ? `${c.name} (@${c.username})` : c.name,
+              description: `${mediaCount} media file${mediaCount !== 1 ? 's' : ''}`,
+              avatar: c.profile_picture_url || undefined,
+              initials: getInitials(c.name),
+              username: c.username || undefined,
+            } as CollaboratorOption;
+          });
+
+          setCollaboratorOptions(options);
         }
       } catch (error) {
         console.error('Error loading collaborators:', error);
@@ -148,13 +137,17 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
 
         if (selectedCategory === 'all-files') {
           // Fetch from all tables
-          const mediaResult = await supabase.from('media').select('tags, mentions').not('tags', 'is', null);
-          const simpleResult = await supabase.from('simple_media').select('tags, mentions').not('tags', 'is', null);
+          const mediaResult = await supabase.from('media').select('tags').limit(2000);
+          const simpleResult = await supabase.from('simple_media').select('tags, mentions').limit(2000);
           mediaData = mediaResult.data || [];
           simpleMediaData = simpleResult.data || [];
         } else if (selectedCategory === 'messages') {
           // Fetch only message-related media (simple_media doesn't have origin column)
-          const mediaResult = await supabase.from('media').select('tags, mentions').eq('origin', 'message').not('tags', 'is', null);
+          const mediaResult = await supabase
+            .from('media')
+            .select('tags')
+            .eq('origin', 'message')
+            .limit(2000);
           mediaData = mediaResult.data || [];
           simpleMediaData = []; // Skip simple_media for messages since it doesn't have origin
         } else if (selectedCategory.startsWith('folder_')) {
@@ -167,7 +160,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
           
           if (folderContents && folderContents.length > 0) {
             const mediaIds = folderContents.map(fc => fc.media_id);
-            const mediaResult = await supabase.from('media').select('tags, mentions').in('id', mediaIds);
+            const mediaResult = await supabase.from('media').select('tags').in('id', mediaIds);
             const simpleResult = await supabase.from('simple_media').select('tags, mentions').in('id', mediaIds);
             mediaData = mediaResult.data || [];
             simpleMediaData = simpleResult.data || [];
@@ -181,7 +174,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
           
           if (collectionItems && collectionItems.length > 0) {
             const mediaIds = collectionItems.map(ci => ci.media_id);
-            const mediaResult = await supabase.from('media').select('tags, mentions').in('id', mediaIds);
+            const mediaResult = await supabase.from('media').select('tags').in('id', mediaIds);
             const simpleResult = await supabase.from('simple_media').select('tags, mentions').in('id', mediaIds);
             mediaData = mediaResult.data || [];
             simpleMediaData = simpleResult.data || [];
@@ -200,9 +193,17 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
         setLoading(true);
       }
       
-      try {
-        // Load collaborators
-        await loadCollaborators();
+        try {
+          // Ensure session exists before querying
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            console.warn('No active session; skipping filters load');
+            if (isMounted) setLoading(false);
+            return;
+          }
+
+          // Load collaborators
+          await loadCollaborators();
 
         console.log('🏷️ Loading tags and mentions from contextual media files...');
         
