@@ -20,12 +20,22 @@ export function TagsDialog({ open, onOpenChange, tags, onTagsChange }: TagsDialo
   const [searchQuery, setSearchQuery] = useState('');
   const { savedTags, loading, createOrUpdateTag, getRecentTags, searchTags, useTags, fetchSavedTags } = useSavedTags();
 
-  const allFilteredTags = searchQuery.trim() 
-    ? searchTags(searchQuery)
-    : getRecentTags(5);
+  // Get recent and all tags
+  const recentTags = getRecentTags(5).filter(savedTag => !tags.includes(savedTag.tag_name));
+  const allTags = savedTags
+    .filter(savedTag => !tags.includes(savedTag.tag_name))
+    .sort((a, b) => {
+      // Sort by usage count (desc) then by last_used_at (desc)
+      if (b.usage_count !== a.usage_count) {
+        return b.usage_count - a.usage_count;
+      }
+      return new Date(b.last_used_at).getTime() - new Date(a.last_used_at).getTime();
+    });
   
-  // Filter out tags that are already selected in current tags
-  const filteredTags = allFilteredTags.filter(savedTag => !tags.includes(savedTag.tag_name));
+  // Filter based on search query
+  const searchResults = searchQuery.trim() 
+    ? searchTags(searchQuery).filter(savedTag => !tags.includes(savedTag.tag_name))
+    : null;
 
   // Refresh saved tags when dialog opens
   useEffect(() => {
@@ -98,25 +108,70 @@ export function TagsDialog({ open, onOpenChange, tags, onTagsChange }: TagsDialo
           </div>
 
           {/* Saved tags list */}
-          {!loading && filteredTags.length > 0 && (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">
-                {searchQuery.trim() ? 'Search Results:' : 'Recent Tags:'}
-              </Label>
-              <ScrollArea className="max-h-[150px]">
-                <div className="flex flex-wrap gap-2">
-                  {filteredTags.map((savedTag) => (
-                    <Badge
-                      key={savedTag.id}
-                      variant="outline"
-                      className="cursor-pointer hover:bg-accent"
-                      onClick={() => handleSavedTagClick(savedTag.tag_name)}
-                    >
-                      {savedTag.tag_name}
-                    </Badge>
-                  ))}
+          {!loading && (
+            <div className="space-y-4">
+              {/* Search Results */}
+              {searchResults && searchResults.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Search Results</Label>
+                  <ScrollArea className="max-h-[250px]">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {searchResults.map((savedTag) => (
+                        <Badge
+                          key={savedTag.id}
+                          variant="outline"
+                          className="cursor-pointer hover:bg-accent justify-center text-center"
+                          onClick={() => handleSavedTagClick(savedTag.tag_name)}
+                        >
+                          {savedTag.tag_name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 </div>
-              </ScrollArea>
+              )}
+              
+              {/* Recent Tags */}
+              {!searchQuery.trim() && recentTags.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Recent Tags</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {recentTags.map((savedTag) => (
+                      <Badge
+                        key={savedTag.id}
+                        variant="outline"
+                        className="cursor-pointer hover:bg-accent justify-center text-center"
+                        onClick={() => handleSavedTagClick(savedTag.tag_name)}
+                      >
+                        {savedTag.tag_name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* All Tags */}
+              {!searchQuery.trim() && allTags.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    All Tags ({allTags.length})
+                  </Label>
+                  <ScrollArea className="max-h-[300px]">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {allTags.map((savedTag) => (
+                        <Badge
+                          key={savedTag.id}
+                          variant="outline"
+                          className="cursor-pointer hover:bg-accent justify-center text-center"
+                          onClick={() => handleSavedTagClick(savedTag.tag_name)}
+                        >
+                          {savedTag.tag_name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
             </div>
           )}
 
@@ -167,11 +222,18 @@ export function TagsDialog({ open, onOpenChange, tags, onTagsChange }: TagsDialo
             </div>
           )}
 
-          {tags.length === 0 && !loading && filteredTags.length === 0 && (
+          {tags.length === 0 && !loading && allTags.length === 0 && !searchQuery.trim() && (
             <div className="text-center py-8 text-muted-foreground">
               <Hash className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>No tags added yet</p>
+              <p>No tags saved yet</p>
               <p className="text-sm">Add tags to help organize and categorize your content</p>
+            </div>
+          )}
+
+          {searchQuery.trim() && searchResults && searchResults.length === 0 && (
+            <div className="text-center py-4 text-muted-foreground">
+              <Hash className="h-6 w-6 mx-auto mb-2 opacity-50" />
+              <p>No tags found matching "{searchQuery}"</p>
             </div>
           )}
         </div>
