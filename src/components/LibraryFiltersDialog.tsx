@@ -68,7 +68,10 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
   const [tagOptions, setTagOptions] = useState<TagOption[]>([]);
   const [mentionOptions, setMentionOptions] = useState<MentionOption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [localFilters, setLocalFilters] = useState<FilterState>(filters);
+  const [localFilters, setLocalFilters] = useState<FilterState>({
+    ...filters,
+    mentions: filters.mentions || [], // Ensure mentions array is always initialized
+  });
   const [manualPriceMin, setManualPriceMin] = useState('');
   const [manualPriceMax, setManualPriceMax] = useState('');
 
@@ -297,7 +300,10 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
 
   // Update local state when external filters change
   useEffect(() => {
-    setLocalFilters(filters);
+    setLocalFilters({
+      ...filters,
+      mentions: filters.mentions || [], // Ensure mentions array is always initialized
+    });
     setManualPriceMin((filters.priceRange[0] / 100).toString());
     setManualPriceMax((filters.priceRange[1] / 100).toString());
   }, [filters]);
@@ -314,7 +320,11 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
 
   const handleMentionChange = (mentions: string[]) => {
     console.log('🗣️ Mention change:', mentions);
-    setLocalFilters(prev => ({ ...prev, mentions }));
+    setLocalFilters(prev => {
+      const updated = { ...prev, mentions };
+      console.log('🗣️ Updated local filters state:', updated);
+      return updated;
+    });
   };
 
   const handlePriceRangeChange = (range: number[]) => {
@@ -336,6 +346,7 @@ export const LibraryFiltersDialog: React.FC<LibraryFiltersDialogProps> = ({
     console.log('🎛️ Applying filters:', localFilters);
     console.log('🎛️ Collaborator IDs selected:', localFilters.collaborators);
     console.log('🎛️ Tags selected:', localFilters.tags);
+    console.log('🎛️ Mentions selected:', localFilters.mentions || []);
     console.log('🎛️ Price range:', localFilters.priceRange);
     onFiltersChange(localFilters);
     onOpenChange(false);
