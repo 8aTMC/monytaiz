@@ -349,9 +349,9 @@ export const LibrarySidebar = ({
         </div>
 
         {/* Scrollable My Folders section */}
-        <div className="flex-1 overflow-y-auto scrollbar-default pr-3 pb-0">
+        <div className="flex-1 overflow-y-auto scrollbar-default pr-3">
           {foldersToDisplay.length > 0 && (
-            <div className="space-y-1">
+            <div>
               <div className="flex items-center justify-between mb-1.5">
                 <div className="text-[11px] font-medium tracking-wide text-muted-foreground ml-[10px]">
                   My Folders
@@ -362,6 +362,7 @@ export const LibrarySidebar = ({
                 const isSelected = selectedCategory === folder.id;
                 const isDragging = isReorderMode && draggedIndex === index;
                 const isDragOver = isReorderMode && dragOverIndex === index;
+                const isLastItem = index === foldersToDisplay.length - 1;
 
                 return (
                   <div 
@@ -370,7 +371,7 @@ export const LibrarySidebar = ({
                       isDragging ? 'opacity-50 scale-95' : 'opacity-100 scale-100'
                     } ${
                       isDragOver ? 'border-t-2 border-primary' : ''
-                    }`}
+                    } ${isLastItem ? 'mb-0' : 'mb-1'}`}
                     draggable={isReorderMode}
                     onDragStart={() => handleDragStart(index)}
                     onDragOver={(e) => handleDragOver(e, index)}
@@ -417,8 +418,8 @@ export const LibrarySidebar = ({
                       }}
                     />
 
-                    {/* subtle divider between folders */}
-                    <div className="h-px mx-1 bg-border/30" />
+                    {/* subtle divider between folders - only show if not the last item */}
+                    {!isLastItem && <div className="h-px mx-1 bg-border/30" />}
                   </div>
                 );
               })}
