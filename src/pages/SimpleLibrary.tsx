@@ -59,6 +59,7 @@ export default function SimpleLibrary() {
   const [folderContent, setFolderContent] = useState<string[]>([]);
   const [folderContentLoading, setFolderContentLoading] = useState(false);
   const [folderCounts, setFolderCounts] = useState<Record<string, number>>({});
+  const [collabMediaSet, setCollabMediaSet] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   // Fetch folders from database
@@ -300,6 +301,41 @@ export default function SimpleLibrary() {
     }
   }, []);
 
+  // Fetch media IDs for selected collaborators
+  useEffect(() => {
+    const fetchCollaboratorMedia = async () => {
+      if (advancedFilters.collaborators.length === 0) {
+        setCollabMediaSet(new Set());
+        return;
+      }
+
+      try {
+        console.log('🔍 Fetching media for collaborators:', advancedFilters.collaborators);
+        
+        const { data, error } = await supabase
+          .from('media_collaborators')
+          .select('media_id')
+          .eq('media_table', 'simple_media')
+          .in('collaborator_id', advancedFilters.collaborators);
+
+        if (error) {
+          console.error('Error fetching collaborator media:', error);
+          setCollabMediaSet(new Set());
+          return;
+        }
+
+        const mediaIds = data.map(item => item.media_id);
+        console.log('📊 Found', mediaIds.length, 'media items for selected collaborators');
+        setCollabMediaSet(new Set(mediaIds));
+      } catch (error) {
+        console.error('Error in fetchCollaboratorMedia:', error);
+        setCollabMediaSet(new Set());
+      }
+    };
+
+    fetchCollaboratorMedia();
+  }, [advancedFilters.collaborators]);
+
   // Advanced filter handlers
   const handleFiltersChange = useCallback((newFilters: LibraryFilterState) => {
     setAdvancedFilters(newFilters);
@@ -310,6 +346,7 @@ export default function SimpleLibrary() {
   const hasActiveFilters = useMemo(() => {
     return advancedFilters.collaborators.length > 0 || 
            advancedFilters.tags.length > 0 || 
+           advancedFilters.mentions.length > 0 ||
            advancedFilters.priceRange[0] > 0 || 
            advancedFilters.priceRange[1] < 1000000;
   }, [advancedFilters]);
@@ -367,13 +404,23 @@ export default function SimpleLibrary() {
 
     // Apply advanced filters using pre-computed data
     if (hasActiveFilters) {
-      // Filter by collaborators (using pre-computed mentions)
+      // Filter by collaborators (using media_collaborators table)
       if (advancedFilters.collaborators.length > 0) {
-        const collaboratorSet = new Set(advancedFilters.collaborators);
+        console.log('🎯 Filtering by collaborators, media set size:', collabMediaSet.size);
+        filtered = filtered.filter(item => collabMediaSet.has(item.id));
+        console.log('📋 After collaborator filter:', filtered.length, 'items remain');
+      }
+
+      // Filter by mentions
+      if (advancedFilters.mentions.length > 0) {
+        const mentionSet = new Set(advancedFilters.mentions);
+        console.log('🗣️ Filtering by mentions:', advancedFilters.mentions);
         filtered = filtered.filter(item => {
-          const mentions = (item as any).mentions || [];
-          return mentions.some((mentionId: string) => collaboratorSet.has(mentionId));
+          const itemMentions = (item as any).mentions || [];
+          const hasMatch = itemMentions.some((mention: string) => mentionSet.has(mention));
+          return hasMatch;
         });
+        console.log('📋 After mentions filter:', filtered.length, 'items remain');
       }
 
       // Filter by tags
@@ -416,7 +463,7 @@ export default function SimpleLibrary() {
     
     console.log(`Filtered ${convertedMedia.length} items down to ${sorted.length} items`);
     return sorted;
-  }, [convertedMedia, searchQuery, selectedFilter, sortBy, selectedCategory, customFolders, folderContent, advancedFilters, hasActiveFilters]);
+  }, [convertedMedia, searchQuery, selectedFilter, sortBy, selectedCategory, customFolders, folderContent, advancedFilters, hasActiveFilters, collabMediaSet]);
 
   // Default categories for sidebar - stable
   const defaultCategories = useMemo(() => [
