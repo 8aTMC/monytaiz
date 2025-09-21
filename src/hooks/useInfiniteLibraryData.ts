@@ -278,6 +278,12 @@ export const useInfiniteLibraryData = ({
           console.log('👥 Applying collaborator filter...');
           
           try {
+            // First try to get collaborator names to do fallback filtering
+            const { data: collaboratorData } = await supabase
+              .from('collaborators')
+              .select('id, name, username')
+              .in('id', filters.collaborators);
+
             // Use media_collaborators table for efficient filtering
             const { data: mappedCollaborators, error: mappingError } = await supabase
               .from('media_collaborators')
@@ -287,30 +293,48 @@ export const useInfiniteLibraryData = ({
             if (!mappingError && mappedCollaborators && mappedCollaborators.length > 0) {
               console.log('👥 Found collaborator mappings:', mappedCollaborators);
               
-              // Normalize mappings by media_id only (ignore media_table/origin mismatches)
-              const rawMappedIds = mappedCollaborators.map(mc => mc.media_id);
-              console.log('👥 Raw mapped media IDs from DB:', rawMappedIds, 'types:', rawMappedIds.map(id => typeof id));
-
-              const mappedMediaIds = new Set(rawMappedIds.map(id => String(id).toLowerCase().trim()));
-              console.log('👥 Using normalized mapped media IDs:', Array.from(mappedMediaIds).slice(0, 10));
-              console.log('👥 Sample combinedData IDs before filter:', combinedData.slice(0, 5).map(item => ({
-                id: item.id,
-                normalized: String(item.id).toLowerCase().trim()
-              })));
-
+              // Use database mappings (most accurate)
+              const mappedMediaIds = new Set(mappedCollaborators.map(mc => String(mc.media_id)));
+              
+              combinedData = combinedData.filter(item => 
+                mappedMediaIds.has(String(item.id))
+              );
+              
+              console.log(`👥 Collaborator filter (database): ${beforeCollaboratorFilter} → ${combinedData.length} items`);
+            } else if (collaboratorData && collaboratorData.length > 0) {
+              // Fallback to searching tags and mentions
+              console.log('👥 No database mappings, using fallback tag/mention search');
+              
+              const collaboratorNames = collaboratorData.map(c => c.name.toLowerCase());
+              const collaboratorUsernames = collaboratorData
+                .filter(c => c.username)
+                .map(c => c.username.toLowerCase());
+              
               combinedData = combinedData.filter(item => {
-                const normalizedItemId = String(item.id).toLowerCase().trim();
-                const hasMapping = mappedMediaIds.has(normalizedItemId);
-                if (!hasMapping) {
-                  console.log(`👥 ❌ No mapping for item ${item.id} (normalized: ${normalizedItemId})`);
+                // Check mentions
+                if (item.mentions && Array.isArray(item.mentions)) {
+                  const hasMatchingMention = item.mentions.some(mention => 
+                    collaboratorNames.includes(mention.toLowerCase()) ||
+                    collaboratorUsernames.includes(mention.toLowerCase())
+                  );
+                  if (hasMatchingMention) return true;
                 }
-                return hasMapping;
+                
+                // Check tags
+                if (item.tags && Array.isArray(item.tags)) {
+                  const hasMatchingTag = item.tags.some(tag => 
+                    collaboratorNames.some(name => tag.toLowerCase().includes(name)) ||
+                    collaboratorUsernames.some(username => tag.toLowerCase().includes(username))
+                  );
+                  if (hasMatchingTag) return true;
+                }
+                
+                return false;
               });
               
-              console.log(`👥 Collaborator filter (database normalized): ${beforeCollaboratorFilter} → ${combinedData.length} items`);
+              console.log(`👥 Collaborator filter (fallback): ${beforeCollaboratorFilter} → ${combinedData.length} items`);
             } else {
-              // No database mappings found, set to empty (no results)
-              console.log('👥 No collaborator mappings found in database');
+              console.log('👥 No collaborator data found');
               combinedData = [];
             }
           } catch (error) {
