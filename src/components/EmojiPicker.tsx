@@ -124,6 +124,14 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({ children, onEmojiSelec
         align="start"
         side="top"
         sideOffset={8}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+        onInteractOutside={(e) => {
+          const target = e.target as Element;
+          if (target.closest('[data-emoji-button]')) {
+            e.preventDefault();
+          }
+        }}
         onPointerDownOutside={(e) => {
           // Only close if clicking outside, not on emoji buttons
           const target = e.target as Element;
@@ -198,6 +206,8 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({ children, onEmojiSelec
                             {emojisByCategory[category].map((emoji) => (
                               <button
                                 key={`${emoji.emoji}-${emoji.name}`}
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
                                 onClick={(e) => handleEmojiClick(emoji.emoji, e)}
                                 className="aspect-square flex items-center justify-center text-xl hover:bg-muted rounded transition-colors p-1"
                                 title={emoji.name}

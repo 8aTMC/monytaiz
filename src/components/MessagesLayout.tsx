@@ -900,7 +900,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                   className="flex gap-1 items-end"
                 >
                   <EmojiPicker onEmojiSelect={handleEmojiSelect}>
-                    <Button variant="ghost" size="sm" className="h-10 px-2 flex-shrink-0" title="Emoji">
+                    <Button type="button" variant="ghost" size="sm" className="h-10 px-2 flex-shrink-0" title="Emoji">
                       <Smile className="h-4 w-4 text-amber-500" />
                     </Button>
                   </EmojiPicker>

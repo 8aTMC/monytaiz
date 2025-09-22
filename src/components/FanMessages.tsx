@@ -407,7 +407,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           className="flex gap-2 items-center"
         >
           <EmojiPicker onEmojiSelect={handleEmojiSelect}>
-            <Button variant="ghost" size="sm" className="h-10 px-3 flex-shrink-0" title="Emoji">
+            <Button type="button" variant="ghost" size="sm" className="h-10 px-3 flex-shrink-0" title="Emoji">
               <Smile className="h-4 w-4 text-amber-500" />
             </Button>
           </EmojiPicker>
