@@ -540,6 +540,8 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
         return conversation.is_pinned;
       case 'unread':
         return conversation.unread_count > 0;
+      case 'unreplied':
+        return needsReply(conversation);
       default:
         return true;
     }
@@ -664,6 +666,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
               aiChatCount={conversations.filter(c => c.has_ai_active).length}
               pinnedCount={conversations.filter(c => c.is_pinned).length}
               unreadCount={conversations.filter(c => c.unread_count > 0).length}
+              unrepliedCount={conversations.filter(c => needsReply(c)).length}
               userId={user.id}
             />
           </div>
