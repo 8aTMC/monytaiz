@@ -1,4 +1,20 @@
 {
+  "emojiPicker": {
+    "searchPlaceholder": "Search emojis...",
+    "noRecentEmojis": "No recent emojis",
+    "noEmojisFound": "No emojis found",
+    "category": {
+      "recently-used": "Recently Used",
+      "people": "People & Body",
+      "nature": "Animals & Nature", 
+      "food": "Food & Drink",
+      "activities": "Activities",
+      "travel": "Travel & Places",
+      "objects": "Objects",
+      "symbols": "Symbols",
+      "flags": "Flags"
+    }
+  },
   "landing": {
     "hero": {
       "title": "Premium Fan Experience",

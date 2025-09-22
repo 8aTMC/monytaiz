@@ -27,6 +27,7 @@ import { MessageFilters, ExtendedFilterType } from '@/components/MessageFilters'
 import { useMessageFileUpload } from '@/hooks/useMessageFileUpload';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useAIChat } from '@/hooks/useAIChat';
+import { EmojiPicker } from '@/components/EmojiPicker';
 import { toast as sonnerToast } from 'sonner';
 import { MessageList } from '@/components/MessageList';
 import { 
@@ -106,6 +107,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   const [showAISettingsDialog, setShowAISettingsDialog] = useState(false);
   const [showFanNotesDialog, setShowFanNotesDialog] = useState(false);
   const [aiSettings, setAiSettings] = useState<any>(null);
+  const messageTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const {
     uploadingFiles,
@@ -880,11 +882,14 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                   }}
                   className="flex gap-1 items-end"
                 >
-                  <Button variant="ghost" size="sm" className="h-10 px-2 flex-shrink-0" title="Emoji">
-                    <Smile className="h-4 w-4 text-amber-500" />
-                  </Button>
+                  <EmojiPicker onEmojiSelect={handleEmojiSelect}>
+                    <Button variant="ghost" size="sm" className="h-10 px-2 flex-shrink-0" title="Emoji">
+                      <Smile className="h-4 w-4 text-amber-500" />
+                    </Button>
+                  </EmojiPicker>
                   <div className="flex-1">
                     <Textarea
+                      ref={messageTextareaRef}
                       value={newMessage}
                       onChange={(e) => {
                         setNewMessage(e.target.value);

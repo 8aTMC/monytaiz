@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useSidebar } from '@/components/Navigation';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { MessageList } from '@/components/MessageList';
+import { EmojiPicker } from '@/components/EmojiPicker';
 
 interface Message {
   id: string;
@@ -46,6 +47,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const messageInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize typing indicator hook
   const { typingUsers, startTyping, stopTyping } = useTypingIndicator(
@@ -248,6 +250,24 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
     }
   };
 
+  const handleEmojiSelect = (emoji: string) => {
+    const input = messageInputRef.current;
+    if (input) {
+      const start = input.selectionStart || 0;
+      const end = input.selectionEnd || 0;
+      const newValue = newMessage.slice(0, start) + emoji + newMessage.slice(end);
+      setNewMessage(newValue);
+      
+      // Set cursor position after the emoji
+      setTimeout(() => {
+        input.setSelectionRange(start + emoji.length, start + emoji.length);
+        input.focus();
+      }, 0);
+    } else {
+      setNewMessage(prev => prev + emoji);
+    }
+  };
+
   const handleEnterKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -386,10 +406,13 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           }}
           className="flex gap-2 items-center"
         >
-          <Button variant="ghost" size="sm" className="h-10 px-3 flex-shrink-0" title="Emoji">
-            <Smile className="h-4 w-4 text-amber-500" />
-          </Button>
+          <EmojiPicker onEmojiSelect={handleEmojiSelect}>
+            <Button variant="ghost" size="sm" className="h-10 px-3 flex-shrink-0" title="Emoji">
+              <Smile className="h-4 w-4 text-amber-500" />
+            </Button>
+          </EmojiPicker>
           <Input
+            ref={messageInputRef}
             value={newMessage}
             onChange={(e) => {
               setNewMessage(e.target.value);
