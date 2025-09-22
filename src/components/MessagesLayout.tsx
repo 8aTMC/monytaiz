@@ -702,6 +702,16 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                         </Badge>
                       )}
                       
+                      {/* Unreplied Badge */}
+                      {needsReply(conversation) && conversation.unread_count === 0 && (
+                        <Badge 
+                          variant="secondary" 
+                          className="absolute top-2 right-2 h-5 px-2 text-xs font-medium bg-orange-500 text-orange-50 hover:bg-orange-600"
+                        >
+                          Unreplied
+                        </Badge>
+                      )}
+                      
                       <div className="flex items-center gap-3">
                         <div className="relative">
                           <Avatar className="h-12 w-12">
