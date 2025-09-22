@@ -20,8 +20,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const expandedW = '256px';   // expanded sidebar width
-  const collapsedW = '64px';   // collapsed sidebar width
+  const expandedW = '224px';   // expanded sidebar width (matches w-56)
+  const collapsedW = '64px';   // collapsed sidebar width (matches w-16)
 
   // Set CSS vars + reset horizontal scroll on toggle
   useLayoutEffect(() => {
