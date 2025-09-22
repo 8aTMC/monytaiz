@@ -550,19 +550,14 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   // Mark messages as read when conversation is opened and auto-mark when messages are viewed
   const markConversationAsRead = async (conversationId: string) => {
     try {
-      // Update messages directly instead of using RPC
-      const { error } = await supabase
-        .from('messages')
-        .update({ 
-          read_by_recipient: true, 
-          read_at: new Date().toISOString() 
-        })
-        .eq('conversation_id', conversationId)
-        .eq('read_by_recipient', false)
-        .neq('sender_id', user.id);
+      // Use RPC function to properly mark conversation and messages as read
+      const { error } = await supabase.rpc('mark_conversation_as_read', {
+        conv_id: conversationId,
+        reader_user_id: user.id
+      });
 
       if (error) {
-        console.error('Error updating read status:', error);
+        console.error('Error marking conversation as read:', error);
         return;
       }
       
