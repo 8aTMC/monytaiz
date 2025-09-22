@@ -108,6 +108,7 @@
       "loading": "Loading"
     },
     "messages": {
+      "welcome": "Welcome! Thanks for joining! I might take a bit to respond, and I will reply to you as soon as I can! 💋",
       "filters": {
         "all": "All",
         "ai": "AI",
