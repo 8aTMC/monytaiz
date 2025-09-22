@@ -848,15 +848,18 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                     {isProcessing && <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse ml-1" />}
                   </Button>
                   
-                  <FileUploadButton 
-                    onFilesSelected={(files, type) => {
-                      addFiles(files, type);
-                      if (!isUploading) {
-                        uploadFiles();
-                      }
-                    }}
-                    disabled={isUploading}
-                  />
+                  {/* File Upload Button - Only for fans */}
+                  {!isCreator && (
+                    <FileUploadButton 
+                      onFilesSelected={(files, type) => {
+                        addFiles(files, type);
+                        if (!isUploading) {
+                          uploadFiles();
+                        }
+                      }}
+                      disabled={isUploading}
+                    />
+                  )}
                   {actionButtons.slice(1).map((button, index) => (
                     <button
                       key={index}
