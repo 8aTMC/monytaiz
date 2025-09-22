@@ -10,6 +10,7 @@ import { Send, MessageCircle, Bot, Smile, Library, Mic, FileText, Gift, DollarSi
 import { useToast } from '@/hooks/use-toast';
 import { useSidebar } from '@/components/Navigation';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
+import { useUserPresence } from '@/hooks/useUserPresence';
 import { MessageList } from '@/components/MessageList';
 import { EmojiPicker } from '@/components/EmojiPicker';
 
@@ -54,6 +55,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
     conversation?.id || null, 
     user.id
   );
+  useUserPresence(user.id);
 
   // Load conversation only once when component mounts
   useEffect(() => {
@@ -229,8 +231,8 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           conversation_id: conversation.id,
           sender_id: user.id,
           content: newMessage.trim(),
-          status: 'active',
-          delivered_at: new Date().toISOString() // Mark as delivered immediately
+          status: 'active'
+          // Note: delivered_at will be set when recipient comes online
         })
         .select()
         .single();

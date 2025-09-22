@@ -66,11 +66,14 @@ const MessageBubble = React.memo(({
     if (message.sender_id !== currentUserId) return null;
     
     if (message.read_by_recipient) {
-      return <CheckCheck className="h-3 w-3 text-blue-500" />;
+      // Read: 2 ticks in primary theme color
+      return <CheckCheck className="h-3 w-3 message-ticks read" />;
     } else if (message.delivered_at) {
-      return <CheckCheck className="h-3 w-3 text-muted-foreground" />;
+      // Delivered: 2 grey ticks
+      return <CheckCheck className="h-3 w-3 message-ticks delivered" />;
     } else {
-      return <Check className="h-3 w-3 text-muted-foreground" />;
+      // Sent but not delivered: 1 grey tick
+      return <Check className="h-3 w-3 message-ticks sent" />;
     }
   };
 

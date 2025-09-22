@@ -26,6 +26,7 @@ import { ConversationPinButton } from '@/components/ConversationPinButton';
 import { MessageFilters, ExtendedFilterType } from '@/components/MessageFilters';
 import { useMessageFileUpload } from '@/hooks/useMessageFileUpload';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
+import { useUserPresence } from '@/hooks/useUserPresence';
 import { useAIChat } from '@/hooks/useAIChat';
 import { EmojiPicker } from '@/components/EmojiPicker';
 import { toast as sonnerToast } from 'sonner';
@@ -108,6 +109,9 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   const [showFanNotesDialog, setShowFanNotesDialog] = useState(false);
   const [aiSettings, setAiSettings] = useState<any>(null);
   const messageTextareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Hooks
+  useUserPresence(user.id);
 
   // Handle emoji selection
   const handleEmojiSelect = (emoji: string) => {
@@ -469,8 +473,8 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
           conversation_id: activeConversation.id,
           sender_id: user.id,
           content: messageContent,
-          status: 'active',
-          delivered_at: new Date().toISOString() // Mark as delivered immediately
+          status: 'active'
+          // Note: delivered_at will be set when recipient comes online
         })
         .select()
         .single();

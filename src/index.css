@@ -481,6 +481,23 @@ button:hover svg,
   color: hsl(var(--foreground)) !important;
 }
 
+/* Message delivery status ticks - use theme colors */
+.message-ticks {
+  transition: var(--transition-smooth);
+}
+
+.message-ticks.read {
+  color: hsl(var(--primary));
+}
+
+.message-ticks.delivered {
+  color: hsl(var(--muted-foreground));
+}
+
+.message-ticks.sent {
+  color: hsl(var(--muted-foreground));
+}
+
 /* Organized Z-Index System - increments of 10 */
 
 /* Media Preview Layer (130-150) */
