@@ -706,7 +706,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                         </div>
                         
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between mb-1">
+                          <div className="flex items-start justify-between">
                             <h4 className="font-medium text-sm truncate pr-2">
                               {profile?.display_name || profile?.username || 'Unknown User'}
                             </h4>
@@ -754,7 +754,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                             </Badge>
                           )}
                           
-                          <p className={`text-xs truncate mt-1 ${
+                          <p className={`text-xs truncate mt-0.5 ${
                             conversation.unread_count > 0 
                               ? 'text-foreground font-semibold' 
                               : 'text-muted-foreground'
