@@ -359,9 +359,6 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           <Button variant="ghost" size="sm" className="h-8 px-3" title="AI Assistant">
             <Bot className="h-4 w-4 text-purple-500" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-8 px-3" title="Emoji">
-            <Smile className="h-4 w-4 text-amber-500" />
-          </Button>
           <Button variant="ghost" size="sm" className="h-8 px-3" title="Library">
             <Library className="h-4 w-4 text-primary" />
           </Button>
@@ -387,8 +384,11 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
             e.preventDefault();
             sendMessage();
           }}
-          className="flex gap-2"
+          className="flex gap-2 items-center"
         >
+          <Button variant="ghost" size="sm" className="h-10 px-3 flex-shrink-0" title="Emoji">
+            <Smile className="h-4 w-4 text-amber-500" />
+          </Button>
           <Input
             value={newMessage}
             onChange={(e) => {
@@ -400,7 +400,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
             onKeyDown={(e) => {
               handleEnterKey(e);
             }}
-            placeholder="Type your message..."
+            placeholder="Type a message..."
             disabled={sending}
             className="flex-1"
           />

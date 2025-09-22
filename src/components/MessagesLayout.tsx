@@ -584,7 +584,6 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
   const actionButtons = [
     { icon: Bot, label: 'AI', color: 'text-purple-500' },
-    { icon: Smile, label: 'Emoji', color: 'text-amber-500' },
     { icon: Library, label: 'Library', color: 'text-primary' },
     { icon: Mic, label: 'Voice', color: 'text-purple-500' },
     // Only show tip button for fans, not for creators/admin
@@ -855,8 +854,11 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                     e.preventDefault();
                     sendMessage();
                   }}
-                  className="flex gap-2"
+                  className="flex gap-2 items-center"
                 >
+                  <Button variant="ghost" size="sm" className="h-10 px-3 flex-shrink-0" title="Emoji">
+                    <Smile className="h-4 w-4 text-amber-500" />
+                  </Button>
                   <Input
                     value={newMessage}
                     onChange={(e) => {
