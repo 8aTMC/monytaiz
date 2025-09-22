@@ -157,8 +157,7 @@ All colors MUST be HSL.
     @apply bg-background text-foreground antialiased;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 
                  "Helvetica Neue", Arial, "Noto Sans", sans-serif,
-                 "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", 
-                 "Noto Color Emoji";
+                 "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
   }
   
   /* Enhanced emoji font support for better cross-platform rendering */

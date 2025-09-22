@@ -927,7 +927,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                       }}
                       placeholder="Type a message..."
                       disabled={sending || (hasFiles && !allFilesUploaded)}
-                      className="flex-1 resize-none min-h-[40px] max-h-[100px] overflow-y-auto"
+                      className="flex-1 resize-none min-h-[40px] max-h-[100px] overflow-y-auto emoji"
                       rows={1}
                     />
                   </div>

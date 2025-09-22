@@ -105,7 +105,7 @@ const MessageBubble = React.memo(({
             : "bg-muted",
           message.is_system_message && "bg-muted/50 text-muted-foreground italic"
         )}>
-          <p className="text-sm whitespace-pre-wrap leading-relaxed">
+          <p className="text-sm whitespace-pre-wrap leading-relaxed emoji">
             {message.content}
           </p>
         </div>

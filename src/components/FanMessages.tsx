@@ -425,7 +425,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
             }}
             placeholder="Type a message..."
             disabled={sending}
-            className="flex-1"
+            className="flex-1 emoji"
           />
           <Button 
             type="submit" 
