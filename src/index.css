@@ -161,18 +161,37 @@ All colors MUST be HSL.
                  "Noto Color Emoji";
   }
   
-  /* Emoji font support for better cross-platform rendering */
+  /* Enhanced emoji font support for better cross-platform rendering */
   .emoji,
   .emoji-picker,
   [data-emoji],
+  [data-emoji-button],
   [data-radix-popover-content] .emoji,
   button[title*="emoji" i],
   button[aria-label*="emoji" i] {
-    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", 
+    font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", 
                  "Android Emoji", "EmojiSymbols", "EmojiOne Mozilla", 
-                 "Twemoji Mozilla", "Segoe UI Symbol", sans-serif;
-    font-feature-settings: "liga" off;
+                 "Twemoji Mozilla", "Segoe UI Symbol", sans-serif !important;
+    font-feature-settings: "liga" off, "kern" off, "calt" off;
     font-variant-emoji: emoji;
+    font-synthesis: none;
+    text-rendering: optimizeSpeed;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Flag emoji specific styling for better rendering */
+  .emoji-flag,
+  [data-emoji-flag],
+  button[data-emoji-flag] {
+    font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", 
+                 "Android Emoji", sans-serif !important;
+    font-size: 1.1em;
+    display: inline-block;
+    vertical-align: middle;
+    line-height: 1;
+    font-variant-emoji: emoji;
+    text-rendering: auto;
   }
   
   /* Prevent body scroll - only main content scrolls */

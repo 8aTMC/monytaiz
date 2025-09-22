@@ -204,16 +204,23 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({ children, onEmojiSelec
                         ) : (
                           <div className="grid grid-cols-8 gap-1">
                             {emojisByCategory[category].map((emoji) => (
-                              <button
+                               <button
                                 key={`${emoji.emoji}-${emoji.name}`}
                                 type="button"
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={(e) => handleEmojiClick(emoji.emoji, e)}
-                                className="aspect-square flex items-center justify-center text-xl hover:bg-muted rounded transition-colors p-1 emoji"
+                                className={`aspect-square flex items-center justify-center text-xl hover:bg-muted rounded transition-colors p-1 emoji ${
+                                  emoji.category === 'flags' ? 'emoji-flag' : ''
+                                }`}
                                 title={emoji.name}
                                 data-emoji-button
+                                {...(emoji.category === 'flags' && { 'data-emoji-flag': true })}
                                 style={{
-                                  fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Android Emoji", "EmojiSymbols", sans-serif'
+                                  fontFamily: emoji.category === 'flags' 
+                                    ? '"Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Android Emoji", sans-serif'
+                                    : '"Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Twemoji Mozilla", "Android Emoji", "EmojiSymbols", sans-serif',
+                                  fontVariantEmoji: 'emoji',
+                                  textRendering: 'auto'
                                 }}
                               >
                                 {emoji.emoji}
