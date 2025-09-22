@@ -513,6 +513,11 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     return isCreator ? conv.fan_profile : conv.creator_profile;
   };
 
+  // Determine if a conversation needs a reply (last message is from the other party)
+  const needsReply = (conv: Conversation) => {
+    if (!conv.latest_message_sender_id) return false;
+    return conv.latest_message_sender_id !== user.id;
+  };
   // Filter conversations based on active filter
   const filteredConversations = conversations.filter((conversation) => {
     // First apply text search filter

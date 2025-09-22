@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bot, Pin, MessageCircle, Plus, Users } from 'lucide-react';
 
-export type FilterType = 'all' | 'ai' | 'pinned' | 'unread';
+export type FilterType = 'all' | 'ai' | 'pinned' | 'unread' | 'unreplied';
 export type ExtendedFilterType = FilterType | `list_${string}`;
 
 interface UserList {
@@ -21,6 +21,7 @@ interface MessageFiltersProps {
   aiChatCount: number;
   pinnedCount: number;
   unreadCount: number;
+  unrepliedCount: number;
   userId: string;
 }
 
@@ -30,6 +31,7 @@ export const MessageFilters = ({
   aiChatCount,
   pinnedCount,
   unreadCount,
+  unrepliedCount,
   userId
 }: MessageFiltersProps) => {
   const [userLists, setUserLists] = useState<UserList[]>([]);
@@ -75,32 +77,38 @@ export const MessageFilters = ({
     localStorage.setItem(`message_filter_lists_${userId}`, JSON.stringify(updated));
   };
 
-  const baseFilters = [
-    {
-      id: 'all',
-      label: 'All',
-      icon: MessageCircle,
-      count: null
-    },
-    {
-      id: 'ai',
-      label: 'AI',
-      icon: Bot,
-      count: aiChatCount
-    },
-    {
-      id: 'pinned',
-      label: 'Pinned',
-      icon: Pin,
-      count: pinnedCount
-    },
-    {
-      id: 'unread',
-      label: 'Unread',
-      icon: MessageCircle,
-      count: unreadCount
-    }
-  ] as const;
+const baseFilters = [
+  {
+    id: 'all',
+    label: 'All',
+    icon: MessageCircle,
+    count: null
+  },
+  {
+    id: 'ai',
+    label: 'AI',
+    icon: Bot,
+    count: aiChatCount
+  },
+  {
+    id: 'pinned',
+    label: 'Pinned',
+    icon: Pin,
+    count: pinnedCount
+  },
+  {
+    id: 'unread',
+    label: 'Unread',
+    icon: MessageCircle,
+    count: unreadCount
+  },
+  {
+    id: 'unreplied',
+    label: 'Unreplied',
+    icon: MessageCircle,
+    count: unrepliedCount
+  }
+] as const;
 
   // Add selected user lists as filters
   const listFilters = selectedLists.map(listId => {
