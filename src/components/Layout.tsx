@@ -1,9 +1,15 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Navigation, useSidebar } from '@/components/Navigation';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { isCollapsed, isNarrowScreen } = useSidebar();
+  const location = useLocation();
   const mainRef = useRef<HTMLDivElement>(null);
+
+  // Check if we're on the messages page to apply different padding
+  const isMessagesPage = location.pathname === '/messages';
+  const containerPadding = isMessagesPage ? 'p-0' : 'px-6';
 
   // Prevent window scroll; only main content scrolls
   useEffect(() => {
@@ -41,7 +47,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         }}
       >
         {/* Inner container enforces minimum width for horizontal scroll within main */}
-        <div className="min-w-[1024px] h-full box-border px-6 flex flex-col">
+        <div className={`min-w-[1024px] h-full box-border ${containerPadding} flex flex-col`}>
           <div className="flex-1 min-h-0 overflow-visible">
             {children}
           </div>
