@@ -341,25 +341,78 @@ export const emojiData: EmojiData[] = [
   { emoji: '⚠️', name: 'Warning', keywords: ['warning', 'caution'], keywordsEs: ['advertencia', 'precaucion'], category: 'symbols' },
   { emoji: '🚫', name: 'Prohibited', keywords: ['no', 'stop', 'forbidden'], keywordsEs: ['no', 'parar', 'prohibido'], category: 'symbols' },
 
-  // Flags (Popular ones)
+  // Flags (Comprehensive Collection)
+  // Special flags
   { emoji: '🏳️', name: 'White Flag', keywords: ['flag', 'surrender'], keywordsEs: ['bandera', 'rendirse'], category: 'flags' },
   { emoji: '🏴', name: 'Black Flag', keywords: ['flag'], keywordsEs: ['bandera'], category: 'flags' },
   { emoji: '🏁', name: 'Chequered Flag', keywords: ['flag', 'race', 'finish'], keywordsEs: ['bandera', 'carrera', 'final'], category: 'flags' },
   { emoji: '🚩', name: 'Triangular Flag', keywords: ['flag'], keywordsEs: ['bandera'], category: 'flags' },
   { emoji: '🏳️‍🌈', name: 'Rainbow Flag', keywords: ['pride', 'rainbow', 'lgbt'], keywordsEs: ['orgullo', 'arcoiris', 'lgbt'], category: 'flags' },
-  { emoji: '🇺🇸', name: 'Flag: United States', keywords: ['usa', 'america'], keywordsEs: ['usa', 'america'], category: 'flags' },
-  { emoji: '🇬🇧', name: 'Flag: United Kingdom', keywords: ['uk', 'britain'], keywordsEs: ['reino unido', 'gran bretaña'], category: 'flags' },
-  { emoji: '🇨🇦', name: 'Flag: Canada', keywords: ['canada'], keywordsEs: ['canada'], category: 'flags' },
+  { emoji: '🏳️‍⚧️', name: 'Transgender Flag', keywords: ['transgender', 'pride'], keywordsEs: ['transgenero', 'orgullo'], category: 'flags' },
+  { emoji: '🏴‍☠️', name: 'Pirate Flag', keywords: ['pirate', 'skull'], keywordsEs: ['pirata', 'calavera'], category: 'flags' },
+
+  // Countries A-C
+  { emoji: '🇦🇫', name: 'Flag: Afghanistan', keywords: ['afghanistan'], keywordsEs: ['afganistan'], category: 'flags' },
+  { emoji: '🇦🇷', name: 'Flag: Argentina', keywords: ['argentina'], keywordsEs: ['argentina'], category: 'flags' },
   { emoji: '🇦🇺', name: 'Flag: Australia', keywords: ['australia'], keywordsEs: ['australia'], category: 'flags' },
+  { emoji: '🇦🇹', name: 'Flag: Austria', keywords: ['austria'], keywordsEs: ['austria'], category: 'flags' },
+  { emoji: '🇧🇪', name: 'Flag: Belgium', keywords: ['belgium'], keywordsEs: ['belgica'], category: 'flags' },
+  { emoji: '🇧🇷', name: 'Flag: Brazil', keywords: ['brazil'], keywordsEs: ['brasil'], category: 'flags' },
+  { emoji: '🇨🇦', name: 'Flag: Canada', keywords: ['canada'], keywordsEs: ['canada'], category: 'flags' },
+  { emoji: '🇨🇭', name: 'Flag: Switzerland', keywords: ['switzerland'], keywordsEs: ['suiza'], category: 'flags' },
+  { emoji: '🇨🇱', name: 'Flag: Chile', keywords: ['chile'], keywordsEs: ['chile'], category: 'flags' },
+  { emoji: '🇨🇳', name: 'Flag: China', keywords: ['china'], keywordsEs: ['china'], category: 'flags' },
+  { emoji: '🇨🇴', name: 'Flag: Colombia', keywords: ['colombia'], keywordsEs: ['colombia'], category: 'flags' },
+  { emoji: '🇨🇿', name: 'Flag: Czech Republic', keywords: ['czech', 'czechia'], keywordsEs: ['republica checa'], category: 'flags' },
+
+  // Countries D-G
   { emoji: '🇩🇪', name: 'Flag: Germany', keywords: ['germany'], keywordsEs: ['alemania'], category: 'flags' },
+  { emoji: '🇩🇰', name: 'Flag: Denmark', keywords: ['denmark'], keywordsEs: ['dinamarca'], category: 'flags' },
+  { emoji: '🇪🇬', name: 'Flag: Egypt', keywords: ['egypt'], keywordsEs: ['egipto'], category: 'flags' },
+  { emoji: '🇪🇸', name: 'Flag: Spain', keywords: ['spain'], keywordsEs: ['españa'], category: 'flags' },
+  { emoji: '🇫🇮', name: 'Flag: Finland', keywords: ['finland'], keywordsEs: ['finlandia'], category: 'flags' },
   { emoji: '🇫🇷', name: 'Flag: France', keywords: ['france'], keywordsEs: ['francia'], category: 'flags' },
+  { emoji: '🇬🇧', name: 'Flag: United Kingdom', keywords: ['uk', 'britain'], keywordsEs: ['reino unido', 'gran bretaña'], category: 'flags' },
+  { emoji: '🇬🇷', name: 'Flag: Greece', keywords: ['greece'], keywordsEs: ['grecia'], category: 'flags' },
+
+  // Countries H-L
+  { emoji: '🇭🇺', name: 'Flag: Hungary', keywords: ['hungary'], keywordsEs: ['hungria'], category: 'flags' },
+  { emoji: '🇮🇪', name: 'Flag: Ireland', keywords: ['ireland'], keywordsEs: ['irlanda'], category: 'flags' },
+  { emoji: '🇮🇱', name: 'Flag: Israel', keywords: ['israel'], keywordsEs: ['israel'], category: 'flags' },
+  { emoji: '🇮🇳', name: 'Flag: India', keywords: ['india'], keywordsEs: ['india'], category: 'flags' },
+  { emoji: '🇮🇸', name: 'Flag: Iceland', keywords: ['iceland'], keywordsEs: ['islandia'], category: 'flags' },
+  { emoji: '🇮🇹', name: 'Flag: Italy', keywords: ['italy'], keywordsEs: ['italia'], category: 'flags' },
   { emoji: '🇯🇵', name: 'Flag: Japan', keywords: ['japan'], keywordsEs: ['japon'], category: 'flags' },
   { emoji: '🇰🇷', name: 'Flag: South Korea', keywords: ['korea'], keywordsEs: ['corea'], category: 'flags' },
-  { emoji: '🇨🇳', name: 'Flag: China', keywords: ['china'], keywordsEs: ['china'], category: 'flags' },
-  { emoji: '🇮🇳', name: 'Flag: India', keywords: ['india'], keywordsEs: ['india'], category: 'flags' },
-  { emoji: '🇧🇷', name: 'Flag: Brazil', keywords: ['brazil'], keywordsEs: ['brasil'], category: 'flags' },
+  { emoji: '🇱🇺', name: 'Flag: Luxembourg', keywords: ['luxembourg'], keywordsEs: ['luxemburgo'], category: 'flags' },
+
+  // Countries M-P
   { emoji: '🇲🇽', name: 'Flag: Mexico', keywords: ['mexico'], keywordsEs: ['mexico'], category: 'flags' },
-  { emoji: '🇪🇸', name: 'Flag: Spain', keywords: ['spain'], keywordsEs: ['españa'], category: 'flags' },
-  { emoji: '🇮🇹', name: 'Flag: Italy', keywords: ['italy'], keywordsEs: ['italia'], category: 'flags' },
-  { emoji: '🇷🇺', name: 'Flag: Russia', keywords: ['russia'], keywordsEs: ['rusia'], category: 'flags' }
+  { emoji: '🇲🇾', name: 'Flag: Malaysia', keywords: ['malaysia'], keywordsEs: ['malasia'], category: 'flags' },
+  { emoji: '🇳🇱', name: 'Flag: Netherlands', keywords: ['netherlands', 'holland'], keywordsEs: ['holanda', 'paises bajos'], category: 'flags' },
+  { emoji: '🇳🇴', name: 'Flag: Norway', keywords: ['norway'], keywordsEs: ['noruega'], category: 'flags' },
+  { emoji: '🇳🇿', name: 'Flag: New Zealand', keywords: ['new zealand'], keywordsEs: ['nueva zelanda'], category: 'flags' },
+  { emoji: '🇵🇪', name: 'Flag: Peru', keywords: ['peru'], keywordsEs: ['peru'], category: 'flags' },
+  { emoji: '🇵🇱', name: 'Flag: Poland', keywords: ['poland'], keywordsEs: ['polonia'], category: 'flags' },
+  { emoji: '🇵🇹', name: 'Flag: Portugal', keywords: ['portugal'], keywordsEs: ['portugal'], category: 'flags' },
+
+  // Countries R-U
+  { emoji: '🇷🇴', name: 'Flag: Romania', keywords: ['romania'], keywordsEs: ['rumania'], category: 'flags' },
+  { emoji: '🇷🇺', name: 'Flag: Russia', keywords: ['russia'], keywordsEs: ['rusia'], category: 'flags' },
+  { emoji: '🇸🇦', name: 'Flag: Saudi Arabia', keywords: ['saudi arabia'], keywordsEs: ['arabia saudi'], category: 'flags' },
+  { emoji: '🇸🇪', name: 'Flag: Sweden', keywords: ['sweden'], keywordsEs: ['suecia'], category: 'flags' },
+  { emoji: '🇸🇬', name: 'Flag: Singapore', keywords: ['singapore'], keywordsEs: ['singapur'], category: 'flags' },
+  { emoji: '🇹🇭', name: 'Flag: Thailand', keywords: ['thailand'], keywordsEs: ['tailandia'], category: 'flags' },
+  { emoji: '🇹🇷', name: 'Flag: Turkey', keywords: ['turkey'], keywordsEs: ['turquia'], category: 'flags' },
+  { emoji: '🇺🇦', name: 'Flag: Ukraine', keywords: ['ukraine'], keywordsEs: ['ucrania'], category: 'flags' },
+  { emoji: '🇺🇸', name: 'Flag: United States', keywords: ['usa', 'america'], keywordsEs: ['usa', 'america'], category: 'flags' },
+
+  // Countries V-Z & Regional
+  { emoji: '🇻🇪', name: 'Flag: Venezuela', keywords: ['venezuela'], keywordsEs: ['venezuela'], category: 'flags' },
+  { emoji: '🇻🇳', name: 'Flag: Vietnam', keywords: ['vietnam'], keywordsEs: ['vietnam'], category: 'flags' },
+  { emoji: '🇿🇦', name: 'Flag: South Africa', keywords: ['south africa'], keywordsEs: ['sudafrica'], category: 'flags' },
+
+  // Regional & Organizations
+  { emoji: '🇪🇺', name: 'Flag: European Union', keywords: ['eu', 'europe'], keywordsEs: ['union europea', 'europa'], category: 'flags' },
+  { emoji: '🇺🇳', name: 'Flag: United Nations', keywords: ['un', 'united nations'], keywordsEs: ['naciones unidas', 'onu'], category: 'flags' }
 ];

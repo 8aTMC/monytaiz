@@ -209,9 +209,12 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({ children, onEmojiSelec
                                 type="button"
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={(e) => handleEmojiClick(emoji.emoji, e)}
-                                className="aspect-square flex items-center justify-center text-xl hover:bg-muted rounded transition-colors p-1"
+                                className="aspect-square flex items-center justify-center text-xl hover:bg-muted rounded transition-colors p-1 emoji"
                                 title={emoji.name}
                                 data-emoji-button
+                                style={{
+                                  fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Android Emoji", "EmojiSymbols", sans-serif'
+                                }}
                               >
                                 {emoji.emoji}
                               </button>

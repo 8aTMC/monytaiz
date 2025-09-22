@@ -155,6 +155,24 @@ All colors MUST be HSL.
   html,
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 
+                 "Helvetica Neue", Arial, "Noto Sans", sans-serif,
+                 "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", 
+                 "Noto Color Emoji";
+  }
+  
+  /* Emoji font support for better cross-platform rendering */
+  .emoji,
+  .emoji-picker,
+  [data-emoji],
+  [data-radix-popover-content] .emoji,
+  button[title*="emoji" i],
+  button[aria-label*="emoji" i] {
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", 
+                 "Android Emoji", "EmojiSymbols", "EmojiOne Mozilla", 
+                 "Twemoji Mozilla", "Segoe UI Symbol", sans-serif;
+    font-feature-settings: "liga" off;
+    font-variant-emoji: emoji;
   }
   
   /* Prevent body scroll - only main content scrolls */
