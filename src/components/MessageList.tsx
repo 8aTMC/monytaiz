@@ -95,7 +95,7 @@ const MessageBubble = React.memo(({
         </Avatar>
       )}
       <div className={cn(
-        "flex flex-col gap-1 max-w-xs md:max-w-sm lg:max-w-md",
+        "flex flex-col gap-0.5 max-w-xs md:max-w-sm lg:max-w-md",
         isOwn ? "items-end" : "items-start"
       )}>
         <div className={cn(
@@ -398,7 +398,7 @@ export const MessageList = ({
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-auto px-4 py-3"
+        className="flex-1 overflow-auto px-4 py-2"
         style={{ 
           scrollbarWidth: 'none', 
           msOverflowStyle: 'none',
@@ -416,7 +416,7 @@ export const MessageList = ({
         {loadingOlder && <LoadingShimmer />}
         
         {/* Messages */}
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           {messagesList.map((message) => (
             <MessageBubble
               key={message.id}
