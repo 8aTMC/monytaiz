@@ -694,7 +694,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                         }
                       }}
                     >
-                      <div className="flex items-center gap-3">
+                        <div className="flex items-start gap-3">
                         <div className="relative">
                           <Avatar className="h-12 w-12">
                             <AvatarImage src={profile?.avatar_url} />
@@ -706,33 +706,10 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                         </div>
                         
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between">
-                            <h4 className="font-medium text-sm truncate pr-2">
+                          <div className="flex items-start">
+                            <h4 className="font-medium text-sm truncate pr-2 leading-none">
                               {profile?.display_name || profile?.username || 'Unknown User'}
                             </h4>
-                            <div className="flex flex-col items-end text-right flex-shrink-0 ml-auto">
-                              <span className="text-xs text-muted-foreground">
-                                {formatDate(conversation.last_message_at)}
-                              </span>
-                              <div className="flex items-center gap-1 mt-1">
-                                <span className="text-xs font-medium text-primary">
-                                  ${conversation.total_spent || 0}
-                                </span>
-                                <ConversationPinButton
-                                  conversationId={conversation.id}
-                                  isPinned={conversation.is_pinned || false}
-                                  onToggle={(pinned) => {
-                                    setConversations(prev => 
-                                      prev.map(conv => 
-                                        conv.id === conversation.id 
-                                          ? { ...conv, is_pinned: pinned }
-                                          : conv
-                                      )
-                                    );
-                                  }}
-                                />
-                              </div>
-                            </div>
                           </div>
                           
                           {/* Status Badges */}
@@ -761,6 +738,29 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                           }`}>
                             {conversation.latest_message_content || 'No messages yet'}
                           </p>
+                        </div>
+                        <div className="flex flex-col items-end text-right flex-shrink-0 ml-auto">
+                          <span className="text-xs text-muted-foreground">
+                            {formatDate(conversation.last_message_at)}
+                          </span>
+                          <div className="flex items-center gap-1 mt-1">
+                            <span className="text-xs font-medium text-primary">
+                              ${conversation.total_spent || 0}
+                            </span>
+                            <ConversationPinButton
+                              conversationId={conversation.id}
+                              isPinned={conversation.is_pinned || false}
+                              onToggle={(pinned) => {
+                                setConversations(prev => 
+                                  prev.map(conv => 
+                                    conv.id === conversation.id 
+                                      ? { ...conv, is_pinned: pinned }
+                                      : conv
+                                  )
+                                );
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
