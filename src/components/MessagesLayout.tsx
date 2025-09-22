@@ -109,6 +109,23 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   const [aiSettings, setAiSettings] = useState<any>(null);
   const messageTextareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Handle emoji selection
+  const handleEmojiSelect = (emoji: string) => {
+    const textarea = messageTextareaRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart || 0;
+      const end = textarea.selectionEnd || 0;
+      const newValue = newMessage.slice(0, start) + emoji + newMessage.slice(end);
+      setNewMessage(newValue);
+      
+      // Set cursor position after the emoji
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + emoji.length, start + emoji.length);
+      }, 0);
+    }
+  };
+
   const {
     uploadingFiles,
     isUploading,
