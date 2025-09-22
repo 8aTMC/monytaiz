@@ -4,6 +4,7 @@ import { User } from '@supabase/supabase-js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -831,9 +832,9 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
             {/* Message Input Area - Fixed at bottom */}
             <div className="flex-none border-t border-border bg-background h-auto">
-              <div className="p-4">
+              <div className="px-3 py-2">
                 {/* Action Buttons */}
-                <div className="flex items-center gap-2 mb-3 overflow-x-auto">
+                <div className="flex items-center gap-2 mb-2 overflow-x-auto">
                   {/* AI Assistant Button - First/Leftmost */}
                   <Button
                     variant="ghost"
@@ -874,29 +875,42 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                     e.preventDefault();
                     sendMessage();
                   }}
-                  className="flex gap-2 items-center"
+                  className="flex gap-1 items-end"
                 >
-                  <Button variant="ghost" size="sm" className="h-10 px-3 flex-shrink-0" title="Emoji">
+                  <Button variant="ghost" size="sm" className="h-10 px-2 flex-shrink-0" title="Emoji">
                     <Smile className="h-4 w-4 text-amber-500" />
                   </Button>
-                  <Input
-                    value={newMessage}
-                    onChange={(e) => {
-                      setNewMessage(e.target.value);
-                      if (e.target.value.trim()) {
-                        startTyping();
-                      }
-                    }}
-                    onKeyDown={(e) => {
-                      handleEnterKey(e);
-                    }}
-                    placeholder="Type a message..."
-                    disabled={sending || (hasFiles && !allFilesUploaded)}
-                    className="flex-1"
-                  />
+                  <div className="flex-1">
+                    <Textarea
+                      value={newMessage}
+                      onChange={(e) => {
+                        setNewMessage(e.target.value);
+                        if (e.target.value.trim()) {
+                          startTyping();
+                        }
+                        // Auto-resize textarea
+                        const textarea = e.target;
+                        textarea.style.height = 'auto';
+                        const lineHeight = 20; // approximate line height
+                        const maxLines = 5;
+                        const maxHeight = lineHeight * maxLines;
+                        const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+                        textarea.style.height = newHeight + 'px';
+                      }}
+                      onKeyDown={(e) => {
+                        handleEnterKey(e);
+                      }}
+                      placeholder="Type a message..."
+                      disabled={sending || (hasFiles && !allFilesUploaded)}
+                      className="flex-1 resize-none min-h-[40px] max-h-[100px] overflow-y-auto"
+                      rows={1}
+                    />
+                  </div>
                   <Button 
                     type="submit"
                     disabled={!newMessage.trim() || sending || (hasFiles && !allFilesUploaded)}
+                    size="sm"
+                    className="h-10"
                   >
                     <Send className="h-4 w-4" />
                   </Button>
