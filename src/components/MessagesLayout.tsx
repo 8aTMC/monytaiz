@@ -634,7 +634,11 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Messages</h2>
               <div className="flex gap-2">
-                <Button variant="ghost" size="icon">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => setSearchQuery(searchQuery ? '' : 'search')} // Toggle search functionality
+                >
                   <Search className="h-4 w-4" />
                 </Button>
                 <Button variant="ghost" size="icon">
@@ -643,16 +647,19 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
               </div>
             </div>
             
-            {/* Search */}
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search conversations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
+            {/* Expandable Search */}
+            {searchQuery && (
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search conversations..."
+                  value={searchQuery === 'search' ? '' : searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                  autoFocus
+                />
+              </div>
+            )}
             
             {/* Filters */}
             <MessageFilters
