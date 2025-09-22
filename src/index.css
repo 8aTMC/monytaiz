@@ -473,6 +473,14 @@ main.layout-main *::-webkit-scrollbar-thumb:hover {
   }
 }
 
+/* Button icon hover states - make colored icons turn white on hover for better visibility */
+button:hover svg,
+.hover\:bg-secondary\/50:hover svg,
+.hover\:bg-accent:hover svg,
+.hover\:bg-muted:hover svg {
+  color: hsl(var(--foreground)) !important;
+}
+
 /* Organized Z-Index System - increments of 10 */
 
 /* Media Preview Layer (130-150) */
