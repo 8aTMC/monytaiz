@@ -739,7 +739,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                           {conversation.unread_count > 0 && (
                             <Badge 
                               variant="destructive" 
-                              className="h-5 px-2 text-xs font-medium mb-1"
+                              className="h-5 px-2 text-xs font-medium"
                             >
                               Unread
                             </Badge>
@@ -748,7 +748,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                           {needsReply(conversation) && conversation.unread_count === 0 && (
                             <Badge 
                               variant="secondary" 
-                              className="h-5 px-2 text-xs font-medium bg-orange-500 text-orange-50 hover:bg-orange-600 mb-1"
+                              className="h-5 px-2 text-xs font-medium bg-orange-500 text-orange-50 hover:bg-orange-600"
                             >
                               Unreplied
                             </Badge>
