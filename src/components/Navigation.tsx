@@ -406,7 +406,7 @@ export const Navigation = ({ role }: NavigationProps) => {
     <>
       <nav 
         className={`fixed left-0 top-0 ${isNarrowScreen && !isCollapsed ? 'z-50' : 'z-[60]'} bg-card border-r border-border flex flex-col transition-all duration-300 ${
-          isCollapsed ? 'w-16' : 'w-64'
+          isCollapsed ? 'w-16' : 'w-56'
         } ${isNarrowScreen && !isCollapsed ? 'shadow-2xl' : ''} h-screen`}
         data-auto-collapse
         {...(isNarrowScreen && !isCollapsed ? { 'data-manually-opened': 'true' } : {})}
@@ -450,7 +450,7 @@ export const Navigation = ({ role }: NavigationProps) => {
                   <img 
                     src={getLogoSrc()} 
                     alt="MonytAIz Logo" 
-                    className="h-[50px] w-[200px] object-contain transition-all duration-300 group-hover:scale-105 group-hover:drop-shadow-xl"
+                    className="h-[50px] w-[180px] object-contain transition-all duration-300 group-hover:scale-105 group-hover:drop-shadow-xl"
                   />
                   <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 group-hover:animate-border-glow transition-opacity duration-300" />
                 </>
@@ -480,7 +480,7 @@ export const Navigation = ({ role }: NavigationProps) => {
                 <Link
                   to={item.href}
                   className={`flex items-center rounded-lg transition-smooth ${
-                    isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
+                    isCollapsed ? 'justify-center px-2 py-2' : 'gap-2 px-2 py-2'
                   } ${
                     active 
                       ? isCollapsed 
@@ -503,7 +503,7 @@ export const Navigation = ({ role }: NavigationProps) => {
               <Link
                 to="/ai-management"
                 className={`flex items-center rounded-lg transition-smooth ${
-                  isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
+                  isCollapsed ? 'justify-center px-2 py-2' : 'gap-2 px-2 py-2'
                 } ${
                   isActive('/ai-management') 
                     ? isCollapsed 
@@ -531,7 +531,7 @@ export const Navigation = ({ role }: NavigationProps) => {
                   <Link
                     to="/fans"
                      className={`flex items-center rounded-lg transition-smooth ${
-                       isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
+                       isCollapsed ? 'justify-center px-2 py-2' : 'gap-2 px-2 py-2'
                      } ${
                        isSectionActive('fans') 
                          ? isCollapsed 
@@ -587,16 +587,16 @@ export const Navigation = ({ role }: NavigationProps) => {
               </HoverCard>
             ) : (
               <Collapsible open={openSection === 'fans'} onOpenChange={() => handleSectionToggle('fans')}>
-                <CollapsibleTrigger className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
+                <CollapsibleTrigger className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-smooth ${
                   isSectionActive('fans') 
                     ? 'bg-primary/10 text-primary border border-primary/20' 
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                 }`}>
-                  <div className="flex items-center gap-3 flex-1">
+                  <div className="flex items-center gap-2 flex-1">
                     <Users className="h-5 w-5" />
                     <span>Fans</span>
                   </div>
-                  <div className="ml-auto pr-1">
+                  <div className="ml-auto">
                     {openSection === 'fans' ? (
                       <ChevronUp className="h-4 w-4" />
                     ) : (
@@ -608,7 +608,7 @@ export const Navigation = ({ role }: NavigationProps) => {
                  <CollapsibleContent className="mt-1 space-y-1">
                   <Link
                     to="/fans"
-                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
+                    className={`flex items-center gap-2 px-4 py-2 ml-2 rounded-lg text-sm transition-smooth ${
                       location.pathname === '/fans' && !location.search
                         ? 'bg-primary/3 text-primary/90'
                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
@@ -619,7 +619,7 @@ export const Navigation = ({ role }: NavigationProps) => {
                   </Link>
                   <Link
                     to="/fans/categories"
-                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
+                    className={`flex items-center gap-2 px-4 py-2 ml-2 rounded-lg text-sm transition-smooth ${
                       location.pathname === '/fans/categories'
                         ? 'bg-primary/3 text-primary/90'
                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
@@ -630,7 +630,7 @@ export const Navigation = ({ role }: NavigationProps) => {
                   </Link>
                   <Link
                     to="/fans/lists"
-                    className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
+                    className={`flex items-center gap-2 px-4 py-2 ml-2 rounded-lg text-sm transition-smooth ${
                       location.pathname === '/fans/lists'
                         ? 'bg-primary/3 text-primary/90'
                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
@@ -652,7 +652,7 @@ export const Navigation = ({ role }: NavigationProps) => {
                   <Link
                     to="/library"
                      className={`flex items-center rounded-lg transition-smooth ${
-                       isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
+                       isCollapsed ? 'justify-center px-2 py-2' : 'gap-2 px-2 py-2'
                      } ${
                        isSectionActive('content') 
                          ? isCollapsed 
@@ -732,16 +732,16 @@ export const Navigation = ({ role }: NavigationProps) => {
               </HoverCard>
             ) : (
               <Collapsible open={openSection === 'content'} onOpenChange={() => handleSectionToggle('content')}>
-                <CollapsibleTrigger className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 hover:scale-[1.02] ${
+                <CollapsibleTrigger className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-all duration-200 hover:scale-[1.02] ${
                   isSectionActive('content') 
                     ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm' 
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                 }`}>
-                  <div className="flex items-center gap-3 flex-1">
+                  <div className="flex items-center gap-2 flex-1">
                     <ContentIcon className="h-5 w-5" />
                     <span>Content</span>
                   </div>
-                  <div className="ml-auto pr-1">
+                  <div className="ml-auto">
                     {openSection === 'content' ? (
                       <ChevronUp className="h-4 w-4" />
                     ) : (
@@ -753,11 +753,11 @@ export const Navigation = ({ role }: NavigationProps) => {
                  <CollapsibleContent className="mt-1 space-y-1">
                    <Link
                      to="/library"
-                      className={`group flex items-center gap-3 px-6 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
-                        location.pathname === '/library' && !location.search
-                          ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
-                      }`}
+                       className={`group flex items-center gap-2 px-4 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
+                         location.pathname === '/library' && !location.search
+                           ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
+                           : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+                       }`}
                    >
                      <Library className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/library' && !location.search ? '' : 'group-hover:scale-110'}`} />
                      <span className="font-medium">Library</span>
@@ -765,18 +765,18 @@ export const Navigation = ({ role }: NavigationProps) => {
                    
                    <Link
                      to="/upload"
-                      className={`group flex items-center gap-3 px-6 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
-                        location.pathname === '/upload'
-                          ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
-                      }`}
+                       className={`group flex items-center gap-2 px-4 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
+                         location.pathname === '/upload'
+                           ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
+                           : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+                       }`}
                     >
                       <Upload className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/upload' ? '' : 'group-hover:scale-110'}`} />
                       <span className="font-medium">Upload</span>
                     </Link>
                       <Link
                         to="/tags"
-                       className={`group flex items-center gap-3 px-6 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
+                        className={`group flex items-center gap-2 px-4 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
                            location.pathname === '/tags'
                              ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
                              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
@@ -787,7 +787,7 @@ export const Navigation = ({ role }: NavigationProps) => {
                       </Link>
                       <Link
                         to="/collaborators"
-                       className={`group flex items-center gap-3 px-6 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
+                        className={`group flex items-center gap-2 px-4 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
                            location.pathname === '/collaborators'
                              ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
                              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
@@ -799,11 +799,11 @@ export const Navigation = ({ role }: NavigationProps) => {
                       {(userRoles.includes('owner') || userRoles.includes('superadmin')) && (
                        <Link
                          to="/admin"
-                          className={`group flex items-center gap-3 px-6 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
-                            location.pathname === '/admin'
-                              ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
-                              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
-                          }`}
+                           className={`group flex items-center gap-2 px-4 py-2.5 ml-2 rounded-lg text-sm transition-all duration-200 hover:scale-[1.02] ${
+                             location.pathname === '/admin'
+                               ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
+                               : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+                           }`}
                        >
                          <Shield className={`h-4 w-4 transition-transform duration-200 ${location.pathname === '/admin' ? '' : 'group-hover:scale-110'}`} />
                          <span className="font-medium">Admin</span>
@@ -822,7 +822,7 @@ export const Navigation = ({ role }: NavigationProps) => {
                   <Link
                     to="/management/users"
                      className={`flex items-center rounded-lg transition-smooth ${
-                       isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
+                       isCollapsed ? 'justify-center px-2 py-2' : 'gap-2 px-2 py-2'
                      } ${
                        isSectionActive('management') 
                          ? isCollapsed 
@@ -862,16 +862,16 @@ export const Navigation = ({ role }: NavigationProps) => {
               </HoverCard>
             ) : (
               <Collapsible open={openSection === 'management'} onOpenChange={() => handleSectionToggle('management')}>
-                <CollapsibleTrigger className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
+                <CollapsibleTrigger className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-smooth ${
                   isSectionActive('management') 
                     ? 'bg-primary/10 text-primary border border-primary/20' 
                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                 }`}>
-                  <div className="flex items-center gap-3 flex-1">
+                  <div className="flex items-center gap-2 flex-1">
                     <UserIcon className="h-5 w-5" />
                     <span>Management</span>
                   </div>
-                  <div className="ml-auto pr-1">
+                  <div className="ml-auto">
                     {openSection === 'management' ? (
                       <ChevronUp className="h-4 w-4" />
                     ) : (
@@ -882,18 +882,18 @@ export const Navigation = ({ role }: NavigationProps) => {
                 
                  <CollapsibleContent className="mt-1 space-y-1">
                    <CreatorProfileDialog>
-                     <button className="flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth w-full text-left text-muted-foreground hover:text-foreground hover:bg-secondary/80">
+                     <button className="flex items-center gap-2 px-4 py-2 ml-2 rounded-lg text-sm transition-smooth w-full text-left text-muted-foreground hover:text-foreground hover:bg-secondary/80">
                        <UserIcon className="h-4 w-4" />
                        <span>Creator Profile</span>
                      </button>
                    </CreatorProfileDialog>
                    <Link
                      to="/management/users"
-                     className={`flex items-center gap-3 px-6 py-2 ml-2 rounded-lg text-sm transition-smooth ${
-                       location.pathname === '/management/users'
-                         ? 'bg-primary/3 text-primary/90'
+                      className={`flex items-center gap-2 px-4 py-2 ml-2 rounded-lg text-sm transition-smooth ${
+                        location.pathname === '/management/users'
+                          ? 'bg-primary/3 text-primary/90'
                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
-                     }`}
+                      }`}
                    >
                        <Users className="h-4 w-4" />
                        <span>Users</span>
@@ -910,9 +910,9 @@ export const Navigation = ({ role }: NavigationProps) => {
              <li>
                <Link
                  to="/management/general-settings"
-                 className={`flex items-center rounded-lg transition-smooth ${
-                   isCollapsed ? 'justify-center px-3 py-2' : 'gap-3 px-3 py-2'
-                 } ${
+                  className={`flex items-center rounded-lg transition-smooth ${
+                    isCollapsed ? 'justify-center px-2 py-2' : 'gap-2 px-2 py-2'
+                  } ${
                    isActive('/management/general-settings') 
                      ? isCollapsed 
                        ? 'bg-primary/20 text-primary' 
