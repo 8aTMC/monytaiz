@@ -85,7 +85,9 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({ children, onEmojiSelec
     return categories;
   }, [filteredEmojis, recentEmojis, searchTerm]);
 
-  const handleEmojiClick = (emoji: string) => {
+  const handleEmojiClick = (emoji: string, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
     addRecentEmoji(emoji);
     onEmojiSelect(emoji);
     // Note: We don't close the popover here to allow multiple selections
@@ -122,6 +124,13 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({ children, onEmojiSelec
         align="start"
         side="top"
         sideOffset={8}
+        onPointerDownOutside={(e) => {
+          // Only close if clicking outside, not on emoji buttons
+          const target = e.target as Element;
+          if (target.closest('[data-emoji-button]')) {
+            e.preventDefault();
+          }
+        }}
       >
         <div className="flex flex-col h-full">
           {/* Header with search and close */}
@@ -189,9 +198,10 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({ children, onEmojiSelec
                             {emojisByCategory[category].map((emoji) => (
                               <button
                                 key={`${emoji.emoji}-${emoji.name}`}
-                                onClick={() => handleEmojiClick(emoji.emoji)}
+                                onClick={(e) => handleEmojiClick(emoji.emoji, e)}
                                 className="aspect-square flex items-center justify-center text-xl hover:bg-muted rounded transition-colors p-1"
                                 title={emoji.name}
+                                data-emoji-button
                               >
                                 {emoji.emoji}
                               </button>
