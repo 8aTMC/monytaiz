@@ -428,7 +428,7 @@ export const useLibraryData = ({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentUserId]);
 
   const fetchCategoryCounts = useCallback(async () => {
     try {
@@ -504,7 +504,7 @@ export const useLibraryData = ({
   // Stable trigger function
   const triggerFetch = useCallback(() => {
     fetchContent(selectedCategory, searchQuery, selectedFilter, sortBy, advancedFilters);
-  }, [fetchContent, selectedCategory, searchQuery, selectedFilter, sortBy, advancedFilters]);
+  }, [fetchContent, selectedCategory, searchQuery, selectedFilter, sortBy, advancedFilters, currentUserId]);
 
   // Only trigger when parameters actually change
   useEffect(() => {
