@@ -1,73 +1,8 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { mediaCache } from '@/lib/mediaCache';
 
-interface CachedMedia {
-  url: string;
-  blobUrl: string;
-  expires_at: string;
-  cached_at: number;
-}
-
-interface PersistentMediaCache {
-  [key: string]: CachedMedia;
-}
-
-// Enhanced persistent cache using localStorage for faster access
-const CACHE_KEY = 'secure_media_cache';
-const MAX_CACHE_SIZE = 100; // Max items to cache
-const CACHE_DURATION = 2 * 60 * 60 * 1000; // 2 hours
-
-// In-memory cache for immediate access
-let memoryCache: PersistentMediaCache = {};
 const loadingPromises: { [key: string]: Promise<string | null> } = {};
-
-// Load cache from localStorage on module init
-try {
-  const stored = localStorage.getItem(CACHE_KEY);
-  if (stored) {
-    const parsed = JSON.parse(stored);
-    // Validate and clean expired entries
-    const now = Date.now();
-    Object.entries(parsed).forEach(([key, value]: [string, any]) => {
-      if (value.cached_at && (now - value.cached_at) < CACHE_DURATION) {
-        memoryCache[key] = value;
-      }
-    });
-  }
-} catch (error) {
-  console.warn('Failed to load media cache from localStorage:', error);
-}
-
-// Save cache to localStorage
-const saveCache = () => {
-  try {
-    // Clean old entries and limit size
-    const entries = Object.entries(memoryCache);
-    const sortedEntries = entries.sort(([,a], [,b]) => b.cached_at - a.cached_at);
-    const limitedEntries = sortedEntries.slice(0, MAX_CACHE_SIZE);
-    
-    const limitedCache = Object.fromEntries(limitedEntries);
-    localStorage.setItem(CACHE_KEY, JSON.stringify(limitedCache));
-    memoryCache = limitedCache;
-  } catch (error) {
-    console.warn('Failed to save media cache to localStorage:', error);
-  }
-};
-
-// Clean up blob URLs on page unload with delay to prevent race conditions
-window.addEventListener('beforeunload', () => {
-  setTimeout(() => {
-    Object.values(memoryCache).forEach(cached => {
-      if (cached.blobUrl && cached.blobUrl.startsWith('blob:')) {
-        try {
-          URL.revokeObjectURL(cached.blobUrl);
-        } catch (e) {
-          // Ignore errors during cleanup
-        }
-      }
-    });
-  }, 100);
-});
 
 export const usePersistentMediaCache = () => {
   const [loading, setLoading] = useState(false);
@@ -78,44 +13,22 @@ export const usePersistentMediaCache = () => {
   ): Promise<string | null> => {
     if (!path) return null;
 
-    // Normalize path to avoid double content/ prefixing
-    const normalizedPath = path.replace(/^content\//, '');
-    const cacheKey = `${normalizedPath}_${JSON.stringify(transforms || {})}`;
+    const cacheKey = `persistent_${path}_${JSON.stringify(transforms || {})}`;
     
-    // Check memory cache first for instant access
-    const cached = memoryCache[cacheKey];
+    // Check unified cache first
+    const cached = mediaCache.get(path, transforms, 'persistent');
     if (cached) {
-      const now = Date.now();
-      // Check if cache is still valid
-      if ((now - cached.cached_at) < CACHE_DURATION) {
-        // Verify blob URL is still valid and accessible
-        if (cached.blobUrl && cached.blobUrl.startsWith('blob:')) {
-          try {
-            // Quick validation - create an image to test blob URL validity
-            const testImg = new Image();
-            testImg.src = cached.blobUrl;
-            return cached.blobUrl;
-          } catch (e) {
-            // Blob URL is invalid, continue to other options
-          }
-        }
-        // If signed URL is still valid, use it
-        if (cached.url && cached.expires_at) {
-          const expiresAt = new Date(cached.expires_at);
-          if (expiresAt.getTime() > now) {
-            return cached.url;
-          }
-        }
-      }
-      // Clean up expired or invalid cache
+      // Prefer blob URL for instant access
       if (cached.blobUrl && cached.blobUrl.startsWith('blob:')) {
-        try {
-          URL.revokeObjectURL(cached.blobUrl);
-        } catch (e) {
-          // Ignore revocation errors
+        return cached.blobUrl;
+      }
+      // Check if signed URL is still valid
+      if (cached.url && cached.expires_at) {
+        const expiresAt = new Date(cached.expires_at);
+        if (expiresAt.getTime() > Date.now()) {
+          return cached.url;
         }
       }
-      delete memoryCache[cacheKey];
     }
 
     // Check if already loading to prevent duplicate requests
@@ -127,6 +40,7 @@ export const usePersistentMediaCache = () => {
     const loadingPromise = (async () => {
       setLoading(true);
       try {
+        const normalizedPath = path.replace(/^content\//, '');
         const params = new URLSearchParams({ path: normalizedPath });
         if (transforms?.width) params.append('width', transforms.width.toString());
         if (transforms?.height) params.append('height', transforms.height.toString());
@@ -157,56 +71,32 @@ export const usePersistentMediaCache = () => {
           throw new Error(result.error);
         }
 
-        // Fetch the actual media and create blob URL for persistent caching
+        // Try to fetch the actual media and create blob URL for persistent caching
+        let blobUrl: string | undefined;
         try {
           const mediaResponse = await fetch(result.url, {
-            headers: {
-              'Accept': '*/*',
-            }
+            headers: { 'Accept': '*/*' }
           });
+          
           if (mediaResponse.ok && mediaResponse.status === 200) {
             const blob = await mediaResponse.blob();
-            // Validate blob before creating URL
             if (blob && blob.size > 0) {
-              const blobUrl = URL.createObjectURL(blob);
-              
-              // Cache both the signed URL and blob URL
-              memoryCache[cacheKey] = {
-                url: result.url,
-                blobUrl: blobUrl,
-                expires_at: result.expires_at,
-                cached_at: Date.now()
-              };
-              
-              // Save to localStorage (without blob URLs to avoid issues)
-              try {
-                const cacheForStorage = { ...memoryCache };
-                Object.values(cacheForStorage).forEach(item => {
-                  if (item.blobUrl && item.blobUrl.startsWith('blob:')) {
-                    item.blobUrl = item.url; // Store signed URL instead
-                  }
-                });
-                localStorage.setItem(CACHE_KEY, JSON.stringify(cacheForStorage));
-              } catch (e) {
-                console.warn('Failed to save to localStorage:', e);
-              }
-              
-              return blobUrl;
+              blobUrl = URL.createObjectURL(blob);
             }
           }
         } catch (blobError) {
-          console.warn('Failed to create blob URL, using signed URL:', blobError);
+          console.warn('Failed to create blob URL:', blobError);
         }
 
-        // Fallback to signed URL if blob creation fails
-        memoryCache[cacheKey] = {
+        // Cache using unified cache manager
+        mediaCache.set(path, {
           url: result.url,
-          blobUrl: result.url, // Fallback to signed URL
+          blobUrl,
           expires_at: result.expires_at,
-          cached_at: Date.now()
-        };
+          type: 'persistent'
+        }, transforms, 'persistent');
 
-        return result.url;
+        return blobUrl || result.url;
       } catch (error) {
         console.error('Error getting secure media URL:', error);
         return null;
@@ -227,19 +117,17 @@ export const usePersistentMediaCache = () => {
     path: string, 
     transforms?: { width?: number; height?: number; quality?: number }
   ): string | null => {
-    const cacheKey = `${path}_${JSON.stringify(transforms || {})}`;
-    const cached = memoryCache[cacheKey];
+    const cached = mediaCache.get(path, transforms, 'persistent');
     
     if (cached) {
-      const now = Date.now();
-      if ((now - cached.cached_at) < CACHE_DURATION) {
-        // Prefer blob URL for instant loading
-        if (cached.blobUrl.startsWith('blob:')) {
-          return cached.blobUrl;
-        }
-        // Fallback to signed URL if still valid
+      // Prefer blob URL for instant loading
+      if (cached.blobUrl && cached.blobUrl.startsWith('blob:')) {
+        return cached.blobUrl;
+      }
+      // Fallback to signed URL if still valid
+      if (cached.expires_at) {
         const expiresAt = new Date(cached.expires_at);
-        if (expiresAt.getTime() > now) {
+        if (expiresAt.getTime() > Date.now()) {
           return cached.url;
         }
       }
@@ -250,21 +138,7 @@ export const usePersistentMediaCache = () => {
 
   // Clear cache function
   const clearCache = useCallback(() => {
-    Object.values(memoryCache).forEach(cached => {
-      if (cached.blobUrl && cached.blobUrl.startsWith('blob:')) {
-        try {
-          URL.revokeObjectURL(cached.blobUrl);
-        } catch (e) {
-          // Ignore revocation errors
-        }
-      }
-    });
-    memoryCache = {};
-    try {
-      localStorage.removeItem(CACHE_KEY);
-    } catch (e) {
-      // Ignore localStorage errors
-    }
+    mediaCache.clearCache();
   }, []);
 
   return { 

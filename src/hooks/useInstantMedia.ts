@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { mediaCache } from '@/lib/mediaCache';
 
 interface InstantMediaState {
   placeholder: string | null;
@@ -9,35 +10,6 @@ interface InstantMediaState {
   isLoading: boolean;
   error: boolean;
 }
-
-const CACHE_KEY = 'instant_media_cache';
-const CACHE_DURATION = 6 * 60 * 60 * 1000; // 6 hours
-let memoryCache: { [key: string]: any } = {};
-
-// Load cache from localStorage
-try {
-  const stored = localStorage.getItem(CACHE_KEY);
-  if (stored) {
-    const parsed = JSON.parse(stored);
-    const now = Date.now();
-    Object.entries(parsed).forEach(([key, value]: [string, any]) => {
-      if (value.cached_at && (now - value.cached_at) < CACHE_DURATION) {
-        memoryCache[key] = value;
-      }
-    });
-  }
-} catch (error) {
-  console.warn('Failed to load instant media cache:', error);
-}
-
-const saveToCache = (key: string, data: any) => {
-  memoryCache[key] = { ...data, cached_at: Date.now() };
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(memoryCache));
-  } catch (error) {
-    console.warn('Failed to save to cache:', error);
-  }
-};
 
 export const useInstantMedia = () => {
   const [mediaState, setMediaState] = useState<InstantMediaState>({
@@ -58,16 +30,14 @@ export const useInstantMedia = () => {
     loadingRef.current = true;
     setMediaState(prev => ({ ...prev, isLoading: true, error: false }));
 
-    const cacheKey = storagePath;
-
-    // Check cache first
-    const cached = memoryCache[cacheKey];
-    if (cached && (Date.now() - cached.cached_at) < CACHE_DURATION) {
+    // Check unified cache first
+    const cached = mediaCache.get(storagePath, undefined, 'instant');
+    if (cached && cached.metadata) {
       setMediaState({
-        placeholder: cached.placeholder,
-        lowQuality: cached.lowQuality,
-        highQuality: cached.highQuality,
-        currentUrl: cached.highQuality || cached.lowQuality || cached.placeholder,
+        placeholder: cached.metadata.placeholder,
+        lowQuality: cached.metadata.lowQuality,
+        highQuality: cached.metadata.highQuality,
+        currentUrl: cached.metadata.highQuality || cached.metadata.lowQuality || cached.metadata.placeholder,
         isLoading: false,
         error: false
       });
@@ -123,12 +93,16 @@ export const useInstantMedia = () => {
               isLoading: false
             }));
 
-            // Cache result
-            saveToCache(cacheKey, {
-              placeholder: placeholderUrl,
-              lowQuality: optimizedUrl,
-              highQuality: null,
-            });
+            // Cache result using unified cache
+            mediaCache.set(storagePath, {
+              url: optimizedUrl,
+              type: 'instant',
+              metadata: {
+                placeholder: placeholderUrl,
+                lowQuality: optimizedUrl,
+                highQuality: null,
+              }
+            }, undefined, 'instant');
           } else {
             console.warn('No optimized URL returned for:', storagePath);
           }

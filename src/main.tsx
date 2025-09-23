@@ -1,6 +1,10 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import { mediaCache } from '@/lib/mediaCache'
+
+// Initialize media cache early to prevent IndexedDB conflicts
+mediaCache;
 
 // Suppress third-party integration errors in console
 const originalError = console.error;
