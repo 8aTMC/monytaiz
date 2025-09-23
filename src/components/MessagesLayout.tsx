@@ -273,7 +273,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     return () => {
       supabase.removeChannel(conversationsChannel);
     };
-  }, [user.id]); // Only depend on user ID
+  }, [user.id, isCreator]); // Depend on user ID and creator status
 
   useEffect(() => {
     if (activeConversation) {
