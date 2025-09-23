@@ -187,20 +187,28 @@ const ManagementMessages = () => {
       }
 
       // Use optimized data if available
-      const enhancedConversations = (optimizedData as any[] || []).map((conv: any) => ({
-        ...conv,
-        fan: {
+      const enhancedConversations = (optimizedData as any[] || []).map((conv: any) => {
+        // Create fan profile data
+        const fanProfile = {
           username: conv.fan_username,
           display_name: conv.fan_display_name,
-          fan_category: conv.fan_category
-        },
-        last_message: conv.last_message_content ? {
-          content: conv.last_message_content,
-          sender_id: conv.last_message_sender_id
-        } : null,
-        total_spent: 0,
-        unread_count: conv.unread_count || 0,
-      }));
+          fan_category: conv.fan_category,
+          avatar_url: conv.fan_avatar_url
+        };
+
+        return {
+          ...conv,
+          fan: fanProfile,
+          // Create profile objects for compatibility
+          fan_profile: fanProfile,
+          last_message: conv.last_message_content ? {
+            content: conv.last_message_content,
+            sender_id: conv.last_message_sender_id
+          } : null,
+          total_spent: 0,
+          unread_count: conv.unread_count || 0,
+        };
+      });
 
       setConversations(enhancedConversations);
     } catch (error) {

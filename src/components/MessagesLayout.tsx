@@ -467,21 +467,30 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
       }
 
       // Use optimized data if available
-      const processedConversations = (optimizedData as any[] || []).map((conv: any) => ({
-        ...conv,
-        partner: {
+      const processedConversations = (optimizedData as any[] || []).map((conv: any) => {
+        // Create partner profile data
+        const partnerProfile = {
           username: conv.partner_username,
           display_name: conv.partner_display_name,
-          fan_category: conv.partner_category
-        },
-        latest_message: conv.latest_message_content || '',
-        latest_message_content: conv.latest_message_content || '',
-        latest_message_sender_id: conv.latest_message_sender_id || '',
-        total_spent: 0,
-        unread_count: conv.unread_count || 0,
-        is_pinned: pinnedConversations.includes(conv.id),
-        has_ai_active: conv.has_ai_active || false,
-      }));
+          fan_category: conv.partner_fan_category,
+          avatar_url: conv.partner_avatar_url
+        };
+
+        return {
+          ...conv,
+          partner: partnerProfile,
+          // Create proper profile objects based on user role
+          fan_profile: isCreator ? partnerProfile : null,
+          creator_profile: !isCreator ? partnerProfile : null,
+          latest_message: conv.latest_message_content || '',
+          latest_message_content: conv.latest_message_content || '',
+          latest_message_sender_id: conv.latest_message_sender_id || '',
+          total_spent: 0,
+          unread_count: conv.unread_count || 0,
+          is_pinned: pinnedConversations.includes(conv.id),
+          has_ai_active: conv.has_ai_active || false,
+        };
+      });
 
       setConversations(processedConversations);
       
