@@ -729,141 +729,131 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   }
 
   return (
-    <div className="flex h-full bg-background">
-      {/* Conversation Sidebar */}
-      <div className="w-80 border-r border-border bg-background flex-shrink-0">
-        <div className="h-full flex flex-col">
-          {/* Header */}
-          <div className="flex-none p-4 border-b border-border">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Messages</h2>
-              <div className="flex gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => setSearchQuery(searchQuery ? '' : 'search')} // Toggle search functionality
-                >
-                  <Search className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon">
-                  <Settings className="h-4 w-4" />
-                </Button>
+    <>
+      <div className="flex h-full bg-background">
+        {/* Conversation Sidebar */}
+        <div className="w-80 border-r border-border bg-background flex-shrink-0">
+          <div className="h-full flex flex-col">
+            {/* Header */}
+            <div className="flex-none p-4 border-b border-border">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Messages</h2>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => setSearchQuery(searchQuery ? '' : 'search')} // Toggle search functionality
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon">
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowAIPersonaDialog(true)}
+                    title="AI Persona Settings"
+                  >
+                    <Bot className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            </div>
-            
-            {/* Expandable Search */}
-            {searchQuery && (
+
+              {/* Search Input */}
               <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search conversations..."
-                  value={searchQuery === 'search' ? '' : searchQuery}
+                  value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                  autoFocus
+                  className="pl-8"
                 />
               </div>
-            )}
-            
-            {/* Filters */}
-            <MessageFilters
-              activeFilter={activeFilter}
-              onFilterChange={setActiveFilter}
-              aiChatCount={conversations.filter(c => c.has_ai_active).length}
-              pinnedCount={conversations.filter(c => c.is_pinned).length}
-              unreadCount={conversations.filter(c => c.unread_count > 0).length}
-              unrepliedCount={conversations.filter(c => needsReply(c)).length}
-              userId={user.id}
-            />
-          </div>
 
-          {/* Conversations List */}
-          <div className="flex-1 min-h-0">
-            <ScrollArea className="h-full scrollarea-viewport">
-              <div className="p-2">
+              {/* Message Filters */}
+              <MessageFilters 
+                activeFilter={activeFilter} 
+                onFilterChange={setActiveFilter}
+                aiChatCount={0}
+                pinnedCount={0}
+                unreadCount={0}
+                unrepliedCount={0}
+                userId={user.id}
+              />
+            </div>
+
+            {/* Conversations List */}
+            <ScrollArea className="flex-1 scrollarea-viewport">
+              <div className="p-2 space-y-1">
                 {filteredConversations.map((conversation) => {
                   const profile = getProfileForConversation(conversation);
-                  const isActive = activeConversation?.id === conversation.id;
+                  const isOnline = false; // TODO: Implement user presence
                   
                   return (
                     <div
                       key={conversation.id}
-                      className={`relative p-3 rounded-lg cursor-pointer transition-colors mb-1 ${
-                        isActive ? 'bg-primary/10' : 'hover:bg-muted/50'
+                      className={`p-3 rounded-lg cursor-pointer transition-colors hover:bg-muted/50 ${
+                        activeConversation?.id === conversation.id
+                          ? 'bg-muted border-l-2 border-l-primary'
+                          : ''
                       }`}
                       onClick={() => {
                         setActiveConversation(conversation);
-                        if (conversation.unread_count > 0) {
-                          markConversationAsRead(conversation.id);
-                        }
+                        markConversationAsRead(conversation.id);
                       }}
                     >
-                        <div className="flex items-start gap-3">
+                      <div className="flex items-center gap-3">
                         <div className="relative">
-                          <Avatar className="h-12 w-12">
+                          <Avatar className="h-10 w-10">
                             <AvatarImage src={profile?.avatar_url} />
                             <AvatarFallback>
-                              {getInitials(profile?.display_name, profile?.username)}
+                              {getInitials(profile?.display_name)}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-background"></div>
+                          {isOnline && (
+                            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-background rounded-full"></div>
+                          )}
                         </div>
                         
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-start">
-                            <h4 className="font-medium text-sm truncate pr-2 leading-none">
-                              {profile?.display_name || profile?.username || 'Unknown User'}
-                            </h4>
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium truncate">
+                              {profile?.display_name || 'Unknown User'}
+                            </p>
+                            <div className="flex items-center gap-1">
+                              {needsReply(conversation) && (
+                                <div className="w-2 h-2 bg-amber-500 rounded-full" title="Needs Reply" />
+                              )}
+                              {conversation.unread_count > 0 && (
+                                <Badge variant="secondary" className="h-5 min-w-5 text-xs px-1.5">
+                                  {conversation.unread_count}
+                                </Badge>
+                              )}
+                              <ConversationPinButton 
+                                conversationId={conversation.id} 
+                                isPinned={false}
+                                onToggle={() => {}}
+                              />
+                            </div>
                           </div>
-                          
-                          {/* Status Badges */}
-                          {conversation.unread_count > 0 && (
-                            <Badge 
-                              variant="destructive" 
-                              className="h-5 px-2 text-xs font-medium"
-                            >
-                              Unread
-                            </Badge>
-                          )}
-                          
-                          {needsReply(conversation) && conversation.unread_count === 0 && (
-                            <Badge 
-                              variant="secondary" 
-                              className="h-5 px-2 text-xs font-medium bg-orange-500 text-orange-50 hover:bg-orange-600"
-                            >
-                              Unreplied
-                            </Badge>
-                          )}
-                          
-                          <p className={`text-xs truncate mt-0.5 ${
-                            conversation.unread_count > 0 
-                              ? 'text-foreground font-semibold' 
-                              : 'text-muted-foreground'
-                          }`}>
+                          <p className="text-xs text-muted-foreground truncate">
                             {conversation.latest_message_content || 'No messages yet'}
                           </p>
-                        </div>
-                        <div className="flex flex-col items-end text-right flex-shrink-0 ml-auto">
-                          <span className="text-xs text-muted-foreground">
-                            {formatDate(conversation.last_message_at)}
-                          </span>
-                          <div className="flex items-center gap-1 mt-1">
-                            <span className="text-xs font-medium text-primary">
-                              ${conversation.total_spent || 0}
-                            </span>
-                            <ConversationPinButton
-                              conversationId={conversation.id}
-                              isPinned={conversation.is_pinned || false}
-                              onToggle={(pinned) => {
-                                setConversations(prev => 
-                                  prev.map(conv => 
-                                    conv.id === conversation.id 
-                                      ? { ...conv, is_pinned: pinned }
-                                      : conv
-                                  )
-                                );
-                              }}
-                            />
+                          <div className="flex items-center justify-between mt-1">
+                            <p className="text-xs text-muted-foreground">
+                              {formatTime(conversation.last_message_at)}
+                            </p>
+                            {typingUsers[conversation.id] && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <div className="flex gap-0.5">
+                                  <div className="w-1 h-1 bg-current rounded-full animate-bounce"></div>
+                                  <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                  <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                </div>
+                                <span>typing...</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -874,128 +864,86 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             </ScrollArea>
           </div>
         </div>
-      </div>
 
-      {/* Main Chat Area - Responsive width */}
-      <div className={`flex flex-col min-w-0 h-screen overflow-hidden ${
-        activeConversation && isCreator ? 'flex-1' : 'flex-1'
-      }`}>
-        {activeConversation ? (
-          <div className="flex flex-col h-full">
-            {/* Chat Header - Fixed */}
-            <div className="flex-none h-16 p-4 border-b border-border bg-background flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={getProfileForConversation(activeConversation)?.avatar_url} />
-                  <AvatarFallback>
-                    {getInitials(
-                      getProfileForConversation(activeConversation)?.display_name,
-                      getProfileForConversation(activeConversation)?.username
+        {/* Main Chat Area - Responsive width */}
+        <div className={`flex flex-col min-w-0 h-screen overflow-hidden ${
+          activeConversation && isCreator ? 'flex-1' : 'flex-1'
+        }`}>
+          {activeConversation ? (
+            <div className="flex flex-col h-full">
+              {/* Chat Header - Fixed */}
+              <div className="flex-none h-16 p-4 border-b border-border bg-background flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={getProfileForConversation(activeConversation)?.avatar_url} />
+                    <AvatarFallback>
+                      {getInitials(
+                        getProfileForConversation(activeConversation)?.display_name,
+                        getProfileForConversation(activeConversation)?.username
+                      )}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-semibold">
+                      {getProfileForConversation(activeConversation)?.display_name || 'Unknown User'}
+                    </h3>
+                    {getProfileForConversation(activeConversation)?.username && (
+                      <p className="text-sm text-muted-foreground">
+                        @{getProfileForConversation(activeConversation).username}
+                      </p>
                     )}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="font-semibold">
-                    {getProfileForConversation(activeConversation)?.display_name || 'Unknown User'}
-                  </h3>
-                  {getProfileForConversation(activeConversation)?.username && (
-                    <p className="text-sm text-muted-foreground">
-                      @{getProfileForConversation(activeConversation).username}
-                    </p>
-                  )}
+                  </div>
                 </div>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowFanNotesDialog(true)}
-                  title="Manage Fan Notes"
-                  className="text-xs"
-                >
-                  <FileText className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Messages Container - Scrollable */}
-            <div className="flex-1 min-h-0">
-              <MessageList
-                conversationId={activeConversation.id}
-                currentUserId={user.id}
-                partnerProfile={getProfileForConversation(activeConversation)}
-                className="h-full"
-              />
-            </div>
-
-            {/* Upload Progress */}
-            {isUploading && (
-              <UploadProgressBar 
-                files={uploadingFiles} 
-                onRemoveFile={removeFile}
-              />
-            )}
-
-            {/* Message Input Area - Fixed at bottom */}
-            <div className="flex-none border-t border-border bg-background h-auto">
-              <div className="px-3 py-2">
-                {/* Action Buttons */}
-                <div className="flex items-center gap-2 mb-2 overflow-x-auto">
-                  {/* AI Assistant Button - First/Leftmost */}
+                
+                <div className="flex items-center gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setShowAISettingsDialog(true)}
-                    className="flex items-center gap-1 px-2 py-1 h-8 text-xs bg-gradient-to-r from-primary/10 to-secondary/10 hover:from-primary/20 hover:to-secondary/20 rounded-full border border-primary/20"
-                    title={`AI${aiSettings?.is_ai_enabled ? ' (ON)' : ' (OFF)'}`}
+                    onClick={() => setShowFanNotesDialog(true)}
+                    title="Manage Fan Notes"
+                    className="text-xs"
                   >
-                    <Bot className={`w-3 h-3 ${aiSettings?.is_ai_enabled ? 'text-green-500' : 'text-purple-500'}`} />
-                    <span>AI</span>
-                    {isProcessing && <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse ml-1" />}
+                    <FileText className="h-4 w-4" />
                   </Button>
-                  
-                  {/* File Upload Button - Only for fans */}
-                  {!isCreator && (
-                    <FileUploadButton 
-                      onFilesSelected={(files, type) => {
-                        addFiles(files, type);
-                        if (!isUploading) {
-                          uploadFiles();
-                        }
-                      }}
-                      disabled={isUploading}
-                    />
-                  )}
-                  {actionButtons.slice(1).map((button, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 px-3 flex-shrink-0"
-                      title={button.label}
-                      onClick={button.onClick}
-                      disabled={button.disabled ? button.disabled() : false}
-                    >
-                      <button.icon className={`h-4 w-4 ${button.color}`} />
-                    </button>
-                  ))}
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
                 </div>
-                
+              </div>
+
+              {/* Messages Container - Scrollable */}
+              <div className="flex-1 min-h-0">
+                <MessageList
+                  conversationId={activeConversation.id}
+                  currentUserId={user.id}
+                />
+              </div>
+
+              {/* Message Input - Fixed at bottom */}
+              <div className="flex-none p-4 border-t border-border bg-background">
+                {/* Upload Progress - Remove if not needed */}
+                {hasFiles && (
+                  <div className="mb-4">
+                    <div className="text-sm text-muted-foreground">Uploading files...</div>
+                  </div>
+                )}
+
                 {/* Attached Files Preview */}
                 {attachedFiles.length > 0 && (
-                  <div className="mb-2 p-2 bg-muted/30 rounded-lg">
-                    <div className="text-xs text-muted-foreground mb-1">
-                      {attachedFiles.length} file{attachedFiles.length !== 1 ? 's' : ''} attached from library
-                    </div>
-                    <div className="flex gap-1 flex-wrap">
+                  <div className="mb-3">
+                    <div className="flex flex-wrap gap-2">
                       {attachedFiles.map((file, index) => (
-                        <div key={file.id} className="text-xs bg-primary/10 px-2 py-1 rounded flex items-center gap-1">
-                          {file.title}
+                        <div
+                          key={index}
+                          className="relative bg-muted rounded-lg p-2 flex items-center gap-2 max-w-48"
+                        >
+                          <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="text-sm text-muted-foreground truncate">
+                            {file.metadata?.title || `File ${index + 1}`}
+                          </span>
                           <button
-                            className="text-muted-foreground hover:text-foreground"
+                            type="button"
+                            className="ml-auto text-muted-foreground hover:text-foreground w-4 h-4 flex items-center justify-center text-xs"
                             onClick={() => setAttachedFiles(files => files.filter((_, i) => i !== index))}
                           >
                             ×
@@ -1019,350 +967,144 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                       <Smile className="h-4 w-4 text-amber-500" />
                     </Button>
                   </EmojiPicker>
-                  <div className="flex-1">
-                    <Textarea
-                      ref={messageTextareaRef}
-                      value={newMessage}
-                      onChange={(e) => {
-                        setNewMessage(e.target.value);
-                        if (e.target.value.trim()) {
-                          startTyping();
-                        }
-                        // Auto-resize textarea
-                        const textarea = e.target;
-                        textarea.style.height = 'auto';
-                        const lineHeight = 20; // approximate line height
-                        const maxLines = 5;
-                        const maxHeight = lineHeight * maxLines;
-                        const newHeight = Math.min(textarea.scrollHeight, maxHeight);
-                        textarea.style.height = newHeight + 'px';
-                      }}
-                      onKeyDown={(e) => {
-                        handleEnterKey(e);
-                      }}
-                      placeholder="Type a message..."
-                      disabled={sending || (hasFiles && !allFilesUploaded)}
-                      className="flex-1 resize-none min-h-[40px] max-h-[100px] overflow-y-auto emoji"
-                      rows={1}
-                    />
-                  </div>
-                  <Button 
-                    type="submit"
-                    disabled={!newMessage.trim() || sending || (hasFiles && !allFilesUploaded)}
-                    size="sm"
-                    className="h-10"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </form>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                <Send className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">No conversation selected</h3>
-              <p className="text-muted-foreground">
-                Choose a conversation from the sidebar to start messaging
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-            {/* Chat Header - Fixed */}
-            <div className="flex-none h-16 p-4 border-b border-border bg-background flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={getProfileForConversation(activeConversation)?.avatar_url} />
-                  <AvatarFallback>
-                    {getInitials(
-                      getProfileForConversation(activeConversation)?.display_name,
-                      getProfileForConversation(activeConversation)?.username
-                    )}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="font-semibold">
-                    {getProfileForConversation(activeConversation)?.display_name || 'Unknown User'}
-                  </h3>
-                  {getProfileForConversation(activeConversation)?.username && (
-                    <p className="text-sm text-muted-foreground">
-                      @{getProfileForConversation(activeConversation).username}
-                    </p>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowFanNotesDialog(true)}
-                  title="Manage Fan Notes"
-                  className="text-xs"
-                >
-                  <FileText className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
 
-            {/* Messages Container - Scrollable */}
-            <div className="flex-1 min-h-0">
-              <MessageList
-                conversationId={activeConversation.id}
-                currentUserId={user.id}
-                partnerProfile={getProfileForConversation(activeConversation)}
-                className="h-full"
-              />
-            </div>
-
-            {/* Upload Progress */}
-            {isUploading && (
-              <UploadProgressBar 
-                files={uploadingFiles} 
-                onRemoveFile={removeFile}
-              />
-            )}
-
-            {/* Message Input Area - Fixed at bottom */}
-            <div className="flex-none border-t border-border bg-background h-auto">
-              <div className="px-3 py-2">
-                {/* Action Buttons */}
-                <div className="flex items-center gap-2 mb-2 overflow-x-auto">
-                  {/* AI Assistant Button - First/Leftmost */}
                   <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => setShowAISettingsDialog(true)}
-                    className="flex items-center gap-1 px-2 py-1 h-8 text-xs bg-gradient-to-r from-primary/10 to-secondary/10 hover:from-primary/20 hover:to-secondary/20 rounded-full border border-primary/20"
-                    title={`AI${aiSettings?.is_ai_enabled ? ' (ON)' : ' (OFF)'}`}
+                    className="h-10 px-2 flex-shrink-0"
+                    onClick={() => setShowLibraryDialog(true)}
+                    title="Attach from Library"
                   >
-                    <Bot className={`w-3 h-3 ${aiSettings?.is_ai_enabled ? 'text-green-500' : 'text-purple-500'}`} />
-                    <span>AI</span>
-                    {isProcessing && <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse ml-1" />}
+                    <Paperclip className="h-4 w-4 text-blue-500" />
                   </Button>
-                  
-                  {/* File Upload Button - Only for fans */}
-                  {!isCreator && (
-                    <FileUploadButton 
-                      onFilesSelected={(files, type) => {
-                        addFiles(files, type);
-                        if (!isUploading) {
-                          uploadFiles();
-                        }
-                      }}
-                      disabled={isUploading}
-                    />
-                  )}
-                  {actionButtons.slice(1).map((button, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 px-3 flex-shrink-0"
-                      title={button.label}
-                      onClick={button.onClick}
-                      disabled={button.disabled ? button.disabled() : false}
-                    >
-                      <button.icon className={`h-4 w-4 ${button.color}`} />
-                    </button>
-                  ))}
-                </div>
-                
-                {/* Attached Files Preview */}
-                {attachedFiles.length > 0 && (
-                  <div className="mb-2 p-2 bg-muted/30 rounded-lg">
-                    <div className="text-xs text-muted-foreground mb-1">
-                      {attachedFiles.length} file{attachedFiles.length !== 1 ? 's' : ''} attached from library
-                    </div>
-                    <div className="flex gap-1 flex-wrap">
-                      {attachedFiles.map((file, index) => (
-                        <div key={file.id} className="text-xs bg-primary/10 px-2 py-1 rounded flex items-center gap-1">
-                          {file.title}
-                          <button
-                            className="text-muted-foreground hover:text-foreground"
-                            onClick={() => setAttachedFiles(files => files.filter((_, i) => i !== index))}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
-                {/* Message Input */}
-                <form 
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    sendMessage();
-                  }}
-                  className="flex gap-1 items-end"
-                >
-                  <EmojiPicker onEmojiSelect={handleEmojiSelect}>
-                    <Button type="button" variant="ghost" size="sm" className="h-10 px-2 flex-shrink-0" title="Emoji">
-                      <Smile className="h-4 w-4 text-amber-500" />
-                    </Button>
-                  </EmojiPicker>
-                  <div className="flex-1">
-                    <Textarea
-                      ref={messageTextareaRef}
-                      value={newMessage}
-                      onChange={(e) => {
-                        setNewMessage(e.target.value);
-                        if (e.target.value.trim()) {
-                          startTyping();
-                        }
-                        // Auto-resize textarea
-                        const textarea = e.target;
-                        textarea.style.height = 'auto';
-                        const lineHeight = 20; // approximate line height
-                        const maxLines = 5;
-                        const maxHeight = lineHeight * maxLines;
-                        const newHeight = Math.min(textarea.scrollHeight, maxHeight);
-                        textarea.style.height = newHeight + 'px';
-                      }}
-                      onKeyDown={(e) => {
-                        handleEnterKey(e);
-                      }}
-                      placeholder="Type a message..."
-                      disabled={sending || (hasFiles && !allFilesUploaded)}
-                      className="flex-1 resize-none min-h-[40px] max-h-[100px] overflow-y-auto emoji"
-                      rows={1}
-                    />
-                  </div>
-                  <Button 
-                    type="submit"
-                    disabled={!newMessage.trim() || sending || (hasFiles && !allFilesUploaded)}
-                    size="sm"
-                    className="h-10"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </form>
-              </div>
-            </div>
-          </div>
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                <Send className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">No conversation selected</h3>
-              <p className="text-muted-foreground">
-                Choose a conversation from the sidebar to start messaging
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Fan Insights Sidebar */}
-      {activeConversation && isCreator && (
-        <div className="w-80 border-l border-border bg-background flex-shrink-0">
-          <div className="p-4 h-full flex flex-col">
-            <h3 className="font-semibold mb-4">Fan Insights</h3>
-            
-            <ScrollArea className="flex-1 scrollarea-viewport">
-              <div className="space-y-4 px-3">
-                {/* Subscription Status */}
-                <Card>
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">Subscription</span>
-                      <Badge variant="outline">{formatSubscriptionDuration(3)}</Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-lg font-semibold">$0.00</span>
-                      <span className="text-sm text-muted-foreground">Total spent</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Purchase History */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Last purchase:</span>
-                    <span>Never</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Highest purchase:</span>
-                    <span>$0.00</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Subscription status:</span>
-                    <Badge variant="outline">Free</Badge>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Auto-renew:</span>
-                    <span>Off</span>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Fan Info */}
-                <div className="space-y-2">
-                  <h4 className="font-medium">Fan info:</h4>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Join date:</span>
-                      <span>{new Date().toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Last active:</span>
-                      <span>Today</span>
-                    </div>
-                     <div className="flex justify-between">
-                       <span className="text-muted-foreground">Messages sent:</span>
-                       <span>0</span>
-                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Device:</span>
-                      <span>Web</span>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Fan Lists */}
-                <div className="space-y-2">
-                  <h4 className="font-medium">Fan lists:</h4>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary">New Fans</Badge>
-                    <Badge variant="outline">Free Users</Badge>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Fan Notes */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Fan notes:</h4>
+                  {attachedFiles.length > 0 && (
                     <Button
-                      variant="outline"
+                      type="button"
+                      variant="ghost"
                       size="sm"
-                      onClick={() => setShowFanNotesDialog(true)}
+                      className="h-10 px-2 flex-shrink-0"
+                      onClick={() => setShowPricingDialog(true)}
+                      title="Set Price"
                     >
-                      Manage Notes
+                      <DollarSign className="h-4 w-4 text-green-500" />
                     </Button>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Click "Manage Notes" to add AI memory about this fan
-                  </p>
-                </div>
+                  )}
+
+                  <FileUploadButton
+                    onFilesSelected={(files) => console.log('Files selected:', files)}
+                  />
+
+                  <Textarea
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyDown={handleEnterKey}
+                    placeholder="Type a message..."
+                    className="flex-1 min-h-10 max-h-32 resize-none"
+                    rows={1}
+                  />
+                  
+                  <Button 
+                    type="submit"
+                    disabled={!newMessage.trim() || sending || (hasFiles && !allFilesUploaded)}
+                    size="sm"
+                    className="h-10"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </form>
               </div>
-            </ScrollArea>
-          </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Send className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">No conversation selected</h3>
+                <p className="text-muted-foreground">
+                  Choose a conversation from the sidebar to start messaging
+                </p>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Fan Insights Sidebar */}
+        {activeConversation && isCreator && (
+          <div className="w-80 border-l border-border bg-background flex-shrink-0">
+            <div className="p-4 h-full flex flex-col">
+              <h3 className="font-semibold mb-4">Fan Insights</h3>
+              
+              <ScrollArea className="flex-1 scrollarea-viewport">
+                <div className="space-y-4 px-3">
+                  {/* Subscription Status */}
+                  <Card>
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-muted-foreground">Subscription</span>
+                        <Badge variant="outline">{formatSubscriptionDuration(3)}</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Next Renewal</span>
+                        <span className="text-sm">Dec 23, 2024</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Total Spent */}
+                  <Card>
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-muted-foreground">Total Spent</span>
+                        <span className="text-sm font-medium">$1,247.32</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">This Month</span>
+                        <span className="text-sm">$89.50</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Activity Overview */}
+                  <Card>
+                    <CardContent className="p-3">
+                      <h4 className="text-sm font-medium mb-3">Activity Overview</h4>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Messages Sent</span>
+                          <span>347</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Content Purchased</span>
+                          <span>23</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Tips Given</span>
+                          <span>12</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Spending Chart */}
+                  <Card>
+                    <CardHeader className="p-3">
+                      <h4 className="text-sm font-medium">Spending Trend</h4>
+                    </CardHeader>
+                    <CardContent className="p-3 pt-0">
+                      <div className="h-32 bg-muted rounded flex items-center justify-center">
+                        <span className="text-muted-foreground text-sm">Spending Chart</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </ScrollArea>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Dialog Components */}
       <AIPersonaDialog 
@@ -1427,6 +1169,6 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
         attachedFiles={attachedFiles}
         fanId={activeConversation ? (isCreator ? activeConversation.fan_id : activeConversation.creator_id) : ''}
       />
-    </div>
+    </>
   );
 };
