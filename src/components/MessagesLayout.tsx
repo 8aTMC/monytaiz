@@ -469,6 +469,11 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
       // Use optimized data if available
       const processedConversations = (optimizedData as any[] || []).map((conv: any) => ({
         ...conv,
+        partner: {
+          username: conv.partner_username,
+          display_name: conv.partner_display_name,
+          fan_category: conv.partner_category
+        },
         latest_message: conv.latest_message_content || '',
         latest_message_content: conv.latest_message_content || '',
         latest_message_sender_id: conv.latest_message_sender_id || '',

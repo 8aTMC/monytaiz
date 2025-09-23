@@ -189,6 +189,11 @@ const ManagementMessages = () => {
       // Use optimized data if available
       const enhancedConversations = (optimizedData as any[] || []).map((conv: any) => ({
         ...conv,
+        fan: {
+          username: conv.fan_username,
+          display_name: conv.fan_display_name,
+          fan_category: conv.fan_category
+        },
         last_message: conv.last_message_content ? {
           content: conv.last_message_content,
           sender_id: conv.last_message_sender_id
