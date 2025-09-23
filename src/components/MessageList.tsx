@@ -113,7 +113,7 @@ const MessageBubble = React.memo(({
           </p>
         </div>
         <div className={cn(
-          "flex items-center gap-1 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity",
+          "flex items-center gap-1 text-xs text-muted-foreground opacity-70 transition-opacity",
           isOwn && "flex-row-reverse"
         )}>
           <span>{formatTime(message.created_at)}</span>
