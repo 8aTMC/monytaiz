@@ -618,12 +618,6 @@ export default function SimpleLibrary() {
       }
     });
     
-    // Show notification
-    toast({
-      title: "Filters cleared",
-      description: "Starting fresh with no active filters"
-    });
-    
     // If selecting a custom folder, fetch its content
     const isCustomFolder = customFolders.some(folder => folder.id === categoryId);
     if (isCustomFolder) {

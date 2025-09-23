@@ -213,11 +213,6 @@ const ContentLibrary = () => {
       }
     });
     
-    // Show notification
-    toast({
-      title: "Filters cleared",
-      description: "Starting fresh with no active filters"
-    });
   }, [setSearchParams, toast]);
 
   // Metadata update handler
