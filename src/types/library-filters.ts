@@ -10,4 +10,5 @@ export interface UseLibraryDataProps {
   selectedFilter: string;
   sortBy: string;
   advancedFilters?: LibraryFilterState;
+  currentUserId: string;
 }

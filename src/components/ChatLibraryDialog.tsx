@@ -90,7 +90,8 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
     searchQuery,
     selectedFilter: activeFilter,
     sortBy: sortBy,
-    advancedFilters
+    advancedFilters,
+    currentUserId
   });
 
   const totalCount = mediaData.length;

@@ -29,7 +29,8 @@ export const useLibraryData = ({
   searchQuery,
   selectedFilter,
   sortBy,
-  advancedFilters
+  advancedFilters,
+  currentUserId
 }: UseLibraryDataProps) => {
   const [content, setContent] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,12 +70,14 @@ export const useLibraryData = ({
           supabase
             .from('media')
             .select('id, bucket, path, storage_path, mime, type, size_bytes, title, notes, tags, suggested_price_cents, creator_id, created_at, updated_at, tiny_placeholder, width, height, origin')
+            .eq('creator_id', currentUserId)
             .order('created_at', { ascending: false })
             .abortSignal(abortControllerRef.current.signal),
           supabase
             .from('content_files')
             .select('id, title, content_type, file_path, file_size, mime_type, base_price, tags, description, creator_id, created_at, updated_at, is_active')
             .eq('is_active', true)
+            .eq('creator_id', currentUserId)
             .not('content_type', 'is', null)
             .not('file_path', 'is', null)
             .not('file_path', 'eq', '')
@@ -85,6 +88,7 @@ export const useLibraryData = ({
           .from('simple_media')
           .select('id, original_path, processed_path, thumbnail_path, mime_type, media_type, original_size_bytes, title, description, tags, mentions, suggested_price_cents, revenue_generated_cents, creator_id, created_at, updated_at, width, height, processing_status')
           .eq('processing_status', 'processed')
+          .eq('creator_id', currentUserId)
           .order('created_at', { ascending: false })
           .abortSignal(abortControllerRef.current.signal)
         ]);
@@ -162,6 +166,7 @@ export const useLibraryData = ({
           .from('media')
           .select('id, bucket, path, storage_path, mime, type, size_bytes, title, notes, tags, suggested_price_cents, creator_id, created_at, updated_at, tiny_placeholder, width, height, origin')
           .in('origin', ['message', 'chat'])
+          .eq('creator_id', currentUserId)
           .order('created_at', { ascending: false })
           .abortSignal(abortControllerRef.current.signal);
 
@@ -431,11 +436,12 @@ export const useLibraryData = ({
       
       // All Files count
       const [allMediaResults, allContentResults, allSimpleMediaResults] = await Promise.all([
-        supabase.from('media').select('id', { count: 'exact' }),
+        supabase.from('media').select('id', { count: 'exact' }).eq('creator_id', currentUserId),
         supabase
           .from('content_files')
           .select('id', { count: 'exact' })
           .eq('is_active', true)
+          .eq('creator_id', currentUserId)
           .not('content_type', 'is', null)
           .not('file_path', 'is', null)
           .not('file_path', 'eq', '')
@@ -444,13 +450,15 @@ export const useLibraryData = ({
           .from('simple_media')
           .select('id', { count: 'exact' })
           .eq('processing_status', 'processed')
+          .eq('creator_id', currentUserId)
       ]);
       
-      const { data: mediaIds } = await supabase.from('media').select('id');
+      const { data: mediaIds } = await supabase.from('media').select('id').eq('creator_id', currentUserId);
       const { data: contentFileIds } = await supabase
         .from('content_files')
         .select('id')
         .eq('is_active', true)
+        .eq('creator_id', currentUserId)
         .not('content_type', 'is', null)
         .not('file_path', 'is', null)
         .not('file_path', 'eq', '')
@@ -465,7 +473,8 @@ export const useLibraryData = ({
       const { count: messagesCount } = await supabase
         .from('media')
         .select('id', { count: 'exact' })
-        .in('origin', ['message', 'chat']);
+        .in('origin', ['message', 'chat'])
+        .eq('creator_id', currentUserId);
       
       counts['messages'] = messagesCount || 0;
       counts['stories'] = 0;
@@ -474,7 +483,7 @@ export const useLibraryData = ({
     } catch (error) {
       console.error('Error calculating category counts:', error);
     }
-  }, []);
+  }, [currentUserId]);
 
   const updateFolderCount = useCallback(async (folderId: string) => {
     try {
