@@ -60,8 +60,9 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
   const [selectedItems, setSelectedItems] = useState<MediaItem[]>([]);
   const [activeFilter, setActiveFilter] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
-  const [currentFolder, setCurrentFolder] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState('all-files');
   const [folders, setFolders] = useState<any[]>([]);
+  const [showDefaultFolders, setShowDefaultFolders] = useState(true);
   
   // Advanced filters state
   const [advancedFilters, setAdvancedFilters] = useState<LibraryFilterState>(() => ({
@@ -71,12 +72,19 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
   }));
   const [filtersDialogOpen, setFiltersDialogOpen] = useState(false);
 
+  // Default categories
+  const defaultCategories = [
+    { id: 'all-files', label: 'All Files', icon: Grid3X3, description: 'All media files' },
+    { id: 'stories', label: 'Stories', icon: Image, description: 'Story content' },
+    { id: 'messages', label: 'Messages', icon: FileText, description: 'Message attachments' }
+  ];
+
   const {
     content: mediaData,
     loading,
     fetchContent: refreshData
   } = useLibraryData({
-    selectedCategory: currentFolder || 'all-files',
+    selectedCategory: selectedCategory,
     searchQuery,
     selectedFilter: activeFilter,
     sortBy: sortBy,
@@ -185,37 +193,62 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
           {/* Sidebar */}
           <div className="w-64 flex-shrink-0 border-r">
             <div className="space-y-4">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search files..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
+              {/* Default Folders */}
+              {showDefaultFolders && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium">Library</h4>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowDefaultFolders(!showDefaultFolders)}
+                      className="h-6 w-6 p-0"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <div className="space-y-1">
+                    {defaultCategories.map((category) => (
+                      <Button
+                        key={category.id}
+                        variant={selectedCategory === category.id ? 'secondary' : 'ghost'}
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={() => setSelectedCategory(category.id)}
+                      >
+                        <category.icon className="h-4 w-4 mr-2" />
+                        {category.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-              {/* Folders */}
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium">Folders</h4>
-                <div className="space-y-1">
+              {!showDefaultFolders && (
+                <div className="space-y-2">
                   <Button
-                    variant={currentFolder === null ? 'secondary' : 'ghost'}
+                    variant="outline"
                     size="sm"
+                    onClick={() => setShowDefaultFolders(true)}
                     className="w-full justify-start"
-                    onClick={() => setCurrentFolder(null)}
                   >
-                    <FolderOpen className="h-4 w-4 mr-2" />
-                    All Files
+                    <Grid3X3 className="h-4 w-4 mr-2" />
+                    Show Library
                   </Button>
+                </div>
+              )}
+
+              {/* Custom Folders */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium">My Folders</h4>
+                <div className="space-y-1">
                   {folders.map((folder) => (
                     <Button
                       key={folder.id}
-                      variant={currentFolder === folder.id ? 'secondary' : 'ghost'}
+                      variant={selectedCategory === folder.id ? 'secondary' : 'ghost'}
                       size="sm"
                       className="w-full justify-start"
-                      onClick={() => setCurrentFolder(folder.id)}
+                      onClick={() => setSelectedCategory(folder.id)}
                     >
                       <FolderOpen className="h-4 w-4 mr-2" />
                       {folder.name}
@@ -269,6 +302,17 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
                       </span>
                     )}
                   </Button>
+
+                  {/* Search Field */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search files..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 w-64"
+                    />
+                  </div>
                 </div>
 
                 {/* Sort */}
