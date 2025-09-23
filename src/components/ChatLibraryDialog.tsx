@@ -24,12 +24,23 @@ import {
 interface MediaItem {
   id: string;
   title: string;
-  type: string;
+  origin: 'upload' | 'story' | 'livestream' | 'message';
+  storage_path: string;
+  mime: string;
+  type: 'image' | 'video' | 'audio' | 'gif';
   size_bytes: number;
-  storage_path?: string;
-  suggested_price_cents?: number;
+  tags: string[];
+  mentions: string[];
+  suggested_price_cents: number;
+  revenue_generated_cents?: number;
+  notes: string | null;
   creator_id: string;
   created_at: string;
+  updated_at: string;
+  tiny_placeholder?: string;
+  thumbnail_path?: string;
+  width?: number;
+  height?: number;
 }
 
 interface ChatLibraryDialogProps {
@@ -52,8 +63,10 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
     loading,
     fetchContent: refreshData
   } = useLibraryData({
+    selectedCategory: 'all-files',
     searchQuery,
-    pageSize: 50
+    selectedFilter: activeFilter,
+    sortBy: 'newest'
   });
 
   const totalCount = mediaData.length;
@@ -116,7 +129,7 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
   };
 
   const getFileTypeCount = (type: string) => {
-    return selectedItems.filter(item => item.media_type === type).length;
+    return selectedItems.filter(item => item.type === type).length;
   };
 
   const formatFileSize = (bytes: number) => {
@@ -127,7 +140,7 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const totalSize = selectedItems.reduce((sum, item) => sum + (item.file_size || 0), 0);
+  const totalSize = selectedItems.reduce((sum, item) => sum + (item.size_bytes || 0), 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -277,22 +290,22 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
                       {/* File Type Badge */}
                       <div className="absolute top-2 right-2 z-10">
                         <Badge variant="secondary" className="text-xs">
-                          {getFileTypeIcon(item.media_type)}
+                          {getFileTypeIcon(item.type)}
                         </Badge>
                       </div>
 
                       {/* Preview */}
                       <div className="w-full h-full rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-                        {item.media_type === 'image' ? (
+                        {item.type === 'image' ? (
                           <img
-                            src={item.processed_path || item.original_path}
+                            src={item.storage_path}
                             alt={item.title}
                             className="w-full h-full object-cover"
                             loading="lazy"
                           />
                         ) : (
                           <div className="flex flex-col items-center justify-center text-muted-foreground">
-                            {getFileTypeIcon(item.media_type)}
+                            {getFileTypeIcon(item.type)}
                             <span className="text-xs mt-1 text-center px-1 truncate w-full">
                               {item.title}
                             </span>
@@ -304,7 +317,7 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
                       <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 rounded-b-lg">
                         <p className="text-xs truncate">{item.title}</p>
                         <p className="text-xs text-white/70">
-                          {formatFileSize(item.file_size || 0)}
+                          {formatFileSize(item.size_bytes || 0)}
                         </p>
                       </div>
                     </div>

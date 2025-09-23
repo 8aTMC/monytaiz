@@ -110,6 +110,9 @@ export const MessageFilesPack = ({
 
   const typeCounters = getTypeCounters();
 
+  // Filter media files (images and videos)
+  const mediaFiles = [...imageFiles, ...videoFiles];
+  
   const allViewableGroups = [];
   
   // Add media pack if exists
