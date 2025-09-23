@@ -55,7 +55,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
     conversation?.id || null, 
     user.id
   );
-  useUserPresence(user.id);
+  // Note: useUserPresence is handled at the layout level to avoid conflicts
 
   // Load conversation only once when component mounts
   useEffect(() => {

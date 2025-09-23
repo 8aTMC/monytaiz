@@ -8,19 +8,35 @@ export const useUserPresence = (userId: string | undefined) => {
   const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
   const lastSeenRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize presence tracking
+  // Initialize presence tracking with conflict resolution
   const initializePresence = async () => {
     if (!userId) return;
 
     try {
-      // Insert or update user presence
-      await supabase
+      // Insert or update user presence with proper conflict resolution
+      const { error } = await supabase
         .from('user_presence')
         .upsert({
           user_id: userId,
           is_online: true,
           last_seen_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id',
+          ignoreDuplicates: false
         });
+
+      if (error && error.code === '23505') {
+        // Handle unique constraint violation by updating instead
+        await supabase
+          .from('user_presence')
+          .update({
+            is_online: true,
+            last_seen_at: new Date().toISOString()
+          })
+          .eq('user_id', userId);
+      } else if (error) {
+        throw error;
+      }
 
       setIsOnline(true);
       
@@ -28,27 +44,30 @@ export const useUserPresence = (userId: string | undefined) => {
       startHeartbeat();
     } catch (error) {
       console.error('Error initializing presence:', error);
-      toast({
-        title: "Connection Error",
-        description: "Failed to initialize presence tracking",
-        variant: "destructive",
-      });
+      // Don't show toast for presence errors to avoid spam
     }
   };
 
-  // Start heartbeat to keep updating presence
+  // Start heartbeat to keep updating presence with debouncing
   const startHeartbeat = () => {
-    if (!userId) return;
+    if (!userId || heartbeatRef.current) return;
 
     heartbeatRef.current = setInterval(async () => {
       try {
-        await supabase
+        const { error } = await supabase
           .from('user_presence')
-          .upsert({
-            user_id: userId,
+          .update({
             is_online: true,
             last_seen_at: new Date().toISOString()
-          });
+          })
+          .eq('user_id', userId);
+
+        if (error && error.code === '23505') {
+          // Ignore conflict errors during heartbeat
+          return;
+        } else if (error) {
+          console.error('Error updating presence:', error);
+        }
       } catch (error) {
         console.error('Error updating presence:', error);
       }
@@ -60,13 +79,17 @@ export const useUserPresence = (userId: string | undefined) => {
     if (!userId) return;
 
     try {
-      await supabase
+      const { error } = await supabase
         .from('user_presence')
-        .upsert({
-          user_id: userId,
+        .update({
           is_online: false,
           last_seen_at: new Date().toISOString()
-        });
+        })
+        .eq('user_id', userId);
+
+      if (error && error.code !== '23505') {
+        console.error('Error setting offline:', error);
+      }
 
       setIsOnline(false);
     } catch (error) {
