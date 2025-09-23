@@ -409,7 +409,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
       const pinnedConversations = JSON.parse(localStorage.getItem('pinned_conversations') || '[]');
       
       // Use optimized single query with lateral joins to get all data at once
-      const { data: optimizedData, error: optimizedError } = await supabase.rpc('get_user_conversations', {
+      const { data: optimizedData, error: optimizedError } = await supabase.rpc('get_user_conversations' as any, {
         user_id: user.id,
         is_creator_param: isCreator
       });
@@ -467,7 +467,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
       }
 
       // Use optimized data if available
-      const processedConversations = (optimizedData || []).map((conv: any) => ({
+      const processedConversations = (optimizedData as any[] || []).map((conv: any) => ({
         ...conv,
         latest_message: conv.latest_message_content || '',
         latest_message_content: conv.latest_message_content || '',

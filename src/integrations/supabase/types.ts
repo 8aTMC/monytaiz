@@ -2059,6 +2059,27 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_management_conversations: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          creator_id: string
+          fan_category: Database["public"]["Enums"]["fan_category"]
+          fan_display_name: string
+          fan_id: string
+          fan_username: string
+          id: string
+          is_active: boolean
+          last_message_at: string
+          last_message_content: string
+          last_message_sender_id: string
+          latest_message_content: string
+          latest_message_sender_id: string
+          status: string
+          unread_count: number
+          updated_at: string
+        }[]
+      }
       get_media_analytics: {
         Args: { p_end_date?: string; p_media_id: string; p_start_date?: string }
         Returns: {
@@ -2104,6 +2125,26 @@ export type Database = {
       get_secure_media_url: {
         Args: { expires_in_seconds?: number; media_path: string }
         Returns: Json
+      }
+      get_user_conversations: {
+        Args: { is_creator_param: boolean; user_id: string }
+        Returns: {
+          created_at: string
+          creator_id: string
+          fan_id: string
+          has_ai_active: boolean
+          id: string
+          is_active: boolean
+          last_message_at: string
+          latest_message_content: string
+          latest_message_sender_id: string
+          partner_display_name: string
+          partner_fan_category: Database["public"]["Enums"]["fan_category"]
+          partner_username: string
+          status: string
+          unread_count: number
+          updated_at: string
+        }[]
       }
       has_role: {
         Args: {

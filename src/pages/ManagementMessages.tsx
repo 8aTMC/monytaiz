@@ -144,7 +144,7 @@ const ManagementMessages = () => {
       if (error) throw error;
 
       // Use optimized single query with lateral joins to get all data at once
-      const { data: optimizedData, error: optimizedError } = await supabase.rpc('get_management_conversations');
+      const { data: optimizedData, error: optimizedError } = await supabase.rpc('get_management_conversations' as any);
       
       if (optimizedError) {
         console.error('Failed to fetch optimized conversations, falling back to original method:', optimizedError);
@@ -187,7 +187,7 @@ const ManagementMessages = () => {
       }
 
       // Use optimized data if available
-      const enhancedConversations = (optimizedData || []).map((conv: any) => ({
+      const enhancedConversations = (optimizedData as any[] || []).map((conv: any) => ({
         ...conv,
         last_message: conv.last_message_content ? {
           content: conv.last_message_content,
