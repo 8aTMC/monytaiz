@@ -309,7 +309,8 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                       latest_message_content: newMessage.content,
                       latest_message_sender_id: newMessage.sender_id,
                       last_message_at: newMessage.created_at,
-                      unread_count: conv.unread_count + 1
+                      // Only increment unread count if it's not from the current user
+                      unread_count: newMessage.sender_id === user.id ? 0 : (conv.unread_count || 0) + 1
                     }
                   : conv
               ));
@@ -427,13 +428,25 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
             .eq('conversation_id', conv.id)
             .maybeSingle();
 
+          // Get actual unread count - count messages from the other user that haven't been read
+          const otherUserId = isCreator ? conv.fan_id : conv.creator_id;
+          const { data: unreadData } = await supabase
+            .from('messages')
+            .select('id', { count: 'exact' })
+            .eq('conversation_id', conv.id)
+            .eq('status', 'active')
+            .eq('sender_id', otherUserId)
+            .eq('read_by_recipient', false);
+          
+          const actualUnreadCount = unreadData?.length || 0;
+
           return {
             ...conv,
             latest_message: latestMessage?.content || conv.latest_message_content || '',
             latest_message_content: latestMessage?.content || conv.latest_message_content || '',
             latest_message_sender_id: latestMessage?.sender_id || conv.latest_message_sender_id || '',
             total_spent: 0, // Real data - will be updated when purchases are implemented
-            unread_count: conv.unread_count || 0,
+            unread_count: actualUnreadCount,
             is_pinned: pinnedConversations.includes(conv.id),
             has_ai_active: aiSettings?.is_ai_enabled || false,
           };

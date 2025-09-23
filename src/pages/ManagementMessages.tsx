@@ -94,13 +94,16 @@ const ManagementMessages = () => {
         (payload) => {
           const newMessage = payload.new as Message;
           setMessages(prev => [...prev, newMessage]);
-          // Update conversation locally instead of reloading all
+          // Update conversation locally
           setConversations(prev => prev.map(conv => 
             conv.id === activeConversation 
               ? {
                   ...conv,
                   last_message: { content: newMessage.content, sender_id: newMessage.sender_id },
-                  last_message_at: newMessage.created_at
+                  last_message_at: newMessage.created_at,
+                  // If this message is from the current user (management), reset unread count
+                  // If it's from the fan, increment unread count
+                  unread_count: newMessage.sender_id === user?.id ? 0 : (conv.unread_count || 0) + 1
                 }
               : conv
           ));
@@ -156,8 +159,16 @@ const ManagementMessages = () => {
           // Get total spending - will be calculated from real purchase data when implemented
           const totalSpent = 0;
 
-          // Get unread count (mock for now)
-          const unreadCount = Math.floor(Math.random() * 5);
+          // Get actual unread count - count messages from fan that haven't been read
+          const { data: unreadData } = await supabase
+            .from('messages')
+            .select('id', { count: 'exact' })
+            .eq('conversation_id', conv.id)
+            .eq('status', 'active')
+            .eq('sender_id', conv.fan_id)
+            .eq('read_by_recipient', false);
+          
+          const unreadCount = unreadData?.length || 0;
 
           return {
             ...conv,
@@ -300,6 +311,28 @@ const ManagementMessages = () => {
     setMessagesOffset(0);
     setHasMoreMessages(true);
     loadMessages(conversationId);
+    markConversationAsRead(conversationId);
+  };
+
+  const markConversationAsRead = async (conversationId: string) => {
+    try {
+      // Mark all unread messages in this conversation as read
+      await supabase
+        .from('messages')
+        .update({ read_by_recipient: true, read_at: new Date().toISOString() })
+        .eq('conversation_id', conversationId)
+        .eq('read_by_recipient', false)
+        .neq('sender_id', user?.id);
+
+      // Update conversation unread count to 0
+      setConversations(prev => prev.map(conv => 
+        conv.id === conversationId 
+          ? { ...conv, unread_count: 0 }
+          : conv
+      ));
+    } catch (error) {
+      console.error('Error marking conversation as read:', error);
+    }
   };
 
   const formatTime = (timestamp: string) => {
