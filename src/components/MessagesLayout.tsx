@@ -954,6 +954,23 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                   </div>
                 )}
 
+                {/* Action Buttons Row */}
+                <div className="flex items-center gap-2 mb-2">
+                  {actionButtons.map((button, index) => (
+                    <Button
+                      key={index}
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-3"
+                      title={button.label}
+                      onClick={button.onClick}
+                      disabled={button.disabled?.() || false}
+                    >
+                      <button.icon className={`h-4 w-4 ${button.color}`} />
+                    </Button>
+                  ))}
+                </div>
+
                 {/* Message Input */}
                 <form 
                   onSubmit={(e) => {
@@ -1035,10 +1052,37 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
         {activeConversation && isCreator && (
           <div className="w-80 border-l border-border bg-background flex-shrink-0">
             <div className="p-4 h-full flex flex-col">
-              <h3 className="font-semibold mb-4">Fan Insights</h3>
+              <h3 className="font-semibold mb-4">AI Memory for Fan</h3>
               
               <ScrollArea className="flex-1 scrollarea-viewport">
                 <div className="space-y-4 px-3">
+                  {/* AI Conversation Context */}
+                  <Card>
+                    <CardContent className="p-3">
+                      <h4 className="text-sm font-medium mb-3">Conversation Context</h4>
+                      <div className="space-y-2 text-sm text-muted-foreground">
+                        <p>• Fan prefers evening conversations</p>
+                        <p>• Interested in exclusive content</p>
+                        <p>• Usually tips on Fridays</p>
+                        <p>• Likes personalized messages</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* AI Assistant Status */}
+                  <Card>
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-muted-foreground">AI Assistant</span>
+                        <Badge variant="outline" className="text-green-600">Active</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Auto-Reply</span>
+                        <span className="text-sm">Enabled</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   {/* Subscription Status */}
                   <Card>
                     <CardContent className="p-3">
