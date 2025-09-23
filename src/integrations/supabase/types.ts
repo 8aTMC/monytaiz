@@ -2064,6 +2064,7 @@ export type Database = {
         Returns: {
           created_at: string
           creator_id: string
+          fan_avatar_url: string
           fan_category: Database["public"]["Enums"]["fan_category"]
           fan_display_name: string
           fan_id: string
@@ -2127,7 +2128,9 @@ export type Database = {
         Returns: Json
       }
       get_user_conversations: {
-        Args: { is_creator_param: boolean; user_id: string }
+        Args:
+          | Record<PropertyKey, never>
+          | { is_creator_param: boolean; user_id: string }
         Returns: {
           created_at: string
           creator_id: string
