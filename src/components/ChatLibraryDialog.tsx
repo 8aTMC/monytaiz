@@ -5,9 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
+import { LibraryFiltersDialog } from '@/components/LibraryFiltersDialog';
 import { VirtualizedLibraryGrid } from '@/components/VirtualizedLibraryGrid';
 import { useLibraryData } from '@/hooks/useLibraryData';
+import { LibraryFilterState } from '@/types/library-filters';
 import { cn } from '@/lib/utils';
 import { 
   Search, 
@@ -18,7 +21,8 @@ import {
   Music, 
   FileText,
   X,
-  Check
+  Check,
+  Grid3X3
 } from 'lucide-react';
 
 interface MediaItem {
@@ -54,19 +58,29 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [selectedItems, setSelectedItems] = useState<MediaItem[]>([]);
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [activeFilter, setActiveFilter] = useState('All');
+  const [sortBy, setSortBy] = useState('newest');
   const [currentFolder, setCurrentFolder] = useState<string | null>(null);
   const [folders, setFolders] = useState<any[]>([]);
+  
+  // Advanced filters state
+  const [advancedFilters, setAdvancedFilters] = useState<LibraryFilterState>(() => ({
+    collaborators: [],
+    tags: [],
+    priceRange: [0, 1000000] // $0 to $10,000 in cents
+  }));
+  const [filtersDialogOpen, setFiltersDialogOpen] = useState(false);
 
   const {
     content: mediaData,
     loading,
     fetchContent: refreshData
   } = useLibraryData({
-    selectedCategory: 'all-files',
+    selectedCategory: currentFolder || 'all-files',
     searchQuery,
     selectedFilter: activeFilter,
-    sortBy: 'newest'
+    sortBy: sortBy,
+    advancedFilters
   });
 
   const totalCount = mediaData.length;
@@ -118,6 +132,17 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
     setSelectedItems([]);
     onClose();
   };
+
+  // Advanced filter handlers
+  const handleFiltersChange = (newFilters: LibraryFilterState) => {
+    setAdvancedFilters(newFilters);
+  };
+
+  const hasActiveFilters = 
+    advancedFilters.collaborators.length > 0 || 
+    advancedFilters.tags.length > 0 || 
+    advancedFilters.priceRange[0] > 0 || 
+    advancedFilters.priceRange[1] < 1000000;
 
   const getFileTypeIcon = (type: string) => {
     switch (type) {
@@ -171,31 +196,6 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
                 />
               </div>
 
-              {/* Filters */}
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium">File Types</h4>
-                <div className="space-y-1">
-                  {[
-                    { key: 'all', label: 'All Files', icon: Filter },
-                    { key: 'image', label: 'Images', icon: Image },
-                    { key: 'video', label: 'Videos', icon: Video },
-                    { key: 'audio', label: 'Audio', icon: Music },
-                    { key: 'document', label: 'Documents', icon: FileText }
-                  ].map((filter) => (
-                    <Button
-                      key={filter.key}
-                      variant={activeFilter === filter.key ? 'secondary' : 'ghost'}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => setActiveFilter(filter.key)}
-                    >
-                      <filter.icon className="h-4 w-4 mr-2" />
-                      {filter.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
               {/* Folders */}
               <div className="space-y-2">
                 <h4 className="text-sm font-medium">Folders</h4>
@@ -228,33 +228,92 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
 
           {/* Main Content */}
           <div className="flex-1 flex flex-col min-h-0">
-            {/* Content Header */}
-            <div className="flex items-center justify-between pb-4">
-              <div className="text-sm text-muted-foreground">
-                {totalCount} files
-              </div>
-              {selectedFiles.size > 0 && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>{formatFileSize(totalSize)}</span>
-                  <div className="flex items-center gap-1">
-                    {getFileTypeCount('image') > 0 && (
-                      <Badge variant="outline" className="text-xs">
-                        {getFileTypeCount('image')} <Image className="h-3 w-3 ml-1" />
-                      </Badge>
-                    )}
-                    {getFileTypeCount('video') > 0 && (
-                      <Badge variant="outline" className="text-xs">
-                        {getFileTypeCount('video')} <Video className="h-3 w-3 ml-1" />
-                      </Badge>
-                    )}
-                    {getFileTypeCount('audio') > 0 && (
-                      <Badge variant="outline" className="text-xs">
-                        {getFileTypeCount('audio')} <Music className="h-3 w-3 ml-1" />
-                      </Badge>
-                    )}
+            {/* Enhanced Header with Controls */}
+            <div className="pb-4 border-b">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  {/* Media Type Filter Tabs */}
+                  <div className="flex bg-muted rounded-lg p-1">
+                    {[
+                      { filter: 'All', icon: Grid3X3, label: 'All files' },
+                      { filter: 'Photo', icon: Image, label: 'Photos' },
+                      { filter: 'Video', icon: Video, label: 'Videos' },
+                      { filter: 'Audio', icon: Music, label: 'Audio' }
+                    ].map(({ filter, icon: Icon, label }) => (
+                      <Button
+                        key={filter}
+                        variant={activeFilter === filter ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setActiveFilter(filter)}
+                        className="px-3 py-1 text-xs"
+                        aria-label={label}
+                        title={label}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </Button>
+                    ))}
                   </div>
+
+                  {/* Advanced Filters Button */}
+                  <Button
+                    variant={hasActiveFilters ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setFiltersDialogOpen(true)}
+                    className="shrink-0"
+                  >
+                    <Filter className="h-4 w-4 mr-1" />
+                    Filters
+                    {hasActiveFilters && (
+                      <span className="ml-1 px-1.5 py-0.5 text-xs bg-background/20 rounded">
+                        {advancedFilters.collaborators.length + advancedFilters.tags.length + (advancedFilters.priceRange[0] > 0 || advancedFilters.priceRange[1] < 1000000 ? 1 : 0)}
+                      </span>
+                    )}
+                  </Button>
                 </div>
-              )}
+
+                {/* Sort */}
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="oldest">Oldest First</SelectItem>
+                    <SelectItem value="name-asc">Name A-Z</SelectItem>
+                    <SelectItem value="name-desc">Name Z-A</SelectItem>
+                    <SelectItem value="size-desc">Largest First</SelectItem>
+                    <SelectItem value="size-asc">Smallest First</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  {totalCount} files
+                </div>
+                {selectedFiles.size > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>{formatFileSize(totalSize)}</span>
+                    <div className="flex items-center gap-1">
+                      {getFileTypeCount('image') > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                          {getFileTypeCount('image')} <Image className="h-3 w-3 ml-1" />
+                        </Badge>
+                      )}
+                      {getFileTypeCount('video') > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                          {getFileTypeCount('video')} <Video className="h-3 w-3 ml-1" />
+                        </Badge>
+                      )}
+                      {getFileTypeCount('audio') > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                          {getFileTypeCount('audio')} <Music className="h-3 w-3 ml-1" />
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* File Grid */}
@@ -327,6 +386,14 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
             </ScrollArea>
           </div>
         </div>
+
+        {/* Advanced Filters Dialog */}
+        <LibraryFiltersDialog
+          open={filtersDialogOpen}
+          onOpenChange={(open) => setFiltersDialogOpen(open)}
+          filters={advancedFilters}
+          onFiltersChange={handleFiltersChange}
+        />
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-4 border-t">
