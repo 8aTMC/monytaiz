@@ -22,7 +22,9 @@ import {
   FileText,
   X,
   Check,
-  Grid3X3
+  Grid3X3,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 interface MediaItem {
@@ -197,14 +199,15 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
               {showDefaultFolders && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium">Library</h4>
+                    <h4 className="text-sm font-medium">Default Folders</h4>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowDefaultFolders(!showDefaultFolders)}
-                      className="h-6 w-6 p-0"
+                      className="text-xs px-2 h-7 hover:bg-gradient-glass transition flex items-center gap-1"
                     >
-                      <X className="h-3 w-3" />
+                      <EyeOff className="h-3 w-3" />
+                      <span>Hide</span>
                     </Button>
                   </div>
                   <div className="space-y-1">
@@ -230,10 +233,10 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
                     variant="outline"
                     size="sm"
                     onClick={() => setShowDefaultFolders(true)}
-                    className="w-full justify-start"
+                    className="text-xs px-2 h-7 hover:bg-gradient-glass transition flex items-center gap-1"
                   >
-                    <Grid3X3 className="h-4 w-4 mr-2" />
-                    Show Library
+                    <Eye className="h-3 w-3" />
+                    <span>Show Default Folders</span>
                   </Button>
                 </div>
               )}
