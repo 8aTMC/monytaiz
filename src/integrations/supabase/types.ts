@@ -444,6 +444,54 @@ export type Database = {
         }
         Relationships: []
       }
+      fan_file_access: {
+        Row: {
+          access_type: string
+          created_at: string
+          expires_at: string | null
+          fan_id: string
+          granted_at: string
+          granted_by: string
+          id: string
+          media_id: string
+          media_table: string
+          message_id: string | null
+          price_paid_cents: number | null
+          revoked_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_type?: string
+          created_at?: string
+          expires_at?: string | null
+          fan_id: string
+          granted_at?: string
+          granted_by: string
+          id?: string
+          media_id: string
+          media_table?: string
+          message_id?: string | null
+          price_paid_cents?: number | null
+          revoked_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_type?: string
+          created_at?: string
+          expires_at?: string | null
+          fan_id?: string
+          granted_at?: string
+          granted_by?: string
+          id?: string
+          media_id?: string
+          media_table?: string
+          message_id?: string | null
+          price_paid_cents?: number | null
+          revoked_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fan_lists: {
         Row: {
           color: string
@@ -569,6 +617,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fan_purchase_analytics: {
+        Row: {
+          average_purchase_cents: number
+          created_at: string
+          fan_id: string
+          first_purchase_at: string | null
+          id: string
+          last_purchase_at: string | null
+          max_purchase_cents: number
+          total_purchases: number
+          total_spent_cents: number
+          updated_at: string
+        }
+        Insert: {
+          average_purchase_cents?: number
+          created_at?: string
+          fan_id: string
+          first_purchase_at?: string | null
+          id?: string
+          last_purchase_at?: string | null
+          max_purchase_cents?: number
+          total_purchases?: number
+          total_spent_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          average_purchase_cents?: number
+          created_at?: string
+          fan_id?: string
+          first_purchase_at?: string | null
+          id?: string
+          last_purchase_at?: string | null
+          max_purchase_cents?: number
+          total_purchases?: number
+          total_spent_cents?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       file_folder_contents: {
         Row: {
@@ -928,47 +1015,89 @@ export type Database = {
           },
         ]
       }
+      message_file_attachments: {
+        Row: {
+          created_at: string
+          file_order: number
+          id: string
+          media_id: string
+          media_table: string
+          message_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          file_order?: number
+          id?: string
+          media_id: string
+          media_table?: string
+          message_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          file_order?: number
+          id?: string
+          media_id?: string
+          media_table?: string
+          message_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
+          attachment_count: number | null
           content: string
           conversation_id: string
           created_at: string
           deleted_at: string | null
           delivered_at: string | null
+          has_attachments: boolean | null
           id: string
+          is_ppv: boolean | null
           is_system_message: boolean
           media_url: string | null
           message_type: string
+          ppv_price_cents: number | null
           read_at: string | null
           read_by_recipient: boolean | null
           sender_id: string
           status: string | null
         }
         Insert: {
+          attachment_count?: number | null
           content: string
           conversation_id: string
           created_at?: string
           deleted_at?: string | null
           delivered_at?: string | null
+          has_attachments?: boolean | null
           id?: string
+          is_ppv?: boolean | null
           is_system_message?: boolean
           media_url?: string | null
           message_type?: string
+          ppv_price_cents?: number | null
           read_at?: string | null
           read_by_recipient?: boolean | null
           sender_id: string
           status?: string | null
         }
         Update: {
+          attachment_count?: number | null
           content?: string
           conversation_id?: string
           created_at?: string
           deleted_at?: string | null
           delivered_at?: string | null
+          has_attachments?: boolean | null
           id?: string
+          is_ppv?: boolean | null
           is_system_message?: boolean
           media_url?: string | null
           message_type?: string
+          ppv_price_cents?: number | null
           read_at?: string | null
           read_by_recipient?: boolean | null
           sender_id?: string
@@ -1226,6 +1355,45 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+        }
+        Relationships: []
+      }
+      ppv_transactions: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          id: string
+          message_id: string
+          payment_method: string | null
+          processed_at: string | null
+          seller_id: string
+          status: string
+          total_amount_cents: number
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          id?: string
+          message_id: string
+          payment_method?: string | null
+          processed_at?: string | null
+          seller_id: string
+          status?: string
+          total_amount_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          message_id?: string
+          payment_method?: string | null
+          processed_at?: string | null
+          seller_id?: string
+          status?: string
+          total_amount_cents?: number
+          updated_at?: string
         }
         Relationships: []
       }
