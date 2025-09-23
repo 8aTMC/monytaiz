@@ -2135,12 +2135,12 @@ export type Database = {
           created_at: string
           creator_id: string
           fan_id: string
-          has_ai_active: boolean
           id: string
           is_active: boolean
           last_message_at: string
           latest_message_content: string
           latest_message_sender_id: string
+          partner_avatar_url: string
           partner_display_name: string
           partner_fan_category: Database["public"]["Enums"]["fan_category"]
           partner_username: string
