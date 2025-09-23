@@ -203,9 +203,23 @@ export const useLibraryData = ({
         });
       }
 
-      // Apply type filter
-      if (filter !== 'all' && combinedData.length > 0) {
-        combinedData = combinedData.filter(item => item.type === filter);
+      // Normalize and apply type filter
+      const f = (filter || '').toLowerCase();
+      const normalizedFilter = f === 'all' || f === ''
+        ? 'all'
+        : ['photo','photos','image','images','img','pics','pictures'].includes(f)
+          ? 'image'
+          : ['video','videos','vid','clips'].includes(f)
+            ? 'video'
+            : ['audio','audios','music','sound'].includes(f)
+              ? 'audio'
+              : f;
+
+      if (normalizedFilter !== 'all' && combinedData.length > 0) {
+        combinedData = combinedData.filter(item => {
+          if (normalizedFilter === 'image') return item.type === 'image' || item.type === 'gif';
+          return item.type === normalizedFilter;
+        });
       }
 
        // Apply advanced filters

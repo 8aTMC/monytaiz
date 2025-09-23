@@ -60,7 +60,7 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [selectedItems, setSelectedItems] = useState<MediaItem[]>([]);
-  const [activeFilter, setActiveFilter] = useState('All');
+  const [activeFilter, setActiveFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [selectedCategory, setSelectedCategory] = useState('all-files');
   const [folders, setFolders] = useState<any[]>([]);
@@ -101,6 +101,7 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
     if (isOpen) {
       setShowDefaultFolders(true);
       setSelectedCategory('all-files');
+      setActiveFilter('all');
     }
   }, [isOpen]);
 
@@ -283,10 +284,10 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
                   {/* Media Type Filter Tabs */}
                   <div className="flex bg-muted rounded-lg p-1">
                     {[
-                      { filter: 'All', icon: Grid3X3, label: 'All files' },
-                      { filter: 'Photo', icon: Image, label: 'Photos' },
-                      { filter: 'Video', icon: Video, label: 'Videos' },
-                      { filter: 'Audio', icon: Music, label: 'Audio' }
+                      { filter: 'all', icon: Grid3X3, label: 'All files' },
+                      { filter: 'image', icon: Image, label: 'Photos' },
+                      { filter: 'video', icon: Video, label: 'Videos' },
+                      { filter: 'audio', icon: Music, label: 'Audio' }
                     ].map(({ filter, icon: Icon, label }) => (
                       <Button
                         key={filter}
