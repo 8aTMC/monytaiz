@@ -985,17 +985,6 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                     </Button>
                   </EmojiPicker>
 
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-10 px-2 flex-shrink-0"
-                    onClick={() => setShowLibraryDialog(true)}
-                    title="Attach from Library"
-                  >
-                    <Paperclip className="h-4 w-4 text-blue-500" />
-                  </Button>
-
                   {attachedFiles.length > 0 && (
                     <Button
                       type="button"
@@ -1008,10 +997,6 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                       <DollarSign className="h-4 w-4 text-green-500" />
                     </Button>
                   )}
-
-                  <FileUploadButton
-                    onFilesSelected={(files) => console.log('Files selected:', files)}
-                  />
 
                   <Textarea
                     value={newMessage}
