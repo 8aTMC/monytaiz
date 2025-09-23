@@ -95,6 +95,14 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
 
   const totalCount = mediaData.length;
 
+  // Reset state when dialog opens to ensure default folders are always visible
+  useEffect(() => {
+    if (isOpen) {
+      setShowDefaultFolders(true);
+      setSelectedCategory('all-files');
+    }
+  }, [isOpen]);
+
   // Load folders
   useEffect(() => {
     const loadFolders = async () => {
