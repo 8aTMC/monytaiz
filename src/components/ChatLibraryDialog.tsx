@@ -229,15 +229,18 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
 
               {!showDefaultFolders && (
                 <div className="space-y-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowDefaultFolders(true)}
-                    className="text-xs px-2 h-7 hover:bg-gradient-glass transition flex items-center gap-1"
-                  >
-                    <Eye className="h-3 w-3" />
-                    <span>Show Default Folders</span>
-                  </Button>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium">Default Folders</h4>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowDefaultFolders(true)}
+                      className="text-xs px-2 h-7 hover:bg-gradient-glass transition flex items-center gap-1"
+                    >
+                      <Eye className="h-3 w-3" />
+                      <span>Show</span>
+                    </Button>
+                  </div>
                 </div>
               )}
 
