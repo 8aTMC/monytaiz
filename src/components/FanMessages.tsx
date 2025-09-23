@@ -13,6 +13,8 @@ import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useUserPresence } from '@/hooks/useUserPresence';
 import { MessageList } from '@/components/MessageList';
 import { EmojiPicker } from '@/components/EmojiPicker';
+import { ChatLibraryDialog } from '@/components/ChatLibraryDialog';
+import { PPVPricingDialog } from '@/components/PPVPricingDialog';
 
 interface Message {
   id: string;
@@ -48,6 +50,9 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [showLibraryDialog, setShowLibraryDialog] = useState(false);
+  const [showPricingDialog, setShowPricingDialog] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState<any[]>([]);
   const messageInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize typing indicator hook
@@ -225,13 +230,19 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
       setSending(true);
       stopTyping(); // Stop typing indicator when sending
       
+      const messageContent = newMessage.trim();
+      const isPPV = attachedFiles.length > 0;
+      
       const { data: messageData, error } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversation.id,
           sender_id: user.id,
-          content: newMessage.trim(),
-          status: 'active'
+          content: messageContent,
+          status: 'active',
+          is_ppv: isPPV,
+          has_attachments: attachedFiles.length > 0,
+          attachment_count: attachedFiles.length
           // Note: delivered_at will be set when recipient comes online
         })
         .select()
@@ -239,7 +250,26 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
 
       if (error) throw error;
       
+      // If there are attached files, create file attachments
+      if (attachedFiles.length > 0) {
+        const attachments = attachedFiles.map((file, index) => ({
+          message_id: messageData.id,
+          media_id: file.id,
+          media_table: 'simple_media',
+          file_order: index,
+        }));
+
+        const { error: attachmentError } = await supabase
+          .from('message_file_attachments')
+          .insert(attachments);
+
+        if (attachmentError) {
+          console.error('Error creating file attachments:', attachmentError);
+        }
+      }
+      
       setNewMessage('');
+      setAttachedFiles([]);
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -275,6 +305,29 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
       e.preventDefault();
       sendMessage();
     }
+  };
+
+  const handleLibraryAttach = (files: any[]) => {
+    setAttachedFiles(files);
+    setShowLibraryDialog(false);
+    toast({
+      title: "Files attached",
+      description: `${files.length} file${files.length !== 1 ? 's' : ''} attached to message`,
+    });
+  };
+
+  const handlePricingConfirm = (totalPriceCents: number, filePrices: Record<string, number>) => {
+    // Update the attached files with pricing info
+    const updatedFiles = attachedFiles.map(file => ({
+      ...file,
+      price_cents: filePrices[file.id] || 0
+    }));
+    setAttachedFiles(updatedFiles);
+    
+    toast({
+      title: "Pricing set",
+      description: `Total price: $${(totalPriceCents / 100).toFixed(2)}`,
+    });
   };
 
   if (loading) {
@@ -381,7 +434,13 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           <Button variant="ghost" size="sm" className="h-8 px-3" title="AI Assistant">
             <Bot className="h-4 w-4 text-purple-500" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-8 px-3" title="Library">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 px-3" 
+            title="Library"
+            onClick={() => setShowLibraryDialog(true)}
+          >
             <Library className="h-4 w-4 text-primary" />
           </Button>
           <Button variant="ghost" size="sm" className="h-8 px-3" title="Voice">
@@ -390,7 +449,14 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           <Button variant="ghost" size="sm" className="h-8 px-3" title="Tip">
             <Gift className="h-4 w-4 text-yellow-500" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-8 px-3" title="Price">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 px-3" 
+            title="Price"
+            onClick={() => setShowPricingDialog(true)}
+            disabled={attachedFiles.length === 0}
+          >
             <DollarSign className="h-4 w-4 text-emerald-500" />
           </Button>
           <Button variant="ghost" size="sm" className="h-8 px-3" title="Scripts">
@@ -400,6 +466,30 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
             <AtSign className="h-4 w-4 text-primary" />
           </Button>
         </div>
+        
+        {/* Attached Files Preview */}
+        {attachedFiles.length > 0 && (
+          <div className="mb-2 p-2 bg-muted/30 rounded-lg">
+            <div className="text-xs text-muted-foreground mb-1">
+              {attachedFiles.length} file{attachedFiles.length !== 1 ? 's' : ''} attached
+            </div>
+            <div className="flex gap-1 flex-wrap">
+              {attachedFiles.map((file, index) => (
+                <div key={file.id} className="text-xs bg-primary/10 px-2 py-1 rounded">
+                  {file.title}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 ml-1"
+                    onClick={() => setAttachedFiles(files => files.filter((_, i) => i !== index))}
+                  >
+                    ×
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         
         <form 
           onSubmit={(e) => {
@@ -438,6 +528,22 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           </Button>
         </form>
       </div>
+      
+      {/* Dialog Components */}
+      <ChatLibraryDialog
+        isOpen={showLibraryDialog}
+        onClose={() => setShowLibraryDialog(false)}
+        onAttachFiles={handleLibraryAttach}
+        currentUserId={user.id}
+      />
+      
+      <PPVPricingDialog
+        isOpen={showPricingDialog}
+        onClose={() => setShowPricingDialog(false)}
+        onConfirm={handlePricingConfirm}
+        attachedFiles={attachedFiles}
+        fanId={user.id}
+      />
     </div>
   );
 };

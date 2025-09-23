@@ -31,6 +31,8 @@ import { useAIChat } from '@/hooks/useAIChat';
 import { EmojiPicker } from '@/components/EmojiPicker';
 import { toast as sonnerToast } from 'sonner';
 import { MessageList } from '@/components/MessageList';
+import { ChatLibraryDialog } from '@/components/ChatLibraryDialog';
+import { PPVPricingDialog } from '@/components/PPVPricingDialog';
 import { 
   Send, 
   Search, 
@@ -107,6 +109,9 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   const [showAIPersonaDialog, setShowAIPersonaDialog] = useState(false);
   const [showAISettingsDialog, setShowAISettingsDialog] = useState(false);
   const [showFanNotesDialog, setShowFanNotesDialog] = useState(false);
+  const [showLibraryDialog, setShowLibraryDialog] = useState(false);
+  const [showPricingDialog, setShowPricingDialog] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState<any[]>([]);
   const [aiSettings, setAiSettings] = useState<any>(null);
   const messageTextareaRef = useRef<HTMLTextAreaElement>(null);
   
@@ -660,15 +665,38 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   }, [activeConversation?.id]);
 
 
+  const handleLibraryAttach = (files: any[]) => {
+    setAttachedFiles(files);
+    setShowLibraryDialog(false);
+    toast({
+      title: "Files attached",
+      description: `${files.length} file${files.length !== 1 ? 's' : ''} attached to message`,
+    });
+  };
+
+  const handlePricingConfirm = (totalPriceCents: number, filePrices: Record<string, number>) => {
+    // Update the attached files with pricing info
+    const updatedFiles = attachedFiles.map(file => ({
+      ...file,
+      price_cents: filePrices[file.id] || 0
+    }));
+    setAttachedFiles(updatedFiles);
+    
+    toast({
+      title: "Pricing set",
+      description: `Total price: $${(totalPriceCents / 100).toFixed(2)}`,
+    });
+  };
+
   const actionButtons = [
-    { icon: Bot, label: 'AI', color: 'text-purple-500' },
-    { icon: Library, label: 'Library', color: 'text-primary' },
-    { icon: Mic, label: 'Voice', color: 'text-purple-500' },
+    { icon: Bot, label: 'AI', color: 'text-purple-500', onClick: () => setShowAISettingsDialog(true) },
+    { icon: Library, label: 'Library', color: 'text-primary', onClick: () => setShowLibraryDialog(true) },
+    { icon: Mic, label: 'Voice', color: 'text-purple-500', onClick: () => {} },
     // Only show tip button for fans, not for creators/admin
-    ...(!isCreator ? [{ icon: Gift, label: 'Tip', color: 'text-yellow-500' }] : []),
-    { icon: DollarSign, label: 'Price', color: 'text-emerald-500' },
-    { icon: FileText, label: 'Scripts', color: 'text-orange-500' },
-    { icon: AtSign, label: 'Tag Creator', color: 'text-primary' },
+    ...(!isCreator ? [{ icon: Gift, label: 'Tip', color: 'text-yellow-500', onClick: () => {} }] : []),
+    { icon: DollarSign, label: 'Price', color: 'text-emerald-500', onClick: () => setShowPricingDialog(true), disabled: () => attachedFiles.length === 0 },
+    { icon: FileText, label: 'Scripts', color: 'text-orange-500', onClick: () => {} },
+    { icon: AtSign, label: 'Tag Creator', color: 'text-primary', onClick: () => {} },
   ];
 
   if (loading) {
@@ -853,7 +881,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
         activeConversation && isCreator ? 'flex-1' : 'flex-1'
       }`}>
         {activeConversation ? (
-          <>
+          <div className="flex flex-col h-full">
             {/* Chat Header - Fixed */}
             <div className="flex-none h-16 p-4 border-b border-border bg-background flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -870,35 +898,42 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                   <h3 className="font-semibold">
                     {getProfileForConversation(activeConversation)?.display_name || 'Unknown User'}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
-                    @{getProfileForConversation(activeConversation)?.username || 'unknown'}
-                  </p>
+                  {getProfileForConversation(activeConversation)?.username && (
+                    <p className="text-sm text-muted-foreground">
+                      @{getProfileForConversation(activeConversation).username}
+                    </p>
+                  )}
                 </div>
               </div>
+              
               <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs">
-                  VIP
-                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowFanNotesDialog(true)}
+                  title="Manage Fan Notes"
+                  className="text-xs"
+                >
+                  <FileText className="h-4 w-4" />
+                </Button>
                 <Button variant="ghost" size="icon">
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </div>
             </div>
 
-            {/* Messages Area - Takes remaining space, scrollable */}
-            <div className="flex-1 min-h-0 overflow-hidden">
-              {activeConversation && (
-                <MessageList
-                  conversationId={activeConversation.id}
-                  currentUserId={user.id}
-                  partnerProfile={getProfileForConversation(activeConversation)}
-                  className="h-full"
-                />
-              )}
+            {/* Messages Container - Scrollable */}
+            <div className="flex-1 min-h-0">
+              <MessageList
+                conversationId={activeConversation.id}
+                currentUserId={user.id}
+                partnerProfile={getProfileForConversation(activeConversation)}
+                className="h-full"
+              />
             </div>
 
-            {/* File Upload Progress Bar */}
-            {hasFiles && (
+            {/* Upload Progress */}
+            {isUploading && (
               <UploadProgressBar 
                 files={uploadingFiles} 
                 onRemoveFile={removeFile}
@@ -941,11 +976,35 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                       type="button"
                       className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 px-3 flex-shrink-0"
                       title={button.label}
+                      onClick={button.onClick}
+                      disabled={button.disabled ? button.disabled() : false}
                     >
                       <button.icon className={`h-4 w-4 ${button.color}`} />
                     </button>
                   ))}
                 </div>
+                
+                {/* Attached Files Preview */}
+                {attachedFiles.length > 0 && (
+                  <div className="mb-2 p-2 bg-muted/30 rounded-lg">
+                    <div className="text-xs text-muted-foreground mb-1">
+                      {attachedFiles.length} file{attachedFiles.length !== 1 ? 's' : ''} attached from library
+                    </div>
+                    <div className="flex gap-1 flex-wrap">
+                      {attachedFiles.map((file, index) => (
+                        <div key={file.id} className="text-xs bg-primary/10 px-2 py-1 rounded flex items-center gap-1">
+                          {file.title}
+                          <button
+                            className="text-muted-foreground hover:text-foreground"
+                            onClick={() => setAttachedFiles(files => files.filter((_, i) => i !== index))}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Message Input */}
                 <form 
@@ -998,33 +1057,197 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                 </form>
               </div>
             </div>
-
-            {/* Payment Dialog */}
-            <PaymentConfirmationDialog
-              open={showPaymentDialog}
-              onClose={() => setShowPaymentDialog(false)}
-              amount={29.91}
-              onConfirm={() => {
-                setShowPaymentDialog(false);
-                sonnerToast.success('Purchase confirmed!');
-              }}
-              onAddCard={() => {
-                setShowPaymentDialog(false);
-                setShowAddCardDialog(true);
-              }}
-            />
-
-            {/* Add Card Dialog */}
-            <AddCardDialog
-              open={showAddCardDialog}
-              onClose={() => setShowAddCardDialog(false)}
-              onSave={() => {
-                setShowAddCardDialog(false);
-                sonnerToast.success('Card added successfully!');
-              }}
-            />
-          </>
+          </div>
         ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <Send className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">No conversation selected</h3>
+              <p className="text-muted-foreground">
+                Choose a conversation from the sidebar to start messaging
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+            {/* Chat Header - Fixed */}
+            <div className="flex-none h-16 p-4 border-b border-border bg-background flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={getProfileForConversation(activeConversation)?.avatar_url} />
+                  <AvatarFallback>
+                    {getInitials(
+                      getProfileForConversation(activeConversation)?.display_name,
+                      getProfileForConversation(activeConversation)?.username
+                    )}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="font-semibold">
+                    {getProfileForConversation(activeConversation)?.display_name || 'Unknown User'}
+                  </h3>
+                  {getProfileForConversation(activeConversation)?.username && (
+                    <p className="text-sm text-muted-foreground">
+                      @{getProfileForConversation(activeConversation).username}
+                    </p>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowFanNotesDialog(true)}
+                  title="Manage Fan Notes"
+                  className="text-xs"
+                >
+                  <FileText className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Messages Container - Scrollable */}
+            <div className="flex-1 min-h-0">
+              <MessageList
+                conversationId={activeConversation.id}
+                currentUserId={user.id}
+                partnerProfile={getProfileForConversation(activeConversation)}
+                className="h-full"
+              />
+            </div>
+
+            {/* Upload Progress */}
+            {isUploading && (
+              <UploadProgressBar 
+                files={uploadingFiles} 
+                onRemoveFile={removeFile}
+              />
+            )}
+
+            {/* Message Input Area - Fixed at bottom */}
+            <div className="flex-none border-t border-border bg-background h-auto">
+              <div className="px-3 py-2">
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2 mb-2 overflow-x-auto">
+                  {/* AI Assistant Button - First/Leftmost */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAISettingsDialog(true)}
+                    className="flex items-center gap-1 px-2 py-1 h-8 text-xs bg-gradient-to-r from-primary/10 to-secondary/10 hover:from-primary/20 hover:to-secondary/20 rounded-full border border-primary/20"
+                    title={`AI${aiSettings?.is_ai_enabled ? ' (ON)' : ' (OFF)'}`}
+                  >
+                    <Bot className={`w-3 h-3 ${aiSettings?.is_ai_enabled ? 'text-green-500' : 'text-purple-500'}`} />
+                    <span>AI</span>
+                    {isProcessing && <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse ml-1" />}
+                  </Button>
+                  
+                  {/* File Upload Button - Only for fans */}
+                  {!isCreator && (
+                    <FileUploadButton 
+                      onFilesSelected={(files, type) => {
+                        addFiles(files, type);
+                        if (!isUploading) {
+                          uploadFiles();
+                        }
+                      }}
+                      disabled={isUploading}
+                    />
+                  )}
+                  {actionButtons.slice(1).map((button, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 px-3 flex-shrink-0"
+                      title={button.label}
+                      onClick={button.onClick}
+                      disabled={button.disabled ? button.disabled() : false}
+                    >
+                      <button.icon className={`h-4 w-4 ${button.color}`} />
+                    </button>
+                  ))}
+                </div>
+                
+                {/* Attached Files Preview */}
+                {attachedFiles.length > 0 && (
+                  <div className="mb-2 p-2 bg-muted/30 rounded-lg">
+                    <div className="text-xs text-muted-foreground mb-1">
+                      {attachedFiles.length} file{attachedFiles.length !== 1 ? 's' : ''} attached from library
+                    </div>
+                    <div className="flex gap-1 flex-wrap">
+                      {attachedFiles.map((file, index) => (
+                        <div key={file.id} className="text-xs bg-primary/10 px-2 py-1 rounded flex items-center gap-1">
+                          {file.title}
+                          <button
+                            className="text-muted-foreground hover:text-foreground"
+                            onClick={() => setAttachedFiles(files => files.filter((_, i) => i !== index))}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Message Input */}
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    sendMessage();
+                  }}
+                  className="flex gap-1 items-end"
+                >
+                  <EmojiPicker onEmojiSelect={handleEmojiSelect}>
+                    <Button type="button" variant="ghost" size="sm" className="h-10 px-2 flex-shrink-0" title="Emoji">
+                      <Smile className="h-4 w-4 text-amber-500" />
+                    </Button>
+                  </EmojiPicker>
+                  <div className="flex-1">
+                    <Textarea
+                      ref={messageTextareaRef}
+                      value={newMessage}
+                      onChange={(e) => {
+                        setNewMessage(e.target.value);
+                        if (e.target.value.trim()) {
+                          startTyping();
+                        }
+                        // Auto-resize textarea
+                        const textarea = e.target;
+                        textarea.style.height = 'auto';
+                        const lineHeight = 20; // approximate line height
+                        const maxLines = 5;
+                        const maxHeight = lineHeight * maxLines;
+                        const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+                        textarea.style.height = newHeight + 'px';
+                      }}
+                      onKeyDown={(e) => {
+                        handleEnterKey(e);
+                      }}
+                      placeholder="Type a message..."
+                      disabled={sending || (hasFiles && !allFilesUploaded)}
+                      className="flex-1 resize-none min-h-[40px] max-h-[100px] overflow-y-auto emoji"
+                      rows={1}
+                    />
+                  </div>
+                  <Button 
+                    type="submit"
+                    disabled={!newMessage.trim() || sending || (hasFiles && !allFilesUploaded)}
+                    size="sm"
+                    className="h-10"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </form>
+              </div>
+            </div>
+          </div>
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1162,6 +1385,48 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
           fanName={getProfileForConversation(activeConversation)?.display_name || 'Unknown User'}
         />
       )}
+      
+      {/* Payment Dialog */}
+      <PaymentConfirmationDialog
+        open={showPaymentDialog}
+        onClose={() => setShowPaymentDialog(false)}
+        amount={29.91}
+        onConfirm={() => {
+          setShowPaymentDialog(false);
+          sonnerToast.success('Purchase confirmed!');
+        }}
+        onAddCard={() => {
+          setShowPaymentDialog(false);
+          setShowAddCardDialog(true);
+        }}
+      />
+
+      {/* Add Card Dialog */}
+      <AddCardDialog
+        open={showAddCardDialog}
+        onClose={() => setShowAddCardDialog(false)}
+        onSave={() => {
+          setShowAddCardDialog(false);
+          sonnerToast.success('Card added successfully!');
+        }}
+      />
+      
+      {/* Library Dialog */}
+      <ChatLibraryDialog
+        isOpen={showLibraryDialog}
+        onClose={() => setShowLibraryDialog(false)}
+        onAttachFiles={handleLibraryAttach}
+        currentUserId={user.id}
+      />
+      
+      {/* PPV Pricing Dialog */}
+      <PPVPricingDialog
+        isOpen={showPricingDialog}
+        onClose={() => setShowPricingDialog(false)}
+        onConfirm={handlePricingConfirm}
+        attachedFiles={attachedFiles}
+        fanId={activeConversation ? (isCreator ? activeConversation.fan_id : activeConversation.creator_id) : ''}
+      />
     </div>
   );
 };
