@@ -143,41 +143,59 @@ const ManagementMessages = () => {
 
       if (error) throw error;
 
-      // Enhance with last message and spending data
-      const enhancedConversations = await Promise.all(
-        (data || []).map(async (conv) => {
-          // Get last message
-          const { data: lastMsg } = await supabase
-            .from('messages')
-            .select('content, sender_id')
-            .eq('conversation_id', conv.id)
-            .eq('status', 'active')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
+      // Use optimized single query with lateral joins to get all data at once
+      const { data: optimizedData, error: optimizedError } = await supabase.rpc('get_management_conversations');
+      
+      if (optimizedError) {
+        console.error('Failed to fetch optimized conversations, falling back to original method:', optimizedError);
+        
+        // Fallback to original method if RPC function doesn't exist yet
+        const enhancedConversations = await Promise.all(
+          (data || []).map(async (conv) => {
+            // Get last message
+            const { data: lastMsg } = await supabase
+              .from('messages')
+              .select('content, sender_id')
+              .eq('conversation_id', conv.id)
+              .eq('status', 'active')
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
 
-          // Get total spending - will be calculated from real purchase data when implemented
-          const totalSpent = 0;
+            // Get actual unread count - count messages from fan that haven't been read
+            const { data: unreadData } = await supabase
+              .from('messages')
+              .select('id', { count: 'exact' })
+              .eq('conversation_id', conv.id)
+              .eq('status', 'active')
+              .eq('sender_id', conv.fan_id)
+              .eq('read_by_recipient', false);
+            
+            const unreadCount = unreadData?.length || 0;
 
-          // Get actual unread count - count messages from fan that haven't been read
-          const { data: unreadData } = await supabase
-            .from('messages')
-            .select('id', { count: 'exact' })
-            .eq('conversation_id', conv.id)
-            .eq('status', 'active')
-            .eq('sender_id', conv.fan_id)
-            .eq('read_by_recipient', false);
-          
-          const unreadCount = unreadData?.length || 0;
+            return {
+              ...conv,
+              last_message: lastMsg,
+              total_spent: 0,
+              unread_count: unreadCount,
+            };
+          })
+        );
+        
+        setConversations(enhancedConversations);
+        return;
+      }
 
-          return {
-            ...conv,
-            last_message: lastMsg,
-            total_spent: totalSpent,
-            unread_count: unreadCount,
-          };
-        })
-      );
+      // Use optimized data if available
+      const enhancedConversations = (optimizedData || []).map((conv: any) => ({
+        ...conv,
+        last_message: conv.last_message_content ? {
+          content: conv.last_message_content,
+          sender_id: conv.last_message_sender_id
+        } : null,
+        total_spent: 0,
+        unread_count: conv.unread_count || 0,
+      }));
 
       setConversations(enhancedConversations);
     } catch (error) {

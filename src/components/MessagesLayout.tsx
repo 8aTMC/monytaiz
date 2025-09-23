@@ -408,50 +408,75 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
       // Load pin status from localStorage
       const pinnedConversations = JSON.parse(localStorage.getItem('pinned_conversations') || '[]');
       
-      // Process conversations to add fallback data and get actual latest message
-      const processedConversations = await Promise.all(
-        (data || []).map(async (conv) => {
-          // Get the actual latest message for this conversation
-          const { data: latestMessage } = await supabase
-            .from('messages')
-            .select('content, sender_id, created_at')
-            .eq('conversation_id', conv.id)
-            .eq('status', 'active')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
+      // Use optimized single query with lateral joins to get all data at once
+      const { data: optimizedData, error: optimizedError } = await supabase.rpc('get_user_conversations', {
+        user_id: user.id,
+        is_creator_param: isCreator
+      });
+      
+      if (optimizedError) {
+        console.error('Failed to fetch optimized conversations, falling back to original method:', optimizedError);
+        
+        // Fallback to original method if RPC function doesn't exist yet
+        const processedConversations = await Promise.all(
+          (data || []).map(async (conv) => {
+            // Get the actual latest message for this conversation
+            const { data: latestMessage } = await supabase
+              .from('messages')
+              .select('content, sender_id, created_at')
+              .eq('conversation_id', conv.id)
+              .eq('status', 'active')
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
 
-          // Check if AI is active for this conversation
-          const { data: aiSettings } = await supabase
-            .from('ai_conversation_settings')
-            .select('is_ai_enabled')
-            .eq('conversation_id', conv.id)
-            .maybeSingle();
+            // Check if AI is active for this conversation
+            const { data: aiSettings } = await supabase
+              .from('ai_conversation_settings')
+              .select('is_ai_enabled')
+              .eq('conversation_id', conv.id)
+              .maybeSingle();
 
-          // Get actual unread count - count messages from the other user that haven't been read
-          const otherUserId = isCreator ? conv.fan_id : conv.creator_id;
-          const { data: unreadData } = await supabase
-            .from('messages')
-            .select('id', { count: 'exact' })
-            .eq('conversation_id', conv.id)
-            .eq('status', 'active')
-            .eq('sender_id', otherUserId)
-            .eq('read_by_recipient', false);
-          
-          const actualUnreadCount = unreadData?.length || 0;
+            // Get actual unread count - count messages from the other user that haven't been read
+            const otherUserId = isCreator ? conv.fan_id : conv.creator_id;
+            const { data: unreadData } = await supabase
+              .from('messages')
+              .select('id', { count: 'exact' })
+              .eq('conversation_id', conv.id)
+              .eq('status', 'active')
+              .eq('sender_id', otherUserId)
+              .eq('read_by_recipient', false);
+            
+            const actualUnreadCount = unreadData?.length || 0;
 
-          return {
-            ...conv,
-            latest_message: latestMessage?.content || conv.latest_message_content || '',
-            latest_message_content: latestMessage?.content || conv.latest_message_content || '',
-            latest_message_sender_id: latestMessage?.sender_id || conv.latest_message_sender_id || '',
-            total_spent: 0, // Real data - will be updated when purchases are implemented
-            unread_count: actualUnreadCount,
-            is_pinned: pinnedConversations.includes(conv.id),
-            has_ai_active: aiSettings?.is_ai_enabled || false,
-          };
-        })
-      );
+            return {
+              ...conv,
+              latest_message: latestMessage?.content || conv.latest_message_content || '',
+              latest_message_content: latestMessage?.content || conv.latest_message_content || '',
+              latest_message_sender_id: latestMessage?.sender_id || conv.latest_message_sender_id || '',
+              total_spent: 0,
+              unread_count: actualUnreadCount,
+              is_pinned: pinnedConversations.includes(conv.id),
+              has_ai_active: aiSettings?.is_ai_enabled || false,
+            };
+          })
+        );
+        
+        setConversations(processedConversations);
+        return;
+      }
+
+      // Use optimized data if available
+      const processedConversations = (optimizedData || []).map((conv: any) => ({
+        ...conv,
+        latest_message: conv.latest_message_content || '',
+        latest_message_content: conv.latest_message_content || '',
+        latest_message_sender_id: conv.latest_message_sender_id || '',
+        total_spent: 0,
+        unread_count: conv.unread_count || 0,
+        is_pinned: pinnedConversations.includes(conv.id),
+        has_ai_active: conv.has_ai_active || false,
+      }));
 
       setConversations(processedConversations);
       
