@@ -671,10 +671,6 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
   const handleLibraryAttach = (files: any[]) => {
     setAttachedFiles(files);
     setShowLibraryDialog(false);
-    toast({
-      title: "Files attached",
-      description: `${files.length} file${files.length !== 1 ? 's' : ''} attached to message`,
-    });
   };
 
   const handlePricingConfirm = (totalPriceCents: number, filePrices: Record<string, number>) => {
@@ -940,11 +936,6 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
                 {/* Action Buttons Row */}
                 <div className="flex items-center gap-2 mb-2">
-                  <FileUploadButton 
-                    onFilesSelected={addFiles}
-                    currentFiles={rawFiles}
-                    maxFiles={40}
-                  />
                   {actionButtons.map((button, index) => (
                     <Button
                       key={index}
@@ -974,18 +965,6 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                     </Button>
                   </EmojiPicker>
 
-                  {attachedFiles.length > 0 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-10 px-2 flex-shrink-0"
-                      onClick={() => setShowPricingDialog(true)}
-                      title="Set Price"
-                    >
-                      <DollarSign className="h-4 w-4 text-green-500" />
-                    </Button>
-                  )}
 
                   <Textarea
                     value={newMessage}
