@@ -156,22 +156,15 @@ export const useOptimizedMediaDisplay = () => {
       // Check if request was aborted
       if (abortControllerRef.current.signal.aborted) return;
 
-      // Determine best path to use
-      let bestPath: string | null = null;
+      // Use actual database paths only - don't construct non-existent paths
+      const bestPath = item.storage_path || item.path;
       
-      if (item.path || item.storage_path) {
-        bestPath = item.path || item.storage_path;
-      } else if (item.type === 'image') {
-        bestPath = `processed/${item.id}/image.webp`;
-      } else if (item.type === 'video') {
-        bestPath = `processed/${item.id}/video.mp4`;
-      } else {
-        bestPath = null;
+      if (!bestPath) {
+        console.warn('MediaDisplay: No storage path found for item:', item.id, item.type);
+        throw new Error('No valid file path found in database');
       }
 
-      if (!bestPath) {
-        throw new Error('No valid file path found');
-      }
+      console.log('MediaDisplay: Loading media with path:', bestPath, 'for item:', item.id);
 
       // Check for abort again
       if (abortControllerRef.current.signal.aborted) return;
@@ -214,48 +207,17 @@ export const useOptimizedMediaDisplay = () => {
         });
       }
 
-      // If processed version fails, try original path as fallback
-      if (!finalUrl && (item.path || item.storage_path)) {
-        const fallbackPath = item.path || item.storage_path!;
-        const isHEICFallback = isHEICFile(fallbackPath);
-        
-        if (isHEICFallback) {
-          try {
-            const { data: mediaData, error: mediaError } = await supabase.functions.invoke('fast-secure-media', {
-              body: { 
-                path: fallbackPath,
-                format: 'webp',
-                quality: 80,
-                width: 512,
-                height: 512
-              }
-            });
-
-            if (!mediaError && mediaData?.url) {
-              finalUrl = mediaData.url;
-            }
-          } catch (error) {
-            // If fast-secure-media fails, use regular signed URL
-          }
-        }
-        
-        if (!finalUrl) {
-          finalUrl = await getSignedTransformUrl(fallbackPath, {
-            quality: 85,
-            ...(item.type === 'image' && {
-              width: 512,
-              height: 512,
-              resize: 'cover'
-            })
-          });
-        }
+      // If URL generation failed, log the error but don't retry with non-existent paths
+      if (!finalUrl) {
+        console.error('MediaDisplay: Failed to generate URL for path:', bestPath, 'item:', item.id);
       }
 
       // Final abort check before setting state
       if (abortControllerRef.current.signal.aborted) return;
 
       if (!finalUrl) {
-        throw new Error('Failed to generate media URL');
+        console.warn('MediaDisplay: No URL generated for item:', item.id, 'path:', bestPath);
+        throw new Error(`Failed to generate media URL for path: ${bestPath}`);
       }
 
       // Set the final URL
