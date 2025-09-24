@@ -67,6 +67,7 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
   const [selectedCategory, setSelectedCategory] = useState('all-files');
   const [folders, setFolders] = useState<any[]>([]);
   const [showDefaultFolders, setShowDefaultFolders] = useState(true);
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
   
   // Define the preview item type to match MediaPreviewDialog
   type PreviewMediaItem = {
@@ -152,15 +153,46 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
     }
   }, [isOpen, currentUserId]);
 
-  const handleFileSelection = (fileId: string, item: MediaItem) => {
+  // Helper function to select items in a range
+  const selectItemsInRange = (startIndex: number, endIndex: number) => {
+    const minIndex = Math.min(startIndex, endIndex);
+    const maxIndex = Math.max(startIndex, endIndex);
+    
+    const newSelectedFiles = new Set(selectedFiles);
+    const newSelectedItems = [...selectedItems];
+    
+    for (let i = minIndex; i <= maxIndex; i++) {
+      const item = mediaData[i];
+      if (item && !selectedFiles.has(item.id)) {
+        newSelectedFiles.add(item.id);
+        newSelectedItems.push(item);
+      }
+    }
+    
+    setSelectedFiles(newSelectedFiles);
+    setSelectedItems(newSelectedItems);
+  };
+
+  const handleFileSelection = (fileId: string, item: MediaItem, index: number, event?: React.MouseEvent) => {
+    // Prevent text selection during range operations
+    if (event && (event.shiftKey || event.altKey)) {
+      event.preventDefault();
+    }
+
+    // Handle range selection with shift/alt + click
+    if ((event?.shiftKey || event?.altKey) && lastSelectedIndex !== null) {
+      selectItemsInRange(lastSelectedIndex, index);
+      return;
+    }
+
     const newSelectedFiles = new Set(selectedFiles);
     const newSelectedItems = [...selectedItems];
 
     if (selectedFiles.has(fileId)) {
       newSelectedFiles.delete(fileId);
-      const index = newSelectedItems.findIndex(item => item.id === fileId);
-      if (index > -1) {
-        newSelectedItems.splice(index, 1);
+      const itemIndex = newSelectedItems.findIndex(item => item.id === fileId);
+      if (itemIndex > -1) {
+        newSelectedItems.splice(itemIndex, 1);
       }
     } else {
       newSelectedFiles.add(fileId);
@@ -169,6 +201,7 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
 
     setSelectedFiles(newSelectedFiles);
     setSelectedItems(newSelectedItems);
+    setLastSelectedIndex(index);
   };
 
   const handleAttach = () => {
@@ -429,24 +462,24 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
                 </div>
               ) : (
                 <div className="grid grid-cols-6 gap-4">
-                  {mediaData.map((item) => (
+                  {mediaData.map((item, index) => (
                     <div
                       key={item.id}
                       className={cn(
-                        "relative aspect-square rounded-lg border-2 cursor-pointer transition-all hover:scale-105",
+                        "relative aspect-square rounded-lg border-2 cursor-pointer transition-all hover:scale-105 select-none",
                         selectedFiles.has(item.id) 
                           ? "border-primary bg-primary/10" 
                           : "border-transparent hover:border-muted-foreground"
                       )}
-                      onClick={() => handleFileSelection(item.id, item)}
+                      onClick={(e) => handleFileSelection(item.id, item, index, e)}
                       onDoubleClick={() => handleDoubleClick(item)}
-                      title="Double-click to preview"
+                      title="Click to select • Shift/Alt+click for range • Double-click to preview"
                     >
                       {/* Checkbox */}
                       <div className="absolute top-2 left-2 z-10">
                         <Checkbox
                           checked={selectedFiles.has(item.id)}
-                          onChange={() => handleFileSelection(item.id, item)}
+                          onChange={(e) => handleFileSelection(item.id, item, index, e as any)}
                           className="bg-background/80 border-2"
                         />
                       </div>
@@ -500,7 +533,10 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
           selectedItems={selectedFiles}
           onToggleSelection={(id) => {
             const item = mediaData.find(i => i.id === id);
-            if (item) handleFileSelection(id, item);
+            if (item) {
+              const index = mediaData.findIndex(i => i.id === id);
+              handleFileSelection(id, item, index);
+            }
           }}
           onItemChange={(item) => setPreviewItem(item)}
           selecting={true}
