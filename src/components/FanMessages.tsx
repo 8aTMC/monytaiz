@@ -17,6 +17,7 @@ import { ChatLibraryDialog } from '@/components/ChatLibraryDialog';
 import { PPVPricingDialog } from '@/components/PPVPricingDialog';
 import { FileUploadButton } from '@/components/FileUploadButton';
 import { FileAttachmentRow } from '@/components/FileAttachmentRow';
+import { LibraryAttachmentRow } from '@/components/LibraryAttachmentRow';
 import { useMessageFileUpload } from '@/hooks/useMessageFileUpload';
 
 interface Message {
@@ -327,6 +328,10 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
     });
   };
 
+  const removeLibraryFile = (fileId: string) => {
+    setAttachedFiles(prev => prev.filter(file => file.id !== fileId));
+  };
+
   const handlePricingConfirm = (totalPriceCents: number, filePrices: Record<string, number>) => {
     // Update the attached files with pricing info
     const updatedFiles = attachedFiles.map(file => ({
@@ -483,6 +488,12 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           </Button>
         </div>
         
+        {/* Library Files Preview */}
+        <LibraryAttachmentRow 
+          files={attachedFiles}
+          onRemoveFile={removeLibraryFile}
+        />
+
         {/* Attached Files Preview - Replace with FileAttachmentRow */}
         <FileAttachmentRow 
           files={rawFiles}

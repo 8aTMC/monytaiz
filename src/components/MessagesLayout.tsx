@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useSidebar } from '@/components/Navigation';
 import { FileUploadButton } from '@/components/FileUploadButton';
 import { FileAttachmentRow } from '@/components/FileAttachmentRow';
+import { LibraryAttachmentRow } from '@/components/LibraryAttachmentRow';
 import { UploadProgressBar } from '@/components/UploadProgressBar';
 import { MessageFilesPack } from '@/components/MessageFilesPack';
 import { PaymentConfirmationDialog } from '@/components/PaymentConfirmationDialog';
@@ -673,6 +674,10 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     setShowLibraryDialog(false);
   };
 
+  const removeLibraryFile = (fileId: string) => {
+    setAttachedFiles(prev => prev.filter(file => file.id !== fileId));
+  };
+
   const handlePricingConfirm = (totalPriceCents: number, filePrices: Record<string, number>) => {
     // Update the attached files with pricing info
     const updatedFiles = attachedFiles.map(file => ({
@@ -926,6 +931,13 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                     <div className="text-sm text-muted-foreground">Uploading files...</div>
                   </div>
                 )}
+
+                {/* Library Files Preview */}
+                <LibraryAttachmentRow 
+                  files={attachedFiles}
+                  onRemoveFile={removeLibraryFile}
+                  className="mb-3"
+                />
 
                 {/* Attached Files Preview - Replace with FileAttachmentRow */}
                 <FileAttachmentRow 
