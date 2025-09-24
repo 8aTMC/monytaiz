@@ -1,9 +1,9 @@
 import { useRef, useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { MiniLibraryThumbnail } from '@/components/MiniLibraryThumbnail';
 import { cn } from '@/lib/utils';
-
 
 interface MediaItem {
   id: string;
@@ -63,78 +63,47 @@ export const LibraryAttachmentRow = ({ files, onRemoveFile, className }: Library
     }
   };
 
-  const getFileTypeIcon = (type: string, mime: string) => {
-    if (type === 'image' || mime.startsWith('image/')) return '🖼️';
-    if (type === 'video' || mime.startsWith('video/')) return '🎥';
-    if (type === 'audio' || mime.startsWith('audio/')) return '🎵';
-    if (type === 'gif') return '🎞️';
-    return '📄';
-  };
-
   if (files.length === 0) return null;
 
   return (
-    <div className={cn("mb-2 p-2 bg-muted/30 rounded-lg border border-border", className)}>
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-xs text-muted-foreground">
-          {files.length} file{files.length !== 1 ? 's' : ''} attached
-        </div>
-        
-        {files.length > 10 && (
-          <div className="flex gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0"
-              onClick={scrollLeft}
-              disabled={!canScrollLeft}
-            >
-              <ChevronLeft className="w-3 h-3" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0"
-              onClick={scrollRight}
-              disabled={!canScrollRight}
-            >
-              <ChevronRight className="w-3 h-3" />
-            </Button>
-          </div>
-        )}
-      </div>
+    <div className={cn("mb-2 relative", className)}>
+      {/* Navigation arrows for many files */}
+      {files.length > 6 && (
+        <>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-6 p-0 z-10 bg-background/80 backdrop-blur-sm"
+            onClick={scrollLeft}
+            disabled={!canScrollLeft}
+          >
+            <ChevronLeft className="w-3 h-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute right-0 top-1/2 -translate-y-1/2 h-6 w-6 p-0 z-10 bg-background/80 backdrop-blur-sm"
+            onClick={scrollRight}
+            disabled={!canScrollRight}
+          >
+            <ChevronRight className="w-3 h-3" />
+          </Button>
+        </>
+      )}
       
       <ScrollArea className="w-full">
         <div 
           ref={scrollRef}
-          className="flex gap-2 pb-2"
+          className="flex gap-1 pb-1"
           style={{ scrollBehavior: 'smooth' }}
         >
-          {files.map((file) => (
-            <div key={file.id} className="flex-shrink-0 relative group">
-              <div className="w-16 h-16 rounded-lg border border-border bg-muted/50 flex items-center justify-center relative overflow-hidden">
-                {/* File type icon */}
-                <span className="text-lg" title={file.mime}>
-                  {getFileTypeIcon(file.type, file.mime)}
-                </span>
-                
-                {/* Remove button */}
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="absolute -top-1 -right-1 h-5 w-5 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => onRemoveFile(file.id)}
-                  title="Remove file"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-              
-              {/* File title */}
-              <div className="mt-1 text-xs text-center text-muted-foreground truncate w-16" title={file.title}>
-                {file.title || 'Untitled'}
-              </div>
-            </div>
+          {files.map((file, index) => (
+            <MiniLibraryThumbnail
+              key={file.id}
+              file={file}
+              fileIndex={index}
+              onRemove={onRemoveFile}
+            />
           ))}
         </div>
         <ScrollBar orientation="horizontal" />
