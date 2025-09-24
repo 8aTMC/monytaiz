@@ -15,6 +15,8 @@ import { MessageList } from '@/components/MessageList';
 import { EmojiPicker } from '@/components/EmojiPicker';
 import { ChatLibraryDialog } from '@/components/ChatLibraryDialog';
 import { PPVPricingDialog } from '@/components/PPVPricingDialog';
+import { FileAttachmentRow } from '@/components/FileAttachmentRow';
+import { useMessageFileUpload } from '@/hooks/useMessageFileUpload';
 
 interface Message {
   id: string;
@@ -54,6 +56,14 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
   const [showPricingDialog, setShowPricingDialog] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<any[]>([]);
   const messageInputRef = useRef<HTMLInputElement>(null);
+
+  // File upload hook
+  const {
+    rawFiles,
+    addFiles,
+    removeFileByIndex,
+    clearFiles
+  } = useMessageFileUpload();
 
   // Initialize typing indicator hook
   const { typingUsers, startTyping, stopTyping } = useTypingIndicator(
@@ -455,7 +465,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
             className="h-8 px-3" 
             title="Price"
             onClick={() => setShowPricingDialog(true)}
-            disabled={attachedFiles.length === 0}
+            disabled={attachedFiles.length === 0 && rawFiles.length === 0}
           >
             <DollarSign className="h-4 w-4 text-emerald-500" />
           </Button>
@@ -467,29 +477,11 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           </Button>
         </div>
         
-        {/* Attached Files Preview */}
-        {attachedFiles.length > 0 && (
-          <div className="mb-2 p-2 bg-muted/30 rounded-lg">
-            <div className="text-xs text-muted-foreground mb-1">
-              {attachedFiles.length} file{attachedFiles.length !== 1 ? 's' : ''} attached
-            </div>
-            <div className="flex gap-1 flex-wrap">
-              {attachedFiles.map((file, index) => (
-                <div key={file.id} className="text-xs bg-primary/10 px-2 py-1 rounded">
-                  {file.title}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-4 w-4 p-0 ml-1"
-                    onClick={() => setAttachedFiles(files => files.filter((_, i) => i !== index))}
-                  >
-                    ×
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Attached Files Preview - Replace with FileAttachmentRow */}
+        <FileAttachmentRow 
+          files={rawFiles}
+          onRemoveFile={removeFileByIndex}
+        />
         
         <form 
           onSubmit={(e) => {

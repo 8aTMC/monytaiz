@@ -14,6 +14,7 @@ import { formatSubscriptionDuration } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useSidebar } from '@/components/Navigation';
 import { FileUploadButton } from '@/components/FileUploadButton';
+import { FileAttachmentRow } from '@/components/FileAttachmentRow';
 import { UploadProgressBar } from '@/components/UploadProgressBar';
 import { MessageFilesPack } from '@/components/MessageFilesPack';
 import { PaymentConfirmationDialog } from '@/components/PaymentConfirmationDialog';
@@ -137,9 +138,11 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
   const {
     uploadingFiles,
+    rawFiles,
     isUploading,
     addFiles,
     removeFile,
+    removeFileByIndex,
     uploadFiles,
     clearFiles,
     allFilesUploaded,
@@ -928,31 +931,12 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                   </div>
                 )}
 
-                {/* Attached Files Preview */}
-                {attachedFiles.length > 0 && (
-                  <div className="mb-3">
-                    <div className="flex flex-wrap gap-2">
-                      {attachedFiles.map((file, index) => (
-                        <div
-                          key={index}
-                          className="relative bg-muted rounded-lg p-2 flex items-center gap-2 max-w-48"
-                        >
-                          <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="text-sm text-muted-foreground truncate">
-                            {file.metadata?.title || `File ${index + 1}`}
-                          </span>
-                          <button
-                            type="button"
-                            className="ml-auto text-muted-foreground hover:text-foreground w-4 h-4 flex items-center justify-center text-xs"
-                            onClick={() => setAttachedFiles(files => files.filter((_, i) => i !== index))}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {/* Attached Files Preview - Replace with FileAttachmentRow */}
+                <FileAttachmentRow 
+                  files={rawFiles}
+                  onRemoveFile={removeFileByIndex}
+                  className="mb-3"
+                />
 
                 {/* Action Buttons Row */}
                 <div className="flex items-center gap-2 mb-2">

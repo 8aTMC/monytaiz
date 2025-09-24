@@ -14,8 +14,14 @@ const FILE_LIMITS = {
   documents: 100 * 1024 * 1024, // 100MB
 };
 
+const MAX_FILES = {
+  visual: 40, // Images and videos
+  audio: 1,   // Audio files
+};
+
 export const useMessageFileUpload = (options: UseMessageFileUploadOptions = {}) => {
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
+  const [rawFiles, setRawFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
   const getCurrentUser = async () => {
@@ -50,9 +56,30 @@ export const useMessageFileUpload = (options: UseMessageFileUploadOptions = {}) 
     const validFiles = files.filter(file => validateFile(file, type));
     if (validFiles.length === 0) return;
 
-    // Check total file limit
-    if (uploadingFiles.length + validFiles.length > 10) {
-      toast.error('Maximum 10 files per batch allowed');
+    // Determine file category
+    const audioExtensions = ['mp3', 'wav', 'aac', 'ogg', 'opus'];
+    const isAudio = validFiles.some(f => {
+      const ext = f.name.split('.').pop()?.toLowerCase() || '';
+      return audioExtensions.includes(ext);
+    });
+
+    const currentCategory = rawFiles.length > 0 ? 
+      (audioExtensions.includes(rawFiles[0].name.split('.').pop()?.toLowerCase() || '') ? 'audio' : 'visual') : 
+      (isAudio ? 'audio' : 'visual');
+
+    // Check file type compatibility
+    const newCategory = isAudio ? 'audio' : 'visual';
+    if (rawFiles.length > 0 && currentCategory !== newCategory) {
+      toast.error('Cannot mix audio files with images/videos');
+      return;
+    }
+
+    // Check file limits based on category
+    const maxFiles = isAudio ? MAX_FILES.audio : MAX_FILES.visual;
+    if (rawFiles.length + validFiles.length > maxFiles) {
+      const fileType = isAudio ? 'audio file' : 'images/videos';
+      const limit = isAudio ? '1 audio file' : `${maxFiles} files`;
+      toast.error(`Maximum ${limit} allowed for ${fileType}`);
       return;
     }
 
@@ -69,10 +96,15 @@ export const useMessageFileUpload = (options: UseMessageFileUploadOptions = {}) 
     );
 
     setUploadingFiles(prev => [...prev, ...newUploadingFiles]);
+    setRawFiles(prev => [...prev, ...validFiles]);
   }, [uploadingFiles.length]);
 
   const removeFile = useCallback((id: string) => {
     setUploadingFiles(prev => prev.filter(f => f.id !== id));
+  }, []);
+
+  const removeFileByIndex = useCallback((index: number) => {
+    setRawFiles(prev => prev.filter((_, i) => i !== index));
   }, []);
 
   const uploadFiles = useCallback(async () => {
@@ -182,6 +214,7 @@ export const useMessageFileUpload = (options: UseMessageFileUploadOptions = {}) 
 
   const clearFiles = useCallback(() => {
     setUploadingFiles([]);
+    setRawFiles([]);
   }, []);
 
   const allFilesUploaded = uploadingFiles.length > 0 && uploadingFiles.every(f => f.uploaded);
@@ -189,9 +222,11 @@ export const useMessageFileUpload = (options: UseMessageFileUploadOptions = {}) 
 
   return {
     uploadingFiles,
+    rawFiles,
     isUploading,
     addFiles,
     removeFile,
+    removeFileByIndex,
     uploadFiles,
     clearFiles,
     allFilesUploaded,

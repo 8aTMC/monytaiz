@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils';
 interface FileUploadButtonProps {
   onFilesSelected: (files: File[], type: string) => void;
   disabled?: boolean;
+  currentFiles?: File[];
+  maxFiles?: number;
 }
 
 interface FileTypeConfig {
@@ -40,17 +42,80 @@ const fileTypes: FileTypeConfig[] = [
   }
 ];
 
-export const FileUploadButton = ({ onFilesSelected, disabled }: FileUploadButtonProps) => {
+export const FileUploadButton = ({ onFilesSelected, disabled, currentFiles = [], maxFiles = 40 }: FileUploadButtonProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+
+  // Determine current file type restrictions
+  const getCurrentFileTypes = () => {
+    if (currentFiles.length === 0) return 'all';
+    
+    const firstFile = currentFiles[0];
+    const extension = firstFile.name.split('.').pop()?.toLowerCase() || '';
+    
+    if (['mp3', 'wav', 'aac', 'ogg', 'opus'].includes(extension)) {
+      return 'audio';
+    } else if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'mp4', 'mov', 'webm', 'mkv', 'avi'].includes(extension)) {
+      return 'visual';
+    }
+    
+    return 'all';
+  };
+
+  const currentFileTypeCategory = getCurrentFileTypes();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>, type: string) => {
     const files = event.target.files;
     if (!files) return;
     
     const fileArray = Array.from(files);
-    if (fileArray.length > 10) {
-      alert('Maximum 10 files per batch allowed');
+    
+    // Check file type compatibility
+    const selectedExtensions = fileArray.map(file => file.name.split('.').pop()?.toLowerCase() || '');
+    const audioExtensions = ['mp3', 'wav', 'aac', 'ogg', 'opus'];
+    const visualExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'mp4', 'mov', 'webm', 'mkv', 'avi'];
+    
+    const hasAudio = selectedExtensions.some(ext => audioExtensions.includes(ext));
+    const hasVisual = selectedExtensions.some(ext => visualExtensions.includes(ext));
+    
+    // Validate file type compatibility with current files
+    if (currentFileTypeCategory === 'audio' && hasVisual) {
+      alert('Cannot mix audio files with images/videos');
+      event.target.value = '';
+      return;
+    }
+    
+    if (currentFileTypeCategory === 'visual' && hasAudio) {
+      alert('Cannot mix images/videos with audio files');
+      event.target.value = '';
+      return;
+    }
+    
+    // Check if mixing audio and visual in this selection
+    if (hasAudio && hasVisual) {
+      alert('Cannot select both audio and visual files in the same batch');
+      event.target.value = '';
+      return;
+    }
+    
+    // Audio files can only be 1 at a time
+    if (hasAudio && (fileArray.length > 1 || currentFiles.length > 0)) {
+      alert('Audio files must be sent one at a time');
+      event.target.value = '';
+      return;
+    }
+    
+    // Check total file limit
+    const totalFiles = currentFiles.length + fileArray.length;
+    if (hasAudio && totalFiles > 1) {
+      alert('Audio files must be sent one at a time');
+      event.target.value = '';
+      return;
+    }
+    
+    if (hasVisual && totalFiles > maxFiles) {
+      alert(`Maximum ${maxFiles} files per batch allowed for images/videos`);
+      event.target.value = '';
       return;
     }
     
@@ -60,10 +125,27 @@ export const FileUploadButton = ({ onFilesSelected, disabled }: FileUploadButton
   };
 
   const triggerFileInput = (type: string) => {
+    // Check if this type is disabled
+    if (isTypeDisabled(type)) return;
+    
     const input = fileInputRefs.current[type];
     if (input) {
       input.click();
     }
+  };
+
+  const isTypeDisabled = (type: string) => {
+    if (currentFileTypeCategory === 'all') return false;
+    
+    if (currentFileTypeCategory === 'audio') {
+      return type !== 'audio';
+    }
+    
+    if (currentFileTypeCategory === 'visual') {
+      return type === 'audio';
+    }
+    
+    return false;
   };
 
   return (
@@ -102,8 +184,8 @@ export const FileUploadButton = ({ onFilesSelected, disabled }: FileUploadButton
                   onClick={() => triggerFileInput(fileType.type)}
                   className={cn(
                     "flex items-center justify-start gap-2 w-full",
-                    fileType.color,
-                    "hover:bg-accent"
+                    isTypeDisabled(fileType.type) ? "text-muted-foreground/50 cursor-not-allowed" : fileType.color,
+                    !isTypeDisabled(fileType.type) && "hover:bg-accent"
                   )}
                 >
                   <IconComponent className="h-4 w-4" />
