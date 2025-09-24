@@ -33,7 +33,7 @@ export const useMessageFileUpload = (options: UseMessageFileUploadOptions = {}) 
     const limit = FILE_LIMITS[type as keyof typeof FILE_LIMITS];
     if (file.size > limit) {
       const limitMB = limit / (1024 * 1024);
-      toast.error(`File "${file.name}" exceeds ${limitMB}MB limit for ${type}`);
+      console.log(`❌ File "${file.name}" exceeds ${limitMB}MB limit for ${type}`);
       return false;
     }
     return true;
@@ -52,9 +52,24 @@ export const useMessageFileUpload = (options: UseMessageFileUploadOptions = {}) 
   };
 
   const addFiles = useCallback(async (files: File[], type: string) => {
-    // Validate files
-    const validFiles = files.filter(file => validateFile(file, type));
-    if (validFiles.length === 0) return;
+    console.log('📁 Adding files:', files.length, 'Current rawFiles:', rawFiles.length);
+    
+    // Validate files (only show toast for first failed file to reduce spam)
+    const validFiles: File[] = [];
+    let firstError = true;
+    
+    files.forEach(file => {
+      if (validateFile(file, type)) {
+        validFiles.push(file);
+      } else if (firstError) {
+        firstError = false;
+      }
+    });
+    
+    if (validFiles.length === 0) {
+      console.log('❌ No valid files to add');
+      return;
+    }
 
     // Determine file category
     const audioExtensions = ['mp3', 'wav', 'aac', 'ogg', 'opus'];
@@ -70,18 +85,16 @@ export const useMessageFileUpload = (options: UseMessageFileUploadOptions = {}) 
     // Check file type compatibility
     const newCategory = isAudio ? 'audio' : 'visual';
     if (rawFiles.length > 0 && currentCategory !== newCategory) {
-      toast.error('Cannot mix audio files with images/videos');
-      return;
+      return; // Already handled in FileUploadButton
     }
 
     // Check file limits based on category
     const maxFiles = isAudio ? MAX_FILES.audio : MAX_FILES.visual;
     if (rawFiles.length + validFiles.length > maxFiles) {
-      const fileType = isAudio ? 'audio file' : 'images/videos';
-      const limit = isAudio ? '1 audio file' : `${maxFiles} files`;
-      toast.error(`Maximum ${limit} allowed for ${fileType}`);
-      return;
+      return; // Already handled in FileUploadButton
     }
+
+    console.log('✅ Adding valid files:', validFiles.map(f => f.name));
 
     // Create uploading file objects
     const newUploadingFiles: UploadingFile[] = await Promise.all(
@@ -96,15 +109,24 @@ export const useMessageFileUpload = (options: UseMessageFileUploadOptions = {}) 
     );
 
     setUploadingFiles(prev => [...prev, ...newUploadingFiles]);
-    setRawFiles(prev => [...prev, ...validFiles]);
-  }, [uploadingFiles.length]);
+    setRawFiles(prev => {
+      const newFiles = [...prev, ...validFiles];
+      console.log('🔄 Updated rawFiles count:', newFiles.length);
+      return newFiles;
+    });
+  }, [rawFiles]);
 
   const removeFile = useCallback((id: string) => {
     setUploadingFiles(prev => prev.filter(f => f.id !== id));
   }, []);
 
   const removeFileByIndex = useCallback((index: number) => {
-    setRawFiles(prev => prev.filter((_, i) => i !== index));
+    console.log('🗑️ Removing file at index:', index);
+    setRawFiles(prev => {
+      const newFiles = prev.filter((_, i) => i !== index);
+      console.log('🔄 Updated rawFiles count after removal:', newFiles.length);
+      return newFiles;
+    });
   }, []);
 
   const uploadFiles = useCallback(async () => {

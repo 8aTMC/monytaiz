@@ -697,7 +697,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     { icon: Mic, label: 'Voice', color: 'text-purple-500', onClick: () => {} },
     // Only show tip button for fans, not for creators/admin
     ...(!isCreator ? [{ icon: Gift, label: 'Tip', color: 'text-yellow-500', onClick: () => {} }] : []),
-    { icon: DollarSign, label: 'Price', color: 'text-emerald-500', onClick: () => setShowPricingDialog(true), disabled: () => attachedFiles.length === 0 },
+    { icon: DollarSign, label: 'Price', color: 'text-emerald-500', onClick: () => setShowPricingDialog(true), disabled: () => rawFiles.length === 0 && attachedFiles.length === 0 },
     { icon: FileText, label: 'Scripts', color: 'text-orange-500', onClick: () => {} },
     { icon: AtSign, label: 'Tag Creator', color: 'text-primary', onClick: () => {} },
   ];
@@ -940,6 +940,11 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
                 {/* Action Buttons Row */}
                 <div className="flex items-center gap-2 mb-2">
+                  <FileUploadButton 
+                    onFilesSelected={addFiles}
+                    currentFiles={rawFiles}
+                    maxFiles={40}
+                  />
                   {actionButtons.map((button, index) => (
                     <Button
                       key={index}

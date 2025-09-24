@@ -15,6 +15,8 @@ export const MiniFileThumbnail = ({ file, fileIndex, onRemove, className }: Mini
   const [fileType, setFileType] = useState<string>('unknown');
   const [isLoading, setIsLoading] = useState(true);
 
+  console.log('🖼️ MiniFileThumbnail rendering:', file.name, 'index:', fileIndex);
+
   const generateVideoThumbnail = useCallback(async (videoFile: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Upload, Image, Video, Music, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface FileUploadButtonProps {
@@ -80,27 +81,27 @@ export const FileUploadButton = ({ onFilesSelected, disabled, currentFiles = [],
     
     // Validate file type compatibility with current files
     if (currentFileTypeCategory === 'audio' && hasVisual) {
-      alert('Cannot mix audio files with images/videos');
+      toast.error('Cannot mix audio files with images/videos');
       event.target.value = '';
       return;
     }
     
     if (currentFileTypeCategory === 'visual' && hasAudio) {
-      alert('Cannot mix images/videos with audio files');
+      toast.error('Cannot mix images/videos with audio files');
       event.target.value = '';
       return;
     }
     
     // Check if mixing audio and visual in this selection
     if (hasAudio && hasVisual) {
-      alert('Cannot select both audio and visual files in the same batch');
+      toast.error('Cannot select both audio and visual files in the same batch');
       event.target.value = '';
       return;
     }
     
     // Audio files can only be 1 at a time
     if (hasAudio && (fileArray.length > 1 || currentFiles.length > 0)) {
-      alert('Audio files must be sent one at a time');
+      toast.error('Audio files must be sent one at a time');
       event.target.value = '';
       return;
     }
@@ -108,13 +109,13 @@ export const FileUploadButton = ({ onFilesSelected, disabled, currentFiles = [],
     // Check total file limit
     const totalFiles = currentFiles.length + fileArray.length;
     if (hasAudio && totalFiles > 1) {
-      alert('Audio files must be sent one at a time');
+      toast.error('Audio files must be sent one at a time');
       event.target.value = '';
       return;
     }
     
     if (hasVisual && totalFiles > maxFiles) {
-      alert(`Maximum ${maxFiles} files per batch allowed for images/videos`);
+      toast.error(`Maximum ${maxFiles} files per batch allowed for images/videos`);
       event.target.value = '';
       return;
     }

@@ -15,6 +15,7 @@ import { MessageList } from '@/components/MessageList';
 import { EmojiPicker } from '@/components/EmojiPicker';
 import { ChatLibraryDialog } from '@/components/ChatLibraryDialog';
 import { PPVPricingDialog } from '@/components/PPVPricingDialog';
+import { FileUploadButton } from '@/components/FileUploadButton';
 import { FileAttachmentRow } from '@/components/FileAttachmentRow';
 import { useMessageFileUpload } from '@/hooks/useMessageFileUpload';
 
@@ -441,6 +442,11 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
       <div className="flex-none h-[81px] p-4 border-t border-border bg-background">
         {/* Action Buttons Row */}
         <div className="flex items-center gap-2 mb-2">
+          <FileUploadButton 
+            onFilesSelected={addFiles}
+            currentFiles={rawFiles}
+            maxFiles={40}
+          />
           <Button variant="ghost" size="sm" className="h-8 px-3" title="AI Assistant">
             <Bot className="h-4 w-4 text-purple-500" />
           </Button>
