@@ -66,48 +66,45 @@ export const LibraryAttachmentRow = ({ files, onRemoveFile, className }: Library
   if (files.length === 0) return null;
 
   return (
-    <div className={cn("mb-2 relative", className)}>
+    <div className={cn("mb-2 relative h-16", className)}>
       {/* Navigation arrows for many files */}
       {files.length > 6 && (
         <>
           <Button
             variant="ghost"
             size="sm"
-            className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-6 p-0 z-10 bg-background/80 backdrop-blur-sm"
+            className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-8 p-0 z-10 bg-background/80 backdrop-blur-sm"
             onClick={scrollLeft}
             disabled={!canScrollLeft}
           >
-            <ChevronLeft className="w-3 h-3" />
+            <ChevronLeft className="w-4 h-4" />
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className="absolute right-0 top-1/2 -translate-y-1/2 h-6 w-6 p-0 z-10 bg-background/80 backdrop-blur-sm"
+            className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 p-0 z-10 bg-background/80 backdrop-blur-sm"
             onClick={scrollRight}
             disabled={!canScrollRight}
           >
-            <ChevronRight className="w-3 h-3" />
+            <ChevronRight className="w-4 h-4" />
           </Button>
         </>
       )}
       
-      <ScrollArea className="w-full">
-        <div 
-          ref={scrollRef}
-          className="flex gap-1 pb-1"
-          style={{ scrollBehavior: 'smooth' }}
-        >
-          {files.map((file, index) => (
-            <MiniLibraryThumbnail
-              key={file.id}
-              file={file}
-              fileIndex={index}
-              onRemove={onRemoveFile}
-            />
-          ))}
-        </div>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
+      <div 
+        ref={scrollRef}
+        className="flex gap-2 overflow-x-auto h-16 pb-1"
+        style={{ scrollBehavior: 'smooth' }}
+      >
+        {files.map((file, index) => (
+          <MiniLibraryThumbnail
+            key={file.id}
+            file={file}
+            fileIndex={index}
+            onRemove={onRemoveFile}
+          />
+        ))}
+      </div>
     </div>
   );
 };

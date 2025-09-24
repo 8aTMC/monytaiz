@@ -35,8 +35,8 @@ export const MiniLibraryThumbnail = ({ file, fileIndex, onRemove, className }: M
         if (file.type === 'image' || file.type === 'gif') {
           // For images, get the secure URL directly
           const url = await getSecureUrl(file.storage_path, {
-            width: 64,
-            height: 64,
+            width: 128,
+            height: 128,
             quality: 80
           });
           setThumbnailUrl(url);
@@ -44,8 +44,8 @@ export const MiniLibraryThumbnail = ({ file, fileIndex, onRemove, className }: M
           // For videos, try to get a thumbnail if it exists
           const thumbnailPath = file.storage_path.replace(/\.[^/.]+$/, '_thumbnail.jpg');
           const url = await getSecureUrl(thumbnailPath, {
-            width: 64,
-            height: 64,
+            width: 128,
+            height: 128,
             quality: 80
           });
           setThumbnailUrl(url);
@@ -103,9 +103,9 @@ export const MiniLibraryThumbnail = ({ file, fileIndex, onRemove, className }: M
 
   return (
     <div className={cn("relative group flex-shrink-0", className)}>
-      <div className="w-8 h-8 rounded border border-border bg-muted/50 relative overflow-hidden">
+      <div className="w-16 h-16 rounded border border-border bg-muted/50 relative overflow-hidden">
         {/* File index badge */}
-        <div className="absolute -top-1 -left-1 bg-primary text-primary-foreground text-xs rounded-full w-4 h-4 flex items-center justify-center z-10 text-[10px] font-medium">
+        <div className="absolute -top-1 -left-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center z-10 text-[11px] font-medium">
           {fileIndex + 1}
         </div>
         
@@ -116,11 +116,11 @@ export const MiniLibraryThumbnail = ({ file, fileIndex, onRemove, className }: M
         <Button
           variant="destructive"
           size="sm"
-          className="absolute -top-1 -right-1 h-4 w-4 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          className="absolute -top-1 -right-1 h-5 w-5 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
           onClick={() => onRemove(file.id)}
           title="Remove file"
         >
-          <X className="h-2.5 w-2.5" />
+          <X className="h-3 w-3" />
         </Button>
       </div>
     </div>
