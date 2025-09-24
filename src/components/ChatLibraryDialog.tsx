@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { LibraryFiltersDialog } from '@/components/LibraryFiltersDialog';
 import { VirtualizedLibraryGrid } from '@/components/VirtualizedLibraryGrid';
+import { MediaThumbnail } from '@/components/MediaThumbnail';
 import { useLibraryData } from '@/hooks/useLibraryData';
 import { LibraryFilterState } from '@/types/library-filters';
 import { cn } from '@/lib/utils';
@@ -414,22 +415,13 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
                       </div>
 
                       {/* Preview */}
-                      <div className="w-full h-full rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-                        {item.type === 'image' ? (
-                          <img
-                            src={item.storage_path}
-                            alt={item.title}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="flex flex-col items-center justify-center text-muted-foreground">
-                            {getFileTypeIcon(item.type)}
-                            <span className="text-xs mt-1 text-center px-1 truncate w-full">
-                              {item.title}
-                            </span>
-                          </div>
-                        )}
+                      <div className="w-full h-full rounded-lg overflow-hidden">
+                        <MediaThumbnail
+                          item={item}
+                          className="w-full h-full"
+                          gridMode={true}
+                          forceSquare={true}
+                        />
                       </div>
 
                       {/* File Info */}
