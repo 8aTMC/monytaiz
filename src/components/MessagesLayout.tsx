@@ -730,7 +730,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
   return (
     <>
-      <div className="flex h-full bg-background">
+      <div className="flex h-full bg-background" data-messages-layout>
         {/* Conversation Sidebar */}
         <div className="w-80 border-r border-border bg-background flex-shrink-0">
           <div className="h-full flex flex-col">

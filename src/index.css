@@ -473,6 +473,61 @@ main.layout-main *::-webkit-scrollbar-thumb:hover {
   }
 }
 
+/* ============= MESSAGES SECTION AUTO-HIDE SCROLLBARS ============= */
+
+/* Messages section containers - hide scrollbars by default */
+[data-messages-layout] .scrollarea-viewport,
+[data-messages-layout] [data-radix-scroll-area-viewport],
+.messages-layout .scrollarea-viewport,
+.messages-layout [data-radix-scroll-area-viewport] {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+[data-messages-layout] .scrollarea-viewport::-webkit-scrollbar,
+[data-messages-layout] [data-radix-scroll-area-viewport]::-webkit-scrollbar,
+.messages-layout .scrollarea-viewport::-webkit-scrollbar,
+.messages-layout [data-radix-scroll-area-viewport]::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Show scrollbars only when hovering over scrollable container AND content overflows */
+[data-messages-layout] .scrollarea-viewport:hover,
+[data-messages-layout] [data-radix-scroll-area-viewport]:hover,
+.messages-layout .scrollarea-viewport:hover,
+.messages-layout [data-radix-scroll-area-viewport]:hover {
+  scrollbar-width: auto;
+  -ms-overflow-style: auto;
+}
+
+[data-messages-layout] .scrollarea-viewport:hover::-webkit-scrollbar,
+[data-messages-layout] [data-radix-scroll-area-viewport]:hover::-webkit-scrollbar,
+.messages-layout .scrollarea-viewport:hover::-webkit-scrollbar,
+.messages-layout [data-radix-scroll-area-viewport]:hover::-webkit-scrollbar {
+  display: block;
+  width: var(--scrollbar-width-thin);
+  height: var(--scrollbar-width-thin);
+}
+
+/* Focus-within to show scrollbars during keyboard navigation */
+[data-messages-layout] .scrollarea-viewport:focus-within,
+[data-messages-layout] [data-radix-scroll-area-viewport]:focus-within,
+.messages-layout .scrollarea-viewport:focus-within,
+.messages-layout [data-radix-scroll-area-viewport]:focus-within {
+  scrollbar-width: auto;
+}
+
+[data-messages-layout] .scrollarea-viewport:focus-within::-webkit-scrollbar,
+[data-messages-layout] [data-radix-scroll-area-viewport]:focus-within::-webkit-scrollbar,
+.messages-layout .scrollarea-viewport:focus-within::-webkit-scrollbar,
+.messages-layout [data-radix-scroll-area-viewport]:focus-within::-webkit-scrollbar {
+  display: block;
+  width: var(--scrollbar-width-thin);
+  height: var(--scrollbar-width-thin);
+}
+
 /* Button icon hover states - make colored icons turn white on hover for better visibility */
 button:hover svg,
 .hover\:bg-secondary\/50:hover svg,
