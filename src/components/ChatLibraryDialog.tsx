@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { LibraryFiltersDialog } from '@/components/LibraryFiltersDialog';
-import { FullscreenImageViewer } from '@/components/FullscreenImageViewer';
+import { MediaPreviewDialog } from '@/components/MediaPreviewDialog';
 import { VirtualizedLibraryGrid } from '@/components/VirtualizedLibraryGrid';
 import { MediaThumbnail } from '@/components/MediaThumbnail';
 import { useLibraryData } from '@/hooks/useLibraryData';
@@ -68,10 +68,28 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
   const [folders, setFolders] = useState<any[]>([]);
   const [showDefaultFolders, setShowDefaultFolders] = useState(true);
   
+  // Define the preview item type to match MediaPreviewDialog
+  type PreviewMediaItem = {
+    id: string;
+    title: string | null;
+    origin: 'upload' | 'story' | 'livestream' | 'message';
+    storage_path: string;
+    mime: string;
+    type: 'image' | 'video' | 'audio' | 'gif';
+    size_bytes: number;
+    tags: string[];
+    suggested_price_cents: number;
+    notes: string | null;
+    creator_id: string;
+    created_at: string;
+    updated_at: string;
+    tiny_placeholder?: string;
+    width?: number;
+    height?: number;
+  };
+
   // Preview state
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewItem, setPreviewItem] = useState<MediaItem | null>(null);
-  const [previewImageUrl, setPreviewImageUrl] = useState<string>('');
+  const [previewItem, setPreviewItem] = useState<PreviewMediaItem | null>(null);
   
   // Advanced filters state
   const [advancedFilters, setAdvancedFilters] = useState<LibraryFilterState>(() => ({
@@ -160,42 +178,22 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
     onClose();
   };
 
+  // Helper function to convert local MediaItem to MediaPreviewDialog MediaItem
+  const convertToPreviewItem = (item: MediaItem) => {
+    const { mentions, revenue_generated_cents, thumbnail_path, ...previewItem } = item;
+    return previewItem;
+  };
+
+  const convertToPreviewItems = (items: MediaItem[]) => {
+    return items.map(convertToPreviewItem);
+  };
+
   const handleDoubleClick = async (item: MediaItem) => {
-    // Only allow preview for images
-    if (item.type !== 'image') return;
-    
-    try {
-      // Generate signed URL for secure access
-      const { data: urlData } = await supabase.functions.invoke('secure-media', {
-        body: { 
-          path: item.storage_path || item.thumbnail_path,
-          expiresIn: 3600 
-        }
-      });
-      
-      if (urlData?.signedUrl) {
-        setPreviewItem(item);
-        setPreviewImageUrl(urlData.signedUrl);
-        setPreviewOpen(true);
-      } else {
-        // Fallback to direct storage URL if secure media fails
-        const { data } = supabase.storage
-          .from('content')
-          .getPublicUrl(item.storage_path || item.thumbnail_path || '');
-        
-        setPreviewItem(item);
-        setPreviewImageUrl(data.publicUrl);
-        setPreviewOpen(true);
-      }
-    } catch (error) {
-      console.error('Error generating preview URL:', error);
-    }
+    setPreviewItem(convertToPreviewItem(item));
   };
 
   const handlePreviewClose = () => {
-    setPreviewOpen(false);
     setPreviewItem(null);
-    setPreviewImageUrl('');
   };
 
   // Advanced filter handlers
@@ -442,7 +440,7 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
                       )}
                       onClick={() => handleFileSelection(item.id, item)}
                       onDoubleClick={() => handleDoubleClick(item)}
-                      title={item.type === 'image' ? "Double-click to preview" : "Click to select"}
+                      title="Double-click to preview"
                     >
                       {/* Checkbox */}
                       <div className="absolute top-2 left-2 z-10">
@@ -493,12 +491,19 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
           onFiltersChange={handleFiltersChange}
         />
 
-        {/* Fullscreen Image Preview */}
-        <FullscreenImageViewer
-          isOpen={previewOpen}
-          onClose={handlePreviewClose}
-          imageUrl={previewImageUrl}
-          title={previewItem?.title}
+        {/* Media Preview Dialog */}
+        <MediaPreviewDialog
+          open={!!previewItem}
+          onOpenChange={(open) => !open && handlePreviewClose()}
+          item={previewItem}
+          allItems={convertToPreviewItems(mediaData)}
+          selectedItems={selectedFiles}
+          onToggleSelection={(id) => {
+            const item = mediaData.find(i => i.id === id);
+            if (item) handleFileSelection(id, item);
+          }}
+          onItemChange={(item) => setPreviewItem(item)}
+          selecting={true}
         />
 
         {/* Footer */}
