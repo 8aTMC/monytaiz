@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { LibraryFiltersDialog } from '@/components/LibraryFiltersDialog';
+import { FullscreenImageViewer } from '@/components/FullscreenImageViewer';
 import { VirtualizedLibraryGrid } from '@/components/VirtualizedLibraryGrid';
 import { MediaThumbnail } from '@/components/MediaThumbnail';
 import { useLibraryData } from '@/hooks/useLibraryData';
@@ -66,6 +67,11 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
   const [selectedCategory, setSelectedCategory] = useState('all-files');
   const [folders, setFolders] = useState<any[]>([]);
   const [showDefaultFolders, setShowDefaultFolders] = useState(true);
+  
+  // Preview state
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewItem, setPreviewItem] = useState<MediaItem | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string>('');
   
   // Advanced filters state
   const [advancedFilters, setAdvancedFilters] = useState<LibraryFilterState>(() => ({
@@ -152,6 +158,44 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
     setSelectedFiles(new Set());
     setSelectedItems([]);
     onClose();
+  };
+
+  const handleDoubleClick = async (item: MediaItem) => {
+    // Only allow preview for images
+    if (item.type !== 'image') return;
+    
+    try {
+      // Generate signed URL for secure access
+      const { data: urlData } = await supabase.functions.invoke('secure-media', {
+        body: { 
+          path: item.storage_path || item.thumbnail_path,
+          expiresIn: 3600 
+        }
+      });
+      
+      if (urlData?.signedUrl) {
+        setPreviewItem(item);
+        setPreviewImageUrl(urlData.signedUrl);
+        setPreviewOpen(true);
+      } else {
+        // Fallback to direct storage URL if secure media fails
+        const { data } = supabase.storage
+          .from('content')
+          .getPublicUrl(item.storage_path || item.thumbnail_path || '');
+        
+        setPreviewItem(item);
+        setPreviewImageUrl(data.publicUrl);
+        setPreviewOpen(true);
+      }
+    } catch (error) {
+      console.error('Error generating preview URL:', error);
+    }
+  };
+
+  const handlePreviewClose = () => {
+    setPreviewOpen(false);
+    setPreviewItem(null);
+    setPreviewImageUrl('');
   };
 
   // Advanced filter handlers
@@ -397,6 +441,8 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
                           : "border-transparent hover:border-muted-foreground"
                       )}
                       onClick={() => handleFileSelection(item.id, item)}
+                      onDoubleClick={() => handleDoubleClick(item)}
+                      title={item.type === 'image' ? "Double-click to preview" : "Click to select"}
                     >
                       {/* Checkbox */}
                       <div className="absolute top-2 left-2 z-10">
@@ -445,6 +491,14 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
           onOpenChange={(open) => setFiltersDialogOpen(open)}
           filters={advancedFilters}
           onFiltersChange={handleFiltersChange}
+        />
+
+        {/* Fullscreen Image Preview */}
+        <FullscreenImageViewer
+          isOpen={previewOpen}
+          onClose={handlePreviewClose}
+          imageUrl={previewImageUrl}
+          title={previewItem?.title}
         />
 
         {/* Footer */}
