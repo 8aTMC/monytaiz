@@ -73,7 +73,7 @@ export const MiniLibraryThumbnail = ({ file, fileIndex, onRemove, className }: M
         <img
           src={thumbnailUrl}
           alt={file.title}
-          className="w-full h-full object-cover rounded"
+          className="w-full h-full object-cover rounded overflow-hidden"
           onError={() => setThumbnailUrl(null)}
         />
       );
@@ -95,7 +95,7 @@ export const MiniLibraryThumbnail = ({ file, fileIndex, onRemove, className }: M
     };
 
     return (
-      <div className="w-full h-full flex items-center justify-center text-lg">
+      <div className="w-full h-full flex items-center justify-center text-lg overflow-hidden rounded">
         {getTypeIcon()}
       </div>
     );
@@ -103,7 +103,7 @@ export const MiniLibraryThumbnail = ({ file, fileIndex, onRemove, className }: M
 
   return (
     <div className={cn("relative group flex-shrink-0", className)}>
-      <div className="w-16 h-16 rounded border border-border bg-muted/50 relative overflow-hidden">
+      <div className="w-16 h-16 rounded border border-border bg-muted/50 relative">
         {/* File index badge */}
         <div className="absolute -top-2 -left-2 bg-black text-white text-xs rounded-full w-5 h-5 flex items-center justify-center z-10 text-[11px] font-medium">
           {fileIndex + 1}
