@@ -93,7 +93,7 @@ export function MentionsDialog({ open, onOpenChange, mentions, onMentionsChange 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] z-[1200]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AtSign className="h-5 w-5" />

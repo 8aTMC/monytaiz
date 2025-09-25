@@ -43,7 +43,7 @@ export const EditTitleDialog = memo<EditTitleDialogProps>(({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md z-[1200]">
         <DialogHeader>
           <DialogTitle>Edit Title</DialogTitle>
           <DialogDescription>

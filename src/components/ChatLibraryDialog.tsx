@@ -153,6 +153,13 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
     }
   }, [isOpen, currentUserId]);
 
+  // Ensure preview is fully reset when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      setPreviewItem(null);
+    }
+  }, [isOpen]);
+
   // Helper function to select items in a range
   const selectItemsInRange = (startIndex: number, endIndex: number) => {
     const minIndex = Math.min(startIndex, endIndex);
@@ -223,6 +230,8 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
   const handleDialogClose = (open: boolean) => {
     if (!open) {
       resetSelection();
+      setPreviewItem(null);
+      setFiltersDialogOpen(false);
       onClose();
     }
   };
@@ -480,11 +489,12 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
                       title="Click to select • Shift/Alt+click for range • Double-click to preview"
                     >
                       {/* Checkbox */}
-                      <div className="absolute top-2 left-2 z-10">
+                      <div className="absolute top-2 left-2 z-10" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedFiles.has(item.id)}
                           onCheckedChange={() => handleFileSelection(item.id, item, index)}
-                          className="bg-background/80 border-2"
+                          className="h-4 w-4 p-0 bg-background/80 border-2"
+                          aria-label="Select file"
                         />
                       </div>
 

@@ -200,7 +200,7 @@ export const FolderSelectDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm z-[1200]">
         <DialogHeader>
           <DialogTitle>Select Folders</DialogTitle>
           <DialogDescription>

@@ -250,6 +250,31 @@ export const MediaPreviewDialog = ({
     }
   }, [open, item?.id, item?.tags, item?.notes, item?.suggested_price_cents, item?.title]);
 
+  // Close on Escape key
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onOpenChange(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open, onOpenChange]);
+
+  // Ensure child dialogs and fullscreen are closed when preview closes
+  useEffect(() => {
+    if (!open) {
+      setMentionsDialogOpen(false);
+      setTagsDialogOpen(false);
+      setFoldersDialogOpen(false);
+      setDescriptionDialogOpen(false);
+      setPriceDialogOpen(false);
+      setEditTitleDialogOpen(false);
+      setFullscreenOpen(false);
+    }
+  }, [open]);
+
 
   // Dynamic overflow detection - only show scroll when content truly overflows
   useEffect(() => {
@@ -672,9 +697,8 @@ export const MediaPreviewDialog = ({
           {selecting && (
             <div 
               key={`checkbox-${item.id}`}
-              className="absolute top-4 right-16 z-[115] bg-primary p-3 rounded-lg border-2 border-white shadow-2xl"
+              className="absolute top-3 right-3 z-[115]"
               onClick={(e) => {
-                console.log('✅ Selection checkbox clicked for item:', item.id, 'current state:', isSelected);
                 e.stopPropagation();
                 e.preventDefault();
                 onToggleSelection(item.id);
@@ -691,12 +715,13 @@ export const MediaPreviewDialog = ({
                 role="checkbox"
                 aria-checked={isSelected}
                 tabIndex={0}
-                className={`w-8 h-8 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${
+                aria-label="Select item"
+                className={`w-4 h-4 rounded border flex items-center justify-center cursor-pointer transition-colors ${
                   isSelected
-                    ? 'bg-white border-white text-primary' 
-                    : 'bg-transparent border-white text-white hover:bg-white/20'
+                    ? 'bg-primary text-primary-foreground border-primary' 
+                    : 'bg-background/80 text-foreground border-border hover:bg-background'
                 }`}>
-                {isSelected && <Check className="h-6 w-6" />}
+                {isSelected && <Check className="h-3 w-3" />}
               </div>
             </div>
           )}
