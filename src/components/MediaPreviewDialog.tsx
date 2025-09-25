@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogPortal } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogPortal, DialogOverlay } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -394,14 +394,10 @@ export const MediaPreviewDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogPortal>
-        {/* Custom overlay that will properly cover everything */}
-        <div 
-          className="fixed inset-0 bg-black/80 z-[980]" 
-          onClick={() => onOpenChange(false)}
-        />
-        <div 
+        <DialogOverlay className="z-[1000] bg-black/80 backdrop-blur-sm pointer-events-auto" />
+        <DialogContent 
           ref={modalRef}
-          className={`fixed left-[50%] top-[50%] z-[990] grid translate-x-[-50%] translate-y-[-50%] gap-2 border-0 bg-background/95 backdrop-blur-sm p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg ${needsScroll ? 'overflow-y-auto' : 'overflow-hidden'}`}
+          className={`z-[1010] border-0 bg-background/95 backdrop-blur-sm p-6 sm:rounded-lg pointer-events-auto ${needsScroll ? 'overflow-y-auto' : 'overflow-hidden'}`}
           style={{ maxWidth: getModalMaxWidth(), maxHeight: '90vh' }}
         >
           <DialogHeader>
@@ -757,7 +753,7 @@ export const MediaPreviewDialog = ({
             <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
           </button>
-        </div>
+        </DialogContent>
       </DialogPortal>
       
       {/* Fullscreen Image Viewer */}

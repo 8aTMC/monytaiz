@@ -368,7 +368,7 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 flex flex-col min-h-0">
+          <div className={cn("flex-1 flex flex-col min-h-0", previewItem ? "pointer-events-none select-none" : "")} aria-hidden={!!previewItem}>
             {/* Enhanced Header with Controls */}
             <div className="pb-4 border-b">
               <div className="flex items-center justify-between mb-4">
