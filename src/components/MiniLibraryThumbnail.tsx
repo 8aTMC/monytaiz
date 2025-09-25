@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useOptimizedSecureMedia } from '@/hooks/useOptimizedSecureMedia';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 interface MediaItem {
@@ -27,7 +27,6 @@ interface MiniLibraryThumbnailProps {
 export const MiniLibraryThumbnail = ({ file, fileIndex, onRemove, className }: MiniLibraryThumbnailProps) => {
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { getSecureUrl } = useOptimizedSecureMedia();
 
   useEffect(() => {
     const loadThumbnail = async () => {
@@ -36,56 +35,31 @@ export const MiniLibraryThumbnail = ({ file, fileIndex, onRemove, className }: M
       try {
         if (file.type === 'image' || file.type === 'gif') {
           // For images, get the secure URL directly
-          const url = await getSecureUrl(file.storage_path, {
-            width: 128,
-            height: 128,
-            quality: 80
-          });
-          setThumbnailUrl(url);
+          const { data, error } = await supabase.storage
+            .from('content')
+            .createSignedUrl(file.storage_path, 3600);
+          
+          if (error) {
+            console.error('Error generating image URL:', error);
+            setThumbnailUrl(null);
+          } else {
+            setThumbnailUrl(data.signedUrl);
+          }
         } else if (file.type === 'video') {
-          // For videos, try multiple thumbnail paths
-          const thumbnailCandidates: string[] = [];
-          
-          // Priority 1: Use thumbnail_path if available
-          if (file.thumbnail_path) {
-            thumbnailCandidates.push(file.thumbnail_path);
-          }
-          
-          // Priority 2: Generate fallback paths
-          const fileName = file.storage_path.split('/').pop() || '';
-          const uuidMatch = fileName.match(/^([a-f0-9-]{36})-(.+)$/i);
-          
-          if (uuidMatch) {
-            const [, uuid, baseName] = uuidMatch;
-            const baseNameWithoutExt = baseName.replace(/\.[^/.]+$/, '');
-            thumbnailCandidates.push(`thumbnails/${uuid}-${baseNameWithoutExt}_thumb.jpg`);
-            thumbnailCandidates.push(`thumbnails/${baseNameWithoutExt}_thumb.jpg`);
-          }
-          
-          const basePathWithoutExt = file.storage_path.replace(/\.[^/.]+$/, '');
-          thumbnailCandidates.push(`${basePathWithoutExt}_thumb.jpg`);
-          thumbnailCandidates.push(`${basePathWithoutExt}_thumbnail.jpg`);
-          
-          // Try each candidate until one works
+          // For videos, try thumbnail_path first
           let foundUrl: string | null = null;
-          for (const candidatePath of thumbnailCandidates) {
-            try {
-              const url = await getSecureUrl(candidatePath, {
-                width: 128,
-                height: 128,
-                quality: 80
-              });
-              if (url) {
-                foundUrl = url;
-                break;
-              }
-            } catch (error) {
-              // Continue to next candidate
-              continue;
+          
+          if (file.thumbnail_path) {
+            const { data, error } = await supabase.storage
+              .from('content')
+              .createSignedUrl(file.thumbnail_path, 3600);
+            
+            if (!error && data?.signedUrl) {
+              foundUrl = data.signedUrl;
             }
           }
           
-          // Fallback to tiny placeholder if available
+          // If no thumbnail found but tiny_placeholder exists, use it
           if (!foundUrl && file.tiny_placeholder) {
             foundUrl = file.tiny_placeholder;
           }
@@ -101,7 +75,7 @@ export const MiniLibraryThumbnail = ({ file, fileIndex, onRemove, className }: M
     };
 
     loadThumbnail();
-  }, [file.storage_path, file.type, getSecureUrl]);
+  }, [file.storage_path, file.type, file.thumbnail_path, file.tiny_placeholder]);
 
   const renderContent = () => {
     if (isLoading) {
