@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
 
     // Clean up chunk files
     console.log(`🧹 Cleaning up ${sortedChunkPaths.length} chunk files`);
-    const cleanupPromises = sortedChunkPaths.map(chunkPath => 
+    const cleanupPromises = sortedChunkPaths.map((chunkPath: string) => 
       supabase.storage.from(bucket).remove([chunkPath])
     );
     

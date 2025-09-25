@@ -123,7 +123,8 @@ Deno.serve(async (req) => {
       
     } catch (error) {
       console.error(`Error processing prefix ${prefix}:`, error);
-      errors.push(`error processing ${prefix}: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      errors.push(`error processing ${prefix}: ${errorMessage}`);
     }
   }
 

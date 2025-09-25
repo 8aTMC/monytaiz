@@ -144,10 +144,11 @@ Deno.serve(async (req) => {
 
       } catch (error) {
         console.error(`Error processing folder ${folder}:`, error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         results.push({
           folder,
           deleted: 0,
-          error: `Failed to process folder: ${error.message}`
+          error: `Failed to process folder: ${errorMessage}`
         });
       }
     }
@@ -162,8 +163,9 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Request processing error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return json({ 
-      error: `Failed to process request: ${error.message}` 
+      error: `Failed to process request: ${errorMessage}` 
     }, 500);
   }
 });

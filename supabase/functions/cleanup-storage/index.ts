@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
         .from('content')
         .list('processed', { limit: 1000 });
 
-      if (processedFiles?.length > 0) {
+      if (processedFiles && processedFiles.length > 0) {
         let emptyFoldersRemoved = 0;
         for (const folder of processedFiles) {
           if (folder.name.length === 36) { // UUID length

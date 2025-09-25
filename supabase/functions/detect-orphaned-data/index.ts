@@ -94,9 +94,10 @@ Deno.serve(async (req) => {
     }
   } catch (error) {
     console.error('Detection/cleanup error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({ 
       error: 'Failed to process request',
-      details: error.message 
+      details: errorMessage 
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -144,15 +145,18 @@ async function detectOrphanedData(includeItems: boolean = false): Promise<Detect
       .rpc('cleanup_orphaned_records')
       .single()
 
-    if (orphanedCollectionItems?.deleted_media_records > 0) {
-      results.push({
-        category: 'Database',
-        type: 'orphaned_collection_items',
-        count: orphanedCollectionItems.deleted_media_records,
-        severity: 'medium',
-        description: 'Collection items pointing to deleted media',
-        recommendation: 'Safe to delete - prevents broken collection references'
-      })
+    if (orphanedCollectionItems && typeof orphanedCollectionItems === 'object' && 'deleted_media_records' in orphanedCollectionItems) {
+      const recordsCount = (orphanedCollectionItems as any).deleted_media_records;
+      if (recordsCount > 0) {
+        results.push({
+          category: 'Database',
+          type: 'orphaned_collection_items',
+          count: recordsCount,
+          severity: 'medium',
+          description: 'Collection items pointing to deleted media',
+          recommendation: 'Safe to delete - prevents broken collection references'
+        })
+      }
     }
   } catch (error) {
     console.error('Error checking orphaned collection items:', error)
@@ -194,14 +198,14 @@ async function detectOrphanedData(includeItems: boolean = false): Promise<Detect
       `)
       .eq('conversations.status', 'pending_deletion')
 
-    if (orphanedAIJobs?.length > 0) {
+    if (orphanedAIJobs && orphanedAIJobs.length > 0) {
       results.push({
         category: 'Database',
         type: 'orphaned_ai_jobs',
         count: orphanedAIJobs.length,
         severity: 'low',
         description: 'AI jobs for conversations marked for deletion',
-        items: includeItems ? orphanedAIJobs : undefined,
+        items: includeItems ? (orphanedAIJobs || []) : undefined,
         recommendation: 'Safe to delete - conversations are being deleted'
       })
     }
@@ -221,14 +225,14 @@ async function detectOrphanedData(includeItems: boolean = false): Promise<Detect
       `)
       .eq('profiles.deletion_status', 'pending_deletion')
 
-    if (orphanedSessions?.length > 0) {
+    if (orphanedSessions && orphanedSessions.length > 0) {
       results.push({
         category: 'Database',
         type: 'orphaned_upload_sessions',
         count: orphanedSessions.length,
         severity: 'medium',
         description: 'Upload sessions for users marked for deletion',
-        items: includeItems ? orphanedSessions : undefined,
+        items: includeItems ? (orphanedSessions || []) : undefined,
         recommendation: 'Safe to delete - users are being deleted'
       })
     }
@@ -268,14 +272,14 @@ async function detectOrphanedData(includeItems: boolean = false): Promise<Detect
       .select('conversation_id, user_id, updated_at')
       .lt('updated_at', oneHourAgo)
 
-    if (staleTyping?.length > 0) {
+    if (staleTyping && staleTyping.length > 0) {
       results.push({
         category: 'Database',
         type: 'stale_typing_indicators',
         count: staleTyping.length,
         severity: 'low',
         description: 'Typing indicators older than 1 hour',
-        items: includeItems ? staleTyping : undefined,
+        items: includeItems ? (staleTyping || []) : undefined,
         recommendation: 'Safe to delete - these are temporary UI indicators'
       })
     }
@@ -409,7 +413,7 @@ async function detectOrphanedData(includeItems: boolean = false): Promise<Detect
 
 // Helper function to recursively find orphaned storage files
 async function findOrphanedStorageFiles(bucket: string, folder: string = '', maxFiles: number = 100): Promise<any[]> {
-  const orphanedFiles = []
+  const orphanedFiles: any[] = []
   const processedFiles = new Set()
   
   async function scanFolder(currentPath: string) {
