@@ -204,11 +204,27 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
     setLastSelectedIndex(index);
   };
 
-  const handleAttach = () => {
-    onAttachFiles(selectedItems);
+  const resetSelection = () => {
     setSelectedFiles(new Set());
     setSelectedItems([]);
+  };
+
+  const handleAttach = () => {
+    onAttachFiles(selectedItems);
+    resetSelection();
     onClose();
+  };
+
+  const handleCancel = () => {
+    resetSelection();
+    onClose();
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    if (!open) {
+      resetSelection();
+      onClose();
+    }
   };
 
   // Helper function to convert local MediaItem to MediaPreviewDialog MediaItem
@@ -255,7 +271,7 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
 
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleDialogClose}>
       <DialogContent className="max-w-6xl h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
@@ -537,7 +553,7 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
             )}
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="outline" onClick={handleCancel}>
               Cancel
             </Button>
             <Button 
