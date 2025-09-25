@@ -483,7 +483,7 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
                       <div className="absolute top-2 left-2 z-10">
                         <Checkbox
                           checked={selectedFiles.has(item.id)}
-                          onChange={(e) => handleFileSelection(item.id, item, index, e as any)}
+                          onCheckedChange={() => handleFileSelection(item.id, item, index)}
                           className="bg-background/80 border-2"
                         />
                       </div>
