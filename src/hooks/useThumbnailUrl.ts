@@ -19,18 +19,41 @@ export const useThumbnailUrl = (thumbnailPath?: string) => {
       console.log('useThumbnailUrl - Attempting to load thumbnail:', thumbnailPath);
       
       try {
-        const { data, error: urlError } = await supabase.storage
-          .from('content')
-          .createSignedUrl(thumbnailPath, 3600); // 1 hour expiry
+        // Use fast-secure-media edge function for consistent auth and access control
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) {
+          throw new Error('Not authenticated');
+        }
 
-        if (urlError) {
-          console.error('Error generating thumbnail URL:', urlError);
-          console.log('Failed path:', thumbnailPath);
-          setError(urlError.message);
-          setThumbnailUrl(null);
+        const { data, error: functionError } = await supabase.functions.invoke('fast-secure-media', {
+          body: { path: thumbnailPath },
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        if (functionError) {
+          console.error('Error calling fast-secure-media:', functionError);
+          // Fallback to direct storage access
+          const { data: fallbackData, error: urlError } = await supabase.storage
+            .from('content')
+            .createSignedUrl(thumbnailPath, 3600);
+
+          if (urlError) {
+            console.error('Fallback error generating thumbnail URL:', urlError);
+            setError(urlError.message);
+            setThumbnailUrl(null);
+          } else {
+            console.log('Fallback: Successfully generated thumbnail URL for:', thumbnailPath);
+            setThumbnailUrl(fallbackData.signedUrl);
+          }
+        } else if (data?.success && data?.url) {
+          console.log('Successfully generated secure thumbnail URL for:', thumbnailPath);
+          setThumbnailUrl(data.url);
         } else {
-          console.log('Successfully generated thumbnail URL for:', thumbnailPath);
-          setThumbnailUrl(data.signedUrl);
+          console.error('Invalid response from fast-secure-media:', data);
+          setError('Invalid response from secure media service');
+          setThumbnailUrl(null);
         }
       } catch (err) {
         console.error('Error generating thumbnail URL:', err);
