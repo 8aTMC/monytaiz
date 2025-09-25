@@ -10,8 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getInitials } from '@/lib/initials';
-import { formatSubscriptionDuration } from '@/lib/utils';
+import { formatRevenue } from '@/lib/formatRevenue';
 import { useToast } from '@/hooks/use-toast';
+import { useFanAnalytics } from '@/hooks/useFanAnalytics';
 import { useSidebar } from '@/components/Navigation';
 import { FileUploadButton } from '@/components/FileUploadButton';
 import { FileAttachmentRow } from '@/components/FileAttachmentRow';
@@ -158,6 +159,12 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
   // Initialize AI chat hook
   const { generateAIResponseWithTyping, sendAIMessage, isProcessing, isTyping } = useAIChat();
+
+  // Initialize fan analytics hook
+  const { analytics, loading: analyticsLoading } = useFanAnalytics(
+    activeConversation?.fan_id || null,
+    activeConversation?.id || null
+  );
 
   // Process AI reply into multiple messages
   const processAIReply = async (reply: string, conversationId: string) => {
@@ -1048,30 +1055,20 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                     </CardContent>
                   </Card>
 
-                  {/* Subscription Status */}
-                  <Card>
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-muted-foreground">Subscription</span>
-                        <Badge variant="outline">{formatSubscriptionDuration(3)}</Badge>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Next Renewal</span>
-                        <span className="text-sm">Dec 23, 2024</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-
                   {/* Total Spent */}
                   <Card>
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-muted-foreground">Total Spent</span>
-                        <span className="text-sm font-medium">$1,247.32</span>
+                        <span className="text-sm font-medium">
+                          {analyticsLoading ? "..." : formatRevenue(analytics.totalSpentCents)}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">This Month</span>
-                        <span className="text-sm">$89.50</span>
+                        <span className="text-sm">
+                          {analyticsLoading ? "..." : formatRevenue(analytics.thisMonthSpentCents)}
+                        </span>
                       </div>
                     </CardContent>
                   </Card>
@@ -1083,15 +1080,15 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Messages Sent</span>
-                          <span>347</span>
+                          <span>{analyticsLoading ? "..." : analytics.messagesSent}</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Content Purchased</span>
-                          <span>23</span>
+                          <span>{analyticsLoading ? "..." : analytics.contentPurchased}</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Tips Given</span>
-                          <span>12</span>
+                          <span>{analyticsLoading ? "..." : analytics.tipsGiven}</span>
                         </div>
                       </div>
                     </CardContent>
