@@ -14,6 +14,8 @@ interface MediaItem {
   type: 'image' | 'video' | 'audio' | 'gif';
   size_bytes: number;
   tags: string[];
+  thumbnail_path?: string;
+  tiny_placeholder?: string;
 }
 
 interface LibraryAttachmentRowProps {
@@ -93,7 +95,7 @@ export const LibraryAttachmentRow = ({ files, onRemoveFile, className }: Library
       
       <div 
         ref={scrollRef}
-        className="flex gap-2 overflow-x-auto h-18 py-3 px-3"
+        className="flex gap-2 overflow-x-auto h-[72px] py-3 px-3"
         style={{ scrollBehavior: 'smooth' }}
       >
         {files.map((file, index) => (
