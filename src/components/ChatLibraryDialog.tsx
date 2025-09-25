@@ -253,15 +253,6 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
     return selectedItems.filter(item => item.type === type).length;
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const totalSize = selectedItems.reduce((sum, item) => sum + (item.size_bytes || 0), 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -428,25 +419,22 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
                   {totalCount} files
                 </div>
                 {selectedFiles.size > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>{formatFileSize(totalSize)}</span>
-                    <div className="flex items-center gap-1">
-                      {getFileTypeCount('image') > 0 && (
-                        <Badge variant="outline" className="text-xs">
-                          {getFileTypeCount('image')} <Image className="h-3 w-3 ml-1" />
-                        </Badge>
-                      )}
-                      {getFileTypeCount('video') > 0 && (
-                        <Badge variant="outline" className="text-xs">
-                          {getFileTypeCount('video')} <Video className="h-3 w-3 ml-1" />
-                        </Badge>
-                      )}
-                      {getFileTypeCount('audio') > 0 && (
-                        <Badge variant="outline" className="text-xs">
-                          {getFileTypeCount('audio')} <Music className="h-3 w-3 ml-1" />
-                        </Badge>
-                      )}
-                    </div>
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    {getFileTypeCount('image') > 0 && (
+                      <Badge variant="outline" className="text-xs">
+                        {getFileTypeCount('image')} <Image className="h-3 w-3 ml-1" />
+                      </Badge>
+                    )}
+                    {getFileTypeCount('video') > 0 && (
+                      <Badge variant="outline" className="text-xs">
+                        {getFileTypeCount('video')} <Video className="h-3 w-3 ml-1" />
+                      </Badge>
+                    )}
+                    {getFileTypeCount('audio') > 0 && (
+                      <Badge variant="outline" className="text-xs">
+                        {getFileTypeCount('audio')} <Music className="h-3 w-3 ml-1" />
+                      </Badge>
+                    )}
                   </div>
                 )}
               </div>
@@ -504,9 +492,6 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
                       {/* File Info */}
                       <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 rounded-b-lg">
                         <p className="text-xs truncate">{item.title}</p>
-                        <p className="text-xs text-white/70">
-                          {formatFileSize(item.size_bytes || 0)}
-                        </p>
                       </div>
                     </div>
                   ))}
@@ -548,7 +533,6 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
             {selectedFiles.size > 0 && (
               <span>
                 {selectedFiles.size} file{selectedFiles.size !== 1 ? 's' : ''} selected
-                {totalSize > 0 && ` • ${formatFileSize(totalSize)}`}
               </span>
             )}
           </div>
