@@ -16,7 +16,6 @@ Deno.serve(async (req) => {
     const token = authHeader.replace('Bearer ', '')
 
     if (!token) {
-      console.error('No authorization token provided')
       return new Response(
         JSON.stringify({ error: 'Authentication required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -30,37 +29,14 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     )
 
-    // Handle both URL params and POST body
-    let path, width, height, quality, format;
-    
-    if (req.method === 'POST') {
-      try {
-        const body = await req.json();
-        path = body.path;
-        width = body.width;
-        height = body.height;
-        quality = body.quality;
-        format = body.format;
-        console.log('POST request body:', { path, width, height, quality, format });
-      } catch (e) {
-        console.error('Error parsing POST body:', e);
-        return new Response(
-          JSON.stringify({ error: 'Invalid JSON body' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-    } else {
-      const { searchParams } = new URL(req.url)
-      path = searchParams.get('path')
-      width = searchParams.get('width')
-      height = searchParams.get('height')
-      quality = searchParams.get('quality')
-      format = searchParams.get('format')
-      console.log('GET request params:', { path, width, height, quality, format });
-    }
+    const { searchParams } = new URL(req.url)
+    const path = searchParams.get('path')
+    const width = searchParams.get('width')
+    const height = searchParams.get('height')
+    const quality = searchParams.get('quality')
+    const format = searchParams.get('format')
 
     if (!path) {
-      console.error('Missing path parameter')
       return new Response(
         JSON.stringify({ error: 'Missing path parameter' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
