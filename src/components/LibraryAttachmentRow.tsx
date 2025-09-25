@@ -66,7 +66,7 @@ export const LibraryAttachmentRow = ({ files, onRemoveFile, className }: Library
   if (files.length === 0) return null;
 
   return (
-    <div className={cn("mb-2 relative h-20", className)}>
+    <div className={cn("mb-2 relative h-24", className)}>
       {/* Navigation arrows for many files */}
       {files.length > 6 && (
         <>
@@ -93,7 +93,7 @@ export const LibraryAttachmentRow = ({ files, onRemoveFile, className }: Library
       
       <div 
         ref={scrollRef}
-        className="flex gap-2 overflow-x-auto h-16 pt-2 pb-1 px-2"
+        className="flex gap-2 overflow-x-auto h-20 pt-2 pb-1 px-2"
         style={{ scrollBehavior: 'smooth' }}
       >
         {files.map((file, index) => (
