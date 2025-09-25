@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
     return json({
       success: false,
       error: 'Failed to recreate folders',
-      details: error.message
+      details: error instanceof Error ? error.message : String(error)
     }, 500);
   }
 });

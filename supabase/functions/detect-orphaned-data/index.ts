@@ -249,7 +249,7 @@ async function detectOrphanedData(includeItems: boolean = false): Promise<Detect
       .eq('resolved', true)
       .lt('resolved_at', thirtyDaysAgo)
 
-    if (oldAlerts?.length > 0) {
+    if (oldAlerts && oldAlerts.length > 0) {
       results.push({
         category: 'Database',
         type: 'old_performance_alerts',
@@ -324,7 +324,7 @@ async function detectOrphanedData(includeItems: boolean = false): Promise<Detect
       .select('id, original_path, processed_path, thumbnail_path, original_filename')
       .not('original_path', 'is', null)
 
-    if (simpleMediaRecords?.length > 0) {
+    if (simpleMediaRecords && simpleMediaRecords.length > 0) {
       const orphanedMediaRecords = []
       
       // Check each media record to see if its files exist in storage
@@ -468,7 +468,7 @@ async function isFileOrphaned(filePath: string): Promise<boolean> {
     .or(`original_path.eq.${filePath},processed_path.eq.${filePath},thumbnail_path.eq.${filePath}`)
     .limit(1)
 
-  if (mediaRecord?.length > 0) return false
+  if (mediaRecord && mediaRecord.length > 0) return false
 
   // Check in content_files table
   const { data: contentRecord } = await supabase
@@ -477,7 +477,7 @@ async function isFileOrphaned(filePath: string): Promise<boolean> {
     .eq('file_path', filePath)
     .limit(1)
 
-  if (contentRecord?.length > 0) return false
+  if (contentRecord && contentRecord.length > 0) return false
 
   // Check in legacy media table
   const { data: legacyMediaRecord } = await supabase
@@ -486,7 +486,7 @@ async function isFileOrphaned(filePath: string): Promise<boolean> {
     .or(`storage_path.eq.${filePath},path.eq.${filePath}`)
     .limit(1)
 
-  if (legacyMediaRecord?.length > 0) return false
+  if (legacyMediaRecord && legacyMediaRecord.length > 0) return false
 
   // File is orphaned
   return true
@@ -539,7 +539,7 @@ async function cleanupOrphanedData(dryRun: boolean = true): Promise<CleanupResul
     results.errors.push({
       category: 'System',
       type: 'general_cleanup',
-      reason: error.message,
+      reason: error instanceof Error ? error.message : String(error),
       retriable: true
     })
     return results
@@ -613,7 +613,7 @@ async function cleanupOrphanedStorageFiles(results: CleanupResult, dryRun: boole
     results.errors.push({
       category: 'Storage',
       type: category,
-      reason: error.message,
+      reason: error instanceof Error ? error.message : String(error),
       retriable: true
     })
     results.audit[category].errors++
@@ -666,7 +666,7 @@ async function deleteStorageBatch(bucket: string, filePaths: string[], fileSizes
   } catch (error) {
     result.errors.push({
       key: 'batch',
-      reason: 'network_error: ' + error.message,
+      reason: 'network_error: ' + (error instanceof Error ? error.message : String(error)),
       retriable: true
     })
   }
@@ -741,7 +741,7 @@ async function cleanupOrphanedMediaAnalytics(results: CleanupResult, dryRun: boo
     results.errors.push({
       category: 'Database',
       type: category,
-      reason: error.message,
+      reason: error instanceof Error ? error.message : String(error),
       retriable: true
     })
     results.audit[category].errors++
@@ -803,7 +803,7 @@ async function cleanupOrphanedQualityMetadata(results: CleanupResult, dryRun: bo
     results.errors.push({
       category: 'Database',
       type: category,
-      reason: error.message,
+      reason: error instanceof Error ? error.message : String(error),
       retriable: true
     })
     results.audit[category].errors++
@@ -896,7 +896,7 @@ async function cleanupOrphanedSimpleMediaRecords(results: CleanupResult, dryRun:
         results.errors.push({
           category: 'Database',
           type: category,
-          reason: `Failed to delete batch: ${error.message}`,
+          reason: `Failed to delete batch: ${error instanceof Error ? error.message : String(error)}`,
           retriable: true
         })
         results.audit[category].errors += batch.length
@@ -913,7 +913,7 @@ async function cleanupOrphanedSimpleMediaRecords(results: CleanupResult, dryRun:
     results.errors.push({
       category: 'Database',
       type: category,
-      reason: error.message,
+      reason: error instanceof Error ? error.message : String(error),
       retriable: true
     })
     results.audit[category].errors++
@@ -971,9 +971,9 @@ async function cleanupStaleTemporaryData(results: CleanupResult, dryRun: boolean
     if (countError) {
       throw new Error(`Count failed: ${countError.message}`)
     }
-    results.audit[category].attempted = recordCount
+    results.audit[category].attempted = recordCount || 0
     
-    if (recordCount === 0) {
+    if (!recordCount || recordCount === 0) {
       return
     }
     
@@ -992,8 +992,8 @@ async function cleanupStaleTemporaryData(results: CleanupResult, dryRun: boolean
       throw new Error(`Delete failed: ${deleteError.message}`)
     }
     
-    results.audit[category].deleted = recordCount
-    results.totals.records_cleaned += recordCount
+    results.audit[category].deleted = recordCount || 0
+    results.totals.records_cleaned += recordCount || 0
     results.cleaned_categories.push(category)
     
   } catch (error) {
@@ -1001,7 +1001,7 @@ async function cleanupStaleTemporaryData(results: CleanupResult, dryRun: boolean
     results.errors.push({
       category: 'Database',
       type: category,
-      reason: error.message,
+      reason: error instanceof Error ? error.message : String(error),
       retriable: true
     })
     results.audit[category].errors++
@@ -1037,7 +1037,7 @@ async function runComprehensiveCleanup(results: CleanupResult, dryRun: boolean) 
     results.errors.push({
       category: 'Database',
       type: 'comprehensive_cleanup',
-      reason: error.message,
+      reason: error instanceof Error ? error.message : String(error),
       retriable: true
     })
   }

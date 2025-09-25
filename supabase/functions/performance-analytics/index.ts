@@ -53,7 +53,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Performance Analytics Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
@@ -133,7 +133,7 @@ async function handleMetricsIngestion(req: Request, supabase: any) {
 
     } catch (error) {
       console.error(`Failed to store metric ${metric.metricType}:`, error);
-      results.push({ success: false, metricType: metric.metricType, error: error.message });
+      results.push({ success: false, metricType: metric.metricType, error: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -190,7 +190,7 @@ async function handleAnalyticsQuery(req: Request, supabase: any) {
 
   } catch (error) {
     console.error('Analytics Query Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -221,7 +221,7 @@ async function handleAlertCreation(req: Request, supabase: any) {
 
   } catch (error) {
     console.error('Alert Creation Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -262,7 +262,7 @@ async function handleHealthCheck(supabase: any) {
     console.error('Health Check Error:', error);
     return new Response(JSON.stringify({ 
       status: 'unhealthy', 
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
       timestamp: new Date().toISOString() 
     }), {
       status: 500,

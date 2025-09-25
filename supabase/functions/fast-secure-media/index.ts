@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
         return new Response(
           JSON.stringify({ 
             error: 'Exception processing HEIC file', 
-            details: heicError.message,
+            details: heicError instanceof Error ? heicError.message : String(heicError),
             path: path
           }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
         return new Response(
           JSON.stringify({ 
             error: 'Exception processing GIF file', 
-            details: gifError.message,
+            details: gifError instanceof Error ? gifError.message : String(gifError),
             path: path
           }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -258,7 +258,7 @@ Deno.serve(async (req) => {
         return new Response(
           JSON.stringify({ 
             error: 'Exception processing audio file', 
-            details: audioError.message,
+            details: audioError instanceof Error ? audioError.message : String(audioError),
             path: path
           }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -398,8 +398,8 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        message: error.message,
-        stack: error.stack
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

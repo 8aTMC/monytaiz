@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
             mediaId,
             processedPaths: processedPaths || { default: processedPath },
             thumbnailPath,
-            cleanupError: error.message,
+            cleanupError: error instanceof Error ? error.message : String(error),
             qualityInfo
           }),
           { 
@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
           .from('simple_media')
           .update({
             processing_status: 'failed',
-            processing_error: error.message,
+            processing_error: error instanceof Error ? error.message : String(error),
             processed_at: new Date().toISOString()
           })
           .eq('id', body.mediaId);
@@ -217,7 +217,7 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         success: false
       }),
       { 

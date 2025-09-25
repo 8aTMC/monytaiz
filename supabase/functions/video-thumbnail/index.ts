@@ -10,62 +10,27 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 );
 
-// Simplified thumbnail generation using Web APIs available in Deno Edge Runtime
-async function generateVideoThumbnail(videoBlob: Blob): Promise<Uint8Array> {
-  try {
-    // For now, create a simple colored placeholder thumbnail
-    // This ensures we have thumbnails while working within Edge Runtime constraints
-    const canvas = new OffscreenCanvas(320, 240);
-    const ctx = canvas.getContext('2d');
-    
-    if (!ctx) {
-      throw new Error('Failed to get canvas context');
-    }
-    
-    // Create a gradient placeholder
-    const gradient = ctx.createLinearGradient(0, 0, 320, 240);
-    gradient.addColorStop(0, '#667eea');
-    gradient.addColorStop(1, '#764ba2');
-    
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 320, 240);
-    
-    // Add play icon
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.beginPath();
-    ctx.moveTo(120, 100);
-    ctx.lineTo(200, 120);
-    ctx.lineTo(120, 140);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Add video text
-    ctx.fillStyle = 'white';
-    ctx.font = '16px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('VIDEO', 160, 180);
-    
-    // Convert to JPEG blob
-    const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.8 });
-    const arrayBuffer = await blob.arrayBuffer();
-    return new Uint8Array(arrayBuffer);
-    
-  } catch (error) {
-    console.error('Canvas thumbnail generation failed:', error);
-    
-    // Fallback: Create a minimal 1x1 pixel thumbnail
-    const canvas = new OffscreenCanvas(1, 1);
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.fillStyle = '#667eea';
-      ctx.fillRect(0, 0, 1, 1);
-      const blob = await canvas.convertToBlob({ type: 'image/jpeg' });
-      const arrayBuffer = await blob.arrayBuffer();
-      return new Uint8Array(arrayBuffer);
-    }
-    
-    throw new Error('Failed to create thumbnail');
-  }
+// Create a simple 1x1 pixel JPEG as placeholder thumbnail
+function createPlaceholderThumbnail(): Uint8Array {
+  // This is a minimal valid JPEG file (1x1 pixel, gray)
+  const jpegBytes = new Uint8Array([
+    0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01,
+    0x01, 0x01, 0x00, 0x48, 0x00, 0x48, 0x00, 0x00, 0xFF, 0xDB, 0x00, 0x43,
+    0x00, 0x08, 0x06, 0x06, 0x07, 0x06, 0x05, 0x08, 0x07, 0x07, 0x07, 0x09,
+    0x09, 0x08, 0x0A, 0x0C, 0x14, 0x0D, 0x0C, 0x0B, 0x0B, 0x0C, 0x19, 0x12,
+    0x13, 0x0F, 0x14, 0x1D, 0x1A, 0x1F, 0x1E, 0x1D, 0x1A, 0x1C, 0x1C, 0x20,
+    0x24, 0x2E, 0x27, 0x20, 0x22, 0x2C, 0x23, 0x1C, 0x1C, 0x28, 0x37, 0x29,
+    0x2C, 0x30, 0x31, 0x34, 0x34, 0x34, 0x1F, 0x27, 0x39, 0x3D, 0x38, 0x32,
+    0x3C, 0x2E, 0x33, 0x34, 0x32, 0xFF, 0xC0, 0x00, 0x11, 0x08, 0x00, 0x01,
+    0x00, 0x01, 0x01, 0x01, 0x11, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01,
+    0xFF, 0xC4, 0x00, 0x14, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0xFF, 0xC4,
+    0x00, 0x14, 0x10, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xDA, 0x00, 0x0C,
+    0x03, 0x01, 0x00, 0x02, 0x11, 0x03, 0x11, 0x00, 0x3F, 0x00, 0x80, 0x00,
+    0xFF, 0xD9
+  ]);
+  return jpegBytes;
 }
 
 Deno.serve(async (req) => {
@@ -74,7 +39,7 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  console.log('🎬 Video thumbnail generator started (Canvas API)');
+  console.log('🎬 Video thumbnail generator started');
 
   let mediaId: string | undefined;
 
@@ -93,7 +58,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`📹 Generating thumbnail for: ${bucket}/${path}`);
+    console.log(`📹 Processing video: ${bucket}/${path}`);
 
     // Check file size first
     const { data: fileInfo, error: fileInfoError } = await supabase.storage
@@ -101,9 +66,9 @@ Deno.serve(async (req) => {
       .info(path);
 
     if (fileInfoError) {
-      console.log('Could not get file info, proceeding with download...');
-    } else if (fileInfo && fileInfo.size > 200 * 1024 * 1024) { // 200MB limit for Canvas API
-      console.log(`File too large for Canvas thumbnail generation: ${(fileInfo.size / 1024 / 1024).toFixed(1)}MB. Marking as processed without thumbnail.`);
+      console.log('Could not get file info, proceeding...');
+    } else if (fileInfo && fileInfo.size && fileInfo.size > 200 * 1024 * 1024) {
+      console.log(`File too large for processing: ${(fileInfo.size / 1024 / 1024).toFixed(1)}MB. Marking as processed without thumbnail.`);
       
       // Update media record as processed without thumbnail
       const { error: updateError } = await supabase
@@ -128,21 +93,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Download video file
-    const { data: videoData, error: downloadError } = await supabase.storage
-      .from(bucket)
-      .download(path);
+    console.log('🔄 Creating placeholder thumbnail...');
 
-    if (downloadError || !videoData) {
-      throw new Error(`Failed to download video: ${downloadError?.message || 'No data'}`);
-    }
-
-    console.log('🔄 Generating thumbnail using Canvas API...');
-
-    // Generate thumbnail using Canvas API
-    const thumbnailData = await generateVideoThumbnail(videoData);
+    // Create a simple placeholder thumbnail
+    const thumbnailData = createPlaceholderThumbnail();
     
-    console.log('✅ Thumbnail generated successfully');
+    console.log('✅ Placeholder thumbnail created');
 
     // Get the file ID and original filename from the path
     const pathParts = path.split('/');
@@ -189,7 +145,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       success: true,
       thumbnailPath: thumbnailStoragePath,
-      message: 'Thumbnail generated successfully using Canvas API'
+      message: 'Placeholder thumbnail generated successfully'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

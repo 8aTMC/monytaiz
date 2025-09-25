@@ -332,7 +332,7 @@ Deno.serve(async (req) => {
     }
 
   } catch (err) {
-    console.error('💥 Edge function error:', err?.message || err);
+    console.error('💥 Edge function error:', err instanceof Error ? err.message : String(err));
     return new Response(JSON.stringify({ 
       error: 'Edge function crashed', 
       detail: String(err) 

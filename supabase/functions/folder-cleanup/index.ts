@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
     console.error('Folder cleanup error:', error)
     return new Response(
       JSON.stringify({
-        error: error.message || 'Unknown error occurred'
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -111,13 +111,13 @@ async function checkFolderInconsistencies(supabaseClient: any) {
   if (fileFoldersError) throw fileFoldersError
 
   // Find collections that don't have matching file_folders
-  const orphanedCollections = collections?.filter(collection => 
-    !fileFolders?.some(folder => folder.name === collection.name)
+  const orphanedCollections = collections?.filter((collection: any) =>
+    !fileFolders?.some((folder: any) => folder.name === collection.name)
   ) || []
 
   // Find file_folders that don't have matching collections
-  const orphanedFileFolders = fileFolders?.filter(folder => 
-    !collections?.some(collection => collection.name === folder.name)
+  const orphanedFileFolders = fileFolders?.filter((folder: any) =>
+    !collections?.some((collection: any) => collection.name === folder.name)
   ) || []
 
   console.log(`Found ${orphanedCollections.length} orphaned collections and ${orphanedFileFolders.length} orphaned file folders`)
@@ -151,14 +151,14 @@ async function cleanupOrphanedCollections(supabaseClient: any) {
 
   if (fileFoldersError) throw fileFoldersError
 
-  const orphanedCollections = collections?.filter(collection => 
-    !fileFolders?.some(folder => folder.name === collection.name)
+  const orphanedCollections = collections?.filter((collection: any) =>
+    !fileFolders?.some((folder: any) => folder.name === collection.name)
   ) || []
 
   let deletedCount = 0
 
   if (orphanedCollections.length > 0) {
-    const orphanedIds = orphanedCollections.map(c => c.id)
+    const orphanedIds = orphanedCollections.map((c: any) => c.id)
 
     // Delete collection_items first (foreign key constraint)
     const { error: itemsError } = await supabaseClient
