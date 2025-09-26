@@ -450,7 +450,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           <FileUploadButton 
             onFilesSelected={addFiles}
             currentFiles={rawFiles}
-            maxFiles={40}
+            maxFiles={60}
           />
           <Button variant="ghost" size="sm" className="h-8 px-3" title="AI Assistant">
             <Bot className="h-4 w-4 text-purple-500" />
