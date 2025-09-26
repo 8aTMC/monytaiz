@@ -504,12 +504,14 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
         <LibraryAttachmentRow 
           files={attachedFiles}
           onRemoveFile={removeLibraryFile}
+          onClearAll={() => setAttachedFiles([])}
         />
 
         {/* Attached Files Preview - Replace with FileAttachmentRow */}
         <FileAttachmentRow 
           files={rawFiles}
           onRemoveFile={removeFileByIndex}
+          onClearAll={clearFiles}
         />
         
         <form 
