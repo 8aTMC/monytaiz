@@ -309,22 +309,21 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
                   </div>
                 </div>
                 
-                {totalPriceError && (
-                  <div className="mt-3 pt-3 border-t">
-                    <p className="text-sm text-destructive">{totalPriceError}</p>
-                  </div>
-                )}
-                
-                {customTotalPrice !== calculatedTotalPrice && (
-                  <div className="mt-3 pt-3 border-t">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleResetToCalculated}
-                      className="text-xs"
-                    >
-                      Reset to calculated price
-                    </Button>
+                {(totalPriceError || customTotalPrice !== calculatedTotalPrice) && (
+                  <div className="mt-3 pt-3 border-t flex justify-between items-center">
+                    {customTotalPrice !== calculatedTotalPrice && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleResetToCalculated}
+                        className="text-xs"
+                      >
+                        Reset to calculated price
+                      </Button>
+                    )}
+                    {totalPriceError && (
+                      <p className="text-sm text-destructive">{totalPriceError}</p>
+                    )}
                   </div>
                 )}
               </CardContent>
