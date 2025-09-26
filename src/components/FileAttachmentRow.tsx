@@ -13,7 +13,7 @@ export const FileAttachmentRow = ({ files, onRemoveFile, className }: FileAttach
 
   return (
     <div className={cn("relative mb-4 max-w-full", className)}>
-      <div className="flex items-center gap-2 overflow-x-auto pt-3 pb-2">
+      <div className="flex items-center gap-2 overflow-x-auto scrollbar-thumbnail pt-3 pb-2">
         {files.map((file, index) => (
           <div key={`${file.name}-${index}`} className="flex-shrink-0">
             <MiniFileThumbnail

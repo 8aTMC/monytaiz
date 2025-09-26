@@ -619,6 +619,30 @@ button:hover svg,
   z-index: 240 !important;
 }
 
+/* Thumbnail attachment scrollbar - thinner with no arrow buttons */
+.scrollbar-thumbnail::-webkit-scrollbar {
+  height: var(--scrollbar-width-thin);
+}
+
+.scrollbar-thumbnail::-webkit-scrollbar-button {
+  display: none;
+}
+
+.scrollbar-thumbnail::-webkit-scrollbar-track {
+  background: var(--scrollbar-track-color);
+  border-radius: var(--scrollbar-border-radius);
+}
+
+.scrollbar-thumbnail::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-color);
+  border-radius: var(--scrollbar-border-radius);
+  border: var(--scrollbar-thumb-border);
+}
+
+.scrollbar-thumbnail::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover-color);
+}
+
 /* Responsive sidebar auto-collapse - force collapse on narrow screens only when collapsed */
 @media (max-width: 1023px) {
   [data-auto-collapse]:not([data-manually-opened]) {
