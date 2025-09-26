@@ -320,11 +320,13 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
   };
 
   const handleLibraryAttach = (files: any[]) => {
-    setAttachedFiles(files);
+    // Append newly selected files to existing attached files
+    const updatedFiles = [...attachedFiles, ...files];
+    setAttachedFiles(updatedFiles);
     setShowLibraryDialog(false);
     toast({
       title: "Files attached",
-      description: `${files.length} file${files.length !== 1 ? 's' : ''} attached to message`,
+      description: `${files.length} file${files.length !== 1 ? 's' : ''} attached to message (${updatedFiles.length} total)`,
     });
   };
 
@@ -450,7 +452,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           <FileUploadButton 
             onFilesSelected={addFiles}
             currentFiles={rawFiles}
-            maxFiles={60}
+            maxFiles={50}
           />
           <Button variant="ghost" size="sm" className="h-8 px-3" title="AI Assistant">
             <Bot className="h-4 w-4 text-purple-500" />
@@ -544,6 +546,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
         onClose={() => setShowLibraryDialog(false)}
         onAttachFiles={handleLibraryAttach}
         currentUserId={user.id}
+        alreadySelectedFiles={attachedFiles}
       />
       
       <PPVPricingDialog

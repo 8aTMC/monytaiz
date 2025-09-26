@@ -56,9 +56,10 @@ interface ChatLibraryDialogProps {
   onClose: () => void;
   onAttachFiles: (files: MediaItem[]) => void;
   currentUserId: string;
+  alreadySelectedFiles?: any[];
 }
 
-export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserId }: ChatLibraryDialogProps) => {
+export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserId, alreadySelectedFiles = [] }: ChatLibraryDialogProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [selectedItems, setSelectedItems] = useState<MediaItem[]>([]);
@@ -122,14 +123,21 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
 
   const totalCount = mediaData.length;
 
-  // Reset state when dialog opens to ensure default folders are always visible
+  // Reset state when dialog opens and initialize with already selected files
   useEffect(() => {
     if (isOpen) {
       setShowDefaultFolders(true);
       setSelectedCategory('all-files');
       setActiveFilter('all');
+      
+      // Initialize selection with already attached files
+      if (alreadySelectedFiles.length > 0) {
+        const alreadySelectedIds = new Set(alreadySelectedFiles.map(file => file.id));
+        setSelectedFiles(alreadySelectedIds);
+        setSelectedItems(alreadySelectedFiles);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, alreadySelectedFiles]);
 
   // Load folders
   useEffect(() => {
@@ -180,7 +188,16 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
     setSelectedItems(newSelectedItems);
   };
 
+  const isAlreadyAttached = (fileId: string) => {
+    return alreadySelectedFiles.some(file => file.id === fileId);
+  };
+
   const handleFileSelection = (fileId: string, item: MediaItem, index: number, event?: React.MouseEvent) => {
+    // Prevent deselection of already attached files
+    if (isAlreadyAttached(fileId) && selectedFiles.has(fileId)) {
+      return;
+    }
+
     // Prevent text selection during range operations
     if (event && (event.shiftKey || event.altKey)) {
       event.preventDefault();
@@ -202,6 +219,12 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
         newSelectedItems.splice(itemIndex, 1);
       }
     } else {
+      // Check if adding this file would exceed the limit (50 files)
+      const totalSelected = selectedFiles.size + 1;
+      if (totalSelected > 50) {
+        return; // Don't add if it would exceed limit
+      }
+      
       newSelectedFiles.add(fileId);
       newSelectedItems.push(item);
     }
@@ -217,7 +240,9 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
   };
 
   const handleAttach = () => {
-    onAttachFiles(selectedItems);
+    // Only attach newly selected files (not already attached ones)
+    const newlySelectedItems = selectedItems.filter(item => !isAlreadyAttached(item.id));
+    onAttachFiles(newlySelectedItems);
     resetSelection();
     onClose();
   };
@@ -285,11 +310,18 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>Library</span>
-            {selectedFiles.size > 0 && (
-              <Badge variant="secondary">
-                {selectedFiles.size} selected
-              </Badge>
-            )}
+            <div className="flex items-center gap-2">
+              {selectedFiles.size > 0 && (
+                <Badge variant="secondary">
+                  {selectedFiles.size}/50 files
+                </Badge>
+              )}
+              {alreadySelectedFiles.length > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  {alreadySelectedFiles.length} attached
+                </Badge>
+              )}
+            </div>
           </DialogTitle>
         </DialogHeader>
 
@@ -476,27 +508,42 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
               ) : (
                 <div className="grid grid-cols-6 gap-4">
                   {mediaData.map((item, index) => (
-                    <div
-                      key={item.id}
-                      className={cn(
-                        "relative aspect-square rounded-lg border-2 cursor-pointer transition-all hover:scale-105 select-none",
-                        selectedFiles.has(item.id) 
-                          ? "border-primary bg-primary/10" 
-                          : "border-transparent hover:border-muted-foreground"
-                      )}
-                      onClick={(e) => handleFileSelection(item.id, item, index, e)}
-                      onDoubleClick={() => handleDoubleClick(item)}
-                      title="Click to select • Shift/Alt+click for range • Double-click to preview"
-                    >
-                      {/* Checkbox */}
-                      <div className="absolute top-2 left-2 z-10" onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          checked={selectedFiles.has(item.id)}
-                          onCheckedChange={() => handleFileSelection(item.id, item, index)}
-                          className="h-4 w-4 p-0 bg-background/80 border-2"
-                          aria-label="Select file"
-                        />
-                      </div>
+                     <div
+                       key={item.id}
+                       className={cn(
+                         "relative aspect-square rounded-lg border-2 cursor-pointer transition-all hover:scale-105 select-none",
+                         selectedFiles.has(item.id) 
+                           ? isAlreadyAttached(item.id)
+                             ? "border-green-500 bg-green-500/20"
+                             : "border-primary bg-primary/10"
+                           : "border-transparent hover:border-muted-foreground"
+                       )}
+                       onClick={(e) => handleFileSelection(item.id, item, index, e)}
+                       onDoubleClick={() => handleDoubleClick(item)}
+                       title="Click to select • Shift/Alt+click for range • Double-click to preview"
+                     >
+                       {/* Checkbox */}
+                       <div className="absolute top-2 left-2 z-10" onClick={(e) => e.stopPropagation()}>
+                         <Checkbox
+                           checked={selectedFiles.has(item.id)}
+                           onCheckedChange={() => handleFileSelection(item.id, item, index)}
+                           className={cn(
+                             "h-4 w-4 p-0 bg-background/80 border-2",
+                             isAlreadyAttached(item.id) && selectedFiles.has(item.id) 
+                               ? "data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                               : ""
+                           )}
+                           aria-label="Select file"
+                           disabled={isAlreadyAttached(item.id) && selectedFiles.has(item.id)}
+                         />
+                       </div>
+
+                       {/* Already Attached Label */}
+                       {isAlreadyAttached(item.id) && (
+                         <div className="absolute bottom-2 left-2 px-2 py-1 bg-green-500 text-white text-xs rounded-md z-10">
+                           Attached
+                         </div>
+                       )}
 
                       {/* File Type Badge */}
                       <div className="absolute top-2 right-2 z-10">

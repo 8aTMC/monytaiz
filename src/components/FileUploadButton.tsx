@@ -43,7 +43,7 @@ const fileTypes: FileTypeConfig[] = [
   }
 ];
 
-export const FileUploadButton = ({ onFilesSelected, disabled, currentFiles = [], maxFiles = 60 }: FileUploadButtonProps) => {
+export const FileUploadButton = ({ onFilesSelected, disabled, currentFiles = [], maxFiles = 50 }: FileUploadButtonProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 

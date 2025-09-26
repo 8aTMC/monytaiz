@@ -15,7 +15,7 @@ const FILE_LIMITS = {
 };
 
 const MAX_FILES = {
-  visual: 60, // Images and videos
+  visual: 50, // Images and videos
   audio: 1,   // Audio files
 };
 
