@@ -119,19 +119,21 @@ export const MiniLibraryThumbnail = ({ file, fileIndex, onRemove, className }: M
 
   return (
     <div className={cn("relative group flex-shrink-0", className)}>
-      <div className="w-16 h-16 rounded border border-border bg-muted/50 relative">
+      <div className="w-12 h-12 rounded border border-border bg-card relative overflow-hidden">
         {/* File index badge */}
-        <div className="absolute -top-2 -left-2 bg-black text-white text-xs rounded-full w-5 h-5 flex items-center justify-center z-10 text-[11px] font-medium">
+        <div className="absolute -top-2 -left-2 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center z-20 text-[10px] font-medium shadow-sm">
           {fileIndex + 1}
         </div>
         
         {/* Thumbnail content */}
-        {renderContent()}
+        <div className="relative w-full h-full z-10">
+          {renderContent()}
+        </div>
         
         {/* Remove button */}
         <Button
           size="sm"
-          className="absolute -top-2 -right-2 h-5 w-5 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-black text-white hover:bg-gray-800"
+          className="absolute -top-2 -right-2 h-5 w-5 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-30 bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm"
           onClick={() => onRemove(file.id)}
           title="Remove file"
         >

@@ -188,12 +188,14 @@ export const MiniFileThumbnail = ({ file, fileIndex, onRemove, className }: Mini
 
   return (
     <div className={cn("relative group", className)}>
-      <div className="w-8 h-8 rounded-md overflow-hidden border border-border bg-background flex items-center justify-center">
-        {renderContent()}
+      <div className="w-12 h-12 rounded-md overflow-hidden border border-border bg-card flex items-center justify-center relative">
+        <div className="relative w-full h-full z-10">
+          {renderContent()}
+        </div>
       </div>
       
       {/* File index badge */}
-      <div className="absolute -top-1 -left-1 w-4 h-4 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center font-medium">
+      <div className="absolute -top-2 -left-2 w-5 h-5 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center font-medium z-20 shadow-sm text-[10px]">
         {fileIndex + 1}
       </div>
       
@@ -201,14 +203,14 @@ export const MiniFileThumbnail = ({ file, fileIndex, onRemove, className }: Mini
       <Button
         variant="destructive"
         size="sm"
-        className="absolute -top-1 -right-1 w-4 h-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute -top-2 -right-2 w-5 h-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-30 shadow-sm"
         onClick={() => onRemove(fileIndex)}
       >
         <X className="w-3 h-3" />
       </Button>
       
       {/* Hover tooltip */}
-      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-border z-10">
+      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-border z-40 shadow-lg">
         {file.name}
         <br />
         <span className="text-muted-foreground">
