@@ -446,7 +446,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
         {(() => {
           const totalPriceCents = attachedFiles.reduce((sum, file) => sum + (file.price_cents || 0), 0);
           return totalPriceCents > 0 ? (
-            <div className="absolute top-[22px] right-4 z-10">
+            <div className="absolute top-[20px] right-4 z-10">
               <div className="bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded-full">
                 ${(totalPriceCents / 100).toFixed(2)}
               </div>
