@@ -677,7 +677,14 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
 
   const handleLibraryAttach = (files: any[]) => {
-    setAttachedFiles(files);
+    // Append new files and deduplicate by id, enforce 50 file limit
+    setAttachedFiles(prev => {
+      const combined = [...prev, ...files];
+      const deduped = combined.filter((file, index, arr) => 
+        arr.findIndex(f => f.id === file.id) === index
+      );
+      return deduped.slice(0, 50); // Enforce 50 file limit
+    });
     setShowLibraryDialog(false);
   };
 
@@ -699,9 +706,17 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
     });
   };
 
+  const totalFileCount = attachedFiles.length + rawFiles.length;
+  
   const actionButtons = [
     { icon: Bot, label: 'AI', color: 'text-purple-500', onClick: () => setShowAISettingsDialog(true) },
-    { icon: Library, label: 'Library', color: 'text-primary', onClick: () => setShowLibraryDialog(true) },
+    { 
+      icon: Library, 
+      label: `Library ${totalFileCount > 0 ? `(${totalFileCount}/50)` : ''}`, 
+      color: 'text-primary', 
+      onClick: () => setShowLibraryDialog(true),
+      disabled: () => totalFileCount >= 50
+    },
     { icon: Mic, label: 'Voice', color: 'text-purple-500', onClick: () => {} },
     // Only show tip button for fans, not for creators/admin
     ...(!isCreator ? [{ icon: Gift, label: 'Tip', color: 'text-yellow-500', onClick: () => {} }] : []),
@@ -1165,6 +1180,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
         onClose={() => setShowLibraryDialog(false)}
         onAttachFiles={handleLibraryAttach}
         currentUserId={user.id}
+        alreadySelectedFiles={attachedFiles}
       />
       
       {/* PPV Pricing Dialog */}

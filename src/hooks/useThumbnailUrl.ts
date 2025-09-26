@@ -19,18 +19,26 @@ export const useThumbnailUrl = (thumbnailPath?: string) => {
       console.log('useThumbnailUrl - Attempting to load thumbnail:', thumbnailPath);
       
       try {
+        // Normalize the path - remove "content/" prefix if present
+        let normalizedPath = thumbnailPath;
+        if (normalizedPath.startsWith('content/')) {
+          normalizedPath = normalizedPath.substring(8); // Remove "content/" prefix
+        }
+        
+        console.log('Normalized path:', normalizedPath);
+        
         // Use direct storage access with proper authentication
         const { data, error: urlError } = await supabase.storage
           .from('content')
-          .createSignedUrl(thumbnailPath, 3600); // 1 hour expiry
+          .createSignedUrl(normalizedPath, 3600); // 1 hour expiry
 
         if (urlError) {
           console.error('Error generating thumbnail URL:', urlError);
-          console.log('Failed path:', thumbnailPath);
+          console.log('Failed path:', normalizedPath, 'Original path:', thumbnailPath);
           setError(urlError.message);
           setThumbnailUrl(null);
         } else {
-          console.log('Successfully generated thumbnail URL for:', thumbnailPath);
+          console.log('Successfully generated thumbnail URL for:', normalizedPath);
           setThumbnailUrl(data.signedUrl);
         }
       } catch (err) {
