@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { useThumbnailUrl } from '@/hooks/useThumbnailUrl';
 
 interface MediaItem {
   id: string;
@@ -25,72 +24,42 @@ interface MiniLibraryThumbnailProps {
 }
 
 export const MiniLibraryThumbnail = ({ file, fileIndex, onRemove, className }: MiniLibraryThumbnailProps) => {
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Determine which path to use for thumbnail URL generation
+  const pathToSign = file.type === 'video'
+    ? file.thumbnail_path ?? undefined
+    : (file.thumbnail_path || file.storage_path);
+  
+  const { thumbnailUrl: signedUrl, loading } = useThumbnailUrl(pathToSign);
+  
+  // For videos, fallback to tiny_placeholder if no signed URL available
+  const displayedUrl = signedUrl || (file.type === 'video' ? file.tiny_placeholder ?? null : null);
 
-  useEffect(() => {
-    const loadThumbnail = async () => {
-      setIsLoading(true);
-      
-      try {
-        if (file.type === 'image' || file.type === 'gif') {
-          // For images, get the secure URL directly
-          const { data, error } = await supabase.storage
-            .from('content')
-            .createSignedUrl(file.storage_path, 3600);
-          
-          if (error) {
-            console.error('Error generating image URL:', error);
-            setThumbnailUrl(null);
-          } else {
-            setThumbnailUrl(data.signedUrl);
-          }
-        } else if (file.type === 'video') {
-          // For videos, try thumbnail_path first
-          let foundUrl: string | null = null;
-          
-          if (file.thumbnail_path) {
-            const { data, error } = await supabase.storage
-              .from('content')
-              .createSignedUrl(file.thumbnail_path, 3600);
-            
-            if (!error && data?.signedUrl) {
-              foundUrl = data.signedUrl;
-            }
-          }
-          
-          // If no thumbnail found but tiny_placeholder exists, use it
-          if (!foundUrl && file.tiny_placeholder) {
-            foundUrl = file.tiny_placeholder;
-          }
-          
-          setThumbnailUrl(foundUrl);
-        }
-      } catch (error) {
-        console.error('Error loading thumbnail:', error);
-        setThumbnailUrl(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadThumbnail();
-  }, [file.storage_path, file.type, file.thumbnail_path, file.tiny_placeholder]);
+  console.debug('MiniLibraryThumbnail:', {
+    fileId: file.id,
+    fileType: file.type,
+    pathToSign,
+    signedUrl,
+    displayedUrl,
+    loading
+  });
 
   const renderContent = () => {
-    if (isLoading) {
+    if (loading) {
       return (
         <div className="w-full h-full bg-muted animate-pulse rounded" />
       );
     }
 
-    if (thumbnailUrl && (file.type === 'image' || file.type === 'gif' || file.type === 'video')) {
+    if (displayedUrl && (file.type === 'image' || file.type === 'gif' || file.type === 'video')) {
       return (
         <img
-          src={thumbnailUrl}
+          src={displayedUrl}
           alt={file.title}
-          className="w-full h-full object-cover rounded overflow-hidden"
-          onError={() => setThumbnailUrl(null)}
+          className="w-full h-full object-cover block"
+          onError={(e) => {
+            console.error('Failed to load thumbnail:', displayedUrl);
+            e.currentTarget.style.display = 'none';
+          }}
         />
       );
     }
@@ -111,7 +80,7 @@ export const MiniLibraryThumbnail = ({ file, fileIndex, onRemove, className }: M
     };
 
     return (
-      <div className="w-full h-full flex items-center justify-center text-lg overflow-hidden rounded">
+      <div className="w-full h-full flex items-center justify-center text-lg bg-muted/30">
         {getTypeIcon()}
       </div>
     );
