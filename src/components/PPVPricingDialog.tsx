@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { formatRevenue } from '@/lib/formatRevenue';
+import { useToast } from '@/hooks/use-toast';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -58,6 +59,9 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
   const [analytics, setAnalytics] = useState<PurchaseAnalytics | null>(null);
   const [purchaseHistory, setPurchaseHistory] = useState<PurchaseHistory[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  
+  const MAX_PRICE = 10000; // $10,000 maximum
 
   // Initialize prices from suggested prices
   useEffect(() => {
@@ -147,7 +151,16 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
   };
 
   const handlePriceSave = (fileId: string) => {
-    const price = Math.round(parseFloat(tempPrice || '0') * 100);
+    const priceInDollars = parseFloat(tempPrice || '0');
+    if (priceInDollars > MAX_PRICE) {
+      toast({
+        title: "Price Limit Exceeded",
+        description: `Maximum allowed price is $${MAX_PRICE.toLocaleString('en-US')}`,
+        variant: "destructive",
+      });
+      return;
+    }
+    const price = Math.round(priceInDollars * 100);
     setFilePrices(prev => ({ ...prev, [fileId]: price }));
     setEditingFile(null);
     setTempPrice('');
@@ -215,6 +228,7 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
                                 className="w-20"
                                 step="0.01"
                                 min="0"
+                                max="10000"
                               />
                               <Button
                                 size="sm"
@@ -273,11 +287,23 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
                     <Input
                       type="number"
                       value={(customTotalPrice / 100).toFixed(2)}
-                      onChange={(e) => setCustomTotalPrice(Math.round(parseFloat(e.target.value || '0') * 100))}
+                      onChange={(e) => {
+                        const priceInDollars = parseFloat(e.target.value || '0');
+                        if (priceInDollars > MAX_PRICE) {
+                          toast({
+                            title: "Price Limit Exceeded",
+                            description: `Maximum allowed price is $${MAX_PRICE.toLocaleString('en-US')}`,
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        setCustomTotalPrice(Math.round(priceInDollars * 100));
+                      }}
                       placeholder="0.00"
                       className="w-32 text-right text-xl font-bold"
                       step="0.01"
                       min="0"
+                      max="10000"
                     />
                   </div>
                 </div>
