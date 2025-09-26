@@ -59,7 +59,8 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
   const [analytics, setAnalytics] = useState<PurchaseAnalytics | null>(null);
   const [purchaseHistory, setPurchaseHistory] = useState<PurchaseHistory[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const [totalPriceError, setTotalPriceError] = useState<string>('');
+  const [filePriceError, setFilePriceError] = useState<string>('');
   
   const MAX_PRICE = 10000; // $10,000 maximum
 
@@ -153,13 +154,10 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
   const handlePriceSave = (fileId: string) => {
     const priceInDollars = parseFloat(tempPrice || '0');
     if (priceInDollars > MAX_PRICE) {
-      toast({
-        title: "Price Limit Exceeded",
-        description: `Maximum allowed price is $${MAX_PRICE.toLocaleString('en-US')}`,
-        variant: "destructive",
-      });
+      setFilePriceError(`Maximum allowed price is $${MAX_PRICE.toLocaleString('en-US')}`);
       return;
     }
+    setFilePriceError('');
     const price = Math.round(priceInDollars * 100);
     setFilePrices(prev => ({ ...prev, [fileId]: price }));
     setEditingFile(null);
@@ -169,6 +167,7 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
   const handlePriceCancel = () => {
     setEditingFile(null);
     setTempPrice('');
+    setFilePriceError('');
   };
 
   const calculatedTotalPrice = Object.values(filePrices).reduce((sum, price) => sum + price, 0);
@@ -218,33 +217,38 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
                         </div>
                         
                         <div className="flex items-center gap-2">
-                          {editingFile === file.id ? (
-                            <div className="flex items-center gap-2">
-                              <Input
-                                type="number"
-                                value={tempPrice}
-                                onChange={(e) => setTempPrice(e.target.value)}
-                                placeholder="0.00"
-                                className="w-20"
-                                step="0.01"
-                                min="0"
-                                max="10000"
-                              />
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handlePriceSave(file.id)}
-                              >
-                                <Check className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={handlePriceCancel}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
+                           {editingFile === file.id ? (
+                             <div className="space-y-2">
+                               <div className="flex items-center gap-2">
+                                 <Input
+                                   type="number"
+                                   value={tempPrice}
+                                   onChange={(e) => setTempPrice(e.target.value)}
+                                   placeholder="0.00"
+                                   className="w-20"
+                                   step="0.01"
+                                   min="0"
+                                   max="10000"
+                                 />
+                                 <Button
+                                   size="sm"
+                                   variant="ghost"
+                                   onClick={() => handlePriceSave(file.id)}
+                                 >
+                                   <Check className="h-4 w-4" />
+                                 </Button>
+                                 <Button
+                                   size="sm"
+                                   variant="ghost"
+                                   onClick={handlePriceCancel}
+                                 >
+                                   <X className="h-4 w-4" />
+                                 </Button>
+                               </div>
+                               {filePriceError && (
+                                 <p className="text-sm text-destructive">{filePriceError}</p>
+                               )}
+                             </div>
                           ) : (
                             <div className="flex items-center gap-2">
                               <Badge variant="secondary" className="text-lg font-semibold">
@@ -290,13 +294,10 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
                       onChange={(e) => {
                         const priceInDollars = parseFloat(e.target.value || '0');
                         if (priceInDollars > MAX_PRICE) {
-                          toast({
-                            title: "Price Limit Exceeded",
-                            description: `Maximum allowed price is $${MAX_PRICE.toLocaleString('en-US')}`,
-                            variant: "destructive",
-                          });
+                          setTotalPriceError(`Maximum allowed price is $${MAX_PRICE.toLocaleString('en-US')}`);
                           return;
                         }
+                        setTotalPriceError('');
                         setCustomTotalPrice(Math.round(priceInDollars * 100));
                       }}
                       placeholder="0.00"
@@ -306,6 +307,9 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
                       max="10000"
                     />
                   </div>
+                  {totalPriceError && (
+                    <p className="text-sm text-destructive mt-2">{totalPriceError}</p>
+                  )}
                 </div>
                 
                 {customTotalPrice !== calculatedTotalPrice && (
