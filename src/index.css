@@ -619,28 +619,38 @@ button:hover svg,
   z-index: 240 !important;
 }
 
-/* Thumbnail attachment scrollbar - thinner with no arrow buttons */
+/* Thumbnail attachment scrollbar - truly thin and no arrow buttons */
+.scrollbar-thumbnail {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary) / 0.4) var(--scrollbar-track);
+}
+
 .scrollbar-thumbnail::-webkit-scrollbar {
-  height: var(--scrollbar-width-thin);
+  height: var(--scrollbar-width-thin) !important; /* 8px */
 }
 
 .scrollbar-thumbnail::-webkit-scrollbar-button {
-  display: none;
+  width: 0;
+  height: 0;
+  display: none !important; /* hide left/right arrows */
+  background: transparent;
+  border: 0;
 }
 
 .scrollbar-thumbnail::-webkit-scrollbar-track {
-  background: var(--scrollbar-track-color);
+  background: var(--scrollbar-track) !important;
   border-radius: var(--scrollbar-border-radius);
+  margin: 0 !important; /* remove extra margins so it doesn't look thicker */
 }
 
 .scrollbar-thumbnail::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb-color);
+  background: var(--scrollbar-thumb) !important;
   border-radius: var(--scrollbar-border-radius);
-  border: var(--scrollbar-thumb-border);
+  border: 0 !important; /* remove border that made it look thicker */
 }
 
 .scrollbar-thumbnail::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover-color);
+  background: var(--scrollbar-thumb-hover) !important;
 }
 
 /* Responsive sidebar auto-collapse - force collapse on narrow screens only when collapsed */
