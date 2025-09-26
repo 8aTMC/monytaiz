@@ -26,8 +26,14 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 interface MediaItem {
   id: string;
   title: string;
-  media_type: string;
-  file_size: number;
+  origin: 'upload' | 'story' | 'livestream' | 'message';
+  storage_path: string;
+  mime: string;
+  type: 'image' | 'video' | 'audio' | 'gif';
+  size_bytes: number;
+  tags: string[];
+  thumbnail_path?: string;
+  tiny_placeholder?: string;
   suggested_price_cents?: number;
 }
 
@@ -61,6 +67,7 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
   const [loading, setLoading] = useState(true);
   const [totalPriceError, setTotalPriceError] = useState<string>('');
   const [filePriceError, setFilePriceError] = useState<string>('');
+  const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string | null>>({});
   
   const MAX_PRICE = 10000; // $10,000 maximum
 
@@ -77,13 +84,14 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
     setCustomTotalPrice(calculatedTotal);
   }, [attachedFiles]);
 
-  // Load fan analytics
+  // Load fan analytics and thumbnails
   useEffect(() => {
     if (isOpen && fanId) {
       loadFanAnalytics();
       loadPurchaseHistory();
+      loadThumbnails();
     }
-  }, [isOpen, fanId]);
+  }, [isOpen, fanId, attachedFiles]);
 
   const loadFanAnalytics = async () => {
     try {
@@ -129,6 +137,50 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
     }
   };
 
+  const loadThumbnails = async () => {
+    const urls: Record<string, string | null> = {};
+    
+    for (const file of attachedFiles) {
+      try {
+        let thumbnailUrl: string | null = null;
+        
+        if (file.type === 'image' || file.type === 'gif') {
+          // For images, get the secure URL directly
+          const { data, error } = await supabase.storage
+            .from('content')
+            .createSignedUrl(file.storage_path, 3600);
+          
+          if (!error && data?.signedUrl) {
+            thumbnailUrl = data.signedUrl;
+          }
+        } else if (file.type === 'video') {
+          // For videos, try thumbnail_path first
+          if (file.thumbnail_path) {
+            const { data, error } = await supabase.storage
+              .from('content')
+              .createSignedUrl(file.thumbnail_path, 3600);
+            
+            if (!error && data?.signedUrl) {
+              thumbnailUrl = data.signedUrl;
+            }
+          }
+          
+          // If no thumbnail found but tiny_placeholder exists, use it
+          if (!thumbnailUrl && file.tiny_placeholder) {
+            thumbnailUrl = file.tiny_placeholder;
+          }
+        }
+        
+        urls[file.id] = thumbnailUrl;
+      } catch (error) {
+        console.error('Error loading thumbnail for file:', file.id, error);
+        urls[file.id] = null;
+      }
+    }
+    
+    setThumbnailUrls(urls);
+  };
+
   const getFileTypeIcon = (type: string) => {
     switch (type) {
       case 'image': return <Image className="h-4 w-4" />;
@@ -136,6 +188,28 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
       case 'audio': return <Music className="h-4 w-4" />;
       default: return <FileText className="h-4 w-4" />;
     }
+  };
+
+  const renderThumbnail = (file: MediaItem) => {
+    const thumbnailUrl = thumbnailUrls[file.id];
+    
+    if (thumbnailUrl && (file.type === 'image' || file.type === 'gif' || file.type === 'video')) {
+      return (
+        <img
+          src={thumbnailUrl}
+          alt={file.title}
+          className="w-12 h-12 object-cover rounded"
+          onError={() => setThumbnailUrls(prev => ({ ...prev, [file.id]: null }))}
+        />
+      );
+    }
+    
+    // Fallback to icon
+    return (
+      <div className="w-12 h-12 rounded bg-muted flex items-center justify-center">
+        {getFileTypeIcon(file.type)}
+      </div>
+    );
   };
 
   const formatFileSize = (bytes: number) => {
@@ -198,20 +272,18 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
           </TabsList>
 
           <TabsContent value="pricing" className="flex-1 flex flex-col space-y-4">
-            <ScrollArea className="flex-1">
-              <div className="space-y-3">
+            <ScrollArea className="flex-1 max-h-96">
+              <div className="space-y-3 pr-4">
                 {attachedFiles.map((file) => (
                   <Card key={file.id}>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-muted">
-                            {getFileTypeIcon(file.media_type)}
-                          </div>
+                          {renderThumbnail(file)}
                           <div>
                             <p className="font-medium">{file.title}</p>
                             <p className="text-sm text-muted-foreground">
-                              {file.media_type} • {formatFileSize(file.file_size)}
+                              {file.type} • {formatFileSize(file.size_bytes)}
                             </p>
                           </div>
                         </div>
