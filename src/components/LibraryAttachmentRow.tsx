@@ -25,16 +25,21 @@ export const LibraryAttachmentRow = ({ files, onRemoveFile, className }: Library
   if (files.length === 0) return null;
 
   return (
-    <div className={cn("relative z-10 h-16", className)}>
-      <div className="flex gap-2 overflow-x-auto h-16 py-2 px-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/30">
-        {files.map((file, index) => (
-          <MiniLibraryThumbnail
-            key={file.id}
-            file={file}
-            fileIndex={index}
-            onRemove={onRemoveFile}
-          />
-        ))}
+    <div className={cn("relative z-50 mb-2", className)}>
+      <div className="bg-muted/30 rounded-lg border border-border p-2">
+        <div className="text-xs text-muted-foreground mb-2">
+          {files.length} file{files.length !== 1 ? 's' : ''} attached
+        </div>
+        <div className="flex gap-2 overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/30">
+          {files.map((file, index) => (
+            <MiniLibraryThumbnail
+              key={file.id}
+              file={file}
+              fileIndex={index}
+              onRemove={onRemoveFile}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
