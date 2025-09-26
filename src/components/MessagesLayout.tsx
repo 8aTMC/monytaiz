@@ -699,14 +699,12 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
       price_cents: filePrices[file.id] || 0
     }));
     setAttachedFiles(updatedFiles);
-    
-    toast({
-      title: "Pricing set",
-      description: `Total price: $${(totalPriceCents / 100).toFixed(2)}`,
-    });
   };
 
   const totalFileCount = attachedFiles.length + rawFiles.length;
+  const totalPriceCents = attachedFiles.reduce((sum, file) => sum + (file.price_cents || 0), 0);
+  const hasFilesAttached = totalFileCount > 0;
+  const hasPriceSet = totalPriceCents > 0;
   
   const actionButtons = [
     { icon: Bot, label: 'AI', color: 'text-purple-500', onClick: () => setShowAISettingsDialog(true) },
@@ -715,12 +713,20 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
       label: `Library ${totalFileCount > 0 ? `(${totalFileCount}/50)` : ''}`, 
       color: 'text-primary', 
       onClick: () => setShowLibraryDialog(true),
-      disabled: () => totalFileCount >= 50
+      disabled: () => totalFileCount >= 50,
+      active: hasFilesAttached
     },
     { icon: Mic, label: 'Voice', color: 'text-purple-500', onClick: () => {} },
     // Only show tip button for fans, not for creators/admin
     ...(!isCreator ? [{ icon: Gift, label: 'Tip', color: 'text-yellow-500', onClick: () => {} }] : []),
-    { icon: DollarSign, label: 'Price', color: 'text-emerald-500', onClick: () => setShowPricingDialog(true), disabled: () => rawFiles.length === 0 && attachedFiles.length === 0 },
+    { 
+      icon: DollarSign, 
+      label: 'Price', 
+      color: 'text-emerald-500', 
+      onClick: () => setShowPricingDialog(true), 
+      disabled: () => rawFiles.length === 0 && attachedFiles.length === 0,
+      active: hasPriceSet
+    },
     { icon: FileText, label: 'Scripts', color: 'text-orange-500', onClick: () => {} },
     { icon: AtSign, label: 'Tag Creator', color: 'text-primary', onClick: () => {} },
   ];
@@ -946,7 +952,16 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
               </div>
 
               {/* Message Input - Fixed at bottom */}
-              <div className="flex-none p-4 border-t border-border bg-background">
+              <div className="flex-none p-4 border-t border-border bg-background relative">
+                {/* Price tag display */}
+                {hasPriceSet && (
+                  <div className="absolute top-2 right-4 z-10">
+                    <div className="bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded-full">
+                      ${(totalPriceCents / 100).toFixed(2)}
+                    </div>
+                  </div>
+                )}
+                
                 {/* Upload Progress - Remove if not needed */}
                 {hasFiles && (
                   <div className="mb-4">
@@ -975,7 +990,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                       key={index}
                       variant="ghost"
                       size="sm"
-                      className="h-8 px-3"
+                      className={`h-8 px-3 ${button.active ? (button.label === 'Library' ? 'bg-blue-100 border-blue-300' : 'bg-emerald-100 border-emerald-300') : ''}`}
                       title={button.label}
                       onClick={button.onClick}
                       disabled={button.disabled?.() || false}

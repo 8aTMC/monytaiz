@@ -341,11 +341,6 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
       price_cents: filePrices[file.id] || 0
     }));
     setAttachedFiles(updatedFiles);
-    
-    toast({
-      title: "Pricing set",
-      description: `Total price: $${(totalPriceCents / 100).toFixed(2)}`,
-    });
   };
 
   if (loading) {
@@ -446,7 +441,19 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
       )}
       
       {/* Fixed Input Area - Always at bottom */}
-      <div className="flex-none h-[81px] p-4 border-t border-border bg-background">
+      <div className="flex-none h-[81px] p-4 border-t border-border bg-background relative">
+        {/* Price tag display */}
+        {(() => {
+          const totalPriceCents = attachedFiles.reduce((sum, file) => sum + (file.price_cents || 0), 0);
+          return totalPriceCents > 0 ? (
+            <div className="absolute top-2 right-4 z-10">
+              <div className="bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded-full">
+                ${(totalPriceCents / 100).toFixed(2)}
+              </div>
+            </div>
+          ) : null;
+        })()}
+        
         {/* Action Buttons Row */}
         <div className="flex items-center gap-2 mb-2">
           <FileUploadButton 
@@ -460,7 +467,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           <Button 
             variant="ghost" 
             size="sm" 
-            className="h-8 px-3" 
+            className={`h-8 px-3 ${(attachedFiles.length > 0 || rawFiles.length > 0) ? 'bg-blue-100 border-blue-300' : ''}`}
             title="Library"
             onClick={() => setShowLibraryDialog(true)}
           >
@@ -475,7 +482,10 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           <Button 
             variant="ghost" 
             size="sm" 
-            className="h-8 px-3" 
+            className={`h-8 px-3 ${(() => {
+              const totalPriceCents = attachedFiles.reduce((sum, file) => sum + (file.price_cents || 0), 0);
+              return totalPriceCents > 0 ? 'bg-emerald-100 border-emerald-300' : '';
+            })()} `}
             title="Price"
             onClick={() => setShowPricingDialog(true)}
             disabled={attachedFiles.length === 0 && rawFiles.length === 0}
