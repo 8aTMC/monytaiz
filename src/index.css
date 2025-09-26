@@ -625,16 +625,27 @@ button:hover svg,
   scrollbar-color: hsl(var(--primary) / 0.4) var(--scrollbar-track);
 }
 
+/* Base WebKit scrollbar thickness */
 .scrollbar-thumbnail::-webkit-scrollbar {
   height: var(--scrollbar-width-thin) !important; /* 8px */
 }
+/* Explicitly enforce horizontal thickness */
+.scrollbar-thumbnail::-webkit-scrollbar:horizontal {
+  height: var(--scrollbar-width-thin) !important; /* 8px */
+}
 
-.scrollbar-thumbnail::-webkit-scrollbar-button {
-  width: 0;
-  height: 0;
-  display: none !important; /* hide left/right arrows */
-  background: transparent;
-  border: 0;
+/* Hide all possible WebKit arrow button states */
+.scrollbar-thumbnail::-webkit-scrollbar-button,
+.scrollbar-thumbnail::-webkit-scrollbar-button:start,
+.scrollbar-thumbnail::-webkit-scrollbar-button:end,
+.scrollbar-thumbnail::-webkit-scrollbar-button:single-button,
+.scrollbar-thumbnail::-webkit-scrollbar-button:horizontal:decrement,
+.scrollbar-thumbnail::-webkit-scrollbar-button:horizontal:increment {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
 }
 
 .scrollbar-thumbnail::-webkit-scrollbar-track {
@@ -651,6 +662,11 @@ button:hover svg,
 
 .scrollbar-thumbnail::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover) !important;
+}
+
+/* Remove corner color to keep it seamless */
+.scrollbar-thumbnail::-webkit-scrollbar-corner {
+  background: transparent !important;
 }
 
 /* Responsive sidebar auto-collapse - force collapse on narrow screens only when collapsed */
