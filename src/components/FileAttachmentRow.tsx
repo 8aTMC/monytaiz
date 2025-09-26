@@ -55,8 +55,8 @@ export const FileAttachmentRow = ({ files, onRemoveFile, className }: FileAttach
   if (files.length === 0) return null;
 
   return (
-    <div className={cn("mb-2 p-2 bg-muted/30 rounded-lg border border-border", className)}>
-      <div className="flex items-center justify-between mb-2">
+    <div className={cn("p-1 bg-muted/30 rounded-lg border border-border", className)}>
+      <div className="flex items-center justify-between mb-1">
         <div className="text-xs text-muted-foreground">
           {files.length} file{files.length !== 1 ? 's' : ''} attached
         </div>
@@ -88,7 +88,7 @@ export const FileAttachmentRow = ({ files, onRemoveFile, className }: FileAttach
       <ScrollArea className="w-full">
         <div 
           ref={scrollRef}
-          className="flex gap-2 pb-2"
+          className="flex gap-2 pb-1"
           style={{ scrollBehavior: 'smooth' }}
         >
           {files.map((file, index) => (
