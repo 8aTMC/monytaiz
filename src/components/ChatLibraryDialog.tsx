@@ -14,6 +14,7 @@ import { MediaThumbnail } from '@/components/MediaThumbnail';
 import { useLibraryData } from '@/hooks/useLibraryData';
 import { LibraryFilterState } from '@/types/library-filters';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Search, 
   Filter, 
@@ -60,6 +61,7 @@ interface ChatLibraryDialogProps {
 }
 
 export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserId, alreadySelectedFiles = [] }: ChatLibraryDialogProps) => {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [selectedItems, setSelectedItems] = useState<MediaItem[]>([]);
@@ -175,17 +177,36 @@ export const ChatLibraryDialog = ({ isOpen, onClose, onAttachFiles, currentUserI
     
     const newSelectedFiles = new Set(selectedFiles);
     const newSelectedItems = [...selectedItems];
+    let filesAdded = 0;
+    let lastAddedIndex = startIndex;
     
     for (let i = minIndex; i <= maxIndex; i++) {
       const item = mediaData[i];
       if (item && !selectedFiles.has(item.id)) {
+        // Check if adding this file would exceed the 50-file limit
+        if (newSelectedFiles.size >= 50) {
+          break; // Stop adding files when limit is reached
+        }
+        
         newSelectedFiles.add(item.id);
         newSelectedItems.push(item);
+        filesAdded++;
+        lastAddedIndex = i;
       }
+    }
+    
+    // Show toast if we hit the limit and couldn't select all files in range
+    if (newSelectedFiles.size === 50 && filesAdded < (maxIndex - minIndex + 1)) {
+      toast({
+        title: "Selection limit reached",
+        description: `Selected ${filesAdded} files (limit of 50 reached)`,
+        variant: "default",
+      });
     }
     
     setSelectedFiles(newSelectedFiles);
     setSelectedItems(newSelectedItems);
+    setLastSelectedIndex(lastAddedIndex); // Update to last file actually selected
   };
 
   const isAlreadyAttached = (fileId: string) => {
