@@ -12,8 +12,8 @@ export const FileAttachmentRow = ({ files, onRemoveFile, className }: FileAttach
   if (files.length === 0) return null;
 
   return (
-    <div className={cn("relative mb-2 max-w-full", className)}>
-      <div className="flex items-center gap-2 overflow-x-auto py-1">
+    <div className={cn("relative mb-4 max-w-full", className)}>
+      <div className="flex items-center gap-2 overflow-x-auto pt-3 pb-2">
         {files.map((file, index) => (
           <div key={`${file.name}-${index}`} className="flex-shrink-0">
             <MiniFileThumbnail
