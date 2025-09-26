@@ -955,7 +955,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
               <div className="flex-none p-4 border-t border-border bg-background relative">
                 {/* Price tag display */}
                 {hasPriceSet && (
-                  <div className="absolute top-14 right-4 z-10">
+                  <div className="absolute top-6 right-4 z-10">
                     <div className="bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded-full">
                       ${(totalPriceCents / 100).toFixed(2)}
                     </div>
