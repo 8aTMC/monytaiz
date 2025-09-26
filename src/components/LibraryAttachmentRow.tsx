@@ -25,7 +25,7 @@ export const LibraryAttachmentRow = ({ files, onRemoveFile, className }: Library
   if (files.length === 0) return null;
 
   return (
-    <div className={cn("relative h-16", className)}>
+    <div className={cn("relative z-10 h-16", className)}>
       <div className="flex gap-2 overflow-x-auto h-16 py-2 px-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/30">
         {files.map((file, index) => (
           <MiniLibraryThumbnail

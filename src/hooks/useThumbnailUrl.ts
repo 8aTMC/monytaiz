@@ -15,35 +15,59 @@ export const useThumbnailUrl = (thumbnailPath?: string) => {
     const generateThumbnailUrl = async () => {
       setLoading(true);
       setError(null);
-      
-      console.log('useThumbnailUrl - Attempting to load thumbnail:', thumbnailPath);
-      
+
       try {
-        // Normalize the path - remove "content/" prefix if present
-        let normalizedPath = thumbnailPath;
-        if (normalizedPath.startsWith('content/')) {
-          normalizedPath = normalizedPath.substring(8); // Remove "content/" prefix
+        // Handle full URLs directly (no signing needed)
+        if (thumbnailPath.startsWith('http://') || thumbnailPath.startsWith('https://')) {
+          console.debug('useThumbnailUrl: using direct URL');
+          setThumbnailUrl(thumbnailPath);
+          return;
         }
-        
-        console.log('Normalized path:', normalizedPath);
-        
-        // Use direct storage access with proper authentication
-        const { data, error: urlError } = await supabase.storage
-          .from('content')
-          .createSignedUrl(normalizedPath, 3600); // 1 hour expiry
+
+        // Normalize path: trim leading slash and remove "content/" prefix if present
+        let originalPath = thumbnailPath;
+        if (originalPath.startsWith('/')) originalPath = originalPath.slice(1);
+        let normalizedPath = originalPath.startsWith('content/')
+          ? originalPath.substring(8)
+          : originalPath;
+
+        console.debug('useThumbnailUrl: signing path', { normalizedPath, originalPath });
+
+        // Try normalized path first
+        const attemptSign = async (path: string) => {
+          const { data, error: urlError } = await supabase.storage
+            .from('content')
+            .createSignedUrl(path, 3600);
+          return { data, urlError } as const;
+        };
+
+        let { data, urlError } = await attemptSign(normalizedPath);
+
+        // If failed, try the original path as a fallback (in case objects were stored with bucket prefix)
+        if (urlError && originalPath !== normalizedPath) {
+          console.warn('useThumbnailUrl: first sign attempt failed, retrying with original path', {
+            error: urlError.message,
+            tried: normalizedPath,
+            fallback: originalPath,
+          });
+          ({ data, urlError } = await attemptSign(originalPath));
+        }
 
         if (urlError) {
-          console.error('Error generating thumbnail URL:', urlError);
-          console.log('Failed path:', normalizedPath, 'Original path:', thumbnailPath);
+          console.warn('useThumbnailUrl: failed to generate signed URL', {
+            message: urlError.message,
+            pathTried: originalPath === normalizedPath ? normalizedPath : `${normalizedPath} | ${originalPath}`,
+          });
           setError(urlError.message);
           setThumbnailUrl(null);
-        } else {
-          console.log('Successfully generated thumbnail URL for:', normalizedPath);
+        } else if (data?.signedUrl) {
           setThumbnailUrl(data.signedUrl);
+        } else {
+          setError('No URL generated');
+          setThumbnailUrl(null);
         }
       } catch (err) {
-        console.error('Error generating thumbnail URL:', err);
-        console.log('Failed path:', thumbnailPath);
+        console.warn('useThumbnailUrl: unexpected error generating URL');
         setError('Failed to generate thumbnail URL');
         setThumbnailUrl(null);
       } finally {

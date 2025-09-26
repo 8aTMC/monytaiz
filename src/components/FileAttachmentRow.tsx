@@ -12,7 +12,7 @@ export const FileAttachmentRow = ({ files, onRemoveFile, className }: FileAttach
   if (files.length === 0) return null;
 
   return (
-    <div className={cn("p-1 bg-muted/30 rounded-lg border border-border", className)}>
+    <div className={cn("relative z-10 p-1 bg-muted/30 rounded-lg border border-border", className)}>
       <div className="flex items-center justify-between mb-1">
         <div className="text-xs text-muted-foreground">
           {files.length} file{files.length !== 1 ? 's' : ''} attached

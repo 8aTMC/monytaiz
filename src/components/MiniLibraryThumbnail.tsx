@@ -1,8 +1,8 @@
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useThumbnailUrl } from '@/hooks/useThumbnailUrl';
-
 interface MediaItem {
   id: string;
   title: string;
@@ -30,6 +30,8 @@ export const MiniLibraryThumbnail = ({ file, fileIndex, onRemove, className }: M
     : (file.thumbnail_path || file.storage_path);
   
   const { thumbnailUrl: signedUrl, loading } = useThumbnailUrl(pathToSign);
+  const [imgError, setImgError] = useState(false);
+  useEffect(() => { setImgError(false); }, [file.id, signedUrl]);
   
   // For videos, fallback to tiny_placeholder if no signed URL available
   const displayedUrl = signedUrl || (file.type === 'video' ? file.tiny_placeholder ?? null : null);
@@ -40,7 +42,8 @@ export const MiniLibraryThumbnail = ({ file, fileIndex, onRemove, className }: M
     pathToSign,
     signedUrl,
     displayedUrl,
-    loading
+    loading,
+    imgError
   });
 
   const renderContent = () => {
@@ -50,16 +53,17 @@ export const MiniLibraryThumbnail = ({ file, fileIndex, onRemove, className }: M
       );
     }
 
-    if (displayedUrl && (file.type === 'image' || file.type === 'gif' || file.type === 'video')) {
+    if (!imgError && displayedUrl && (file.type === 'image' || file.type === 'gif' || file.type === 'video')) {
       return (
         <img
           src={displayedUrl}
           alt={file.title}
           className="w-full h-full object-cover block"
-          onError={(e) => {
-            console.error('Failed to load thumbnail:', displayedUrl);
-            e.currentTarget.style.display = 'none';
+          onError={() => {
+            console.warn('MiniLibraryThumbnail: image load failed, showing fallback', { displayedUrl, fileId: file.id });
+            setImgError(true);
           }}
+          loading="lazy"
         />
       );
     }
