@@ -54,6 +54,9 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
   const [filePrices, setFilePrices] = useState<Record<string, number>>({});
   const [editingFile, setEditingFile] = useState<string | null>(null);
   const [tempPrice, setTempPrice] = useState('');
+  const [customTotalPrice, setCustomTotalPrice] = useState<number | null>(null);
+  const [isEditingTotalPrice, setIsEditingTotalPrice] = useState(false);
+  const [tempTotalPrice, setTempTotalPrice] = useState('');
   const [analytics, setAnalytics] = useState<PurchaseAnalytics | null>(null);
   const [purchaseHistory, setPurchaseHistory] = useState<PurchaseHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -153,10 +156,32 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
     setTempPrice('');
   };
 
-  const totalPrice = Object.values(filePrices).reduce((sum, price) => sum + price, 0);
+  const calculatedTotalPrice = Object.values(filePrices).reduce((sum, price) => sum + price, 0);
+  const finalTotalPrice = customTotalPrice !== null ? customTotalPrice : calculatedTotalPrice;
+
+  const handleTotalPriceEdit = () => {
+    setIsEditingTotalPrice(true);
+    setTempTotalPrice((finalTotalPrice / 100).toFixed(2));
+  };
+
+  const handleTotalPriceSave = () => {
+    const price = Math.round(parseFloat(tempTotalPrice || '0') * 100);
+    setCustomTotalPrice(price);
+    setIsEditingTotalPrice(false);
+    setTempTotalPrice('');
+  };
+
+  const handleTotalPriceCancel = () => {
+    setIsEditingTotalPrice(false);
+    setTempTotalPrice('');
+  };
+
+  const handleResetToCalculated = () => {
+    setCustomTotalPrice(null);
+  };
 
   const handleConfirm = () => {
-    onConfirm(totalPrice, filePrices);
+    onConfirm(finalTotalPrice, filePrices);
     onClose();
   };
 
@@ -252,12 +277,70 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
                     <h3 className="font-semibold">Total Pack Price</h3>
                     <p className="text-sm text-muted-foreground">
                       {attachedFiles.length} file{attachedFiles.length !== 1 ? 's' : ''}
+                      {customTotalPrice !== null && (
+                        <span className="ml-2 text-xs text-orange-600">
+                          • Custom price (calculated: ${(calculatedTotalPrice / 100).toFixed(2)})
+                        </span>
+                      )}
                     </p>
                   </div>
-                  <div className="text-3xl font-bold text-primary">
-                    ${(totalPrice / 100).toFixed(2)}
+                  
+                  <div className="flex items-center gap-3">
+                    {isEditingTotalPrice ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={tempTotalPrice}
+                          onChange={(e) => setTempTotalPrice(e.target.value)}
+                          placeholder="0.00"
+                          className="w-28 text-right text-xl font-bold"
+                          step="0.01"
+                          min="0"
+                        />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleTotalPriceSave}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleTotalPriceCancel}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <div className="text-3xl font-bold text-primary">
+                          ${(finalTotalPrice / 100).toFixed(2)}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleTotalPriceEdit}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
+                
+                {customTotalPrice !== null && (
+                  <div className="mt-3 pt-3 border-t">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleResetToCalculated}
+                      className="text-xs"
+                    >
+                      Reset to calculated price
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -351,7 +434,7 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
               Cancel
             </Button>
             <Button onClick={handleConfirm} className="min-w-[120px]">
-              Set Price ${(totalPrice / 100).toFixed(2)}
+              Set Price ${(finalTotalPrice / 100).toFixed(2)}
             </Button>
           </div>
         </div>
