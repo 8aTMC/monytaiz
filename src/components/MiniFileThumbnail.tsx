@@ -188,7 +188,7 @@ export const MiniFileThumbnail = ({ file, fileIndex, onRemove, className }: Mini
 
   return (
     <div className={cn("relative group", className)}>
-      <div className="w-12 h-12 rounded-md overflow-hidden border border-border bg-card flex items-center justify-center relative">
+      <div className="w-12 h-12 rounded-md border border-border bg-card flex items-center justify-center relative">
         <div className="relative w-full h-full z-10">
           {renderContent()}
         </div>

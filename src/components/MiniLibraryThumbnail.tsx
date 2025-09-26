@@ -92,7 +92,7 @@ export const MiniLibraryThumbnail = ({ file, fileIndex, onRemove, className }: M
 
   return (
     <div className={cn("relative group flex-shrink-0", className)}>
-      <div className="w-12 h-12 rounded border border-border bg-card relative overflow-hidden">
+      <div className="w-12 h-12 rounded border border-border bg-card relative">
         {/* File index badge */}
         <div className="absolute -top-2 -left-2 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center z-20 text-[10px] font-medium shadow-sm">
           {fileIndex + 1}
