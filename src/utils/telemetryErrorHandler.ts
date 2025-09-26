@@ -54,19 +54,25 @@ class TelemetryErrorHandlerImpl implements TelemetryErrorHandler {
     const telemetryErrorPatterns = [
       'lovable-api.com',
       'ERR_CONNECTION_CLOSED',
-      'ERR_NAME_NOT_RESOLVED',
+      'ERR_NAME_NOT_RESOLVED', 
+      'ERR_HTTP2_PROTOCOL_ERROR',
       'recorder.js',
       'network-plugin.ts',
       'Failed to fetch',
       'NetworkError',
       'CORS',
       'CSP',
-      'net::ERR_'
+      'net::ERR_',
+      'Auth loading',
+      'lovable.js',
+      'Sign out timeout',
+      'Session error'
     ];
     
     return telemetryErrorPatterns.some(pattern => 
       error.message.includes(pattern) || 
-      error.stack?.includes(pattern)
+      error.stack?.includes(pattern) ||
+      (error.name && error.name.includes('Auth'))
     );
   }
   

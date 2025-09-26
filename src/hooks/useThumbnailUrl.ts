@@ -19,7 +19,6 @@ export const useThumbnailUrl = (thumbnailPath?: string) => {
       try {
         // Handle full URLs directly (no signing needed)
         if (thumbnailPath.startsWith('http://') || thumbnailPath.startsWith('https://')) {
-          console.debug('useThumbnailUrl: using direct URL');
           setThumbnailUrl(thumbnailPath);
           return;
         }
@@ -31,7 +30,7 @@ export const useThumbnailUrl = (thumbnailPath?: string) => {
           ? originalPath.substring(8)
           : originalPath;
 
-        console.debug('useThumbnailUrl: signing path', { normalizedPath, originalPath });
+        // Removed debug logging to reduce console noise
 
         // Try normalized path first
         const attemptSign = async (path: string) => {
@@ -45,19 +44,10 @@ export const useThumbnailUrl = (thumbnailPath?: string) => {
 
         // If failed, try the original path as a fallback (in case objects were stored with bucket prefix)
         if (urlError && originalPath !== normalizedPath) {
-          console.warn('useThumbnailUrl: first sign attempt failed, retrying with original path', {
-            error: urlError.message,
-            tried: normalizedPath,
-            fallback: originalPath,
-          });
           ({ data, urlError } = await attemptSign(originalPath));
         }
 
         if (urlError) {
-          console.warn('useThumbnailUrl: failed to generate signed URL', {
-            message: urlError.message,
-            pathTried: originalPath === normalizedPath ? normalizedPath : `${normalizedPath} | ${originalPath}`,
-          });
           setError(urlError.message);
           setThumbnailUrl(null);
         } else if (data?.signedUrl) {
@@ -67,7 +57,6 @@ export const useThumbnailUrl = (thumbnailPath?: string) => {
           setThumbnailUrl(null);
         }
       } catch (err) {
-        console.warn('useThumbnailUrl: unexpected error generating URL');
         setError('Failed to generate thumbnail URL');
         setThumbnailUrl(null);
       } finally {
