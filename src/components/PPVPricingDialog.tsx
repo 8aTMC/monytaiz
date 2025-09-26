@@ -307,10 +307,13 @@ export const PPVPricingDialog = ({ isOpen, onClose, onConfirm, attachedFiles, fa
                       max="10000"
                     />
                   </div>
-                  {totalPriceError && (
-                    <p className="text-sm text-destructive mt-2">{totalPriceError}</p>
-                  )}
                 </div>
+                
+                {totalPriceError && (
+                  <div className="mt-3 pt-3 border-t">
+                    <p className="text-sm text-destructive">{totalPriceError}</p>
+                  </div>
+                )}
                 
                 {customTotalPrice !== calculatedTotalPrice && (
                   <div className="mt-3 pt-3 border-t">
