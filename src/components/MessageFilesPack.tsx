@@ -50,6 +50,7 @@ export const MessageFilesPack = ({
   const [showFullScreen, setShowFullScreen] = useState(false);
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
   const [navigationLoading, setNavigationLoading] = useState(false);
+  const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, 'portrait' | 'landscape' | 'square'>>({});
   
   // Group files by type (keep original types for internal logic)
   const groupedFiles = files.reduce((acc, file) => {
@@ -161,6 +162,45 @@ export const MessageFilesPack = ({
     setTimeout(() => setNavigationLoading(false), 300);
   };
 
+  // Handle image load to detect aspect ratio for smart cropping
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>, fileId: string) => {
+    const img = e.currentTarget;
+    const aspectRatio = img.naturalWidth / img.naturalHeight;
+    
+    let aspectType: 'portrait' | 'landscape' | 'square';
+    if (aspectRatio > 1.1) {
+      aspectType = 'landscape';
+    } else if (aspectRatio < 0.9) {
+      aspectType = 'portrait';
+    } else {
+      aspectType = 'square';
+    }
+    
+    setImageAspectRatios(prev => ({
+      ...prev,
+      [fileId]: aspectType
+    }));
+  };
+
+  // Get CSS classes for image based on aspect ratio
+  const getImageClasses = (fileId: string) => {
+    const aspectType = imageAspectRatios[fileId];
+    
+    if (aspectType === 'portrait') {
+      // Portrait: Fill width, crop height
+      return "w-full h-full object-cover object-center hover:scale-105 transition-transform duration-300";
+    } else if (aspectType === 'square') {
+      // Square: Show entire image
+      return "w-full h-full object-contain hover:scale-105 transition-transform duration-300";
+    } else if (aspectType === 'landscape') {
+      // Landscape: Fill height, crop sides
+      return "w-full h-full object-cover object-center hover:scale-105 transition-transform duration-300";
+    }
+    
+    // Default fallback while loading
+    return "w-full h-full object-cover object-center hover:scale-105 transition-transform duration-300";
+  };
+
   // Show initial loading state
   if (isLoading || files.length === 0) {
     return (
@@ -263,7 +303,8 @@ export const MessageFilesPack = ({
                   <img 
                     src={displayFile?.preview || displayFile?.url} 
                     alt={displayFile?.name}
-                    className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-300"
+                    className={getImageClasses(displayFile.id)}
+                    onLoad={(e) => handleImageLoad(e, displayFile.id)}
                     onError={(e) => {
                       console.log('Image load error:', displayFile?.url, displayFile?.preview);
                     }}
