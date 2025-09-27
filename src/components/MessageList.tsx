@@ -126,22 +126,14 @@ const MessageBubble = React.memo(({
         )}
         
         {/* File attachments */}
-        {message.has_attachments && !attachmentsLoading && attachments.length > 0 && (
+        {message.has_attachments && (
           <div className="w-full max-w-lg">
             <MessageFilesPack
-              files={attachments}
+              files={attachmentsLoading ? [] : attachments}
               messageId={message.id}
               isDownloadAllowed={true}
+              isLoading={attachmentsLoading}
             />
-          </div>
-        )}
-        
-        {message.has_attachments && attachmentsLoading && (
-          <div className={cn(
-            "rounded-lg px-3 py-2 bg-muted/50 text-muted-foreground",
-            "animate-pulse"
-          )}>
-            <p className="text-sm">Loading attachments...</p>
           </div>
         )}
         <div className={cn(

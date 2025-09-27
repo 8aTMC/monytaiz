@@ -26,6 +26,7 @@ interface MessageFilesPackProps {
   sellerId?: string;
   buyerId?: string;
   isDownloadAllowed?: boolean;
+  isLoading?: boolean;
 }
 
 const formatFileSize = (bytes: number) => {
@@ -42,11 +43,13 @@ export const MessageFilesPack = ({
   messageId, 
   sellerId, 
   buyerId,
-  isDownloadAllowed = false 
+  isDownloadAllowed = false,
+  isLoading = false 
 }: MessageFilesPackProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showFullScreen, setShowFullScreen] = useState(false);
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
+  const [navigationLoading, setNavigationLoading] = useState(false);
   
   // Group files by type (keep original types for internal logic)
   const groupedFiles = files.reduce((acc, file) => {
@@ -146,6 +149,31 @@ export const MessageFilesPack = ({
       setShowFullScreen(true);
     }
   };
+
+  // Handle navigation changes with loading state
+  const handleNavigation = (newIndex: number) => {
+    if (newIndex === currentIndex) return;
+    
+    setNavigationLoading(true);
+    setCurrentIndex(newIndex);
+    
+    // Clear loading state after a short delay to allow thumbnail to load
+    setTimeout(() => setNavigationLoading(false), 300);
+  };
+
+  // Show initial loading state
+  if (isLoading || files.length === 0) {
+    return (
+      <Card className="w-80 overflow-hidden">
+        <div className="aspect-video bg-muted animate-pulse flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Loading attachments...</p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   // If locked, show unlock interface with beautiful blur effect
   if (isLocked) {
@@ -282,30 +310,37 @@ export const MessageFilesPack = ({
                   </div>
                 )}
                 
+                {/* Navigation loading overlay */}
+                {navigationLoading && (
+                  <div className="absolute inset-0 bg-muted/80 flex items-center justify-center z-10">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+
                 {/* Navigation Controls */}
                 {orderedFiles.length > 1 && (
                   <>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white hover:bg-black/70"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white hover:bg-black/70 z-20"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setCurrentIndex(Math.max(0, currentIndex - 1));
+                        handleNavigation(Math.max(0, currentIndex - 1));
                       }}
-                      disabled={currentIndex === 0}
+                      disabled={currentIndex === 0 || navigationLoading}
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white hover:bg-black/70"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white hover:bg-black/70 z-20"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setCurrentIndex(Math.min(orderedFiles.length - 1, currentIndex + 1));
+                        handleNavigation(Math.min(orderedFiles.length - 1, currentIndex + 1));
                       }}
-                      disabled={currentIndex === orderedFiles.length - 1}
+                      disabled={currentIndex === orderedFiles.length - 1 || navigationLoading}
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
