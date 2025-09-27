@@ -104,7 +104,18 @@ export const useMessageAttachments = (messageId?: string) => {
             // Determine file type from mime_type or file_path
             const mimeType = mediaData.mime_type || '';
             const fileName = mediaData.original_filename || mediaData.title || `file-${record.file_order}`;
-            const filePath = mediaData.storage_path || mediaData.file_path || '';
+            
+            // Get correct file paths based on media table
+            let filePath = '';
+            let thumbnailPath = '';
+            
+            if (record.media_table === 'simple_media') {
+              filePath = mediaData.processed_path || mediaData.original_path || '';
+              thumbnailPath = mediaData.thumbnail_path || '';
+            } else {
+              filePath = mediaData.file_path || '';  
+              thumbnailPath = mediaData.thumbnail_url || '';
+            }
             
             let type = 'document';
             if (mimeType.startsWith('image/') || filePath.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
@@ -115,15 +126,18 @@ export const useMessageAttachments = (messageId?: string) => {
               type = 'audio';
             }
 
-            // Get secure URL
+            // Get secure URLs
             let url: string | undefined;
             let preview: string | undefined;
             
             if (filePath) {
               try {
                 url = await getDirectUrl(filePath);
-                // For videos, use the same URL as preview (thumbnail generation would be handled separately)
-                if (type === 'video' || type === 'image') {
+                
+                // For videos, use thumbnail if available, otherwise use main URL
+                if (type === 'video' && thumbnailPath) {
+                  preview = await getDirectUrl(thumbnailPath);
+                } else if (type === 'image') {
                   preview = url;
                 }
               } catch (urlError) {

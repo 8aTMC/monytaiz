@@ -47,10 +47,17 @@ export const MessageFilesPack = ({
   const [showFullScreen, setShowFullScreen] = useState(false);
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
   
-  // Group files by type and separate them properly
+  // Group files by type and normalize to plural types
   const groupedFiles = files.reduce((acc, file) => {
-    if (!acc[file.type]) acc[file.type] = [];
-    acc[file.type].push(file);
+    // Normalize singular types to plural
+    let pluralType = file.type;
+    if (file.type === 'image') pluralType = 'images';
+    else if (file.type === 'video') pluralType = 'videos';  
+    else if (file.type === 'document') pluralType = 'documents';
+    // audio stays as audio
+    
+    if (!acc[pluralType]) acc[pluralType] = [];
+    acc[pluralType].push(file);
     return acc;
   }, {} as Record<string, MessageFile[]>);
 
