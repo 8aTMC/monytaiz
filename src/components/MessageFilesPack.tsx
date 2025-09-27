@@ -47,32 +47,25 @@ export const MessageFilesPack = ({
   const [showFullScreen, setShowFullScreen] = useState(false);
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
   
-  // Group files by type and normalize to plural types
+  // Group files by type (keep original types for internal logic)
   const groupedFiles = files.reduce((acc, file) => {
-    // Normalize singular types to plural
-    let pluralType = file.type;
-    if (file.type === 'image') pluralType = 'images';
-    else if (file.type === 'video') pluralType = 'videos';  
-    else if (file.type === 'document') pluralType = 'documents';
-    // audio stays as audio
-    
-    if (!acc[pluralType]) acc[pluralType] = [];
-    acc[pluralType].push(file);
+    if (!acc[file.type]) acc[file.type] = [];
+    acc[file.type].push(file);
     return acc;
   }, {} as Record<string, MessageFile[]>);
 
   // Create ordered array: images first, then videos, then audio, then documents
   const orderedFiles = [
-    ...(groupedFiles.images || []),
-    ...(groupedFiles.videos || []),
+    ...(groupedFiles.image || []),
+    ...(groupedFiles.video || []),
     ...(groupedFiles.audio || []),
-    ...(groupedFiles.documents || [])
+    ...(groupedFiles.document || [])
   ];
 
-  const imageFiles = groupedFiles.images || [];
-  const videoFiles = groupedFiles.videos || [];
+  const imageFiles = groupedFiles.image || [];
+  const videoFiles = groupedFiles.video || [];
   const audioFiles = groupedFiles.audio || [];
-  const documentFiles = groupedFiles.documents || [];
+  const documentFiles = groupedFiles.document || [];
   
   const currentFile = orderedFiles[currentIndex];
   
@@ -80,7 +73,7 @@ export const MessageFilesPack = ({
   const getTypeCounters = () => {
     const currentFileType = currentFile?.type;
     
-    if (currentFileType === 'images') {
+    if (currentFileType === 'image') {
       const currentImageIndex = imageFiles.findIndex(f => f.id === currentFile.id) + 1;
       return {
         current: `${currentImageIndex}/${imageFiles.length}`,
@@ -90,7 +83,7 @@ export const MessageFilesPack = ({
           { count: audioFiles.length, icon: Music }
         ].filter(item => item.count > 0)
       };
-    } else if (currentFileType === 'videos') {
+    } else if (currentFileType === 'video') {
       const currentVideoIndex = videoFiles.findIndex(f => f.id === currentFile.id) + 1;
       return {
         current: `${currentVideoIndex}/${videoFiles.length}`,
@@ -127,8 +120,8 @@ export const MessageFilesPack = ({
     allViewableGroups.push({
       type: 'media',
       files: mediaFiles,
-      title: `${groupedFiles.images?.length || 0} Photo${(groupedFiles.images?.length || 0) !== 1 ? 's' : ''} ${
-        groupedFiles.videos?.length ? `& ${groupedFiles.videos.length} Video${groupedFiles.videos.length !== 1 ? 's' : ''}` : ''
+      title: `${groupedFiles.image?.length || 0} Photo${(groupedFiles.image?.length || 0) !== 1 ? 's' : ''} ${
+        groupedFiles.video?.length ? `& ${groupedFiles.video.length} Video${groupedFiles.video.length !== 1 ? 's' : ''}` : ''
       }`.trim()
     });
   }
@@ -156,7 +149,7 @@ export const MessageFilesPack = ({
           <CardContent className="p-6 text-center relative overflow-hidden">
             {/* Blurred preview background */}
             <div className="absolute inset-0 opacity-20">
-              {currentFile && currentFile.type === 'images' && (
+              {currentFile && currentFile.type === 'image' && (
                 <div 
                   className="w-full h-full bg-cover bg-center filter blur-xl scale-110"
                   style={{ 
@@ -225,46 +218,56 @@ export const MessageFilesPack = ({
 
   return (
     <>
-      <div className="space-y-3 max-w-sm">
+      <div className="space-y-3 max-w-lg">
         {/* Main Media Pack */}
         {orderedFiles.length > 0 && (
           <Card className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow" onClick={handleMediaClick}>
             <div className="relative">
               {/* Media Content */}
-              <div className="aspect-square bg-muted flex items-center justify-center relative">
-                {currentFile?.type === 'images' ? (
+              <div className="aspect-video bg-muted flex items-center justify-center relative">
+                {currentFile?.type === 'image' ? (
                   <img 
                     src={currentFile?.url || currentFile?.preview} 
                     alt={currentFile?.name}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.log('Image load error:', currentFile?.url, currentFile?.preview);
+                    }}
                   />
-                ) : currentFile?.type === 'videos' ? (
+                ) : currentFile?.type === 'video' ? (
                   <div className="w-full h-full bg-black flex items-center justify-center relative">
-                    {currentFile.preview && (
+                    {currentFile.preview ? (
                       <img 
                         src={currentFile.preview}
                         alt={currentFile.name}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.log('Video thumbnail load error:', currentFile.preview);
+                        }}
                       />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                        <Video className="h-16 w-16 text-gray-400" />
+                      </div>
                     )}
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Button variant="ghost" size="icon" className="text-white bg-black/50 hover:bg-black/70">
-                        <Play className="h-8 w-8" />
+                        <Play className="h-12 w-12" />
                       </Button>
                     </div>
                   </div>
                 ) : currentFile?.type === 'audio' ? (
                   <div className="w-full h-full bg-gradient-to-br from-purple-900 to-blue-900 flex items-center justify-center">
                     <div className="text-center text-white">
-                      <Music className="h-12 w-12 mx-auto mb-2" />
-                      <p className="text-sm font-medium truncate px-4">{currentFile.name}</p>
+                      <Music className="h-16 w-16 mx-auto mb-4" />
+                      <p className="text-base font-medium truncate px-4">{currentFile.name}</p>
                     </div>
                   </div>
                 ) : (
                   <div className="w-full h-full bg-gray-800 flex items-center justify-center">
                     <div className="text-center text-white">
-                      <FileText className="h-12 w-12 mx-auto mb-2" />
-                      <p className="text-sm font-medium truncate px-4">{currentFile?.name}</p>
+                      <FileText className="h-16 w-16 mx-auto mb-4" />
+                      <p className="text-base font-medium truncate px-4">{currentFile?.name}</p>
                     </div>
                   </div>
                 )}

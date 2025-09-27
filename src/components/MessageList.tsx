@@ -127,7 +127,7 @@ const MessageBubble = React.memo(({
         
         {/* File attachments */}
         {message.has_attachments && !attachmentsLoading && attachments.length > 0 && (
-          <div className="w-full max-w-sm">
+          <div className="w-full max-w-lg">
             <MessageFilesPack
               files={attachments}
               messageId={message.id}
