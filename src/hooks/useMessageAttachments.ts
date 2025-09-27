@@ -130,7 +130,7 @@ export const useMessageAttachments = (messageId?: string) => {
             let url: string | undefined;
             let preview: string | undefined;
             
-            if (filePath) {
+            if (filePath && filePath.trim()) {
               try {
                 url = await getDirectUrl(filePath);
                 

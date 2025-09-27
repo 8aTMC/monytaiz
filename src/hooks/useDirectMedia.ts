@@ -16,7 +16,10 @@ export const useDirectMedia = () => {
     path: string,
     transforms?: { width?: number; height?: number; quality?: number }
   ): Promise<string> => {
-    if (!path) return '';
+    if (!path || !path.trim()) {
+      console.warn('🚫 Empty or invalid path provided to getDirectUrl:', path);
+      return '';
+    }
 
     console.log('🔗 Direct media URL request for path:', path, 'transforms:', transforms);
 

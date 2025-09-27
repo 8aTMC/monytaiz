@@ -197,8 +197,8 @@ export const MessageFilesPack = ({
       return "w-full h-full object-cover object-center hover:scale-105 transition-transform duration-300";
     }
     
-    // Default fallback while loading
-    return "w-full h-full object-cover object-center hover:scale-105 transition-transform duration-300";
+    // Default fallback while loading - use object-contain so vertical images show with black bars
+    return "w-full h-full object-contain hover:scale-105 transition-transform duration-300";
   };
 
   // Show initial loading state
