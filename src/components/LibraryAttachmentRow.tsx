@@ -30,7 +30,7 @@ export const LibraryAttachmentRow = ({ files, onRemoveFile, onClearAll, classNam
       {onClearAll && (
         <button
           onClick={onClearAll}
-          className="absolute top-[18px] left-3 z-10 bg-destructive/10 hover:bg-destructive/20 text-destructive text-xs px-2 py-1 rounded-full transition-colors"
+          className="absolute top-[-2px] left-3 z-10 bg-destructive/10 hover:bg-destructive/20 text-destructive text-xs px-2 py-1 rounded-full transition-colors"
         >
           Clear
         </button>
