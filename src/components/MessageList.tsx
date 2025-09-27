@@ -7,6 +7,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { getInitials } from '@/lib/initials';
 import { ChevronDown, Check, CheckCheck, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MessageFilesPack } from '@/components/MessageFilesPack';
+import { useMessageAttachments } from '@/hooks/useMessageAttachments';
 
 // Constants
 const PAGE_SIZE = 50;
@@ -25,6 +27,9 @@ interface Message {
   read_by_recipient: boolean;
   read_at?: string;
   is_system_message?: boolean;
+  has_attachments?: boolean;
+  attachment_count?: number;
+  is_ppv?: boolean;
 }
 
 interface MessageListProps {
@@ -62,6 +67,9 @@ const MessageBubble = React.memo(({
   partnerProfile?: any; 
   currentUserId: string;
 }) => {
+  const { attachments, loading: attachmentsLoading } = useMessageAttachments(
+    message.has_attachments ? message.id : undefined
+  );
   const getDeliveryStatusIcon = (message: Message) => {
     if (message.sender_id !== currentUserId) return null;
     
@@ -101,17 +109,41 @@ const MessageBubble = React.memo(({
         "flex flex-col gap-0.5 max-w-xs md:max-w-sm lg:max-w-md",
         isOwn ? "items-end" : "items-start"
       )}>
-        <div className={cn(
-          "rounded-lg px-3 py-2 break-words",
-          isOwn
-            ? "bg-primary text-primary-foreground"
-            : "bg-muted",
-          message.is_system_message && "bg-muted/50 text-muted-foreground italic"
-        )}>
-          <p className="text-sm whitespace-pre-wrap leading-relaxed emoji">
-            {message.content}
-          </p>
-        </div>
+        {/* Message content */}
+        {message.content.trim() && (
+          <div className={cn(
+            "rounded-lg px-3 py-2 break-words",
+            isOwn
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted",
+            message.is_system_message && "bg-muted/50 text-muted-foreground italic",
+            message.has_attachments && "mb-2"
+          )}>
+            <p className="text-sm whitespace-pre-wrap leading-relaxed emoji">
+              {message.content}
+            </p>
+          </div>
+        )}
+        
+        {/* File attachments */}
+        {message.has_attachments && !attachmentsLoading && attachments.length > 0 && (
+          <div className="w-full max-w-sm">
+            <MessageFilesPack
+              files={attachments}
+              messageId={message.id}
+              isDownloadAllowed={true}
+            />
+          </div>
+        )}
+        
+        {message.has_attachments && attachmentsLoading && (
+          <div className={cn(
+            "rounded-lg px-3 py-2 bg-muted/50 text-muted-foreground",
+            "animate-pulse"
+          )}>
+            <p className="text-sm">Loading attachments...</p>
+          </div>
+        )}
         <div className={cn(
           "flex items-center gap-1 text-xs text-muted-foreground opacity-70 transition-opacity",
           isOwn && "flex-row-reverse"
@@ -200,14 +232,14 @@ export const MessageList = ({
 
     try {
       const oldestMessage = messagesList[0];
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .eq('status', 'active')
-        .lt('created_at', oldestMessage.created_at)
-        .order('created_at', { ascending: false })
-        .limit(PAGE_SIZE);
+        const { data, error } = await supabase
+          .from('messages')
+          .select('id, content, sender_id, created_at, conversation_id, message_type, delivered_at, read_by_recipient, read_at, is_system_message, has_attachments, attachment_count, is_ppv, status')
+          .eq('conversation_id', conversationId)
+          .eq('status', 'active')
+          .lt('created_at', oldestMessage.created_at)
+          .order('created_at', { ascending: false })
+          .limit(PAGE_SIZE);
 
       if (error) throw error;
 
@@ -242,7 +274,7 @@ export const MessageList = ({
       try {
         const { data, error } = await supabase
           .from('messages')
-          .select('*')
+          .select('id, content, sender_id, created_at, conversation_id, message_type, delivered_at, read_by_recipient, read_at, is_system_message, has_attachments, attachment_count, is_ppv, status')
           .eq('conversation_id', conversationId)
           .eq('status', 'active')
           .order('created_at', { ascending: false })
