@@ -48,7 +48,6 @@ export const FullScreenMediaViewer = ({
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [isPortrait, setIsPortrait] = useState(false);
 
   // Group files by type and maintain order
   const groupedFiles = files.reduce((acc, file, index) => {
@@ -180,11 +179,6 @@ export const FullScreenMediaViewer = ({
     document.body.removeChild(link);
   };
 
-  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const img = e.currentTarget;
-    const isImagePortrait = img.naturalHeight > img.naturalWidth;
-    setIsPortrait(isImagePortrait);
-  };
 
   if (!isOpen) return null;
 
@@ -237,13 +231,7 @@ export const FullScreenMediaViewer = ({
               <img
                 src={currentFile.url || currentFile.preview}
                 alt={currentFile.name}
-                className={cn(
-                  "w-auto h-auto",
-                  isPortrait 
-                    ? "w-[90vw] h-auto object-cover max-h-[90vh]" 
-                    : "max-w-[90vw] max-h-[90vh] object-contain"
-                )}
-                onLoad={handleImageLoad}
+                className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain"
                 onContextMenu={(e) => !isDownloadAllowed && e.preventDefault()}
                 onDragStart={(e) => !isDownloadAllowed && e.preventDefault()}
                 style={{ userSelect: isDownloadAllowed ? 'auto' : 'none' }}
