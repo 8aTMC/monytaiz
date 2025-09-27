@@ -186,10 +186,6 @@ export const FullScreenMediaViewer = ({
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-black/80 backdrop-blur-sm">
         <div className="flex items-center gap-4">
-          <h2 className="text-white font-medium truncate max-w-md">
-            {currentFile?.name || 'Media'}
-          </h2>
-          
           {typeCounters && (
             <div className="flex items-center gap-3">
               <Badge variant="secondary" className="bg-white/20 text-white">
@@ -208,17 +204,6 @@ export const FullScreenMediaViewer = ({
         </div>
 
         <div className="flex items-center gap-2">
-          {isDownloadAllowed && currentFile?.url && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleDownload}
-              className="text-white hover:bg-white/20"
-            >
-              <Download className="h-4 w-4" />
-            </Button>
-          )}
-          
           {!isDownloadAllowed && (
             <Badge variant="outline" className="border-red-400 text-red-400">
               <Shield className="h-3 w-3 mr-1" />
