@@ -165,7 +165,7 @@ export const MessageFilesPack = ({
   if (isLoading || files.length === 0) {
     return (
       <Card className="w-80 overflow-hidden">
-        <div className="aspect-video bg-muted animate-pulse flex items-center justify-center">
+        <div className="aspect-square bg-muted animate-pulse flex items-center justify-center">
           <div className="text-center">
             <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin text-muted-foreground" />
             <p className="text-sm text-muted-foreground">Loading attachments...</p>
@@ -258,7 +258,7 @@ export const MessageFilesPack = ({
           <Card className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow" onClick={handleMediaClick}>
             <div className="relative">
               {/* Media Content */}
-              <div className="aspect-video bg-muted flex items-center justify-center relative">
+              <div className="aspect-square bg-muted flex items-center justify-center relative">
                 {displayFile?.type === 'image' ? (
                   <img 
                     src={displayFile?.preview || displayFile?.url} 
