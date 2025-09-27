@@ -129,8 +129,8 @@ export const useMessageFileUpload = (options: UseMessageFileUploadOptions = {}) 
     });
   }, []);
 
-  const uploadFiles = useCallback(async () => {
-    if (uploadingFiles.length === 0) return;
+  const uploadFiles = useCallback(async (): Promise<any[]> => {
+    if (uploadingFiles.length === 0) return [];
     
     setIsUploading(true);
     const uploadedFiles: any[] = [];
@@ -140,7 +140,7 @@ export const useMessageFileUpload = (options: UseMessageFileUploadOptions = {}) 
       const user = await getCurrentUser();
       if (!user) {
         toast.error('Please log in to upload files');
-        return;
+        return [];
       }
 
       for (const uploadingFile of uploadingFiles) {
@@ -211,7 +211,8 @@ export const useMessageFileUpload = (options: UseMessageFileUploadOptions = {}) 
           name: uploadingFile.file.name,
           size: uploadingFile.file.size,
           url: publicUrl,
-          preview: uploadingFile.preview
+          preview: uploadingFile.preview,
+          media_table: 'content_files'
         });
 
         // Mark as uploaded
@@ -232,6 +233,8 @@ export const useMessageFileUpload = (options: UseMessageFileUploadOptions = {}) 
     } finally {
       setIsUploading(false);
     }
+
+    return uploadedFiles;
   }, [uploadingFiles, options]);
 
   const clearFiles = useCallback(() => {

@@ -64,7 +64,8 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
     rawFiles,
     addFiles,
     removeFileByIndex,
-    clearFiles
+    clearFiles,
+    uploadFiles
   } = useMessageFileUpload();
 
   // Initialize typing indicator hook
@@ -236,14 +237,27 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
   };
 
   const sendMessage = async () => {
-    if (!conversation || (!newMessage.trim() && attachedFiles.length === 0) || sending) return;
+    if (!conversation || (!newMessage.trim() && attachedFiles.length === 0 && rawFiles.length === 0) || sending) return;
 
     try {
       setSending(true);
       stopTyping(); // Stop typing indicator when sending
       
-      const messageContent = newMessage.trim() || (attachedFiles.length > 0 ? "" : "");
-      const isPPV = attachedFiles.length > 0;
+      // If there are raw (local) files selected, upload them first
+      let uploaded: any[] = [];
+      if (rawFiles.length > 0) {
+        try {
+          uploaded = await uploadFiles();
+        } catch (e) {
+          console.error('Error uploading files before sending message:', e);
+        }
+      }
+
+      // Merge library attachments with any newly uploaded files
+      const attachmentsToUse = [...attachedFiles, ...(uploaded || [])];
+
+      const messageContent = newMessage.trim() || "";
+      const isPPV = attachmentsToUse.length > 0;
       
       const { data: messageData, error } = await supabase
         .from('messages')
@@ -253,8 +267,8 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           content: messageContent,
           status: 'active',
           is_ppv: isPPV,
-          has_attachments: attachedFiles.length > 0,
-          attachment_count: attachedFiles.length
+          has_attachments: attachmentsToUse.length > 0,
+          attachment_count: attachmentsToUse.length
           // Note: delivered_at will be set when recipient comes online
         })
         .select()
@@ -262,9 +276,9 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
 
       if (error) throw error;
       
-      // If there are attached files, create file attachments
-      if (attachedFiles.length > 0) {
-        const attachments = attachedFiles.map((file, index) => ({
+      // If there are any attachments, create file attachment records
+      if (attachmentsToUse.length > 0) {
+        const attachments = attachmentsToUse.map((file, index) => ({
           message_id: messageData.id,
           media_id: file.id,
           media_table: 'simple_media',
@@ -282,6 +296,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
       
       setNewMessage('');
       setAttachedFiles([]);
+      clearFiles();
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -544,7 +559,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           />
           <Button 
             type="submit" 
-            disabled={(!newMessage.trim() && attachedFiles.length === 0) || sending}
+            disabled={(!newMessage.trim() && attachedFiles.length === 0 && rawFiles.length === 0) || sending}
             onClick={stopTyping} // Stop typing when send button is clicked
           >
             <Send className="h-4 w-4" />
