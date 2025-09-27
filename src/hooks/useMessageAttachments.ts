@@ -134,11 +134,22 @@ export const useMessageAttachments = (messageId?: string) => {
               try {
                 url = await getDirectUrl(filePath);
                 
-                // For videos, use thumbnail if available, otherwise use main URL
-                if (type === 'video' && thumbnailPath) {
-                  preview = await getDirectUrl(thumbnailPath);
+                if (type === 'video') {
+                  // Try server thumbnail first, fallback to video URL for client-side generation
+                  if (thumbnailPath) {
+                    try {
+                      preview = await getDirectUrl(thumbnailPath);
+                    } catch (thumbnailError) {
+                      console.warn('Server thumbnail failed, will use client-side generation:', thumbnailError);
+                      // Set preview to null so MessageFilesPack can handle client-side generation
+                      preview = undefined;
+                    }
+                  } else {
+                    preview = undefined; // Will trigger client-side generation
+                  }
                 } else if (type === 'image') {
-                  preview = url;
+                  // Use image transforms for smaller thumbnails (512x288 for 16:9)
+                  preview = await getDirectUrl(filePath, { width: 512, height: 288, quality: 85 });
                 }
               } catch (urlError) {
                 console.warn('Failed to get secure URL for:', filePath, urlError);

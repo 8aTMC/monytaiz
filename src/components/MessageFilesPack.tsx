@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Play, Download, Lock, Volume2, Image, Video, Music, FileText } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Download, Lock, Volume2, Image, Video, Music, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { FullScreenMediaViewer } from '@/components/FullScreenMediaViewer';
 import { PPVUnlockDialog } from '@/components/PPVUnlockDialog';
+import { useClientVideoThumbnail } from '@/hooks/useClientVideoThumbnail';
 
 interface MessageFile {
   id: string;
@@ -67,14 +68,19 @@ export const MessageFilesPack = ({
   const audioFiles = groupedFiles.audio || [];
   const documentFiles = groupedFiles.document || [];
   
-  const currentFile = orderedFiles[currentIndex];
+  const displayFile = orderedFiles[currentIndex];
+  
+  // Use client-side video thumbnail generation when server thumbnail is not available
+  const { thumbnail: clientVideoThumbnail, isGenerating: isGeneratingThumbnail } = useClientVideoThumbnail(
+    displayFile?.type === 'video' && !displayFile?.preview ? displayFile?.url : undefined
+  );
   
   // Get type-specific counter display
   const getTypeCounters = () => {
-    const currentFileType = currentFile?.type;
+    const currentFileType = displayFile?.type;
     
     if (currentFileType === 'image') {
-      const currentImageIndex = imageFiles.findIndex(f => f.id === currentFile.id) + 1;
+      const currentImageIndex = imageFiles.findIndex(f => f.id === displayFile.id) + 1;
       return {
         current: `${currentImageIndex}/${imageFiles.length}`,
         currentIcon: Image,
@@ -84,7 +90,7 @@ export const MessageFilesPack = ({
         ].filter(item => item.count > 0)
       };
     } else if (currentFileType === 'video') {
-      const currentVideoIndex = videoFiles.findIndex(f => f.id === currentFile.id) + 1;
+      const currentVideoIndex = videoFiles.findIndex(f => f.id === displayFile.id) + 1;
       return {
         current: `${currentVideoIndex}/${videoFiles.length}`,
         currentIcon: Video,
@@ -94,7 +100,7 @@ export const MessageFilesPack = ({
         ].filter(item => item.count > 0)
       };
     } else if (currentFileType === 'audio') {
-      const currentAudioIndex = audioFiles.findIndex(f => f.id === currentFile.id) + 1;
+      const currentAudioIndex = audioFiles.findIndex(f => f.id === displayFile.id) + 1;
       return {
         current: `${currentAudioIndex}/${audioFiles.length}`,
         currentIcon: Music,
@@ -149,11 +155,11 @@ export const MessageFilesPack = ({
           <CardContent className="p-6 text-center relative overflow-hidden">
             {/* Blurred preview background */}
             <div className="absolute inset-0 opacity-20">
-              {currentFile && currentFile.type === 'image' && (
+              {displayFile && displayFile.type === 'image' && (
                 <div 
                   className="w-full h-full bg-cover bg-center filter blur-xl scale-110"
                   style={{ 
-                    backgroundImage: `url(${currentFile.url || currentFile.preview})` 
+                    backgroundImage: `url(${displayFile.url || displayFile.preview})` 
                   }}
                 />
               )}
@@ -225,26 +231,40 @@ export const MessageFilesPack = ({
             <div className="relative">
               {/* Media Content */}
               <div className="aspect-video bg-muted flex items-center justify-center relative">
-                {currentFile?.type === 'image' ? (
+                {displayFile?.type === 'image' ? (
                   <img 
-                    src={currentFile?.url || currentFile?.preview} 
-                    alt={currentFile?.name}
+                    src={displayFile?.preview || displayFile?.url} 
+                    alt={displayFile?.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      console.log('Image load error:', currentFile?.url, currentFile?.preview);
+                      console.log('Image load error:', displayFile?.url, displayFile?.preview);
                     }}
                   />
-                ) : currentFile?.type === 'video' ? (
+                ) : displayFile?.type === 'video' ? (
                   <div className="w-full h-full bg-black flex items-center justify-center relative">
-                    {currentFile.preview ? (
+                    {/* Show server thumbnail, client thumbnail, or loading/fallback */}
+                    {displayFile.preview ? (
                       <img 
-                        src={currentFile.preview}
-                        alt={currentFile.name}
-                        className="w-full h-full object-cover"
+                        src={displayFile.preview}
+                        alt={displayFile.name}
+                        className="w-full h-full object-contain"
                         onError={(e) => {
-                          console.log('Video thumbnail load error:', currentFile.preview);
+                          console.log('Video thumbnail load error:', displayFile.preview);
                         }}
                       />
+                    ) : clientVideoThumbnail ? (
+                      <img 
+                        src={clientVideoThumbnail}
+                        alt={displayFile.name}
+                        className="w-full h-full object-contain"
+                      />
+                    ) : isGeneratingThumbnail ? (
+                      <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                        <div className="text-center text-white">
+                          <Loader2 className="h-16 w-16 mx-auto mb-2 animate-spin text-gray-400" />
+                          <p className="text-sm text-gray-400">Generating thumbnail...</p>
+                        </div>
+                      </div>
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
                         <Video className="h-16 w-16 text-gray-400" />
@@ -256,18 +276,18 @@ export const MessageFilesPack = ({
                       </Button>
                     </div>
                   </div>
-                ) : currentFile?.type === 'audio' ? (
+                ) : displayFile?.type === 'audio' ? (
                   <div className="w-full h-full bg-gradient-to-br from-purple-900 to-blue-900 flex items-center justify-center">
                     <div className="text-center text-white">
                       <Music className="h-16 w-16 mx-auto mb-4" />
-                      <p className="text-base font-medium truncate px-4">{currentFile.name}</p>
+                      <p className="text-base font-medium truncate px-4">{displayFile.name}</p>
                     </div>
                   </div>
                 ) : (
                   <div className="w-full h-full bg-gray-800 flex items-center justify-center">
                     <div className="text-center text-white">
                       <FileText className="h-16 w-16 mx-auto mb-4" />
-                      <p className="text-base font-medium truncate px-4">{currentFile?.name}</p>
+                      <p className="text-base font-medium truncate px-4">{displayFile?.name}</p>
                     </div>
                   </div>
                 )}
