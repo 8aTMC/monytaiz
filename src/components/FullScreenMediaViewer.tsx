@@ -245,7 +245,7 @@ export const FullScreenMediaViewer = ({
               <img
                 src={currentFile.url || currentFile.preview}
                 alt={currentFile.name}
-                className="max-w-full max-h-full object-contain"
+                className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain"
                 onContextMenu={(e) => !isDownloadAllowed && e.preventDefault()}
                 onDragStart={(e) => !isDownloadAllowed && e.preventDefault()}
                 style={{ userSelect: isDownloadAllowed ? 'auto' : 'none' }}
@@ -257,7 +257,7 @@ export const FullScreenMediaViewer = ({
                 src={currentFile.url}
                 controls={isDownloadAllowed}
                 controlsList={isDownloadAllowed ? "default" : "nodownload"}
-                className="max-w-full max-h-full"
+                className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain"
                 onContextMenu={(e) => !isDownloadAllowed && e.preventDefault()}
               >
                 Your browser does not support the video tag.
