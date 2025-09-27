@@ -528,20 +528,38 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
 
   const sendMessage = async () => {
-    if (!activeConversation || !newMessage.trim() || sending) return;
+    if (!activeConversation || (!newMessage.trim() && attachedFiles.length === 0 && rawFiles.length === 0) || sending) return;
 
     try {
       setSending(true);
       stopTyping(); // Stop typing indicator when sending
       
-      const messageContent = newMessage.trim();
+      // If there are raw (local) files selected, upload them first
+      let uploaded: any[] = [];
+      if (rawFiles.length > 0) {
+        try {
+          uploaded = await uploadFiles();
+        } catch (e) {
+          console.error('Error uploading files before sending message:', e);
+        }
+      }
+
+      // Merge library attachments with any newly uploaded files
+      const attachmentsToUse = [...attachedFiles, ...(uploaded || [])];
+
+      const messageContent = newMessage.trim() || "";
+      const isPPV = attachmentsToUse.length > 0;
+      
       const { data: messageData, error } = await supabase
         .from('messages')
         .insert({
           conversation_id: activeConversation.id,
           sender_id: user.id,
           content: messageContent,
-          status: 'active'
+          status: 'active',
+          is_ppv: isPPV,
+          has_attachments: attachmentsToUse.length > 0,
+          attachment_count: attachmentsToUse.length
           // Note: delivered_at will be set when recipient comes online
         })
         .select()
@@ -549,7 +567,27 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
 
       if (error) throw error;
       
+      // If there are any attachments, create file attachment records
+      if (attachmentsToUse.length > 0) {
+        const attachments = attachmentsToUse.map((file, index) => ({
+          message_id: messageData.id,
+          media_id: file.id,
+          media_table: file.media_table || 'simple_media',
+          file_order: index
+        }));
+
+        const { error: attachmentError } = await supabase
+          .from('message_file_attachments')
+          .insert(attachments);
+
+        if (attachmentError) {
+          console.error('Error creating file attachments:', attachmentError);
+        }
+      }
+      
       setNewMessage('');
+      setAttachedFiles([]);
+      clearFiles();
       
       // AI responses are now handled in the real-time message subscription
       // This prevents the AI from responding to its own messages
@@ -1026,7 +1064,7 @@ export const MessagesLayout = ({ user, isCreator }: MessagesLayoutProps) => {
                   
                   <Button 
                     type="submit"
-                    disabled={!newMessage.trim() || sending || (hasFiles && !allFilesUploaded)}
+                    disabled={(!newMessage.trim() && attachedFiles.length === 0 && rawFiles.length === 0) || sending || (hasFiles && !allFilesUploaded)}
                     size="sm"
                     className="h-10"
                   >

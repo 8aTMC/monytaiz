@@ -281,7 +281,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
         const attachments = attachmentsToUse.map((file, index) => ({
           message_id: messageData.id,
           media_id: file.id,
-          media_table: 'simple_media',
+          media_table: file.media_table || 'simple_media',
           file_order: index,
         }));
 
