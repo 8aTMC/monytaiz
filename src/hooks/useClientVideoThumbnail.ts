@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 
+// Global thumbnail cache to prevent re-generation during navigation
+const thumbnailCache = new Map<string, string>();
+const generationPromises = new Map<string, Promise<string | null>>();
+
 // Simple client-side video thumbnail hook specifically for message attachments
 export const useClientVideoThumbnail = (videoUrl?: string) => {
   const [thumbnail, setThumbnail] = useState<string | null>(null);
@@ -9,6 +13,29 @@ export const useClientVideoThumbnail = (videoUrl?: string) => {
   useEffect(() => {
     if (!videoUrl) {
       setThumbnail(null);
+      return;
+    }
+
+    // Check cache first
+    const cachedThumbnail = thumbnailCache.get(videoUrl);
+    if (cachedThumbnail) {
+      setThumbnail(cachedThumbnail);
+      setIsGenerating(false);
+      return;
+    }
+
+    // Check if generation is already in progress
+    const existingPromise = generationPromises.get(videoUrl);
+    if (existingPromise) {
+      setIsGenerating(true);
+      existingPromise.then((result) => {
+        if (result) {
+          setThumbnail(result);
+        }
+        setIsGenerating(false);
+      }).catch(() => {
+        setIsGenerating(false);
+      });
       return;
     }
 
@@ -28,20 +55,28 @@ export const useClientVideoThumbnail = (videoUrl?: string) => {
       try {
         const thumbnailDataUrl = await generateVideoThumbnailFromUrl(videoUrl, abortController.signal);
         if (!abortController.signal.aborted && thumbnailDataUrl) {
+          // Cache the generated thumbnail
+          thumbnailCache.set(videoUrl, thumbnailDataUrl);
           setThumbnail(thumbnailDataUrl);
         }
+        return thumbnailDataUrl;
       } catch (error) {
         if (!abortController.signal.aborted) {
-          console.warn('Client thumbnail generation failed:', error);
+          console.warn('Client thumbnail generation failed for:', videoUrl, error);
         }
+        return null;
       } finally {
         if (!abortController.signal.aborted) {
           setIsGenerating(false);
         }
+        // Remove from generation promises
+        generationPromises.delete(videoUrl);
       }
     };
 
-    generateThumbnail();
+    // Store the promise to prevent duplicate generation
+    const promise = generateThumbnail();
+    generationPromises.set(videoUrl, promise);
 
     return () => {
       abortController.abort();

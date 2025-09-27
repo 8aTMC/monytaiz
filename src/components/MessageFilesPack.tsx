@@ -70,9 +70,9 @@ export const MessageFilesPack = ({
   
   const displayFile = orderedFiles[currentIndex];
   
-  // Use client-side video thumbnail generation when server thumbnail is not available
-  const { thumbnail: clientVideoThumbnail, isGenerating: isGeneratingThumbnail } = useClientVideoThumbnail(
-    displayFile?.type === 'video' && !displayFile?.preview ? displayFile?.url : undefined
+  // Use client-side video thumbnail generation for videos
+  const { thumbnail: clientThumbnail, isGenerating } = useClientVideoThumbnail(
+    displayFile?.type === 'video' ? displayFile.url : undefined
   );
   
   // Get type-specific counter display
@@ -242,23 +242,13 @@ export const MessageFilesPack = ({
                   />
                 ) : displayFile?.type === 'video' ? (
                   <div className="w-full h-full bg-black flex items-center justify-center relative">
-                    {/* Show server thumbnail, client thumbnail, or loading/fallback */}
-                    {displayFile.preview ? (
+                    {clientThumbnail ? (
                       <img 
-                        src={displayFile.preview}
+                        src={clientThumbnail}
                         alt={displayFile.name}
-                        className="w-full h-full object-contain"
-                        onError={(e) => {
-                          console.log('Video thumbnail load error:', displayFile.preview);
-                        }}
+                        className="w-full h-full object-cover"
                       />
-                    ) : clientVideoThumbnail ? (
-                      <img 
-                        src={clientVideoThumbnail}
-                        alt={displayFile.name}
-                        className="w-full h-full object-contain"
-                      />
-                    ) : isGeneratingThumbnail ? (
+                    ) : isGenerating ? (
                       <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
                         <div className="text-center text-white">
                           <Loader2 className="h-16 w-16 mx-auto mb-2 animate-spin text-gray-400" />
