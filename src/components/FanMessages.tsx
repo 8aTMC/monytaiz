@@ -236,13 +236,13 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
   };
 
   const sendMessage = async () => {
-    if (!conversation || !newMessage.trim() || sending) return;
+    if (!conversation || (!newMessage.trim() && attachedFiles.length === 0) || sending) return;
 
     try {
       setSending(true);
       stopTyping(); // Stop typing indicator when sending
       
-      const messageContent = newMessage.trim();
+      const messageContent = newMessage.trim() || (attachedFiles.length > 0 ? "" : "");
       const isPPV = attachedFiles.length > 0;
       
       const { data: messageData, error } = await supabase
@@ -544,7 +544,7 @@ export const FanMessages = ({ user }: FanMessagesProps) => {
           />
           <Button 
             type="submit" 
-            disabled={!newMessage.trim() || sending}
+            disabled={(!newMessage.trim() && attachedFiles.length === 0) || sending}
             onClick={stopTyping} // Stop typing when send button is clicked
           >
             <Send className="h-4 w-4" />
