@@ -258,12 +258,12 @@ export const MessageFilesPack = ({
           <Card className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow" onClick={handleMediaClick}>
             <div className="relative">
               {/* Media Content */}
-              <div className="aspect-square bg-muted flex items-center justify-center relative">
+              <div className="aspect-square bg-muted flex items-center justify-center relative rounded-lg overflow-hidden border border-border/20">
                 {displayFile?.type === 'image' ? (
                   <img 
                     src={displayFile?.preview || displayFile?.url} 
                     alt={displayFile?.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
                       console.log('Image load error:', displayFile?.url, displayFile?.preview);
                     }}
@@ -274,7 +274,7 @@ export const MessageFilesPack = ({
                       <img 
                         src={clientThumbnail}
                         alt={displayFile.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover object-center"
                       />
                     ) : isGenerating ? (
                       <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
@@ -289,23 +289,29 @@ export const MessageFilesPack = ({
                       </div>
                     )}
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <Button variant="ghost" size="icon" className="text-white bg-black/50 hover:bg-black/70">
-                        <Play className="h-12 w-12" />
-                      </Button>
+                      <div className="bg-black/60 backdrop-blur-sm rounded-full p-3 shadow-lg transition-all duration-200 hover:bg-black/70 hover:scale-110">
+                        <Play className="h-6 w-6 text-white fill-white" />
+                      </div>
                     </div>
                   </div>
                 ) : displayFile?.type === 'audio' ? (
-                  <div className="w-full h-full bg-gradient-to-br from-purple-900 to-blue-900 flex items-center justify-center">
-                    <div className="text-center text-white">
-                      <Music className="h-16 w-16 mx-auto mb-4" />
-                      <p className="text-base font-medium truncate px-4">{displayFile.name}</p>
+                  <div className="w-full h-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="bg-background/10 backdrop-blur-sm rounded-full p-4 mb-3 mx-auto w-fit">
+                        <Music className="h-12 w-12 text-primary" />
+                      </div>
+                      <p className="text-sm font-medium text-foreground truncate px-4 max-w-[200px]">{displayFile.name}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{formatFileSize(displayFile.size)}</p>
                     </div>
                   </div>
                 ) : (
-                  <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                    <div className="text-center text-white">
-                      <FileText className="h-16 w-16 mx-auto mb-4" />
-                      <p className="text-base font-medium truncate px-4">{displayFile?.name}</p>
+                  <div className="w-full h-full bg-gradient-to-br from-gray-500/20 to-slate-500/20 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="bg-background/10 backdrop-blur-sm rounded-full p-4 mb-3 mx-auto w-fit">
+                        <FileText className="h-12 w-12 text-primary" />
+                      </div>
+                      <p className="text-sm font-medium text-foreground truncate px-4 max-w-[200px]">{displayFile?.name}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{formatFileSize(displayFile.size)}</p>
                     </div>
                   </div>
                 )}
