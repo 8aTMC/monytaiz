@@ -58,23 +58,23 @@ export const FullScreenMediaViewer = ({
 
   // Create ordered array: images first, then videos, then audio, then others
   const orderedFiles = [
-    ...(groupedFiles.images || []),
-    ...(groupedFiles.videos || []),
+    ...(groupedFiles.image || []),
+    ...(groupedFiles.video || []),
     ...(groupedFiles.audio || []),
-    ...(groupedFiles.documents || [])
+    ...(groupedFiles.document || [])
   ];
 
   const currentFile = orderedFiles[currentIndex];
 
   // Get type-specific counters
   const getTypeCounters = () => {
-    const imageFiles = groupedFiles.images || [];
-    const videoFiles = groupedFiles.videos || [];
+    const imageFiles = groupedFiles.image || [];
+    const videoFiles = groupedFiles.video || [];
     const audioFiles = groupedFiles.audio || [];
     
     const currentFileType = currentFile?.type;
     
-    if (currentFileType === 'images') {
+    if (currentFileType === 'image') {
       const currentImageIndex = imageFiles.findIndex(f => f.id === currentFile.id) + 1;
       return {
         current: `${currentImageIndex}/${imageFiles.length}`,
@@ -84,7 +84,7 @@ export const FullScreenMediaViewer = ({
           { count: audioFiles.length, icon: Music }
         ].filter(item => item.count > 0)
       };
-    } else if (currentFileType === 'videos') {
+    } else if (currentFileType === 'video') {
       const currentVideoIndex = videoFiles.findIndex(f => f.id === currentFile.id) + 1;
       return {
         current: `${currentVideoIndex}/${videoFiles.length}`,
@@ -160,8 +160,8 @@ export const FullScreenMediaViewer = ({
 
   const getFileTypeIcon = (type: string) => {
     switch (type) {
-      case 'images': return <Image className="h-4 w-4" />;
-      case 'videos': return <Video className="h-4 w-4" />;
+      case 'image': return <Image className="h-4 w-4" />;
+      case 'video': return <Video className="h-4 w-4" />;
       case 'audio': return <Music className="h-4 w-4" />;
       default: return <FileText className="h-4 w-4" />;
     }
@@ -241,7 +241,7 @@ export const FullScreenMediaViewer = ({
       <div className="flex-1 flex items-center justify-center relative">
         {currentFile && (
           <>
-            {currentFile.type === 'images' && (
+            {currentFile.type === 'image' && (
               <img
                 src={currentFile.url || currentFile.preview}
                 alt={currentFile.name}
@@ -252,7 +252,7 @@ export const FullScreenMediaViewer = ({
               />
             )}
             
-            {currentFile.type === 'videos' && (
+            {currentFile.type === 'video' && (
               <video
                 src={currentFile.url}
                 controls={isDownloadAllowed}
@@ -286,7 +286,7 @@ export const FullScreenMediaViewer = ({
               </div>
             )}
             
-            {currentFile.type === 'documents' && (
+            {currentFile.type === 'document' && (
               <div className="w-96 p-8 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl text-center">
                 <FileText className="h-16 w-16 text-white/60 mx-auto mb-4" />
                 <h3 className="text-white text-lg font-medium mb-2">
