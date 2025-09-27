@@ -187,8 +187,8 @@ export const MessageFilesPack = ({
     const aspectType = imageAspectRatios[fileId];
     
     if (aspectType === 'portrait') {
-      // Portrait: Fill width, crop height
-      return "w-full h-full object-cover object-center hover:scale-105 transition-transform duration-300";
+      // Portrait: Show entire image with black bars (like videos)
+      return "w-full h-full object-contain hover:scale-105 transition-transform duration-300";
     } else if (aspectType === 'square') {
       // Square: Show entire image
       return "w-full h-full object-contain hover:scale-105 transition-transform duration-300";
